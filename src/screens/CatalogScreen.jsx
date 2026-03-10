@@ -4,6 +4,13 @@ import products from '../data/products.json'
 import { checkProductFit, formatPrice, CATEGORY_LABELS } from '../utils/fitCheck.js'
 import { loadProfile } from '../utils/profile.js'
 
+function getPrimaryImage(product) {
+  if (!product) return null
+  if (product.images?.[0]) return product.images[0]
+  if (product.ean) return `/products/${product.ean}.png`
+  return null
+}
+
 function CategoryIcon({ category }) {
   // Simple mono icons: no emoji "stickers".
   const common = { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' }
@@ -150,7 +157,7 @@ export default function CatalogScreen() {
                 onClick={() => navigate(`/product/${product.id}`)}
               >
                 <div className="product-emoji" style={{ display: 'grid', placeItems: 'center' }}>
-                  <CategoryIcon category={product.category} />
+                  <CatalogThumb product={product} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="product-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -180,4 +187,21 @@ export default function CatalogScreen() {
       </div>
     </div>
   )
+}
+
+function CatalogThumb({ product }) {
+  const src = getPrimaryImage(product)
+  const [ok, setOk] = useState(true)
+  if (src && ok) {
+    return (
+      <img
+        src={src}
+        alt={product.name}
+        className="product-thumb-img"
+        loading="lazy"
+        onError={() => setOk(false)}
+      />
+    )
+  }
+  return <CategoryIcon category={product.category} />
 }

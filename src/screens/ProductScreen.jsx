@@ -14,6 +14,14 @@ function ratingFromQuality(qualityScore) {
   return Math.round(raw * 2) / 2
 }
 
+function getPrimaryImage(product) {
+  // Prefer explicit images, fallback to a convention by EAN.
+  if (!product) return null
+  if (product.images?.[0]) return product.images[0]
+  if (product.ean) return `/products/${product.ean}.png`
+  return null
+}
+
 function StarIcon({ variant = 'empty' }) {
   // variant: empty | half | full
   return (
@@ -130,24 +138,7 @@ export default function ProductScreen() {
         </button>
         <div className="header-row">
           <div className="screen-title">Карточка товара</div>
-          <span
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 12,
-              background: 'var(--primary-dim)',
-              border: '1px solid rgba(139, 92, 246, 0.18)',
-              display: 'grid',
-              placeItems: 'center',
-              color: 'var(--primary-bright)',
-            }}
-            aria-hidden="true"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 8h12l-1 12H7L6 8Z" />
-              <path d="M9 8a3 3 0 0 1 6 0" />
-            </svg>
-          </span>
+          {/* Right-side icon removed: it looked like a cart and confused users */}
         </div>
       </div>
 
@@ -193,11 +184,7 @@ export default function ProductScreen() {
 
           {/* Image on top */}
           <div className="product-hero" style={{ marginBottom: 12 }}>
-            {product.images?.[0] ? (
-              <img src={product.images[0]} alt={product.name} className="product-hero-img" loading="lazy" />
-            ) : (
-              <div className="product-hero-placeholder">Фото добавим позже</div>
-            )}
+            <HeroImage product={product} />
           </div>
 
           {/* Name */}
@@ -253,7 +240,14 @@ export default function ProductScreen() {
                   <div key={label} className="nutri-item">
                     <div className="nutri-label">{label}</div>
                     <div className="nutri-value">
-                      {val ?? '—'} {val != null ? unit : ''}
+                      {val == null ? (
+                        <span className="nutri-num">—</span>
+                      ) : (
+                        <>
+                          <span className="nutri-num">{formatNutriNumber(val)}</span>
+                          <span className="nutri-unit">{unit}</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -367,6 +361,27 @@ export default function ProductScreen() {
       </div>
     </div>
   )
+}
+
+function HeroImage({ product }) {
+  const [ok, setOk] = useState(true)
+  const src = getPrimaryImage(product)
+  if (!src || !ok) return <div className="product-hero-placeholder">Фото добавим позже</div>
+  return (
+    <img
+      src={src}
+      alt={product?.name || 'Фото товара'}
+      className="product-hero-img"
+      loading="lazy"
+      onError={() => setOk(false)}
+    />
+  )
+}
+
+function formatNutriNumber(val) {
+  const n = Number(val)
+  if (Number.isNaN(n)) return String(val)
+  return Number.isInteger(n) ? String(n) : n.toFixed(1)
 }
 
 function humanizeSpecKey(key) {

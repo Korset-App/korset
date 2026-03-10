@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import products from '../data/products.json'
 import { getAlternatives, formatPrice, CATEGORY_LABELS } from '../utils/fitCheck.js'
@@ -14,11 +15,11 @@ export default function AlternativesScreen() {
   return (
     <div className="screen">
       <div className="header">
-        <button className="back-btn" onClick={() => navigate(`/product/${id}`)}>
+        <button className="back-btn" onClick={() => navigate(-1)}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M19 12H5M12 5l-7 7 7 7"/>
           </svg>
-          К товару
+          Назад
         </button>
         <div className="screen-title">Альтернативы</div>
         <div className="screen-subtitle">Подходят под ваш профиль</div>
@@ -52,12 +53,7 @@ export default function AlternativesScreen() {
                 onClick={() => navigate(`/product/${alt.id}`)}
               >
                 <div className="alt-card-header">
-                  <div className="product-emoji" style={{ width: 44, height: 44, display: 'grid', placeItems: 'center' }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--primary-bright)' }}>
-                      <path d="M6 8h12l-1 12H7L6 8Z" />
-                      <path d="M9 8a3 3 0 0 1 6 0" />
-                    </svg>
-                  </div>
+                  <AltThumb product={alt} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{
                       fontFamily: 'var(--font-body)',
@@ -128,6 +124,35 @@ export default function AlternativesScreen() {
           Спросить AI о выборе
         </button>
       </div>
+    </div>
+  )
+}
+
+function getPrimaryImage(product) {
+  if (!product) return null
+  if (product.images?.[0]) return product.images[0]
+  if (product.ean) return `/products/${product.ean}.png`
+  return null
+}
+
+function AltThumb({ product }) {
+  const src = getPrimaryImage(product)
+  const [ok, setOk] = useState(true)
+  return (
+    <div className="product-thumb" style={{ width: 44, height: 44, display: 'grid', placeItems: 'center' }}>
+      {src && ok ? (
+        <img
+          src={src}
+          alt={product.name}
+          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+          onError={() => setOk(false)}
+        />
+      ) : (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--primary-bright)' }}>
+          <path d="M6 8h12l-1 12H7L6 8Z" />
+          <path d="M9 8a3 3 0 0 1 6 0" />
+        </svg>
+      )}
     </div>
   )
 }
