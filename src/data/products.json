@@ -34,7 +34,10 @@
     },
     "nutritionBase": "на 100 мл",
     "ingredients": "Молоко нормализованное. (Демо-данные: уточнить по упаковке.)",
-    "manufacturer": "Восток-молоко (Казахстан) — демо",
+    "manufacturer": {
+      "name": "Восток-молоко",
+      "country": "Казахстан"
+    },
     "images": [],
     "demoData": true
   },
@@ -73,7 +76,10 @@
     },
     "nutritionBase": "на 100 мл",
     "ingredients": "Молоко нормализованное. (Демо-данные: уточнить по упаковке.)",
-    "manufacturer": "Восток-молоко (Казахстан) — демо",
+    "manufacturer": {
+      "name": "Восток-молоко",
+      "country": "Казахстан"
+    },
     "images": [],
     "demoData": true
   },
@@ -111,7 +117,10 @@
     },
     "nutritionBase": "на 100 мл",
     "ingredients": "Вода, овёс, растительные масла, соль. Без добавленного сахара. (Демо-данные.)",
-    "manufacturer": "Растительный бренд (демо)",
+    "manufacturer": {
+      "name": "Растительный бренд",
+      "country": "демо"
+    },
     "images": [],
     "demoData": true
   },
@@ -149,7 +158,10 @@
     },
     "nutritionBase": "на 100 мл",
     "ingredients": "Молоко пастеризованное. (Демо-данные.)",
-    "manufacturer": "Эмиль (Казахстан) — демо",
+    "manufacturer": {
+      "name": "Эмиль",
+      "country": "Казахстан"
+    },
     "images": [],
     "demoData": true
   },
@@ -186,7 +198,10 @@
     },
     "nutritionBase": "на 100 мл",
     "ingredients": "Молоко нормализованное, закваска. (Демо-данные.)",
-    "manufacturer": "Восток-молоко (Казахстан) — демо",
+    "manufacturer": {
+      "name": "Восток-молоко",
+      "country": "Казахстан"
+    },
     "images": [],
     "demoData": true
   },
@@ -222,7 +237,10 @@
     },
     "nutritionBase": "на 100 мл",
     "ingredients": "Молоко/вода, закваска, соль. (Демо-данные.)",
-    "manufacturer": "Локальный производитель (демо)",
+    "manufacturer": {
+      "name": "Локальный производитель",
+      "country": "демо"
+    },
     "images": [],
     "demoData": true
   },
@@ -259,7 +277,10 @@
     },
     "nutritionBase": "на 100 г",
     "ingredients": "Сливки, закваска. (Демо-данные.)",
-    "manufacturer": "Локальный производитель (демо)",
+    "manufacturer": {
+      "name": "Локальный производитель",
+      "country": "демо"
+    },
     "images": [],
     "demoData": true
   },
@@ -295,7 +316,10 @@
     },
     "nutritionBase": "на 100 мл",
     "ingredients": "Вода, сахар, диоксид углерода, ароматизаторы. (Демо-данные.)",
-    "manufacturer": "The Coca-Cola Company (демо)",
+    "manufacturer": {
+      "name": "The Coca-Cola Company",
+      "country": "демо"
+    },
     "images": [],
     "demoData": true
   },
@@ -331,7 +355,10 @@
     },
     "nutritionBase": "на 100 мл",
     "ingredients": "Вода, подсластители, диоксид углерода, ароматизаторы. (Демо-данные.)",
-    "manufacturer": "The Coca-Cola Company (демо)",
+    "manufacturer": {
+      "name": "The Coca-Cola Company",
+      "country": "демо"
+    },
     "images": [],
     "demoData": true
   },
@@ -347,9 +374,9 @@
       "nuts"
     ],
     "dietTags": [
-      "contains_sugar",
       "contains_dairy",
-      "contains_gluten"
+      "contains_gluten",
+      "contains_sugar"
     ],
     "qualityScore": 40,
     "shelf": "Полка C1",
@@ -370,10 +397,17 @@
       "carbs": 63.0
     },
     "nutritionBase": "на 100 г",
-    "ingredients": "Сахар, арахис, молочные компоненты, какао, карамель. (Сокращено, демо.)",
-    "manufacturer": "Mars (демо)",
-    "images": [],
-    "demoData": true
+    "ingredients": "Молочный шоколад, нуга, карамель, арахис. (Демо-данные: уточнить по упаковке.)",
+    "manufacturer": {
+      "name": "Mars",
+      "country": "США"
+    },
+    "images": [
+      "/products/snickers.png"
+    ],
+    "demoData": true,
+    "storage": "Хранить в сухом прохладном месте при температуре до 25°C.",
+    "expiry": "Срок хранения: уточнить на упаковке (обычно 9–12 месяцев)."
   },
   {
     "id": "p011",
@@ -409,7 +443,10 @@
     },
     "nutritionBase": "на 100 г",
     "ingredients": "Кокос, сахар, шоколадная глазурь, молочные компоненты. (Сокращено, демо.)",
-    "manufacturer": "Mars (демо)",
+    "manufacturer": {
+      "name": "Mars",
+      "country": "демо"
+    },
     "images": [],
     "demoData": true
   },
@@ -446,7 +483,10 @@
     },
     "nutritionBase": "на 100 г",
     "ingredients": "Сахар, глюкозный сироп, какао, молочные компоненты. (Сокращено, демо.)",
-    "manufacturer": "Mars (демо)",
+    "manufacturer": {
+      "name": "Mars",
+      "country": "демо"
+    },
     "images": [],
     "demoData": true
   },
@@ -485,7 +525,10 @@
     },
     "nutritionBase": "на 100 г",
     "ingredients": "Печенье, карамель, шоколадная глазурь. (Сокращено, демо.)",
-    "manufacturer": "Mars (демо)",
+    "manufacturer": {
+      "name": "Mars",
+      "country": "демо"
+    },
     "images": [],
     "demoData": true
   },
@@ -524,7 +567,10 @@
     },
     "nutritionBase": "на 100 г",
     "ingredients": "Пшеничная мука, сахар, растительные масла, какао. (Сокращено, демо.)",
-    "manufacturer": "Mondelēz (демо)",
+    "manufacturer": {
+      "name": "Mondelēz",
+      "country": "демо"
+    },
     "images": [],
     "demoData": true
   },
@@ -559,7 +605,10 @@
     },
     "nutritionBase": "на 100 мл",
     "ingredients": "Вода питьевая. (Демо-данные.)",
-    "manufacturer": "BonAqua (демо)",
+    "manufacturer": {
+      "name": "BonAqua",
+      "country": "демо"
+    },
     "images": [],
     "demoData": true
   },
@@ -595,7 +644,10 @@
     },
     "nutritionBase": "на 100 г",
     "ingredients": "Картофель, растительное масло, соль, ароматизатор «сметана-лук». (Сокращено, демо.)",
-    "manufacturer": "Lay’s (демо)",
+    "manufacturer": {
+      "name": "Lay’s",
+      "country": "демо"
+    },
     "images": [],
     "demoData": true
   },
@@ -631,7 +683,10 @@
     },
     "nutritionBase": "на 100 г",
     "ingredients": "Мука пшеничная, вода, дрожжи, соль. (Сокращено, демо.)",
-    "manufacturer": "Пекарня (демо)",
+    "manufacturer": {
+      "name": "Пекарня",
+      "country": "демо"
+    },
     "images": [],
     "demoData": true
   },
@@ -664,7 +719,10 @@
     },
     "nutritionBase": "на 100 г",
     "ingredients": "Говядина, жир, соль, специи. Halal. (Сокращено, демо.)",
-    "manufacturer": "Halal производитель (демо)",
+    "manufacturer": {
+      "name": "Halal производитель",
+      "country": "демо"
+    },
     "images": [],
     "demoData": true
   },
@@ -696,7 +754,10 @@
     },
     "nutritionBase": "на 100 г",
     "ingredients": "Говядина/жир, специи, соль. (Сокращено, демо.)",
-    "manufacturer": "Мясокомбинат (демо)",
+    "manufacturer": {
+      "name": "Мясокомбинат",
+      "country": "демо"
+    },
     "images": [],
     "demoData": true
   },
@@ -728,7 +789,10 @@
     },
     "nutritionBase": "на 100 г",
     "ingredients": "Финики сушёные. (Демо-данные.)",
-    "manufacturer": "Сухофрукты (демо)",
+    "manufacturer": {
+      "name": "Сухофрукты",
+      "country": "демо"
+    },
     "images": [],
     "demoData": true
   },
@@ -754,7 +818,10 @@
       "length": "1м",
       "maxPower": "60W",
       "standard": "USB 3.0"
-    }
+    },
+    "manufacturer": null,
+    "images": [],
+    "nutritionPer100": null
   },
   {
     "id": "p022",
@@ -777,7 +844,10 @@
       "length": "1м",
       "maxPower": "18W",
       "standard": "USB 2.0"
-    }
+    },
+    "manufacturer": null,
+    "images": [],
+    "nutritionPer100": null
   },
   {
     "id": "p023",
@@ -800,7 +870,10 @@
     "specs": {
       "power": "33W",
       "type": "USB‑C"
-    }
+    },
+    "manufacturer": null,
+    "images": [],
+    "nutritionPer100": null
   },
   {
     "id": "p024",
@@ -822,7 +895,10 @@
     "specs": {
       "type": "3.5мм",
       "battery": "—"
-    }
+    },
+    "manufacturer": null,
+    "images": [],
+    "nutritionPer100": null
   },
   {
     "id": "p025",
@@ -844,7 +920,10 @@
     "description": "Адаптер для подключения проводных наушников.",
     "specs": {
       "type": "USB‑C"
-    }
+    },
+    "manufacturer": null,
+    "images": [],
+    "nutritionPer100": null
   },
   {
     "id": "p026",
@@ -868,7 +947,10 @@
       "coverage": "≈25м²",
       "dryTime": "60 мин",
       "moisture": "Нет"
-    }
+    },
+    "manufacturer": null,
+    "images": [],
+    "nutritionPer100": null
   },
   {
     "id": "p027",
@@ -891,7 +973,10 @@
       "coverage": "≈18м²",
       "dryTime": "120 мин",
       "moisture": "Нет"
-    }
+    },
+    "manufacturer": null,
+    "images": [],
+    "nutritionPer100": null
   },
   {
     "id": "p028",
@@ -913,7 +998,10 @@
     "specs": {
       "weight": "25кг",
       "coverage": "≈6м²/мешок"
-    }
+    },
+    "manufacturer": null,
+    "images": [],
+    "nutritionPer100": null
   },
   {
     "id": "p029",
@@ -935,7 +1023,10 @@
     "specs": {
       "type": "силикон",
       "moisture": "Есть"
-    }
+    },
+    "manufacturer": null,
+    "images": [],
+    "nutritionPer100": null
   },
   {
     "id": "p030",
@@ -957,6 +1048,9 @@
     "specs": {
       "volume": "5л",
       "coverage": "≈40м²"
-    }
+    },
+    "manufacturer": null,
+    "images": [],
+    "nutritionPer100": null
   }
 ]
