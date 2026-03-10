@@ -3,14 +3,13 @@ import ProfileScreen from './screens/ProfileScreen.jsx'
 import CatalogScreen from './screens/CatalogScreen.jsx'
 import ScanScreen from './screens/ScanScreen.jsx'
 import ProductScreen from './screens/ProductScreen.jsx'
+import ExternalProductScreen from './screens/ExternalProductScreen.jsx'
 import AlternativesScreen from './screens/AlternativesScreen.jsx'
 import AIScreen from './screens/AIScreen.jsx'
 import BottomNav from './components/BottomNav.jsx'
 
 export default function App() {
   const { pathname } = useLocation()
-
-  // Hide bottom nav on AI screen (it has its own sticky input)
   const hideNav = pathname.endsWith('/ai')
 
   return (
@@ -19,6 +18,7 @@ export default function App() {
         <Route path="/" element={<ProfileScreen />} />
         <Route path="/catalog" element={<CatalogScreen />} />
         <Route path="/scan" element={<ScanScreen />} />
+        <Route path="/product/ext/:ean" element={<ExternalProductScreen />} />
         <Route path="/product/:id" element={<ProductScreen />} />
         <Route path="/product/:id/alternatives" element={<AlternativesScreen />} />
         <Route path="/product/:id/ai" element={<AIScreen />} />
