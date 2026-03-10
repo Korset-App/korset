@@ -75,9 +75,34 @@
     "nutritionBase":"на 100 мл",
     "ingredients":"Вода питьевая, углекислый газ, краситель E150d, регуляторы кислотности, подсластители (аспартам, ацесульфам К), натуральные ароматизаторы.",
     "manufacturer":{"name":"Coca-Cola","country":"Казахстан"},
-    "images": [ "/products/1_2.png" ]
+    "images": [ "/products/3_2.png" ]
   },
   {
+    "id":"p007","ean":"4890008100309","name":"Pepsi 0.5л",
+    "category":"grocery","group":"cola","priceKzt":300,
+    "halal":"yes","allergens":[],"dietTags":["contains_sugar"],
+    "qualityScore":68,"shelf":"Полка B2","tags":["пепси","напиток","газировка"],
+    "description":"Газированный напиток Pepsi с фирменным сладким вкусом.",
+    "specs":{"volume":"0.5л","sugar":"55г на бутылку","caffeine":"38мг","bestBefore":"6 месяцев","storage":"В прохладном тёмном месте","country":"Казахстан"},
+    "nutritionPer100":{"kcal":43,"protein":0.0,"fat":0.0,"carbs":11.0},
+    "nutritionBase":"на 100 мл",
+    "ingredients":"Вода, сахар, углекислый газ, краситель E150d, регулятор кислотности E338, ароматизатор.",
+    "manufacturer":{"name":"PepsiCo","country":"Казахстан"},
+    "images": [ "/products/4.png" ]
+  },
+    {
+    "id":"p007","ean":"4890008100309","name":"Pepsi 0.5л",
+    "category":"grocery","group":"cola","priceKzt":300,
+    "halal":"yes","allergens":[],"dietTags":["contains_sugar"],
+    "qualityScore":68,"shelf":"Полка B2","tags":["пепси","напиток","газировка"],
+    "description":"Газированный напиток Pepsi с фирменным сладким вкусом.",
+    "specs":{"volume":"0.5л","sugar":"55г на бутылку","caffeine":"38мг","bestBefore":"6 месяцев","storage":"В прохладном тёмном месте","country":"Казахстан"},
+    "nutritionPer100":{"kcal":43,"protein":0.0,"fat":0.0,"carbs":11.0},
+    "nutritionBase":"на 100 мл",
+    "ingredients":"Вода, сахар, углекислый газ, краситель E150d, регулятор кислотности E338, ароматизатор.",
+    "manufacturer":{"name":"PepsiCo","country":"Казахстан"},
+    "images": [ "/products/4.png" ]
+  },  {
     "id":"p007","ean":"4890008100309","name":"Pepsi 0.5л",
     "category":"grocery","group":"cola","priceKzt":300,
     "halal":"yes","allergens":[],"dietTags":["contains_sugar"],
@@ -182,8 +207,8 @@
     "images": [ "/products/7_1.png" ]
   },
   {
-    "id":"p015","ean":"4870200003022","name":"Тушёнка Halal говядина 338г",
-    "category":"grocery","group":"canned_meat","priceKzt":1750,
+    "id":"p015","ean":"4870200003022","name":"КУБЛЕЙ тушеное говядина 325г",
+    "category":"grocery","group":"canned_meat","priceKzt":2250,
     "halal":"yes","allergens":[],"dietTags":["gluten_free","dairy_free"],
     "qualityScore":77,"shelf":"Полка E2","tags":["халал","консервы","говядина","мясо"],
     "description":"Консервированная говядина с халал-сертификатом. Готова к употреблению, можно разогреть.",
@@ -192,10 +217,10 @@
     "nutritionBase":"на 100 г",
     "ingredients":"Говядина, жир говяжий, лук репчатый, соль поваренная, перец чёрный молотый, лавровый лист. Халал.",
     "manufacturer":{"name":"Halal Meat KZ","country":"Казахстан"},
-    "images": [ "/products/1.png" ]
+    "images": [ "/products/8.png" ]
   },
   {
-    "id":"p016","ean":"4870200003023","name":"Колбаса варёная 400г",
+    "id":"p016","ean":"4870200003023","name":"Колбаса Папа Может 400г",
     "category":"grocery","group":"sausage","priceKzt":1890,
     "halal":"no","allergens":["gluten","milk"],"dietTags":["contains_gluten","contains_dairy"],
     "qualityScore":55,"shelf":"Полка E1","tags":["колбаса","мясо","варёная"],
@@ -215,7 +240,7 @@
     "description":"Надёжный нейлоновый кабель для быстрой зарядки. Поддерживает Power Delivery до 60W.",
     "specs":{"length":"1м","maxPower":"60W","standard":"USB 3.0","connector":"USB-C → USB-C","warranty":"18 месяцев","features":"Нейлоновая оплётка, защита от перегиба"},
     "manufacturer":{"name":"Anker","country":"Китай"},
-    "images": [ "/products/1_2.png" ]
+    "images": []
   },
   {
     "id":"p018","ean":"6900000000022","name":"Кабель USB-C 18W",
@@ -225,7 +250,7 @@
     "description":"Базовый кабель USB-C. Подходит для обычной зарядки и передачи данных.",
     "specs":{"length":"1м","maxPower":"18W","standard":"USB 2.0","connector":"USB-C → USB-A","warranty":"6 месяцев","features":"Стандартная оплётка"},
     "manufacturer":{"name":"Noname","country":"Китай"},
-    "images": [ "/products/1_2.png" ]
+    "images": []
   },
   {
     "id":"p019","ean":"6900000000023","name":"Зарядное USB-C 33W",
@@ -235,7 +260,7 @@
     "description":"Компактное зарядное устройство с поддержкой быстрой зарядки 33W. Заряжает телефон за 50 минут.",
     "specs":{"power":"33W","ports":"1× USB-C","inputVoltage":"100–240В","size":"34×34×34мм","warranty":"12 месяцев","features":"Складные вилки, защита от перегрева"},
     "manufacturer":{"name":"Xiaomi","country":"Китай"},
-    "images": [ "/products/1_2.png" ]
+    "images": []
   },
   {
     "id":"p020","ean":"6900000000024","name":"Наушники проводные 3.5мм",
@@ -245,7 +270,7 @@
     "description":"Проводные вкладыши для повседневного прослушивания. Удобны для звонков и музыки.",
     "specs":{"connector":"3.5мм","type":"Вкладыши (in-ear)","frequency":"20–20000 Гц","cableLength":"1.2м","warranty":"6 месяцев","features":"Встроенный микрофон, пульт управления"},
     "manufacturer":{"name":"Noname","country":"Китай"},
-    "images": [ "/products/1_2.png" ]
+    "images": []
   },
   {
     "id":"p021","ean":"4800000000026","name":"Краска интерьерная Dufa 3л",
@@ -255,7 +280,7 @@
     "description":"Матовая интерьерная краска для стен и потолков. Низкий запах, безопасна для детских комнат.",
     "specs":{"volume":"3л","coverage":"≈25м² за 1 слой","dryTime":"60 мин","layers":"2 слоя","finish":"Матовый","base":"Водная дисперсия","warranty":"Гарантия цвета 5 лет","features":"Моющаяся, паропроницаемая, без запаха"},
     "manufacturer":{"name":"Dufa","country":"Германия"},
-    "images": [ "/products/1_2.png" ]
+    "images": []
   },
   {
     "id":"p022","ean":"4800000000027","name":"Краска эконом 3л",
@@ -265,7 +290,7 @@
     "description":"Бюджетная краска для стен. Подходит для подсобных помещений.",
     "specs":{"volume":"3л","coverage":"≈18м² за 1 слой","dryTime":"120 мин","layers":"3 слоя","finish":"Матовый","base":"Водная дисперсия","features":"Экономичная, для внутренних работ"},
     "manufacturer":{"name":"Местный производитель","country":"Казахстан"},
-    "images": [ "/products/1_2.png" ]
+    "images": []
   },
   {
     "id":"p023","ean":"4800000000028","name":"Клей плиточный Ceresit 25кг",
@@ -275,6 +300,6 @@
     "description":"Профессиональный клей для укладки керамической плитки и керамогранита на пол и стены.",
     "specs":{"weight":"25кг","coverage":"≈6м²/мешок","openTime":"30 мин","setTime":"24 ч","temp":"от +5°C до +25°C","warranty":"Хранение 12 месяцев","features":"Морозостойкий, влагостойкий, для внутренних и наружных работ"},
     "manufacturer":{"name":"Ceresit","country":"Германия"},
-    "images": [ "/products/1_2.png" ]
+    "images": []
   }
 ]
