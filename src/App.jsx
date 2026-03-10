@@ -6,11 +6,12 @@ import ProductScreen from './screens/ProductScreen.jsx'
 import ExternalProductScreen from './screens/ExternalProductScreen.jsx'
 import AlternativesScreen from './screens/AlternativesScreen.jsx'
 import AIScreen from './screens/AIScreen.jsx'
+import QRPrintScreen from './screens/QRPrintScreen.jsx'
 import BottomNav from './components/BottomNav.jsx'
 
 export default function App() {
   const { pathname } = useLocation()
-  const hideNav = pathname.endsWith('/ai')
+  const hideNav = pathname.endsWith('/ai') || pathname === '/qr-print'
 
   return (
     <div className="app-frame">
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="/" element={<ProfileScreen />} />
         <Route path="/catalog" element={<CatalogScreen />} />
         <Route path="/scan" element={<ScanScreen />} />
+        <Route path="/qr-print" element={<QRPrintScreen />} />
         <Route path="/product/ext/:ean" element={<ExternalProductScreen />} />
         <Route path="/product/:id" element={<ProductScreen />} />
         <Route path="/product/:id/alternatives" element={<AlternativesScreen />} />
