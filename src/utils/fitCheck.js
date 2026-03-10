@@ -1,143 +1,112 @@
-import { ALLERGEN_NAMES } from './profile.js'
 import products from '../data/products.json'
 
-/**
- * Returns { fits: bool, reasons: [{type, text}] }
- */
+export const ALLERGEN_NAMES = {
+  milk: 'Молоко', gluten: 'Глютен', nuts: 'Орехи',
+  soy: 'Соя', eggs: 'Яйца', fish: 'Рыба',
+  shellfish: 'Моллюски', peanuts: 'Арахис', wheat: 'Пшеница',
+}
+
 export function checkProductFit(product, profile) {
   const reasons = []
 
-  // Halal check
-  const halalOn = profile.religion?.includes('halal') || profile.halalOnly
+  // Halal
+  const halalOn = profile.halal || profile.halalOnly || profile.religion?.includes('halal')
   if (halalOn && product.halal === 'no') {
     reasons.push({ type: 'fail', text: 'Не является халал' })
   }
 
-  // Allergen check
-  if (profile.allergens?.length > 0) {
-    const found = (product.allergens || []).filter((a) => profile.allergens.includes(a))
-    found.forEach((a) => reasons.push({ type: 'fail', text: `Содержит аллерген: ${ALLERGEN_NAMES[a] || a}` }))
+  // Allergens
+  const allergens = profile.allergens || []
+  if (allergens.length > 0) {
+    const found = product.allergens.filter(a => allergens.includes(a))
+    found.forEach(a => reasons.push({ type: 'fail', text: `Содержит аллерген: ${ALLERGEN_NAMES[a] || a}` }))
   }
 
-  // Diet goals check
-  const dietGoals = profile.dietGoals || []
-  const sugarFreeOn = dietGoals.includes('sugar_free') || profile.sugarFree
-  if (sugarFreeOn) {
-    if ((product.dietTags || []).includes('contains_sugar')) {
-      reasons.push({ type: 'fail', text: 'Содержит добавленный сахар' })
-    }
+  // Custom allergens — text match in ingredients/name
+  const customAllergens = profile.customAllergens || []
+  if (customAllergens.length > 0) {
+    const haystack = `${product.name} ${product.ingredients || ''}`.toLowerCase()
+    customAllergens.forEach(ca => {
+      if (haystack.includes(ca.toLowerCase())) {
+        reasons.push({ type: 'fail', text: `Содержит: ${ca}` })
+      }
+    })
   }
 
-  if (dietGoals.includes('dairy_free') && (product.dietTags || []).includes('contains_dairy')) {
+  // Diet goals
+  const goals = profile.dietGoals || []
+  if ((goals.includes('sugar_free') || profile.sugarFree) && product.dietTags.includes('contains_sugar')) {
+    reasons.push({ type: 'fail', text: 'Содержит добавленный сахар' })
+  }
+  if (goals.includes('dairy_free') && product.dietTags.includes('contains_dairy')) {
     reasons.push({ type: 'fail', text: 'Содержит молочные продукты' })
   }
-  if (dietGoals.includes('gluten_free') && (product.dietTags || []).includes('contains_gluten')) {
+  if (goals.includes('gluten_free') && product.dietTags.includes('contains_gluten')) {
     reasons.push({ type: 'fail', text: 'Содержит глютен' })
   }
-  if (
-    dietGoals.includes('vegan') &&
-    ((product.dietTags || []).includes('contains_dairy') ||
-      (product.allergens || []).includes('eggs') ||
-      (product.allergens || []).includes('milk'))
-  ) {
+  if (goals.includes('vegan') && (product.dietTags.includes('contains_dairy') || product.allergens.includes('eggs') || product.allergens.includes('milk'))) {
     reasons.push({ type: 'fail', text: 'Не подходит для веганов' })
   }
 
   const fits = reasons.length === 0
 
-  // Positive reasons (keep short)
   if (fits) {
-    if (halalOn && product.halal === 'yes') reasons.push({ type: 'pass', text: 'Халал ✓' })
-
-    if (profile.allergens?.length > 0) {
-      const found = (product.allergens || []).filter((a) => profile.allergens.includes(a))
-      if (found.length === 0) reasons.push({ type: 'pass', text: 'Без ваших аллергенов ✓' })
+    if (halalOn && product.halal === 'yes') reasons.push({ type: 'pass', text: 'Подтверждено как халал ✓' })
+    if (allergens.length > 0 && product.allergens.length === 0) reasons.push({ type: 'pass', text: 'Не содержит ваших аллергенов ✓' })
+    if ((goals.includes('sugar_free') || profile.sugarFree) && product.dietTags.includes('sugar_free')) {
+      reasons.push({ type: 'pass', text: 'Без добавленного сахара ✓' })
     }
-
-    if (sugarFreeOn && ((product.dietTags || []).includes('sugar_free') || (product.dietTags || []).includes('no_sugar'))) {
-      reasons.push({ type: 'pass', text: 'Без сахара ✓' })
-    }
-
-    if ((product.qualityScore || 0) >= 85) reasons.push({ type: 'pass', text: `Качество: ${product.qualityScore}/100` })
-
+    if (product.qualityScore >= 80) reasons.push({ type: 'pass', text: `Рейтинг качества: ${product.qualityScore}/100` })
     if (reasons.length === 0) reasons.push({ type: 'pass', text: 'Соответствует вашим предпочтениям' })
   }
 
   return { fits, reasons: reasons.slice(0, 3) }
 }
 
-/**
- * Returns up to 3 alternatives that fit the profile.
- * MVP rule: prefer similar items (family/subtype) rather than random products.
- */
 export function getAlternatives(product, profile) {
-  if (!product) return []
-
-  const candidates = products.filter((p) => {
+  // Same group first, then same category
+  const sameGroup = products.filter(p => {
     if (p.id === product.id) return false
-    const { fits } = checkProductFit(p, profile)
-    return fits
+    if (!product.group || p.group !== product.group) return false
+    return checkProductFit(p, profile).fits
   })
 
-  const sameFamily = candidates.filter((p) => p.family && product.family && p.family === product.family)
-  const sameSubtype = sameFamily.filter((p) => p.subtype && product.subtype && p.subtype === product.subtype)
+  const sameCategory = products.filter(p => {
+    if (p.id === product.id) return false
+    if (p.group === product.group) return false // already in sameGroup
+    if (p.category !== product.category) return false
+    return checkProductFit(p, profile).fits
+  })
 
-  let pool = []
-  if (sameSubtype.length >= 2) pool = sameSubtype
-  else if (sameFamily.length >= 2) pool = sameFamily
-  else {
-    // fallback to category
-    const sameCategory = candidates.filter((p) => p.category === product.category)
-    const others = candidates.filter((p) => p.category !== product.category)
-    pool = [...sameCategory, ...others]
+  const priority = profile.priority || 'balanced'
+  const sortFn = (a, b) => {
+    if (priority === 'price') return a.priceKzt - b.priceKzt
+    if (priority === 'quality') return (b.qualityScore || 0) - (a.qualityScore || 0)
+    // balanced: score = quality/100 * 0.5 + (1 - normalised price) * 0.5
+    return (b.qualityScore || 0) - (a.qualityScore || 0)
   }
 
-  // Sort by priority
-  if (profile.priority === 'price') {
-    pool.sort((a, b) => (a.priceKzt || 0) - (b.priceKzt || 0))
-  } else if (profile.priority === 'balanced') {
-    pool.sort((a, b) => {
-      const sa = (a.qualityScore || 0) / Math.max(1, (a.priceKzt || 0) / 1000)
-      const sb = (b.qualityScore || 0) / Math.max(1, (b.priceKzt || 0) / 1000)
-      return sb - sa
-    })
-  } else {
-    pool.sort((a, b) => (b.qualityScore || 0) - (a.qualityScore || 0))
-  }
-
-  return pool.slice(0, 3).map((p) => ({
-    ...p,
-    whyFits: buildWhyFits(p, profile, product),
-  }))
+  const results = [...sameGroup.sort(sortFn), ...sameCategory.sort(sortFn)].slice(0, 3)
+  return results.map(p => ({ ...p, whyFits: buildWhyFits(p, profile) }))
 }
 
-function buildWhyFits(product, profile, base) {
-  const dietGoals = profile.dietGoals || []
-  const sugarFreeOn = dietGoals.includes('sugar_free') || profile.sugarFree
-
-  if (base?.family && product.family === base.family) {
-    if (base?.subtype && product.subtype === base.subtype) return 'Похожий товар в этой категории'
-    return 'Похожая категория товара'
-  }
-  if (profile.halalOnly && product.halal === 'yes') return 'Халал ✓'
-  if (sugarFreeOn && ((product.dietTags || []).includes('sugar_free') || (product.dietTags || []).includes('no_sugar'))) return 'Без сахара ✓'
-  if (profile.priority === 'price') return 'Дешевле — выгоднее'
-  if (profile.priority === 'balanced') return 'Хороший баланс цены и качества'
-  return `Качество ${product.qualityScore || 0}/100`
+function buildWhyFits(product, profile) {
+  const halalOn = profile.halal || profile.halalOnly || profile.religion?.includes('halal')
+  if (halalOn && product.halal === 'yes') return 'Халал ✓'
+  const goals = profile.dietGoals || []
+  if ((goals.includes('sugar_free') || profile.sugarFree) && product.dietTags.includes('sugar_free')) return 'Без сахара ✓'
+  if (goals.includes('dairy_free') && product.dietTags.includes('dairy_free')) return 'Без молочки ✓'
+  if (profile.priority === 'price') return `Выгоднее на ${Math.round(((product.priceKzt) / 10)) * 10 < product.priceKzt ? '' : ''}${product.priceKzt} ₸`
+  return `Рейтинг ${product.qualityScore}/100`
 }
 
 export function formatPrice(kzt) {
-  return (kzt || 0).toLocaleString('ru-RU') + ' ₸'
+  if (!kzt && kzt !== 0) return '—'
+  return kzt.toLocaleString('ru-RU') + '\u00a0\u20B8'
 }
 
 export const CATEGORY_LABELS = {
   grocery: 'Продукты',
   electronics: 'Электроника',
   diy: 'Стройматериалы',
-}
-
-export const CATEGORY_LABELS_SHORT = {
-  grocery: 'Продукты',
-  electronics: 'Электроника',
-  diy: 'Стройка',
 }

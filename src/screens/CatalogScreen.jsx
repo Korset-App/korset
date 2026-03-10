@@ -4,92 +4,95 @@ import products from '../data/products.json'
 import { checkProductFit, formatPrice, CATEGORY_LABELS } from '../utils/fitCheck.js'
 import { loadProfile } from '../utils/profile.js'
 
-function getPrimaryImage(product) {
-  if (!product) return null
-  if (product.images?.[0]) return product.images[0]
-  if (product.ean) return `/products/${product.ean}.png`
-  return null
-}
-
-function CategoryIcon({ category }) {
-  const common = {
-    width: 20,
-    height: 20,
-    viewBox: '0 0 24 24',
-    fill: 'none',
-    stroke: 'currentColor',
-    strokeWidth: 1.8,
-    strokeLinecap: 'round',
-    strokeLinejoin: 'round',
-  }
-  if (category === 'electronics') {
-    return (
-      <svg {...common}>
-        <rect x="7" y="2.5" width="10" height="19" rx="2" />
-        <path d="M10 19h4" />
-      </svg>
-    )
-  }
-  if (category === 'diy') {
-    return (
-      <svg {...common}>
-        <path d="M14 7l3 3" />
-        <path d="M9 12l3 3" />
-        <path d="M3 21l6-6" />
-        <path d="M7 17l-2 2" />
-        <path d="M12 12l7-7 2 2-7 7" />
-      </svg>
-    )
-  }
-  return (
-    <svg {...common}>
-      <path d="M6 8h12l-1 12H7L6 8Z" />
-      <path d="M9 8a3 3 0 0 1 6 0" />
-    </svg>
-  )
-}
-
 const CATEGORY_FILTERS = [
   { id: 'all', label: 'Все' },
   { id: 'grocery', label: 'Продукты' },
   { id: 'electronics', label: 'Электроника' },
   { id: 'diy', label: 'Стройка' },
 ]
-
 const SORTS = [
-  { id: 'cheap', label: 'Сначала дешевле' },
-  { id: 'expensive', label: 'Сначала дороже' },
+  { id: 'fit', label: 'Подходящие' },
+  { id: 'cheap', label: 'Дешевле' },
   { id: 'quality', label: 'По качеству' },
 ]
+
+// Smart product thumbnail — handles any aspect ratio nicely
+function ProductThumb({ product }) {
+  const [imgOk, setImgOk] = useState(true)
+  const src = product.images?.[0]
+
+  if (src && imgOk) {
+    return (
+      <img
+        src={src}
+        alt={product.name}
+        onError={() => setImgOk(false)}
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'contain',
+          padding: 4,
+        }}
+      />
+    )
+  }
+
+  // Fallback: category icon + first letter
+  const letter = product.name[0]
+  const colors = {
+    grocery: { bg: 'rgba(16,185,129,0.12)', color: '#10B981' },
+    electronics: { bg: 'rgba(59,130,246,0.12)', color: '#60A5FA' },
+    diy: { bg: 'rgba(245,158,11,0.12)', color: '#FCD34D' },
+  }
+  const c = colors[product.category] || colors.grocery
+
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      background: c.bg,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      borderRadius: 10,
+      fontFamily: 'var(--font-display)',
+      fontSize: 22, fontWeight: 800,
+      color: c.color,
+    }}>
+      {letter}
+    </div>
+  )
+}
 
 export default function CatalogScreen() {
   const navigate = useNavigate()
   const profile = loadProfile()
-
   const [q, setQ] = useState('')
   const [cat, setCat] = useState('all')
-  const [sort, setSort] = useState('cheap')
+  const [sort, setSort] = useState('fit')
+
+  const hasProfile = Boolean(
+    profile?.halal || profile?.halalOnly ||
+    profile?.allergens?.length ||
+    profile?.sugarFree ||
+    profile?.dietGoals?.length
+  )
 
   const list = useMemo(() => {
     const query = q.trim().toLowerCase()
     let arr = products.slice()
+    if (cat !== 'all') arr = arr.filter(p => p.category === cat)
+    if (query) arr = arr.filter(p => `${p.name} ${p.tags?.join(' ') || ''}`.toLowerCase().includes(query))
 
-    if (cat !== 'all') arr = arr.filter((p) => p.category === cat)
-    if (query) {
-      arr = arr.filter((p) => {
-        const hay = `${p.name} ${p.tags?.join(' ') || ''}`.toLowerCase()
-        return hay.includes(query)
+    if (sort === 'cheap') arr.sort((a, b) => a.priceKzt - b.priceKzt)
+    else if (sort === 'quality') arr.sort((a, b) => (b.qualityScore || 0) - (a.qualityScore || 0))
+    else if (sort === 'fit' && hasProfile) {
+      arr.sort((a, b) => {
+        const af = checkProductFit(a, profile).fits ? 0 : 1
+        const bf = checkProductFit(b, profile).fits ? 0 : 1
+        return af - bf
       })
     }
 
-    if (sort === 'cheap') arr.sort((a, b) => (a.priceKzt || 0) - (b.priceKzt || 0))
-    if (sort === 'expensive') arr.sort((a, b) => (b.priceKzt || 0) - (a.priceKzt || 0))
-    if (sort === 'quality') arr.sort((a, b) => (b.qualityScore || 0) - (a.qualityScore || 0))
-
     return arr
   }, [q, cat, sort])
-
-  const hasProfile = Boolean(profile?.presetId || profile?.halalOnly || profile?.allergens?.length || profile?.sugarFree || profile?.dietGoals?.length)
 
   return (
     <div className="screen">
@@ -97,119 +100,136 @@ export default function CatalogScreen() {
         <div className="header-row" style={{ justifyContent: 'center' }}>
           <div className="screen-title">Товары</div>
         </div>
-        <div className="screen-subtitle" style={{ textAlign: 'center' }}>
-          Поиск, фильтры и сортировка
-        </div>
       </div>
 
-      <div className="section" style={{ paddingTop: 16 }}>
-        <button className="btn btn-secondary btn-full" onClick={() => navigate('/scan')}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="3" width="5" height="5" rx="1" />
-            <rect x="16" y="3" width="5" height="5" rx="1" />
-            <rect x="3" y="16" width="5" height="5" rx="1" />
-            <path d="M16 16h5v5M16 16v5" />
+      <div className="section" style={{ paddingTop: 14 }}>
+        {/* Search */}
+        <div className="card" style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '10px 14px' }}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--text-dim)', flexShrink: 0 }}>
+            <path d="M21 21l-4.3-4.3"/><circle cx="11" cy="11" r="7"/>
           </svg>
-          Найти товар по скану
-        </button>
-
-        <div style={{ marginTop: 12 }} className="card">
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--text-dim)' }}>
-              <path d="M21 21l-4.3-4.3" />
-              <circle cx="11" cy="11" r="7" />
-            </svg>
-            <input
-              className="ai-input"
-              style={{ border: 'none', background: 'transparent', padding: 0 }}
-              placeholder="Поиск по товарам..."
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
-          </div>
+          <input
+            style={{
+              background: 'transparent', border: 'none', outline: 'none',
+              color: 'var(--text)', fontSize: 14, fontFamily: 'var(--font-body)', flex: 1,
+            }}
+            placeholder="Поиск по товарам..."
+            value={q}
+            onChange={e => setQ(e.target.value)}
+          />
+          {q && (
+            <button onClick={() => setQ('')} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>×</button>
+          )}
         </div>
 
-        <div style={{ display: 'flex', gap: 8, marginTop: 12, overflowX: 'auto', paddingBottom: 4 }}>
-          {CATEGORY_FILTERS.map((c) => (
-            <button key={c.id} className={`chip ${cat === c.id ? 'active' : ''}`} onClick={() => setCat(c.id)}>
-              {c.label}
-            </button>
+        {/* Category filters */}
+        <div style={{ display: 'flex', gap: 8, marginTop: 10, overflowX: 'auto', paddingBottom: 2 }}>
+          {CATEGORY_FILTERS.map(c => (
+            <button key={c.id} className={`chip ${cat === c.id ? 'active' : ''}`} onClick={() => setCat(c.id)}>{c.label}</button>
           ))}
         </div>
 
-        <div style={{ display: 'flex', gap: 8, marginTop: 10, overflowX: 'auto', paddingBottom: 4 }}>
-          {SORTS.map((s) => (
-            <button key={s.id} className={`chip ${sort === s.id ? 'active' : ''}`} onClick={() => setSort(s.id)}>
-              {s.label}
-            </button>
+        {/* Sort */}
+        <div style={{ display: 'flex', gap: 8, marginTop: 8, overflowX: 'auto', paddingBottom: 2 }}>
+          {SORTS.map(s => (
+            <button key={s.id} className={`chip ${sort === s.id ? 'active' : ''}`} onClick={() => setSort(s.id)}>{s.label}</button>
           ))}
         </div>
 
-        <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {/* Product list */}
+        <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {list.map((product, i) => {
-            const fit = hasProfile ? checkProductFit(product, profile) : null
-            const fits = fit ? fit.fits : null
+            const fitResult = hasProfile ? checkProductFit(product, profile) : null
+            const fits = fitResult?.fits ?? null
 
             return (
               <div
                 key={product.id}
-                className="product-item"
-                style={{ animationDelay: `${i * 0.02}s`, alignItems: 'stretch' }}
                 onClick={() => navigate(`/product/${product.id}`)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '12px 14px',
+                  background: 'var(--card)',
+                  border: '1px solid',
+                  borderColor: fits === true ? 'rgba(16,185,129,0.2)' : fits === false ? 'rgba(220,38,38,0.15)' : 'var(--border)',
+                  borderRadius: 'var(--radius)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                  animationDelay: `${i * 0.02}s`,
+                }}
               >
-                <div className="catalog-thumb">
-                  <CatalogThumb product={product} />
+                {/* Thumbnail — fixed square, smart fill */}
+                <div style={{
+                  width: 56, height: 56, flexShrink: 0,
+                  borderRadius: 10,
+                  overflow: 'hidden',
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border)',
+                }}>
+                  <ProductThumb product={product} />
                 </div>
 
-                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <div className="product-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {/* Info */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontSize: 14, fontWeight: 500, color: 'var(--text)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    lineHeight: 1.3,
+                  }}>
                     {product.name}
                   </div>
-
-                  <div className="product-meta" style={{ marginTop: 6 }}>
-                    <span className="product-price">{formatPrice(product.priceKzt)}</span>
-                    <span className="product-shelf">{product.shelf}</span>
-                    <span className={`category-badge ${product.category}`}>{CATEGORY_LABELS[product.category]}</span>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 5, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span style={{
+                      fontFamily: 'var(--font-display)', fontSize: 15,
+                      fontWeight: 700, color: 'var(--primary-bright)',
+                    }}>
+                      {formatPrice(product.priceKzt)}
+                    </span>
+                    <span style={{
+                      fontSize: 11, color: 'var(--text-dim)',
+                      background: 'var(--border)', padding: '2px 8px', borderRadius: 20,
+                    }}>
+                      {product.shelf}
+                    </span>
                   </div>
+                </div>
 
-                  {fits !== null && (
-                    <div style={{ marginTop: 8 }}>
-                      <span className={`fit-badge ${fits ? 'ok' : 'no'}`}>{fits ? '✅ Подходит' : '❌ Не подходит'}</span>
+                {/* Fit indicator — bigger and clearer */}
+                {fits !== null && (
+                  <div style={{
+                    flexShrink: 0, display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', gap: 2, minWidth: 44,
+                  }}>
+                    <div style={{
+                      width: 36, height: 36,
+                      borderRadius: '50%',
+                      background: fits ? 'rgba(16,185,129,0.15)' : 'rgba(220,38,38,0.12)',
+                      border: `1.5px solid ${fits ? 'rgba(16,185,129,0.4)' : 'rgba(220,38,38,0.3)'}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 18,
+                    }}>
+                      {fits ? '✓' : '✕'}
                     </div>
-                  )}
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, color: 'var(--text-dim)' }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M9 18l6-6-6-6" />
-                  </svg>
-                </div>
+                    <span style={{
+                      fontSize: 10, fontWeight: 600,
+                      color: fits ? 'var(--success-bright)' : 'var(--error-bright)',
+                    }}>
+                      {fits ? 'Ок' : 'Нет'}
+                    </span>
+                  </div>
+                )}
               </div>
             )
           })}
 
           {list.length === 0 && (
-            <div style={{ padding: '18px 4px', textAlign: 'center', color: 'var(--text-dim)' }}>
-              Ничего не найдено. Попробуйте другое слово.
+            <div style={{ padding: '32px 4px', textAlign: 'center', color: 'var(--text-dim)' }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>🔍</div>
+              <p>Ничего не найдено</p>
             </div>
           )}
         </div>
       </div>
-    </div>
-  )
-}
-
-function CatalogThumb({ product }) {
-  const src = getPrimaryImage(product)
-  const [ok, setOk] = useState(true)
-
-  if (src && ok) {
-    return <img src={src} alt={product.name} className="catalog-thumb-img" loading="lazy" onError={() => setOk(false)} />
-  }
-
-  return (
-    <div className="catalog-thumb-fallback">
-      <CategoryIcon category={product.category} />
     </div>
   )
 }

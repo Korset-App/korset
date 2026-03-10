@@ -982,7 +982,7 @@ body {
   padding: 10px 12px;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: baseline;
 }
 
 .nutri-label {
@@ -991,30 +991,24 @@ body {
 }
 
 .nutri-value {
-  display: inline-flex;
+  display: flex;
   align-items: baseline;
   gap: 6px;
-  font-family: var(--font-body);
+  font-family: var(--font-display);
+  font-weight: 800;
   color: var(--text);
+  font-size: 14px;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" 1, "lnum" 1;
 }
 
-.nutri-num {
-  font-family: var(--font-body);
-  font-weight: 900;
-  font-size: 22px;
-  line-height: 1;
-}
+.nutri-num { font: inherit; }
 
 .nutri-unit {
   font-family: var(--font-body);
   font-weight: 700;
   font-size: 12px;
-  line-height: 1;
   color: var(--text-sub);
-  opacity: 0.9;
 }
 
 .more-btn {
@@ -1033,80 +1027,4 @@ body {
 
 .more-btn:active {
   transform: scale(0.99);
-}
-/* === FIX: MIUI / Android "jumping numbers" === */
-.korset-num {
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" 1, "lnum" 1;
-  letter-spacing: 0.01em;
-  line-height: 1.1;
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-}
-
-.korset-num__value {
-  font-family: inherit;           /* НЕ display-font */
-  font-weight: 700;
-  font-size: 22px;
-}
-
-.korset-num__unit {
-  font-family: inherit;
-  font-weight: 600;
-  font-size: 14px;
-  opacity: 0.85;
-}
-/* ─── Catalog (bigger 2:1 thumbnails) ───────────────── */
-.catalog-thumb {
-  width: 128px;
-  height: 64px; /* 2:1 */
-  border-radius: 16px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.10);
-  overflow: hidden;
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-}
-
-.catalog-thumb-img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  display: block;
-  padding: 6px;
-}
-
-.catalog-thumb-fallback {
-  width: 100%;
-  height: 100%;
-  display: grid;
-  place-items: center;
-  color: var(--text-dim);
-}
-
-/* Fit badge (catalog) */
-.fit-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.01em;
-  border: 1px solid transparent;
-}
-
-.fit-badge.ok {
-  color: var(--success-bright);
-  background: rgba(34,197,94,0.14);
-  border-color: rgba(34,197,94,0.30);
-}
-
-.fit-badge.no {
-  color: var(--error-bright);
-  background: rgba(239,68,68,0.14);
-  border-color: rgba(239,68,68,0.30);
 }
