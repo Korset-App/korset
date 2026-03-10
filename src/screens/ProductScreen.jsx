@@ -239,16 +239,19 @@ export default function ProductScreen() {
                 ].map(([label, val, unit]) => (
                   <div key={label} className="nutri-item">
                     <div className="nutri-label">{label}</div>
-                    <div className="nutri-value">
-                      {val == null ? (
-                        <span className="nutri-num">—</span>
-                      ) : (
-                        <>
-                          <span className="nutri-num">{formatNutriNumber(val)}</span>
-                          <span className="nutri-unit">{unit}</span>
-                        </>
-                      )}
-                    </div>
+
+                    {/* FIX: stable vertical stack to stop jumping numbers */}
+                    {val == null ? (
+                      <div className="nutri-stack">
+                        <div className="num">—</div>
+                        <div className="unit">{unit}</div>
+                      </div>
+                    ) : (
+                      <div className="nutri-stack">
+                        <div className="num">{formatNutriNumber(val)}</div>
+                        <div className="unit">{unit}</div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -268,11 +271,7 @@ export default function ProductScreen() {
             )}
 
             {showMoreAvailable && (
-              <button
-                onClick={() => setMoreOpen((s) => !s)}
-                className="more-btn"
-                type="button"
-              >
+              <button onClick={() => setMoreOpen((s) => !s)} className="more-btn" type="button">
                 {moreOpen ? 'Скрыть' : 'Дополнительно'}
                 <span style={{ marginLeft: 8, opacity: 0.9 }} aria-hidden="true">
                   {moreOpen ? '▴' : '▾'}

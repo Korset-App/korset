@@ -980,9 +980,10 @@ body {
   background: rgba(255,255,255,0.02);
   border-radius: 16px;
   padding: 10px 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
 }
 
 .nutri-label {
@@ -990,25 +991,30 @@ body {
   color: var(--text-sub);
 }
 
-.nutri-value {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  font-family: var(--font-display);
-  font-weight: 800;
-  color: var(--text);
-  font-size: 14px;
+.nutri-stack {
+  display: grid;
+  justify-items: end;
   line-height: 1;
   font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
 }
 
-.nutri-num { font: inherit; }
+.nutri-stack .num {
+  font-family: var(--font-body, system-ui);
+  font-weight: 900;
+  font-size: 22px;
+  line-height: 1;
+}
 
-.nutri-unit {
-  font-family: var(--font-body);
+.nutri-stack .unit {
+  margin-top: 4px;
+  font-family: var(--font-body, system-ui);
   font-weight: 700;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-sub);
+  opacity: 0.9;
+}
+
 }
 
 .more-btn {
