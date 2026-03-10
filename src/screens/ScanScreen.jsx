@@ -39,15 +39,27 @@ function BarcodeScanner({ onDetected, onClose }) {
         const scanner = new Html5Qrcode(ID, { verbose: false })
         scannerRef.current = scanner
 
-        const cameras = await Html5Qrcode.getCameras()
         if (!mounted) return
-        if (!cameras?.length) { setError('Камера не обнаружена.'); return }
 
-        const cam = cameras.find(c => /back|rear|environment/i.test(c.label)) || cameras[cameras.length - 1]
+        // iOS fix: use facingMode directly instead of getCameras()
+        // getCameras() on iPhone returns multiple lenses and causes flickering
+        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent)
+
+        const cameraConfig = isIOS
+          ? { facingMode: { exact: 'environment' } }
+          : await (async () => {
+              const cameras = await Html5Qrcode.getCameras()
+              if (!cameras?.length) return null
+              const cam = cameras.find(c => /back|rear|environment/i.test(c.label)) || cameras[cameras.length - 1]
+              return { deviceId: { exact: cam.id } }
+            })()
+
+        if (!cameraConfig) { setError('Камера не обнаружена.'); return }
+        if (!mounted) return
 
         await scanner.start(
-          cam.id,
-          { fps: 20, qrbox: 250, aspectRatio: 1.0 },
+          cameraConfig,
+          { fps: 15, qrbox: 250, aspectRatio: 1.0 },
           async (text) => {
             if (busyRef.current || !mounted) return
 
