@@ -335,20 +335,23 @@ export default function CatalogScreen() {
                   )}
                 </div>
 
-                {/* Fit badge — pill shape, vertically centered, no excess */}
+Fit badge — full height column */}
                 {fits !== null && (
-                  <div style={{ flexShrink: 0, alignSelf: 'center', margin: '0 10px',
-                    padding: '5px 10px', borderRadius: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-                    background: fits ? 'rgba(16,185,129,0.13)' : 'rgba(239,68,68,0.1)',
-                    border: `1px solid ${fits ? 'rgba(16,185,129,0.35)' : 'rgba(239,68,68,0.3)'}`,
+                  <div style={{ width: 72, flexShrink: 0, display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center', gap: 4,
+                    background: fits ? 'rgba(16,185,129,0.11)' : 'rgba(239,68,68,0.09)',
                   }}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                      stroke={fits ? '#10B981' : '#F87171'} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      {fits
-                        ? <polyline points="20 6 9 17 4 12"/>
-                        : <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>}
-                    </svg>
-                    <span style={{ fontSize: 9, fontWeight: 800, color: fits ? '#10B981' : '#F87171', letterSpacing: 0.5, lineHeight: 1 }}>
+                    <div style={{ width: 38, height: 38, borderRadius: '50%',
+                      background: fits ? 'rgba(16,185,129,0.22)' : 'rgba(239,68,68,0.2)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke={fits ? '#10B981' : '#F87171'} strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                        {fits
+                          ? <polyline points="20 6 9 17 4 12"/>
+                          : <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>}
+                      </svg>
+                    </div>
+                    <span style={{ fontSize: 10, fontWeight: 800, color: fits ? '#10B981' : '#F87171', letterSpacing: 0.5 }}>
                       {fits ? 'OK' : 'НЕТ'}
                     </span>
                   </div>
