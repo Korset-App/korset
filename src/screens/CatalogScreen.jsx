@@ -333,7 +333,9 @@ export default function CatalogScreen() {
                       {fitResult.reasons[0].text}
                     </div>
                   )}
-    Fit badge — wide horizontal pill */}
+                </div>
+
+                {/* Fit badge — wide horizontal pill */}
                 {fits !== null && (
                   <div style={{ flexShrink: 0, alignSelf: 'center', marginRight: 10,
                     width: 70, height: 32, borderRadius: 16,
