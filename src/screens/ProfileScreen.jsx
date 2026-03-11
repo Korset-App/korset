@@ -31,28 +31,76 @@ const PRIORITIES = [
 
 // All custom SVG icons — no emoji
 function Icon({ name, size = 20, color = 'currentColor' }) {
-  const s = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' }
+  const s = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round' }
   switch (name) {
-    case 'nosugar': return <svg {...s}><circle cx="12" cy="12" r="9"/><path d="M9 9c0-1.7 1.3-3 3-3s3 1.3 3 3c0 3-3 3-3 6"/><circle cx="12" cy="19" r=".5" fill={color} stroke="none"/><line x1="4" y1="4" x2="20" y2="20"/></svg>
-    case 'nodairy': return <svg {...s}><path d="M8 3h8l1 3v13a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6l1-3z"/><path d="M9 6h6"/><line x1="4" y1="4" x2="20" y2="20"/></svg>
-    case 'nogluten': return <svg {...s}><path d="M12 2v20M8 6c1.5.5 2.5.5 4 0s2.5-.5 4 0M8 10c1.5.5 2.5.5 4 0s2.5-.5 4 0M8 14c1.5.5 2.5.5 4 0s2.5-.5 4 0"/><line x1="4" y1="4" x2="20" y2="20"/></svg>
-    case 'vegan': return <svg {...s}><path d="M2 22c3-8 8-14 20-14-1 12-8 18-20 14z"/><path d="M6 18c2-4 5-7 10-9"/></svg>
-    case 'veggie': return <svg {...s}><path d="M12 22s-8-4-8-12c0-4 3-7 8-8 5 1 8 4 8 8 0 8-8 12-8 12z"/><path d="M12 8v6M9 11h6"/></svg>
-    case 'keto': return <svg {...s}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-    case 'lowcal': return <svg {...s}><path d="M12 2a5 5 0 0 1 5 5c0 5-5 11-5 11S7 12 7 7a5 5 0 0 1 5-5z"/><circle cx="12" cy="7" r="1.5" fill={color} stroke="none"/><path d="M5 21h14"/></svg>
-    // allergens
-    case 'milk': return <svg {...s}><path d="M8 3h8l1 3v13a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6l1-3z"/><path d="M9 6h6"/><path d="M9 12c1 1 5 1 6 0"/></svg>
-    case 'wheat': return <svg {...s}><path d="M12 2v20M8 6c1.5.5 2.5.5 4 0s2.5-.5 4 0M8 10c1.5.5 2.5.5 4 0s2.5-.5 4 0M8 14c1.5.5 2.5.5 4 0s2.5-.5 4 0"/></svg>
-    case 'nuts': return <svg {...s}><path d="M12 3c4 0 7 2.5 7 6s-2 7-7 9c-5-2-7-5.5-7-9s3-6 7-6z"/><path d="M12 3v3M9 6h6"/></svg>
-    case 'peanut': return <svg {...s}><path d="M9 3c-3 0-5 2-5 4.5S5.5 12 9 12h6c3.5 0 5-2 5-4.5S18.5 3 15 3H9z"/><path d="M12 12v9M9 17h6"/></svg>
-    case 'soy': return <svg {...s}><circle cx="12" cy="12" r="3"/><path d="M12 2c0 4-3 7-7 8 4 1 7 4 7 8 0-4 3-7 7-8-4-1-7-4-7-8z"/></svg>
-    case 'egg': return <svg {...s}><path d="M12 3C9 3 6 7 6 12c0 3.3 2.7 6 6 6s6-2.7 6-6c0-5-3-9-6-9z"/><path d="M9.5 13.5c.5 1 1.5 1.5 2.5 1.5"/></svg>
-    case 'fish': return <svg {...s}><path d="M6.5 12c0 0-4-4-4-6.5s3-3 5 0l1.5 2.5L11 9c2-3 5-5 9-5-1 4-3 7-6 9 3 2 5 5 6 9-4 0-7-2-9-5l-2 1.5-1.5 2.5c-2 3-5 2.5-5 0S6.5 12 6.5 12z"/><circle cx="17" cy="8" r="1" fill={color} stroke="none"/></svg>
-    case 'shell': return <svg {...s}><path d="M12 22c-4-2-8-6-8-11a8 8 0 0 1 16 0c0 5-4 9-8 11z"/><path d="M12 22V11M8 14l4-3 4 3"/></svg>
-    // priorities
-    case 'price': return <svg {...s}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-    case 'balance': return <svg {...s}><path d="M12 3v18M5 7h14M7 7l-3 5h6l-3-5zM17 7l-3 5h6l-3-5z"/></svg>
-    case 'quality': return <svg {...s}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    // DIET — clear, recognizable
+    case 'nosugar': return (
+      // Sugar cube with X through it
+      <svg {...s}><rect x="5" y="8" width="14" height="10" rx="2"/><path d="M8 8V6a4 4 0 0 1 8 0v2"/><line x1="4" y1="4" x2="20" y2="20" strokeWidth="2.2"/></svg>
+    )
+    case 'nodairy': return (
+      // Milk carton crossed out
+      <svg {...s}><path d="M9 3h6l2 4v13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V7l2-4z"/><path d="M9 7h6"/><line x1="4" y1="4" x2="20" y2="20" strokeWidth="2.2"/></svg>
+    )
+    case 'nogluten': return (
+      // Wheat stalk crossed out
+      <svg {...s}><path d="M12 3v18"/><path d="M8 7c1 .8 2.5 1 4 .5s3-.3 4 .5M8 11c1 .8 2.5 1 4 .5s3-.3 4 .5M8 15c1 .8 2.5 1 4 .5"/><line x1="4" y1="4" x2="20" y2="20" strokeWidth="2.2"/></svg>
+    )
+    case 'vegan': return (
+      // Leaf — clear vegan symbol
+      <svg {...s}><path d="M21 3C9 3 4 12 4 19"/><path d="M4 19c3-6 8-10 17-10C21 12 19 18 4 19z"/></svg>
+    )
+    case 'veggie': return (
+      // Carrot
+      <svg {...s}><path d="M12 2c0 0-2 4-2 8s2 8 2 8"/><path d="M12 2c0 0 2 4 2 8s-2 8-2 8"/><path d="M5 9l7-7 7 7"/><path d="M12 2v4"/></svg>
+    )
+    case 'keto': return (
+      // Fat droplet / avocado shape — keto = high fat
+      <svg {...s}><path d="M12 3c4.4 0 7 3 7 7 0 5-3.5 9-7 11-3.5-2-7-6-7-11 0-4 2.6-7 7-7z"/><circle cx="12" cy="13" r="2.5"/></svg>
+    )
+    case 'lowcal': return (
+      // Scale / weight
+      <svg {...s}><path d="M12 3v2M5 9h14l-1.5 9a2 2 0 0 1-2 1.5h-7a2 2 0 0 1-2-1.5L5 9z"/><path d="M9 9V7a3 3 0 0 1 6 0v2"/></svg>
+    )
+    // ALLERGENS — distinct, clear icons
+    case 'milk': return (
+      <svg {...s}><path d="M9 3h6l2 4v13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V7l2-4z"/><path d="M9 7h6"/><path d="M8 14c1.5 2 6.5 2 8 0"/></svg>
+    )
+    case 'wheat': return (
+      <svg {...s}><path d="M12 3v18"/><path d="M8 7c1 .8 2.5 1 4 .5s3-.3 4 .5M8 11c1 .8 2.5 1 4 .5s3-.3 4 .5M8 15c1 .8 2.5 1 4 .5"/></svg>
+    )
+    case 'nuts': return (
+      // Walnut shape
+      <svg {...s}><path d="M12 4c5 0 8 3 8 6 0 5-3.5 9.5-8 11-4.5-1.5-8-6-8-11 0-3 3-6 8-6z"/><path d="M12 4v4M9 7h6"/></svg>
+    )
+    case 'peanut': return (
+      // Two bumps = peanut shape
+      <svg {...s}><path d="M9.5 4a3.5 3.5 0 1 0 0 7h5a3.5 3.5 0 1 0 0-7h-5z"/><path d="M9.5 11a3.5 3.5 0 1 0 0 7h5a3.5 3.5 0 1 0 0-7h-5z"/><line x1="12" y1="11" x2="12" y2="11" strokeWidth="3"/></svg>
+    )
+    case 'soy': return (
+      // Three beans / pods
+      <svg {...s}><ellipse cx="8" cy="8" rx="3" ry="5" transform="rotate(-20 8 8)"/><ellipse cx="16" cy="8" rx="3" ry="5" transform="rotate(20 16 8)"/><ellipse cx="12" cy="16" rx="3" ry="5"/><path d="M8 13c2 1 6 1 8 0"/></svg>
+    )
+    case 'egg': return (
+      <svg {...s}><path d="M12 3C8.5 3 6 8 6 12.5a6 6 0 0 0 12 0C18 8 15.5 3 12 3z"/></svg>
+    )
+    case 'fish': return (
+      <svg {...s}><path d="M20 12c-4-4-8-5-13-3L4 12l3 3c5 2 9 1 13-3z"/><path d="M4 12l3-3"/><circle cx="17" cy="9" r="1" fill={color} stroke="none"/><path d="M21 7l1 5-1 5"/></svg>
+    )
+    case 'shell': return (
+      // Shrimp / prawn shape
+      <svg {...s}><path d="M14 4c3 1 5 4 5 7a7 7 0 0 1-12 4.9"/><path d="M7 16c-2-1.5-3-3.5-3-5.5a7 7 0 0 1 10-6.3"/><path d="M10 20l2-3-1-3 3-1 1-3"/></svg>
+    )
+    // PRIORITIES
+    case 'price': return (
+      <svg {...s}><circle cx="12" cy="12" r="9"/><path d="M12 6v2"/><path d="M12 16v2"/><path d="M9 9.5c0-1.4 1.3-2.5 3-2.5s3 1.1 3 2.5c0 2.5-6 2.5-6 5 0 1.4 1.3 2.5 3 2.5s3-1.1 3-2.5"/></svg>
+    )
+    case 'balance': return (
+      <svg {...s}><path d="M12 3v18"/><path d="M4 6h16"/><path d="M5 6L2 12h6L5 6z"/><path d="M19 6l3 6h-6l3-6z"/><path d="M5 20h14"/></svg>
+    )
+    case 'quality': return (
+      <svg {...s}><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg>
+    )
     default: return null
   }
 }
@@ -102,13 +150,13 @@ export default function ProfileScreen() {
       }}>
         <div style={{ position: 'relative', marginBottom: 10 }}>
           <div style={{
-            position: 'absolute', inset: -20,
-            background: 'radial-gradient(circle, rgba(124,58,237,0.2) 0%, transparent 70%)',
+            position: 'absolute', inset: -40,
+            background: 'radial-gradient(circle, rgba(124,58,237,0.28) 0%, transparent 70%)',
             pointerEvents: 'none',
           }}/>
           <img src="/logo.png" alt="Körset"
-            style={{ height: 72, width: 72, objectFit: 'contain', position: 'relative',
-              filter: 'drop-shadow(0 0 20px rgba(139,92,246,0.6))' }}
+            style={{ height: 110, width: 110, objectFit: 'contain', position: 'relative',
+              filter: 'drop-shadow(0 0 28px rgba(139,92,246,0.75))' }}
           />
         </div>
         <p style={{ color: 'var(--text-dim)', fontSize: 13, lineHeight: 1.7, textAlign: 'center', maxWidth: 260, marginTop: 4 }}>
@@ -170,12 +218,12 @@ export default function ProfileScreen() {
                 cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all 0.15s',
               }}>
                 <div style={{ width: 32, height: 32, borderRadius: 10, flexShrink: 0,
-                  background: active ? 'var(--primary-dim)' : 'var(--surface)',
+                  background: active ? 'var(--primary-dim)' : 'rgba(255,255,255,0.06)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: active ? 'var(--primary-bright)' : 'var(--text-dim)' }}>
+                  color: active ? 'var(--primary-bright)' : 'rgba(200,200,240,1)' }}>
                   <Icon name={d.icon} size={16} />
                 </div>
-                <span style={{ fontSize: 13, fontWeight: 500, color: active ? 'var(--primary-bright)' : 'var(--text-sub)', lineHeight: 1.3 }}>
+                <span style={{ fontSize: 13, fontWeight: 500, color: active ? 'var(--primary-bright)' : 'rgba(210,210,240,0.95)', lineHeight: 1.3 }}>
                   {d.label}
                 </span>
                 {active && <div style={{ marginLeft: 'auto', width: 16, height: 16, borderRadius: '50%',
@@ -205,13 +253,13 @@ export default function ProfileScreen() {
                 cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all 0.15s',
               }}>
                 <div style={{ width: 34, height: 34, borderRadius: 10,
-                  background: active ? 'rgba(239,68,68,0.12)' : 'var(--surface)',
+                  background: active ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.07)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: active ? '#F87171' : 'var(--text-dim)' }}>
+                  color: active ? '#F87171' : 'rgba(200,200,240,1)' }}>
                   <Icon name={a.icon} size={17} />
                 </div>
                 <span style={{ fontSize: 11, fontWeight: 500, textAlign: 'center', lineHeight: 1.2,
-                  color: active ? '#F87171' : 'var(--text-dim)' }}>{a.label}</span>
+                  color: active ? '#F87171' : 'rgba(200,200,235,0.95)' }}>{a.label}</span>
                 {active && <div style={{ position: 'absolute', top: -5, right: -5,
                   width: 16, height: 16, borderRadius: '50%', background: '#EF4444',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -274,15 +322,15 @@ export default function ProfileScreen() {
                 boxShadow: active ? '0 0 18px rgba(124,58,237,0.12)' : 'none',
               }}>
                 <div style={{ width: 44, height: 44, borderRadius: 14,
-                  background: active ? 'var(--primary-dim)' : 'var(--surface)',
+                  background: active ? 'var(--primary-dim)' : 'rgba(255,255,255,0.07)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: active ? 'var(--primary-bright)' : 'var(--text-dim)',
+                  color: active ? 'var(--primary-bright)' : 'rgba(210,210,245,1)',
                   transition: 'all 0.15s' }}>
                   <Icon name={p.icon} size={22} />
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 700,
-                    color: active ? 'var(--primary-bright)' : 'var(--text)' }}>{p.label}</div>
+                    color: active ? 'var(--primary-bright)' : 'rgba(230,230,255,1)' }}>{p.label}</div>
                   <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 3, lineHeight: 1.3 }}>{p.desc}</div>
                 </div>
                 {active && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--primary)' }} />}
