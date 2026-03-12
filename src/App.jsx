@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import ProfileScreen from './screens/ProfileScreen.jsx'
 import CatalogScreen from './screens/CatalogScreen.jsx'
@@ -8,13 +9,18 @@ import AlternativesScreen from './screens/AlternativesScreen.jsx'
 import AIScreen from './screens/AIScreen.jsx'
 import QRPrintScreen from './screens/QRPrintScreen.jsx'
 import BottomNav from './components/BottomNav.jsx'
+import OnboardingScreen from './screens/OnboardingScreen.jsx'
 
 export default function App() {
   const { pathname } = useLocation()
   const hideNav = pathname.endsWith('/ai') || pathname === '/qr-print'
+  const [showOnboarding, setShowOnboarding] = useState(
+    !localStorage.getItem('korset_onboarding_done')
+  )
 
   return (
     <div className="app-frame">
+      {showOnboarding && <OnboardingScreen onDone={() => setShowOnboarding(false)} />}
       <Routes>
         <Route path="/" element={<ProfileScreen />} />
         <Route path="/catalog" element={<CatalogScreen />} />
