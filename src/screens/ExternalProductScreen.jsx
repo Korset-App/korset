@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { loadProfile } from '../utils/profile.js'
 
 const ALLERGEN_MAP = {
@@ -58,52 +58,58 @@ function NutrRow({ label, value, unit }) {
 export default function ExternalProductScreen() {
   const { ean } = useParams()
   const navigate = useNavigate()
+  const { state: navState } = useLocation()
   const profile = loadProfile()
-  const [state, setState] = useState('loading') // loading | found | notfound | error
+  const [state, setState] = useState('loading')
   const [product, setProduct] = useState(null)
   const [fitResult, setFitResult] = useState(null)
 
   useEffect(() => {
+    // Данные уже переданы через navigation state от сканера
+    if (navState?.product) {
+      const p = navState.product
+      const allergens = p.allergens || []
+      setProduct(p)
+      setFitResult(checkFit(allergens, profile))
+      setState('found')
+      return
+    }
+    // Иначе фетчим напрямую из Open Food Facts
     async function fetchProduct() {
       try {
-        // Open Food Facts API — free, no key needed
         const res = await fetch(
-          `https://world.openfoodfacts.org/api/v2/product/${ean}?fields=product_name,brands,image_url,nutriments,allergens_tags,ingredients_text,quantity,categories_tags,countries_tags`,
+          `https://world.openfoodfacts.org/api/v2/product/${ean}?fields=product_name,brands,image_front_url,nutriments,allergens_tags,allergens_hierarchy,ingredients_text_ru,ingredients_text,quantity,labels_tags`,
           { signal: AbortSignal.timeout(8000) }
         )
         const data = await res.json()
-
         if (data.status === 0 || !data.product?.product_name) {
           setState('notfound')
           return
         }
-
         const p = data.product
         const allergens = parseAllergens(p)
         const nutr = p.nutriments || {}
-
         const parsed = {
           ean,
           name: p.product_name || 'Неизвестный товар',
           brand: p.brands || '',
-          image: p.image_url || null,
+          image: p.image_front_url || null,
           quantity: p.quantity || '',
-          ingredients: p.ingredients_text || '',
+          ingredients: p.ingredients_text_ru || p.ingredients_text || '',
           allergens,
           nutrition: {
-            kcal: nutr['energy-kcal_100g'] ?? nutr['energy_100g'] ? Math.round((nutr['energy_100g'] || 0) / 4.184) : null,
+            kcal:    nutr['energy-kcal_100g'] ?? null,
             protein: nutr.proteins_100g ?? null,
-            fat: nutr.fat_100g ?? null,
-            carbs: nutr.carbohydrates_100g ?? null,
-            sugar: nutr.sugars_100g ?? null,
-            fiber: nutr.fiber_100g ?? null,
+            fat:     nutr.fat_100g ?? null,
+            carbs:   nutr.carbohydrates_100g ?? null,
+            sugar:   nutr.sugars_100g ?? null,
+            fiber:   nutr.fiber_100g ?? null,
           }
         }
-
         setProduct(parsed)
         setFitResult(checkFit(allergens, profile))
         setState('found')
-      } catch (e) {
+      } catch {
         setState('error')
       }
     }
