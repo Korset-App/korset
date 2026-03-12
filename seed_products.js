@@ -1,22 +1,18 @@
-// ============================================================
-// KÖRSET — Загрузка товаров в Supabase
-// Запуск: node seed_products.js
-// Нужно: node 18+, @supabase/supabase-js установлен
-// ============================================================
-
-import { createClient } from '@supabase/supabase-js'
+// Загрузка товаров в Supabase — запускать один раз: node seed_products.js
 import { readFileSync } from 'fs'
 
-// ⚠️ Вставь свои ключи
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://tcvuffoxwavqdexrzwjj.supabase.co'
-const SUPABASE_ANON = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRjdnVmZm94d2F2cWRleHJ6d2pqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyOTY1MDQsImV4cCI6MjA4ODg3MjUwNH0.sM_cf6gvFMaNaZiN-_vU9C9SXYkXR2XOXkJzMiGF6bA'
+const SUPABASE_URL  = 'https://tcvuffoxwavqdexrzwjj.supabase.co'
+const SUPABASE_ANON = 'ВСТАВЬ_ANON_KEY' // ← замени на свой ключ
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON)
+const headers = {
+  'Content-Type': 'application/json',
+  'apikey': SUPABASE_ANON,
+  'Authorization': `Bearer ${SUPABASE_ANON}`,
+  'Prefer': 'resolution=merge-duplicates',
+}
 
-// Читаем products.json
 const raw = JSON.parse(readFileSync('./src/data/products.json', 'utf8'))
 
-// Конвертируем в формат Supabase таблицы
 const rows = raw.map(p => ({
   id:            p.id,
   ean:           p.ean || null,
@@ -39,14 +35,16 @@ const rows = raw.map(p => ({
 
 console.log(`Загружаем ${rows.length} товаров...`)
 
-const { data, error } = await supabase
-  .from('products')
-  .upsert(rows, { onConflict: 'id' })
+const res = await fetch(`${SUPABASE_URL}/rest/v1/products?on_conflict=id`, {
+  method: 'POST',
+  headers,
+  body: JSON.stringify(rows),
+})
 
-if (error) {
-  console.error('❌ Ошибка:', error.message)
+if (!res.ok) {
+  const err = await res.text()
+  console.error('❌ Ошибка:', err)
   process.exit(1)
 }
 
 console.log('✅ Готово! Все товары загружены в Supabase.')
-console.log('Теперь сканер будет искать товары сначала там.')
