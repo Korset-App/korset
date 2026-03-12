@@ -8,10 +8,11 @@ function BarcodeScanner({ onDetected, onClose }) {
   const [error, setError]   = useState(null)
   const [searching, setSearching] = useState(false)
   const [torchOn, setTorchOn] = useState(false)
-  const [torchSupported, setTorchSupported] = useState(false)
+  const [torchMsg, setTorchMsg] = useState(null)
   const scannerRef = useRef(null)
   const busyRef    = useRef(false)
   const trackRef   = useRef(null)
+  const torchTimerRef = useRef(null)
   const ID = 'korset-barcode-reader'
 
   const doClose = async () => {
@@ -69,16 +70,12 @@ function BarcodeScanner({ onDetected, onClose }) {
           () => {}
         )
         if (mounted) setStatus('ready')
-        // Torch support detection
+        // Save video track reference for torch control
         try {
-          const videoEl = document.querySelector(`#${ID} video`)
+          const videoEl = document.querySelector('#' + ID + ' video')
           if (videoEl?.srcObject) {
             const track = videoEl.srcObject.getVideoTracks()[0]
-            if (track) {
-              trackRef.current = track
-              const caps = track.getCapabilities?.()
-              if (caps?.torch) setTorchSupported(true)
-            }
+            if (track) trackRef.current = track
           }
         } catch {}
       } catch (e) {
@@ -97,13 +94,34 @@ function BarcodeScanner({ onDetected, onClose }) {
     }
   }, [])
 
+  const showTorchMsg = (msg) => {
+    clearTimeout(torchTimerRef.current)
+    setTorchMsg(msg)
+    torchTimerRef.current = setTimeout(() => setTorchMsg(null), 2800)
+  }
+
   const toggleTorch = async () => {
-    if (!trackRef.current) return
-    try {
-      const next = !torchOn
-      await trackRef.current.applyConstraints({ advanced: [{ torch: next }] })
-      setTorchOn(next)
-    } catch {}
+    const next = !torchOn
+    // Method 1: applyConstraints torch (Chrome/Edge/Android WebView)
+    if (trackRef.current) {
+      try {
+        await trackRef.current.applyConstraints({ advanced: [{ torch: next }] })
+        setTorchOn(next)
+        return
+      } catch {}
+      // Method 2: ImageCapture API (some browsers)
+      try {
+        const ic = new ImageCapture(trackRef.current)
+        const caps = await ic.getPhotoCapabilities?.()
+        if (caps?.fillLightMode?.includes('flash')) {
+          await ic.takePhoto({ fillLightMode: next ? 'flash' : 'off' })
+          setTorchOn(next)
+          return
+        }
+      } catch {}
+    }
+    // Fallback: browser doesn't support torch
+    showTorchMsg('Фонарик недоступен в этом браузере — используйте Chrome')
   }
 
   return (
@@ -142,39 +160,99 @@ function BarcodeScanner({ onDetected, onClose }) {
           </div>
         )}
 
-        {status!=='error' && !searching && (
-          <>
-            <button onClick={doClose} style={{position:'absolute',top:52,right:16,zIndex:30,width:44,height:44,borderRadius:'50%',background:'rgba(0,0,0,0.75)',border:'2px solid rgba(255,255,255,0.3)',color:'#fff',fontSize:22,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
-            {torchSupported && (
-              <button
-                onClick={toggleTorch}
-                style={{
-                  position:'absolute',top:52,left:16,zIndex:30,
-                  width:44,height:44,borderRadius:'50%',cursor:'pointer',
-                  display:'flex',alignItems:'center',justifyContent:'center',
-                  background: torchOn ? 'rgba(250,204,21,0.25)' : 'rgba(0,0,0,0.75)',
-                  border: torchOn ? '2px solid rgba(250,204,21,0.8)' : '2px solid rgba(255,255,255,0.3)',
-                  boxShadow: torchOn ? '0 0 16px rgba(250,204,21,0.4)' : 'none',
-                  transition:'all 0.2s ease',
-                }}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 6H6l2 7h8l2-7z" stroke={torchOn ? '#FDE68A' : 'rgba(255,255,255,0.7)'} strokeWidth="1.8"/>
-                  <path d="M10 13v5l2 2 2-2v-5" stroke={torchOn ? '#FDE68A' : 'rgba(255,255,255,0.7)'} strokeWidth="1.8"/>
-                  {torchOn && <circle cx="12" cy="12" r="10" stroke="rgba(250,204,21,0.3)" strokeWidth="1" strokeDasharray="2 3"/>}
-                </svg>
-              </button>
-            )}
-          </>
-        )}
       </div>
 
       {status!=='error' && !searching && (
-        <div style={{padding:'18px 24px 44px',background:'#09090F',borderTop:'1px solid rgba(139,92,246,0.2)',textAlign:'center',flexShrink:0}}>
-          <p style={{color:status==='ready'?'#C4B5FD':'#9898B8',fontSize:15,fontWeight:500}}>
+        <div style={{
+          padding:'16px 24px 40px', background:'#09090F',
+          borderTop:'1px solid rgba(139,92,246,0.2)', flexShrink:0,
+        }}>
+          {/* Hint text */}
+          <p style={{color:status==='ready'?'#C4B5FD':'#9898B8',fontSize:14,fontWeight:500,textAlign:'center',marginBottom:16}}>
             {status==='ready'?'Наведите на штрихкод товара':'Запуск камеры...'}
           </p>
-          <p style={{color:'#58587A',fontSize:12,marginTop:6}}>Поддерживаются все форматы штрихкодов</p>
+
+          {/* Controls row: torch — [center spacer] — close */}
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
+
+            {/* Torch button */}
+            <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6,flex:1}}>
+              <button
+                onClick={toggleTorch}
+                style={{
+                  width:52,height:52,borderRadius:16,cursor:'pointer',
+                  display:'flex',alignItems:'center',justifyContent:'center',
+                  background: torchOn ? 'rgba(250,204,21,0.18)' : 'rgba(255,255,255,0.06)',
+                  border: torchOn ? '1.5px solid rgba(250,204,21,0.7)' : '1.5px solid rgba(255,255,255,0.15)',
+                  boxShadow: torchOn ? '0 0 20px rgba(250,204,21,0.35), inset 0 0 12px rgba(250,204,21,0.08)' : 'none',
+                  transition:'all 0.22s ease',
+                }}
+              >
+                {/* Flashlight icon — side view: body + beam */}
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                  {/* body */}
+                  <rect x="8" y="10" width="8" height="5" rx="1.5"
+                    fill={torchOn ? 'rgba(250,204,21,0.25)' : 'rgba(255,255,255,0.1)'}
+                    stroke={torchOn ? '#FDE68A' : 'rgba(255,255,255,0.6)'} strokeWidth="1.6"/>
+                  {/* head / lens */}
+                  <path d="M16 11.5 L19.5 10.5 L19.5 13.5 L16 12.5 Z"
+                    fill={torchOn ? '#FDE68A' : 'rgba(255,255,255,0.5)'}
+                    stroke={torchOn ? '#FDE68A' : 'rgba(255,255,255,0.6)'} strokeWidth="1"/>
+                  {/* tail button */}
+                  <rect x="6" y="11.2" width="2.2" height="1.6" rx="0.8"
+                    fill={torchOn ? '#FDE68A' : 'rgba(255,255,255,0.4)'}/>
+                  {/* beam lines when on */}
+                  {torchOn && <>
+                    <line x1="21" y1="10" x2="23" y2="9" stroke="#FDE68A" strokeWidth="1.4" opacity="0.8"/>
+                    <line x1="21" y1="12" x2="23.5" y2="12" stroke="#FDE68A" strokeWidth="1.4" opacity="0.9"/>
+                    <line x1="21" y1="14" x2="23" y2="15" stroke="#FDE68A" strokeWidth="1.4" opacity="0.8"/>
+                  </>}
+                </svg>
+              </button>
+              <span style={{
+                fontSize:10,fontWeight:600,letterSpacing:'0.3px',
+                color: torchOn ? '#FDE68A' : 'rgba(255,255,255,0.35)',
+                transition:'color 0.2s',
+              }}>
+                {torchOn ? 'ВКЛ' : 'Фонарик'}
+              </span>
+              {torchMsg && (
+                <span style={{
+                  position:'absolute',bottom:140,left:16,right:16,
+                  background:'rgba(0,0,0,0.85)',border:'1px solid rgba(255,255,255,0.12)',
+                  borderRadius:10,padding:'8px 12px',
+                  fontSize:12,color:'#F87171',textAlign:'center',
+                  animation:'fadeIn 0.2s ease',
+                }}>
+                  {torchMsg}
+                </span>
+              )}
+            </div>
+
+            {/* Center: formats hint */}
+            <div style={{flex:2,textAlign:'center'}}>
+              <p style={{color:'rgba(100,100,140,0.7)',fontSize:11}}>EAN · UPC · CODE-128</p>
+            </div>
+
+            {/* Close button */}
+            <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6,flex:1}}>
+              <button
+                onClick={doClose}
+                style={{
+                  width:52,height:52,borderRadius:16,cursor:'pointer',
+                  display:'flex',alignItems:'center',justifyContent:'center',
+                  background:'rgba(255,255,255,0.06)',
+                  border:'1.5px solid rgba(255,255,255,0.15)',
+                  transition:'all 0.2s ease',
+                }}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round">
+                  <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+              </button>
+              <span style={{fontSize:10,fontWeight:600,letterSpacing:'0.3px',color:'rgba(255,255,255,0.35)'}}>Закрыть</span>
+            </div>
+          </div>
         </div>
       )}
 
@@ -183,6 +261,7 @@ function BarcodeScanner({ onDetected, onClose }) {
         #${ID} img,#${ID} canvas{display:none!important;}
         #${ID}>div{background:transparent!important;border:none!important;}
         @keyframes scanLine{0%{top:10%}50%{top:80%}100%{top:10%}}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
         @keyframes spin{to{transform:rotate(360deg)}}
       `}</style>
     </div>
