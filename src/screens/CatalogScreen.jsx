@@ -101,9 +101,11 @@ export default function CatalogScreen() {
 
   return (
     <div className="screen" onClick={() => setSortOpen(false)}>
-      <div className="header">
+      <div className="header" style={{ paddingTop: 52, paddingBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div className="screen-title">Каталог</div>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>
+            Каталог <span style={{ color: 'rgba(167,139,250,0.6)', fontSize: 20 }}>•</span>
+          </div>
           {/* Сортировка */}
           <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
             <button onClick={() => setSortOpen(o => !o)} style={{
@@ -227,27 +229,32 @@ export default function CatalogScreen() {
                   }}>
 
                   {/* Фото с бейджем */}
-                  <div style={{ position: 'relative', height: 130, background: 'rgba(255,255,255,0.03)' }}>
-                    <ProductThumb product={product} />
+                  <div style={{ position: 'relative', padding: 10, background: 'rgba(255,255,255,0.02)' }}>
+                    {/* Внутренний квадрат с фото */}
+                    <div style={{
+                      height: 110, borderRadius: 12,
+                      background: 'rgba(255,255,255,0.04)',
+                      border: '1px solid rgba(255,255,255,0.07)',
+                      overflow: 'hidden',
+                    }}>
+                      <ProductThumb product={product} />
+                    </div>
 
-                    {/* Бейдж подходит/не подходит — поверх фото */}
+                    {/* Бейдж — только иконка, не закрывает фото */}
                     {fits !== null && (
                       <div style={{
-                        position: 'absolute', top: 8, left: 8,
-                        padding: '4px 10px', borderRadius: 20,
-                        background: fits ? 'rgba(16,185,129,0.9)' : 'rgba(239,68,68,0.85)',
+                        position: 'absolute', top: 16, right: 16,
+                        width: 26, height: 26, borderRadius: 8,
+                        background: fits ? 'rgba(16,185,129,0.92)' : 'rgba(239,68,68,0.88)',
                         backdropFilter: 'blur(8px)',
-                        display: 'flex', alignItems: 'center', gap: 5,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}>
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round">
                           {fits
                             ? <polyline points="20 6 9 17 4 12"/>
                             : <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>
                           }
                         </svg>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>
-                          {fits ? 'Подходит' : 'Не подходит'}
-                        </span>
                       </div>
                     )}
                   </div>
