@@ -141,7 +141,7 @@ export default function AIScreen() {
 
       {/* ── Хедер: назад + "Körset AI" + статус ── */}
       <div style={{
-        padding: '52px 20px 14px',
+        padding: '14px 20px 14px',
         background: 'var(--bg)',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
         display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0,
@@ -339,9 +339,9 @@ export default function AIScreen() {
             disabled={loading || !input.trim()}
             style={{
               width: 48, height: 48, borderRadius: '50%', border: 'none', cursor: input.trim() ? 'pointer' : 'default',
-              background: input.trim() ? 'linear-gradient(135deg, #7C3AED, #6D28D9)' : 'rgba(255,255,255,0.08)',
+              background: 'linear-gradient(135deg, #7C3AED, #6D28D9)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              boxShadow: input.trim() ? '0 4px 16px rgba(124,58,237,0.4)' : 'none',
+              boxShadow: '0 4px 16px rgba(124,58,237,0.4)',
               transition: 'all 0.2s ease',
             }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
