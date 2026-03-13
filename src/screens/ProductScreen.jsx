@@ -376,8 +376,8 @@ export default function ProductScreen() {
       <div style={{ padding: '0 20px 28px', display: 'flex', gap: 10 }}>
         <button onClick={() => navigate(`/product/${id}/alternatives`)} style={{
           flex: 1, padding: '14px 10px', borderRadius: 16, cursor: 'pointer',
-          background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.12)',
-          color: '#fff', fontSize: 14, fontWeight: 600, fontFamily: 'var(--font-display)',
+          background: 'rgba(124,58,237,0.12)', border: '1.5px solid rgba(124,58,237,0.4)',
+          color: '#C4B5FD', fontSize: 14, fontWeight: 600, fontFamily: 'var(--font-display)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
         }}>
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -390,13 +390,10 @@ export default function ProductScreen() {
           background: 'linear-gradient(135deg, #7C3AED, #6D28D9)',
           border: 'none',
           color: '#fff', fontSize: 14, fontWeight: 600, fontFamily: 'var(--font-display)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           boxShadow: '0 4px 16px rgba(124,58,237,0.4)',
         }}>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8L12 2z"/>
-          </svg>
-          Спросить AI
+          ✦ Спросить AI
         </button>
       </div>
     </div>
