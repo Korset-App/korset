@@ -4,77 +4,69 @@ import products from '../data/products.json'
 import { loadProfile } from '../utils/profile.js'
 
 const CHIPS = [
-  { id: 'why',     label: '✅ Почему подходит мне?'   },
-  { id: 'cook',    label: '🍳 Как использовать?'       },
-  { id: 'compare', label: '⚖️ Сравни с аналогами'     },
-  { id: 'store',   label: '📦 Как хранить?'            },
+  { id: 'why',     label: 'Почему подходит?' },
+  { id: 'cook',    label: 'Как использовать?' },
+  { id: 'compare', label: 'Сравни с аналогами' },
+  { id: 'store',   label: 'Как хранить?' },
 ]
 
-// Build system prompt with product + profile context
 function buildSystemPrompt(product, profile) {
   const specs = Object.entries(product.specs || {}).map(([k,v]) => `${k}: ${v}`).join(', ')
   const nutr = product.nutritionPer100
-    ? `Белки ${product.nutritionPer100.protein}г, Жиры ${product.nutritionPer100.fat}г, Углеводы ${product.nutritionPer100.carbs}г, Ккал ${product.nutritionPer100.kcal} — ${product.nutritionBase}`
+    ? `Белки ${product.nutritionPer100.protein}г, Жиры ${product.nutritionPer100.fat}г, Углеводы ${product.nutritionPer100.carbs}г, Ккал ${product.nutritionPer100.kcal}`
     : 'не указано'
-
   const profileParts = []
   if (profile?.halal || profile?.halalOnly) profileParts.push('нужен халал')
   if (profile?.allergens?.length) profileParts.push(`аллергии: ${profile.allergens.join(', ')}`)
   if (profile?.dietGoals?.length) profileParts.push(`диета: ${profile.dietGoals.join(', ')}`)
-  if (profile?.priority) profileParts.push(`приоритет: ${profile.priority}`)
+  return `Ты — Körset AI, умный помощник покупателя в супермаркете Казахстана. Отвечай кратко, по делу, на русском языке. Максимум 3–4 предложения. Без markdown — пиши живым текстом как друг.
 
-  return `Ты — Körset AI, умный помощник покупателя в супермаркете Казахстана. Отвечай кратко, по делу, на русском языке. Максимум 3–4 предложения. Без markdown, без списков с дефисами — пиши живым текстом.
-
-ТОВАР: ${product.name}
-Цена: ${product.priceKzt} тенге | Полка: ${product.shelf}
-Категория: ${product.category} | Группа: ${product.group}
-Описание: ${product.description || '—'}
-Характеристики: ${specs || '—'}
-КБЖУ: ${nutr}
-Состав: ${product.ingredients || '—'}
+ТОВАР: ${product.name} | Цена: ${product.priceKzt}₸ | Полка: ${product.shelf}
+КБЖУ: ${nutr} | Состав: ${product.ingredients || '—'}
 Халал: ${product.halal === 'yes' ? 'да' : product.halal === 'no' ? 'нет' : 'неизвестно'}
 Аллергены: ${product.allergens?.join(', ') || 'нет'}
+ПРОФИЛЬ: ${profileParts.length ? profileParts.join('; ') : 'не задан'}`
+}
 
-ПРОФИЛЬ ПОКУПАТЕЛЯ: ${profileParts.length ? profileParts.join('; ') : 'не задан'}
+function buildExternalSystemPrompt(product, profile) {
+  const n = product.nutrition
+  const nutrStr = n ? `Белки ${n.protein ?? '—'}г, Жиры ${n.fat ?? '—'}г, Углеводы ${n.carbs ?? '—'}г, Ккал ${n.calories ?? '—'}` : 'не указано'
+  const profileParts = []
+  if (profile?.halal || profile?.halalOnly) profileParts.push('нужен халал')
+  if (profile?.allergens?.length) profileParts.push(`аллергии: ${profile.allergens.join(', ')}`)
+  if (profile?.dietGoals?.length) profileParts.push(`диета: ${profile.dietGoals.join(', ')}`)
+  return `Ты — Körset AI, умный помощник покупателя в супермаркете Казахстана. Отвечай кратко, по делу, на русском языке. Максимум 3–4 предложения. Без markdown — пиши живым текстом как друг.
 
-Отвечай только на вопросы об этом конкретном товаре. Если покупатель спрашивает что-то не по теме — мягко верни к товару.`
+ТОВАР: ${product.name} | Бренд: ${product.brand || '—'}
+КБЖУ: ${nutrStr} | Состав: ${product.ingredients || '—'}
+Халал: ${product.isHalal === true ? 'да' : 'неизвестно'} | Аллергены: ${product.allergens?.join(', ') || 'нет'}
+Nutri-Score: ${product.nutriscore?.toUpperCase() || '—'}
+ПРОФИЛЬ: ${profileParts.length ? profileParts.join('; ') : 'не задан'}`
 }
 
 function buildChipQuestion(chipId, product) {
   const map = {
-    why:     `Объясни, почему товар "${product.name}" подходит или не подходит для моего профиля. Учти мои ограничения.`,
-    cook:    `Как использовать "${product.name}"? Дай конкретный практический совет или рецепт.`,
-    compare: `Сравни "${product.name}" с типичными аналогами на полке. Чем он лучше или хуже?`,
-    store:   `Как правильно хранить "${product.name}" после покупки? Укажи условия и срок.`,
+    why:     `Объясни, почему "${product.name}" подходит или не подходит для моего профиля.`,
+    cook:    `Как использовать "${product.name}"? Дай практический совет.`,
+    compare: `Сравни "${product.name}" с типичными аналогами. Чем лучше или хуже?`,
+    store:   `Как хранить "${product.name}" после покупки?`,
   }
   return map[chipId] || chipId
 }
 
-
-// System prompt для внешних товаров (из Open Food Facts)
-function buildExternalSystemPrompt(product, profile) {
-  const nutr = product.nutrition
-  const nutrStr = nutr
-    ? `Белки ${nutr.protein ?? '—'}г, Жиры ${nutr.fat ?? '—'}г, Углеводы ${nutr.carbs ?? '—'}г, Ккал ${nutr.kcal ?? '—'}`
-    : 'не указано'
-  const profileParts = []
-  if (profile?.halal || profile?.halalOnly) profileParts.push('нужен халал')
-  if (profile?.allergens?.length) profileParts.push(`аллергии: ${profile.allergens.join(', ')}`)
-  if (profile?.dietGoals?.length) profileParts.push(`диета: ${profile.dietGoals.join(', ')}`)
-  const halalStr = product.isHalal === true ? 'да' : product.isHalal === false ? 'нет' : 'неизвестно'
-  return `Ты — Körset AI, умный помощник покупателя в супермаркете Казахстана. Отвечай кратко, по делу, на русском языке. Максимум 3–4 предложения. Без markdown, без списков с дефисами — пиши живым текстом.
-
-ТОВАР: ${product.name}
-Бренд: ${product.brand || '—'} | Объём/вес: ${product.quantity || '—'}
-КБЖУ: ${nutrStr}
-Состав: ${product.ingredients || '—'}
-Халал: ${halalStr}
-Аллергены: ${product.allergens?.join(', ') || 'нет'}
-Nutri-Score: ${product.nutriscore?.toUpperCase() || '—'}
-
-ПРОФИЛЬ ПОКУПАТЕЛЯ: ${profileParts.length ? profileParts.join('; ') : 'не задан'}
-
-Отвечай только на вопросы об этом конкретном товаре. Если покупатель спрашивает что-то не по теме — мягко верни к товару.`
+// Иконка-аватар Körset
+function KorsetAvatar({ size = 34 }) {
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: '50%', flexShrink: 0,
+      background: 'linear-gradient(135deg, #7C3AED, #6D28D9)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      boxShadow: '0 2px 10px rgba(124,58,237,0.4)',
+      padding: size * 0.18,
+    }}>
+      <img src="/icon_logo.svg" alt="Körset" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+    </div>
+  )
 }
 
 export default function AIScreen() {
@@ -87,12 +79,11 @@ export default function AIScreen() {
     ? (navState?.product ?? null)
     : products.find(p => p.id === id)
 
-  const [messages, setMessages] = useState([])  // {role: 'user'|'assistant', content: string}
+  const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const bottomRef = useRef(null)
-  const inputRef = useRef(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -101,60 +92,38 @@ export default function AIScreen() {
   const sendMessage = async (text) => {
     if (!text.trim() || loading || !product) return
     setError(null)
-
     const userMsg = { role: 'user', content: text }
     const newMessages = [...messages, userMsg]
     setMessages(newMessages)
     setInput('')
     setLoading(true)
-
     try {
       const apiKey = import.meta.env.VITE_GROQ_API_KEY
       if (!apiKey) throw new Error('NO_KEY')
-
       const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
         body: JSON.stringify({
           model: 'llama-3.1-8b-instant',
-          max_tokens: 300,
-          temperature: 0.7,
+          max_tokens: 300, temperature: 0.7,
           messages: [
             { role: 'system', content: isExternal ? buildExternalSystemPrompt(product, profile) : buildSystemPrompt(product, profile) },
             ...newMessages,
           ],
         }),
       })
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.error?.message || `HTTP ${res.status}`)
-      }
-
+      if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error?.message || `HTTP ${res.status}`) }
       const data = await res.json()
       const reply = data.choices?.[0]?.message?.content?.trim()
       if (!reply) throw new Error('Пустой ответ')
-
       setMessages(prev => [...prev, { role: 'assistant', content: reply }])
     } catch (e) {
-      if (e.message === 'NO_KEY') {
-        setError('API ключ не настроен. Добавьте VITE_GROQ_API_KEY в настройках Vercel.')
-      } else {
-        setError(`Ошибка: ${e.message}`)
-      }
-      // Remove user message if failed
+      if (e.message === 'NO_KEY') setError('API ключ не настроен.')
+      else setError(`Ошибка: ${e.message}`)
       setMessages(prev => prev.slice(0, -1))
     } finally {
       setLoading(false)
     }
-  }
-
-  const handleChip = (chipId) => {
-    if (loading) return
-    sendMessage(buildChipQuestion(chipId, product))
   }
 
   if (!product) {
@@ -165,71 +134,152 @@ export default function AIScreen() {
     )
   }
 
+  const productImage = product.image || product.images?.[0] || null
+
   return (
-    <div className="screen" style={{ display:'flex', flexDirection:'column', paddingBottom:0 }}>
-      {/* Header */}
-      <div className="header">
-        <button className="back-btn" onClick={() => {
-          // Go back to product, replacing AI in history to break the loop
-          isExternal ? navigate(`/product/ext/${ean}`, { replace: true, state: { product } }) : navigate(`/product/${id}`, { replace: true })
-        }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <div style={{ position:'fixed', inset:0, background:'var(--bg)', display:'flex', flexDirection:'column' }}>
+
+      {/* ── Хедер: назад + "Körset AI" + статус ── */}
+      <div style={{
+        padding: '52px 20px 14px',
+        background: 'var(--bg)',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0,
+      }}>
+        {/* Кнопка назад */}
+        <button
+          onClick={() => isExternal
+            ? navigate(`/product/ext/${ean}`, { replace: true, state: { product } })
+            : navigate(`/product/${id}`, { replace: true })
+          }
+          style={{
+            width: 38, height: 38, borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)',
+            background: 'rgba(255,255,255,0.05)', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="2" strokeLinecap="round">
             <path d="M19 12H5M12 5l-7 7 7 7"/>
           </svg>
-          К товару
         </button>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <div>
-            <div className="screen-title">AI-помощник</div>
-            <div style={{ fontSize:12, color:'var(--text-dim)', marginTop:2 }}>{product.name}</div>
+
+        {/* Аватар */}
+        <KorsetAvatar size={38} />
+
+        {/* Имя + статус */}
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', fontFamily: 'var(--font-display)', lineHeight: 1.2 }}>
+            Körset AI
           </div>
-          <div style={{ width:36, height:36, borderRadius:'50%', background:'var(--primary-dim)', border:'1px solid rgba(139,92,246,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>
-            🤖
+          <div style={{ fontSize: 12, color: '#34D399', fontWeight: 500, marginTop: 1 }}>
+            Онлайн
           </div>
         </div>
       </div>
 
-      {/* Messages */}
-      <div style={{ flex:1, overflowY:'auto', padding:'12px 20px', display:'flex', flexDirection:'column', gap:12 }}>
+      {/* ── Контекст товара ── */}
+      <div style={{
+        margin: '12px 16px 4px',
+        padding: '10px 14px',
+        background: 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 14,
+        display: 'flex', alignItems: 'center', gap: 12,
+        flexShrink: 0,
+      }}>
+        {/* Фото */}
+        <div style={{
+          width: 42, height: 42, borderRadius: 10, overflow: 'hidden', flexShrink: 0,
+          background: 'rgba(255,255,255,0.06)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          {productImage
+            ? <img src={productImage} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+            : <span style={{ fontSize: 22 }}>🛍️</span>
+          }
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 2 }}>
+            Контекст продукта
+          </div>
+          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {product.name}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Сообщения ── */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+        {/* Пустое состояние */}
         {messages.length === 0 && (
-          <div style={{ textAlign:'center', padding:'32px 16px 0', color:'var(--text-dim)' }}>
-            <div style={{ fontSize:40, marginBottom:12 }}>🤖</div>
-            <p style={{ fontSize:15, fontWeight:500, color:'var(--text)' }}>Спросите про этот товар</p>
-            <p style={{ fontSize:13, marginTop:6, lineHeight:1.6 }}>
-              Состав, хранение, польза, сравнение с аналогами — отвечу на любой вопрос
-            </p>
+          <div style={{ padding: '24px 0 8px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+            <KorsetAvatar size={34} />
+            <div style={{
+              background: '#151525', border: '1px solid rgba(255,255,255,0.08)',
+              padding: '13px 16px', borderRadius: '4px 18px 18px 18px',
+              maxWidth: '85%', fontSize: 15, lineHeight: 1.65, color: 'rgba(255,255,255,0.85)',
+            }}>
+              Привет! Задайте любой вопрос про <strong style={{ color: '#fff' }}>{product.name}</strong> — состав, аллергены, как использовать или сравнить с аналогами.
+            </div>
           </div>
         )}
 
+        {/* Переписка */}
         {messages.map((msg, i) => (
-          <div key={i} style={{ display:'flex', justifyContent: msg.role==='user' ? 'flex-end' : 'flex-start', animation:'slideUp 0.2s ease' }}>
-            {msg.role === 'user' ? (
-              <div style={{ background:'var(--primary)', color:'white', padding:'10px 14px', borderRadius:'16px 16px 4px 16px', maxWidth:'78%', fontSize:14, lineHeight:1.6, boxShadow:'0 2px 12px var(--primary-glow)' }}>
-                {msg.content}
-              </div>
-            ) : (
-              <div style={{ background:'var(--card)', border:'1px solid var(--border)', padding:'12px 14px', borderRadius:'4px 16px 16px 16px', maxWidth:'88%', fontSize:14, lineHeight:1.7, color:'var(--text)' }}>
-                <div style={{ fontSize:11, color:'var(--primary-bright)', fontWeight:700, marginBottom:6, display:'flex', alignItems:'center', gap:6 }}>
-                  <span>🤖</span> Körset AI
-                </div>
-                {msg.content}
-              </div>
-            )}
+          <div key={i} style={{
+            display: 'flex',
+            justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+            alignItems: 'flex-end',
+            gap: 10,
+          }}>
+            {/* Аватар AI слева */}
+            {msg.role === 'assistant' && <KorsetAvatar size={34} />}
+
+            <div style={msg.role === 'user' ? {
+              background: '#7C3AED',
+              padding: '12px 16px',
+              borderRadius: '18px 18px 4px 18px',
+              maxWidth: '78%',
+              fontSize: 15, lineHeight: 1.65, color: '#fff',
+              boxShadow: '0 4px 16px rgba(124,58,237,0.35)',
+            } : {
+              background: '#151525',
+              border: '1px solid rgba(255,255,255,0.08)',
+              padding: '13px 16px',
+              borderRadius: '4px 18px 18px 18px',
+              maxWidth: '85%',
+              fontSize: 15, lineHeight: 1.65,
+              color: 'rgba(255,255,255,0.85)',
+            }}>
+              {msg.content}
+            </div>
           </div>
         ))}
 
+        {/* Индикатор печатает */}
         {loading && (
-          <div style={{ display:'flex', justifyContent:'flex-start', animation:'slideUp 0.2s ease' }}>
-            <div style={{ background:'var(--card)', border:'1px solid var(--border)', padding:'14px 16px', borderRadius:'4px 16px 16px 16px' }}>
-              <div className="ai-typing">
-                <div className="ai-dot"/><div className="ai-dot"/><div className="ai-dot"/>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10 }}>
+            <KorsetAvatar size={34} />
+            <div style={{
+              background: '#151525', border: '1px solid rgba(255,255,255,0.08)',
+              padding: '14px 18px', borderRadius: '4px 18px 18px 18px',
+            }}>
+              <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+                {[0,1,2].map(i => (
+                  <div key={i} style={{
+                    width: 7, height: 7, borderRadius: '50%',
+                    background: 'rgba(167,139,250,0.7)',
+                    animation: `bounce 1.2s ease-in-out ${i * 0.2}s infinite`,
+                  }}/>
+                ))}
               </div>
             </div>
           </div>
         )}
 
         {error && (
-          <div style={{ background:'rgba(220,38,38,0.08)', border:'1px solid rgba(220,38,38,0.2)', borderRadius:12, padding:'12px 14px', fontSize:13, color:'#F87171', lineHeight:1.6 }}>
+          <div style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.2)', borderRadius: 12, padding: '12px 14px', fontSize: 13, color: '#F87171' }}>
             {error}
           </div>
         )}
@@ -237,37 +287,76 @@ export default function AIScreen() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input area */}
-      <div style={{ padding:'10px 16px 16px', background:'rgba(12,12,24,0.97)', borderTop:'1px solid var(--border)', backdropFilter:'blur(20px)' }}>
-        {/* Quick chips */}
-        <div style={{ display:'flex', gap:8, overflowX:'auto', paddingBottom:10, scrollbarWidth:'none' }}>
-          {CHIPS.map(chip => (
-            <button key={chip.id} onClick={() => handleChip(chip.id)} disabled={loading}
-              style={{ flexShrink:0, padding:'7px 12px', borderRadius:20, fontSize:12, fontWeight:500, cursor:'pointer', border:'1px solid var(--border)', background:'var(--card)', color:'var(--text-sub)', fontFamily:'var(--font-body)', opacity: loading ? 0.5 : 1, whiteSpace:'nowrap' }}>
-              {chip.label}
-            </button>
-          ))}
-        </div>
+      {/* ── Поле ввода ── */}
+      <div style={{
+        padding: '10px 16px 32px',
+        background: '#0C0C18',
+        borderTop: '1px solid rgba(255,255,255,0.06)',
+        flexShrink: 0,
+      }}>
+        {/* Быстрые вопросы */}
+        {messages.length === 0 && (
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 10, scrollbarWidth: 'none' }}>
+            {CHIPS.map(chip => (
+              <button key={chip.id} onClick={() => sendMessage(buildChipQuestion(chip.id, product))} disabled={loading}
+                style={{
+                  flexShrink: 0, padding: '7px 14px', borderRadius: 20,
+                  fontSize: 13, fontWeight: 500, cursor: 'pointer',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  background: 'rgba(255,255,255,0.05)',
+                  color: 'rgba(255,255,255,0.7)',
+                  fontFamily: 'var(--font-body)',
+                  whiteSpace: 'nowrap',
+                }}>
+                {chip.label}
+              </button>
+            ))}
+          </div>
+        )}
 
-        {/* Text input */}
-        <div style={{ display:'flex', gap:10, alignItems:'flex-end' }}>
+        {/* Инпут */}
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <input
-            ref={inputRef}
             value={input}
             onChange={e => setInput(e.target.value)}
-            onKeyDown={e => { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input) } }}
-            placeholder="Задайте вопрос о товаре..."
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input) } }}
+            placeholder="Спросить о продукте..."
             disabled={loading}
-            style={{ flex:1, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:14, padding:'11px 14px', fontSize:14, color:'var(--text)', fontFamily:'var(--font-body)', outline:'none' }}
+            style={{
+              flex: 1,
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 24,
+              padding: '13px 18px',
+              fontSize: 15,
+              color: '#fff',
+              fontFamily: 'var(--font-body)',
+              outline: 'none',
+            }}
           />
-          <button onClick={() => sendMessage(input)} disabled={loading || !input.trim()}
-            style={{ width:44, height:44, borderRadius:'50%', background:input.trim() ? 'var(--primary)' : 'var(--card)', border:'none', cursor:input.trim() ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'background 0.2s', opacity: loading ? 0.5 : 1 }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-              <path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/>
+          <button
+            onClick={() => sendMessage(input)}
+            disabled={loading || !input.trim()}
+            style={{
+              width: 48, height: 48, borderRadius: '50%', border: 'none', cursor: input.trim() ? 'pointer' : 'default',
+              background: input.trim() ? 'linear-gradient(135deg, #7C3AED, #6D28D9)' : 'rgba(255,255,255,0.08)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              boxShadow: input.trim() ? '0 4px 16px rgba(124,58,237,0.4)' : 'none',
+              transition: 'all 0.2s ease',
+            }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
+              <path d="M12 19V5M5 12l7-7 7 7"/>
             </svg>
           </button>
         </div>
       </div>
+
+      <style>{`
+        @keyframes bounce {
+          0%, 60%, 100% { transform: translateY(0) }
+          30% { transform: translateY(-6px) }
+        }
+      `}</style>
     </div>
   )
 }
