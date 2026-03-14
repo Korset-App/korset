@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useI18n } from '../utils/i18n.js'
 import { useNavigate } from 'react-router-dom'
 import products from '../data/products.json'
 import { checkProductFit, formatPrice } from '../utils/fitCheck.js'
@@ -50,6 +51,7 @@ function ProductThumb({ product }) {
 
 export default function CatalogScreen() {
   const navigate = useNavigate()
+  const { lang } = useI18n()
   const profile  = loadProfile()
   const [q, setQ] = useState('')
   const [activeFilter, setActiveFilter] = useState('all')
@@ -107,10 +109,10 @@ export default function CatalogScreen() {
               fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 900,
               color: '#fff', letterSpacing: '-0.5px', lineHeight: 1,
             }}>
-              Каталог
+              {lang === 'kz' ? 'Каталог' : 'Каталог'}
             </div>
             <div style={{ fontSize: 12, color: 'rgba(167,139,250,0.7)', marginTop: 3, fontWeight: 500 }}>
-              {products.length} товаров в базе
+              {lang === 'kz' ? `${products.length} тауар базада` : `${products.length} товаров в базе`}
             </div>
           </div>
 
@@ -180,7 +182,7 @@ export default function CatalogScreen() {
               background: 'transparent', border: 'none', outline: 'none',
               color: '#fff', fontSize: 14, fontFamily: 'var(--font-body)', flex: 1,
             }}
-            placeholder="Поиск продуктов..." value={q} onChange={e => setQ(e.target.value)}
+            placeholder={lang === 'kz' ? 'Тауарды іздеу...' : 'Поиск продуктов...'} value={q} onChange={e => setQ(e.target.value)}
           />
           {q && (
             <button onClick={() => setQ('')} style={{
@@ -192,7 +194,7 @@ export default function CatalogScreen() {
 
         {/* Фильтры */}
         <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', marginBottom: 18 }}>
-          {FILTERS.map(f => {
+          {filterOptions.map(f => {
             if (f.id === 'fit' && !hasProfile) return null
             const active = activeFilter === f.id
             return (
@@ -218,7 +220,7 @@ export default function CatalogScreen() {
         {list.length === 0 ? (
           <div style={{ padding: '60px 0', textAlign: 'center', color: 'rgba(160,160,200,0.6)' }}>
             <div style={{ fontSize: 40, marginBottom: 10 }}>🔍</div>
-            <p style={{ fontSize: 14 }}>Ничего не найдено</p>
+            <p style={{ fontSize: 14 }}>{lang === 'kz' ? 'Ештеңе табылмады' : 'Ничего не найдено'}</p>
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import products from '../data/products.json'
 import { checkProductFit, formatPrice, CATEGORY_LABELS } from '../utils/fitCheck.js'
 import { loadProfile } from '../utils/profile.js'
+import { useI18n } from '../utils/i18n.js'
 
 function clamp(n, a, b) {
   return Math.max(a, Math.min(b, n))
@@ -77,7 +78,7 @@ function getManufacturerText(product) {
 }
 
 function formatShelfLine(product) {
-  const cat = CATEGORY_LABELS[product.category] || 'Товары'
+  const cat = CATEGORY_LABELS[product.category] || (lang === 'kz' ? 'Тауарлар' : 'Товары')
   const shelf = product.shelf ? String(product.shelf).replace(/^Полка\s*/i, '').trim() : ''
   return shelf ? `${cat} · Полка ${shelf}` : cat
 }
@@ -86,6 +87,7 @@ export default function ProductScreen() {
   const { id } = useParams()
   const navigate = useNavigate()
   const profile = loadProfile()
+  const { lang } = useI18n()
   const [moreOpen, setMoreOpen] = useState(false)
 
   const product = useMemo(() => products.find((p) => p.id === id), [id])
@@ -95,7 +97,7 @@ export default function ProductScreen() {
       <div className="screen" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
         <div style={{ textAlign: 'center', color: 'var(--text-dim)' }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>🔍</div>
-          <p>Товар не найден</p>
+          <p>{lang === 'kz' ? 'Тауар табылмады' : 'Товар не найден'}</p>
           <button className="btn btn-secondary" style={{ marginTop: 16 }} onClick={() => navigate('/catalog')}>
             Назад к списку
           </button>
@@ -140,7 +142,7 @@ export default function ProductScreen() {
             <path d="M19 12H5M12 5l-7 7 7 7"/>
           </svg>
         </button>
-        <div className="screen-title" style={{ margin: 0 }}>Карточка товара</div>
+        <div className="screen-title" style={{ margin: 0 }}>{lang === 'kz' ? 'Тауар картасы' : 'Карточка товара'}</div>
       </div>
 
       {/* Product Card */}
@@ -217,7 +219,7 @@ export default function ProductScreen() {
             {manufacturerText ? (
               <span style={{ fontSize: 13, color: 'var(--text-sub)' }}>{manufacturerText}</span>
             ) : (
-              <span style={{ fontSize: 13, color: 'var(--text-dim)' }}>Производитель не указан</span>
+              <span style={{ fontSize: 13, color: 'var(--text-dim)' }}>{lang === 'kz' ? 'Өндіруші көрсетілмеген' : 'Производитель не указан'}</span>
             )}
           </div>
 
@@ -226,16 +228,16 @@ export default function ProductScreen() {
             <div className="section-title" style={{ marginBottom: 8 }}>
               Характеристики
               <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--text-dim)', fontWeight: 500 }}>
-                {isFood ? `КБЖУ (${product.nutritionBase || 'на 100 г'})` : 'Основные параметры'}
+                {isFood ? lang === 'kz' ? `БЖУ (${product.nutritionBase || '100 г үшін'})` : `КБЖУ (${product.nutritionBase || 'на 100 г'})` : lang === 'kz' ? 'Негізгі параметрлер' : 'Основные параметры'}
               </span>
             </div>
 
             {isFood && nutrition ? (
               <div className="nutri-grid" style={{ marginBottom: 10 }}>
                 {[
-                  ['Белки', nutrition.protein, 'г'],
-                  ['Жиры', nutrition.fat, 'г'],
-                  ['Углеводы', nutrition.carbs, 'г'],
+                  [lang === 'kz' ? 'Ақуыз' : lang === 'kz' ? 'Ақуыз' : 'Белки', nutrition.protein, 'г'],
+                  [lang === 'kz' ? 'Май' : 'Жиры', nutrition.fat, 'г'],
+                  [lang === 'kz' ? 'Көмірсу' : 'Углеводы', nutrition.carbs, 'г'],
                   ['Ккал', nutrition.kcal, 'ккал'],
                 ].map(([label, val, unit]) => (
                   <div key={label} className="nutri-item">
@@ -256,7 +258,7 @@ export default function ProductScreen() {
             ) : (
               <div className="spec-list" style={{ marginBottom: 10 }}>
                 {keySpecs.length === 0 ? (
-                  <div style={{ fontSize: 13, color: 'var(--text-dim)' }}>Характеристики будут добавлены</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-dim)' }}>{lang === 'kz' ? 'Сипаттамалар кейін қосылады' : 'Характеристики будут добавлены'}</div>
                 ) : (
                   keySpecs.map(([k, v]) => (
                     <div key={k} className="info-row">
@@ -274,7 +276,7 @@ export default function ProductScreen() {
                 className="more-btn"
                 type="button"
               >
-                {moreOpen ? 'Скрыть' : 'Дополнительно'}
+                {moreOpen ? (lang === 'kz' ? 'Жасыру' : 'Скрыть') : (lang === 'kz' ? 'Қосымша' : 'Дополнительно')}
                 <span style={{ marginLeft: 8, opacity: 0.9 }} aria-hidden="true">
                   {moreOpen ? '▴' : '▾'}
                 </span>
@@ -285,28 +287,28 @@ export default function ProductScreen() {
               <div style={{ marginTop: 10 }}>
                 {product.ingredients ? (
                   <div style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 6 }}>Состав</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 6 }}>{lang === 'kz' ? 'Құрамы' : 'Состав'}</div>
                     <div style={{ fontSize: 13, color: 'var(--text-sub)', lineHeight: 1.55 }}>{product.ingredients}</div>
                   </div>
                 ) : null}
 
                 {product.storage ? (
                   <div style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 6 }}>Условия хранения</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 6 }}>{lang === 'kz' ? 'Сақтау шарттары' : 'Условия хранения'}</div>
                     <div style={{ fontSize: 13, color: 'var(--text-sub)', lineHeight: 1.55 }}>{product.storage}</div>
                   </div>
                 ) : null}
 
                 {product.expiry ? (
                   <div style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 6 }}>Срок хранения</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 6 }}>{lang === 'kz' ? 'Сақтау мерзімі' : 'Срок хранения'}</div>
                     <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>{product.expiry}</div>
                   </div>
                 ) : null}
 
                 {product.fullSpecs && Object.keys(product.fullSpecs).length > 0 ? (
                   <div style={{ marginBottom: 0 }}>
-                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 6 }}>Доп. характеристики</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 6 }}>{lang === 'kz' ? 'Қосымша сипаттамалар' : 'Доп. характеристики'}</div>
                     {Object.entries(product.fullSpecs).map(([k, v]) => (
                       <div key={k} className="info-row">
                         <span className="info-label">{humanizeSpecKey(k)}</span>
@@ -343,10 +345,10 @@ export default function ProductScreen() {
           </div>
           <div>
             <div style={{ fontSize: 17, fontWeight: 700, color: fits ? '#10B981' : '#EF4444', fontFamily: 'var(--font-display)' }}>
-              {fits ? 'Подходит вам' : 'Не подходит'}
+              {fits ? (lang === 'kz' ? 'Сізге сай келеді' : 'Подходит вам') : (lang === 'kz' ? 'Сәйкес емес' : 'Не подходит')}
             </div>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>
-              {fits ? 'Соответствует вашему профилю' : 'Есть ограничения по вашему профилю'}
+              {fits ? (lang === 'kz' ? 'Профиліңізге сәйкес келеді' : 'Соответствует вашему профилю') : (lang === 'kz' ? 'Профиліңіз бойынша шектеулер бар' : 'Есть ограничения по вашему профилю')}
             </div>
           </div>
         </div>
@@ -403,11 +405,11 @@ export default function ProductScreen() {
 function HeroImage({ product }) {
   const [ok, setOk] = useState(true)
   const src = getPrimaryImage(product)
-  if (!src || !ok) return <div className="product-hero-placeholder">Фото добавим позже</div>
+  if (!src || !ok) return <div className="product-hero-placeholder">{lang === 'kz' ? 'Фото кейін қосылады' : 'Фото добавим позже'}</div>
   return (
     <img
       src={src}
-      alt={product?.name || 'Фото товара'}
+      alt={product?.name || lang === 'kz' ? 'Тауар суреті' : 'Фото товара'}
       className="product-hero-img"
       loading="lazy"
       onError={() => setOk(false)}
@@ -424,27 +426,27 @@ function formatNutriNumber(val) {
 function humanizeSpecKey(key) {
   return (
     {
-      volume: 'Объём',
-      weight: 'Вес',
-      fat: 'Жирность',
-      protein: 'Белки',
-      sugar: 'Сахар',
-      calories: 'Калории',
-      length: 'Длина',
-      maxPower: 'Мощность',
+      volume: lang === 'kz' ? 'Көлемі' : 'Объём',
+      weight: lang === 'kz' ? 'Салмағы' : 'Вес',
+      fat: lang === 'kz' ? 'Майлылығы' : 'Жирность',
+      protein: lang === 'kz' ? 'Ақуыз' : 'Белки',
+      sugar: lang === 'kz' ? 'Қант' : 'Сахар',
+      calories: lang === 'kz' ? 'Калория' : 'Калории',
+      length: lang === 'kz' ? 'Ұзындығы' : 'Длина',
+      maxPower: lang === 'kz' ? 'Қуаты' : 'Мощность',
       standard: 'Стандарт',
-      power: 'Мощность',
-      type: 'Тип',
-      anc: 'Шумоподавление',
+      power: lang === 'kz' ? 'Қуаты' : 'Мощность',
+      type: lang === 'kz' ? 'Түрі' : 'Тип',
+      anc: lang === 'kz' ? 'Шуды басу' : 'Шумоподавление',
       battery: 'Батарея',
-      waterproof: 'Защита',
-      coverage: 'Расход',
-      dryTime: 'Сохнет',
-      moisture: 'Влагостойкость',
+      waterproof: lang === 'kz' ? 'Қорғаныс' : 'Защита',
+      coverage: lang === 'kz' ? 'Шығын' : 'Расход',
+      dryTime: lang === 'kz' ? 'Кебеді' : 'Сохнет',
+      moisture: lang === 'kz' ? 'Ылғалға төзімді' : 'Влагостойкость',
       brand: 'Бренд',
       model: 'Модель',
       material: 'Материал',
-      size: 'Размер',
+      size: lang === 'kz' ? 'Өлшем' : 'Размер',
     }[key] || key
   )
 }

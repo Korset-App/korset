@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { loadProfile } from '../utils/profile.js'
+import { useI18n } from '../utils/i18n.js'
 
 const ALLERGEN_MAP = {
   'en:milk': 'milk', 'en:gluten': 'gluten', 'en:nuts': 'nuts',
@@ -44,20 +45,20 @@ function checkFit(product, profile) {
     if (product.isHalal === true) {
       // позитив добавим ниже
     } else if (product.isHalal === false) {
-      reasons.push({ type: 'fail', text: 'Не является халал' })
+      reasons.push({ type: 'fail', text: lang === 'kz' ? 'Халал емес' : 'Не является халал' })
     } else {
-      reasons.push({ type: 'warn', text: 'Халал-статус неизвестен — уточните по упаковке' })
+      reasons.push({ type: 'warn', text: lang === 'kz' ? 'Халал мәртебесі белгісіз — қаптамадан тексеріңіз' : 'Халал-статус неизвестен — уточните по упаковке' })
     }
   }
 
   const profileAllergens = profile.allergens || []
   const found = allergens.filter(a => profileAllergens.includes(a))
-  found.forEach(a => reasons.push({ type: 'fail', text: `Содержит аллерген: ${ALLERGEN_NAMES[a] || a}` }))
+  found.forEach(a => reasons.push({ type: 'fail', text: lang === 'kz' ? `Құрамында аллерген бар: ${ALLERGEN_NAMES[a] || a}` : `Содержит аллерген: ${ALLERGEN_NAMES[a] || a}` }))
 
   const customAllergens = profile.customAllergens || []
   customAllergens.forEach(ca => {
     if (ingredients.includes(ca.toLowerCase()))
-      reasons.push({ type: 'fail', text: `Содержит: ${ca}` })
+      reasons.push({ type: 'fail', text: lang === 'kz' ? `Құрамында бар: ${ca}` : `Содержит: ${ca}` })
   })
 
   const goals = profile.dietGoals || []
@@ -65,34 +66,34 @@ function checkFit(product, profile) {
   if (goals.includes('sugar_free') || profile.sugarFree) {
     const sw = ['сахар', 'sugar', 'sucre', 'zucker', 'глюкоз', 'фруктоз', 'сироп']
     if (sw.some(w => ingredients.includes(w)))
-      reasons.push({ type: 'fail', text: 'Содержит сахар' })
+      reasons.push({ type: 'fail', text: lang === 'kz' ? 'Қант бар' : 'Содержит сахар' })
   }
 
   if (goals.includes('dairy_free')) {
     const dw = ['молок', 'сливк', 'масло слив', 'сметан', 'сыр', 'milk', 'cream', 'butter', 'cheese', 'whey', 'casein', 'лактоз']
     if (allergens.includes('milk') || dw.some(w => ingredients.includes(w)))
-      reasons.push({ type: 'fail', text: 'Содержит молочные продукты' })
+      reasons.push({ type: 'fail', text: lang === 'kz' ? 'Сүт өнімдері бар' : 'Содержит молочные продукты' })
   }
 
   if (goals.includes('gluten_free')) {
     if (allergens.includes('gluten') || allergens.includes('wheat') ||
         ['пшениц', 'wheat', 'gluten', 'ячмен', 'рожь'].some(w => ingredients.includes(w)))
-      reasons.push({ type: 'fail', text: 'Содержит глютен' })
+      reasons.push({ type: 'fail', text: lang === 'kz' ? 'Глютен бар' : 'Содержит глютен' })
   }
 
   if (goals.includes('vegan')) {
     const mw = ['говядин', 'свинин', 'курин', 'мясо', 'beef', 'pork', 'chicken', 'meat']
     if (allergens.includes('milk') || allergens.includes('eggs') || mw.some(w => ingredients.includes(w)))
-      reasons.push({ type: 'fail', text: 'Не подходит для веганов' })
+      reasons.push({ type: 'fail', text: lang === 'kz' ? 'Вегандарға сай емес' : 'Не подходит для веганов' })
   }
 
   const fits = !reasons.some(r => r.type === 'fail')
 
   if (fits) {
     const pos = []
-    if (halalOn && product.isHalal === true) pos.push({ type: 'pass', text: 'Подтверждено как халал ✓' })
-    if (profileAllergens.length > 0 && allergens.length === 0) pos.push({ type: 'pass', text: 'Не содержит ваших аллергенов ✓' })
-    if (pos.length === 0) pos.push({ type: 'pass', text: 'Соответствует вашим предпочтениям' })
+    if (halalOn && product.isHalal === true) pos.push({ type: 'pass', text: lang === 'kz' ? 'Халал екені расталды ✓' : 'Подтверждено как халал ✓' })
+    if (profileAllergens.length > 0 && allergens.length === 0) pos.push({ type: 'pass', text: lang === 'kz' ? 'Сіздің аллергендеріңіз жоқ ✓' : 'Не содержит ваших аллергенов ✓' })
+    if (pos.length === 0) pos.push({ type: 'pass', text: lang === 'kz' ? 'Таңдауыңызға сәйкес келеді' : 'Соответствует вашим предпочтениям' })
     return { fits, reasons: [...reasons, ...pos].slice(0, 3) }
   }
 
@@ -108,9 +109,9 @@ function formatNutri(val) {
 
 function NutriGrid({ nutrition }) {
   const items = [
-    ['Белки', nutrition.protein, 'г'],
-    ['Жиры', nutrition.fat, 'г'],
-    ['Углеводы', nutrition.carbs, 'г'],
+    [lang === 'kz' ? 'Ақуыз' : 'Белки', nutrition.protein, 'г'],
+    [lang === 'kz' ? 'Май' : 'Жиры', nutrition.fat, 'г'],
+    [lang === 'kz' ? 'Көмірсу' : 'Углеводы', nutrition.carbs, 'г'],
     ['Ккал', nutrition.kcal, 'ккал'],
   ]
   if (!items.some(([, v]) => v != null)) return null
@@ -169,6 +170,7 @@ export default function ExternalProductScreen() {
   const navigate = useNavigate()
   const { state: navState } = useLocation()
   const profile = loadProfile()
+  const { lang } = useI18n()
 
   const [status, setStatus] = useState('loading')
   const [product, setProduct] = useState(null)
@@ -198,7 +200,7 @@ export default function ExternalProductScreen() {
         const nutr = p.nutriments || {}
         const parsed = {
           ean,
-          name: p.product_name || 'Неизвестный товар',
+          name: p.product_name || lang === 'kz' ? 'Белгісіз тауар' : 'Неизвестный товар',
           brand: p.brands || '',
           image: p.image_front_url || null,
           quantity: p.quantity || '',
@@ -229,7 +231,7 @@ export default function ExternalProductScreen() {
     return (
       <div className="screen" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
         <div style={{ width: 48, height: 48, borderRadius: '50%', border: '3px solid var(--primary-dim)', borderTopColor: 'var(--primary)', animation: 'spin 0.8s linear infinite' }} />
-        <p style={{ color: 'var(--text-dim)', fontSize: 14 }}>Ищу товар в базе данных...</p>
+        <p style={{ color: 'var(--text-dim)', fontSize: 14 }}>{lang === 'kz' ? 'Тауарды дерекқордан іздеп жатырмын...' : 'Ищу товар в базе данных...'}</p>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     )
@@ -239,17 +241,17 @@ export default function ExternalProductScreen() {
     return (
       <div className="screen" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '0 32px', textAlign: 'center' }}>
         <div style={{ fontSize: 56 }}>🔍</div>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>Товар не найден</div>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>{lang === 'kz' ? 'Тауар табылмады' : 'Товар не найден'}</div>
         <p style={{ color: 'var(--text-dim)', fontSize: 14, lineHeight: 1.6 }}>
           {status === 'error'
-            ? 'Нет подключения к интернету или сервер временно недоступен.'
-            : 'Этот штрихкод не найден в нашем каталоге и в мировой базе Open Food Facts.'}
+            ? lang === 'kz' ? 'Интернетке қосылу жоқ немесе сервер уақытша қолжетімсіз.' : 'Нет подключения к интернету или сервер временно недоступен.'
+            : lang === 'kz' ? 'Бұл штрихкод біздің каталогта да, Open Food Facts базасында да табылмады.' : 'Этот штрихкод не найден в нашем каталоге и в мировой базе Open Food Facts.'}
         </p>
         <p style={{ color: 'var(--text-dim)', fontSize: 12, fontFamily: 'monospace', opacity: 0.6 }}>EAN: {ean}</p>
         <button className="btn btn-primary btn-full" style={{ marginTop: 8 }} onClick={() => navigate('/scan')}>
           Сканировать ещё раз
         </button>
-        <button className="btn btn-secondary btn-full" onClick={() => navigate(-1)}>← Назад</button>
+        <button className="btn btn-secondary btn-full" onClick={() => navigate(-1)}>{lang === 'kz' ? '← Артқа' : '← Назад'}</button>
       </div>
     )
   }
@@ -271,7 +273,7 @@ export default function ExternalProductScreen() {
           Назад
         </button>
         <div className="header-row">
-          <div className="screen-title">Карточка товара</div>
+          <div className="screen-title">{lang === 'kz' ? 'Тауар картасы' : 'Карточка товара'}</div>
         </div>
       </div>
 
@@ -319,7 +321,7 @@ export default function ExternalProductScreen() {
 
           {showMore && (
             <button onClick={() => setMoreOpen(s => !s)} className="more-btn" type="button">
-              {moreOpen ? 'Скрыть' : 'Дополнительно'}
+              {moreOpen ? (lang === 'kz' ? 'Жасыру' : 'Скрыть') : (lang === 'kz' ? 'Қосымша' : 'Дополнительно')}
               <span style={{ marginLeft: 8, opacity: 0.9 }}>{moreOpen ? '▴' : '▾'}</span>
             </button>
           )}
@@ -328,14 +330,14 @@ export default function ExternalProductScreen() {
             <div style={{ marginTop: 10 }}>
               {(nutr.sugar != null || nutr.fiber != null) && (
                 <div style={{ marginBottom: 10 }}>
-                  <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 6 }}>Дополнительно</div>
-                  {nutr.sugar != null && <div className="info-row"><span className="info-label">Из них сахар</span><span className="info-value">{formatNutri(nutr.sugar)} г</span></div>}
-                  {nutr.fiber != null && <div className="info-row"><span className="info-label">Клетчатка</span><span className="info-value">{formatNutri(nutr.fiber)} г</span></div>}
+                  <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 6 }}>{lang === 'kz' ? 'Қосымша' : 'Дополнительно'}</div>
+                  {nutr.sugar != null && <div className="info-row"><span className="info-label">{lang === 'kz' ? 'Соның ішінде қант' : 'Из них сахар'}</span><span className="info-value">{formatNutri(nutr.sugar)} г</span></div>}
+                  {nutr.fiber != null && <div className="info-row"><span className="info-label">{lang === 'kz' ? 'Жасұнық' : 'Клетчатка'}</span><span className="info-value">{formatNutri(nutr.fiber)} г</span></div>}
                 </div>
               )}
               {product.ingredients && (
                 <div>
-                  <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 6 }}>Состав</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 6 }}>{lang === 'kz' ? 'Құрамы' : 'Состав'}</div>
                   <div style={{ fontSize: 13, color: 'var(--text-sub)', lineHeight: 1.55 }}>{product.ingredients}</div>
                 </div>
               )}
@@ -349,14 +351,14 @@ export default function ExternalProductScreen() {
         <div className={`status-badge ${fits ? 'fit' : 'no-fit'}`}>
           <span className="status-icon">{fits ? '✅' : '❌'}</span>
           <div>
-            <div className="status-text">{fits ? 'Подходит' : 'Не подходит'}</div>
+            <div className="status-text">{fits ? (lang === 'kz' ? 'Сәйкес келеді' : 'Подходит') : (lang === 'kz' ? 'Сәйкес емес' : 'Не подходит')}</div>
             <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 2 }}>
-              {fits ? 'Соответствует вашему профилю' : 'Есть ограничения по вашему профилю'}
+              {fits ? (lang === 'kz' ? 'Профиліңізге сәйкес келеді' : 'Соответствует вашему профилю') : (lang === 'kz' ? 'Профиліңіз бойынша шектеулер бар' : 'Есть ограничения по вашему профилю')}
             </div>
           </div>
         </div>
         <div className="card" style={{ marginTop: 12 }}>
-          <div className="section-title" style={{ marginBottom: 8 }}>Причины</div>
+          <div className="section-title" style={{ marginBottom: 8 }}>{lang === 'kz' ? 'Себептері' : 'Причины'}</div>
           {reasons.map((r, i) => (
             <div key={i} className="reason-item" style={{ animationDelay: `${0.1 + i * 0.08}s` }}>
               <div className={`reason-dot ${r.type}`} />
@@ -369,7 +371,7 @@ export default function ExternalProductScreen() {
       {/* Аллергены */}
       {product.allergens.length > 0 && (
         <div className="section" style={{ paddingTop: 0 }}>
-          <div className="section-title" style={{ marginBottom: 10 }}>Аллергены</div>
+          <div className="section-title" style={{ marginBottom: 10 }}>{lang === 'kz' ? 'Аллергендер' : 'Аллергены'}</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {product.allergens.map(a => (
               <span key={a} style={{ padding: '5px 12px', borderRadius: 20, fontSize: 13, background: 'rgba(220,38,38,0.1)', color: 'var(--error-bright)', border: '1px solid rgba(220,38,38,0.2)' }}>
@@ -395,7 +397,7 @@ export default function ExternalProductScreen() {
       </div>
 
       <div style={{ padding: '0 20px 32px', fontSize: 11, color: 'var(--text-dim)', opacity: 0.45, textAlign: 'center' }}>
-        Данные: Open Food Facts · EAN: {ean}
+        {lang === 'kz' ? 'Дереккөз: Open Food Facts · EAN:' : 'Данные: Open Food Facts · EAN:'} {ean}
       </div>
     </div>
   )
