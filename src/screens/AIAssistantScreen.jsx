@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react'
-import { useI18n } from '../utils/i18n.js'
 
 function KorsetAvatar({ size = 34 }) {
   return (
@@ -15,9 +14,9 @@ function KorsetAvatar({ size = 34 }) {
   )
 }
 
+const CHIPS = ['Есть ли халал продукты?', 'Что без лактозы?', 'Где найти орехи?', 'Что для рататуя?']
+
 export default function AIAssistantScreen() {
-  const { t } = useI18n()
-  const CHIPS = t('aiGeneral.chips')
   const [messages, setMessages] = useState([])
   const [input, setInput]       = useState('')
   const [loading, setLoading]   = useState(false)
@@ -43,7 +42,7 @@ export default function AIAssistantScreen() {
         body: JSON.stringify({
           model: 'llama-3.1-8b-instant', max_tokens: 300, temperature: 0.7,
           messages: [
-            { role: 'system', content: `Ты — Körset AI, помощник покупателя в супермаркете Казахстана. Отвечай на языке интерфейса пользователя. Помогаешь найти товары, советуешь рецепты, отвечаешь про состав и аллергены. Кратко, дружелюбно, максимум 4 предложения. Без markdown.` },
+            { role: 'system', content: 'Ты — Körset AI, помощник покупателя в супермаркете Казахстана. Помогаешь найти товары, советуешь рецепты, отвечаешь про состав и аллергены. Кратко, по-русски, как дружелюбный консультант. Максимум 4 предложения. Без markdown.' },
             ...newMessages,
           ],
         }),
@@ -53,7 +52,7 @@ export default function AIAssistantScreen() {
       const reply = data.choices?.[0]?.message?.content?.trim()
       setMessages(prev => [...prev, { role: 'assistant', content: reply || 'Попробуй ещё раз.' }])
     } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: t('aiGeneral.error') }])
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Что-то пошло не так, попробуй ещё раз.' }])
     } finally {
       setLoading(false)
     }
@@ -70,8 +69,8 @@ export default function AIAssistantScreen() {
       }}>
         <KorsetAvatar size={40}/>
         <div>
-          <div style={{ fontSize: 17, fontWeight: 700, color: '#fff', fontFamily: 'var(--font-display)' }}>{t('aiGeneral.title')}</div>
-          <div style={{ fontSize: 12, color: '#34D399', fontWeight: 500, marginTop: 1 }}>{t('aiGeneral.online')}</div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: '#fff', fontFamily: 'var(--font-display)' }}>Körset AI</div>
+          <div style={{ fontSize: 12, color: '#34D399', fontWeight: 500, marginTop: 1 }}>Помощник в магазине</div>
         </div>
       </div>
 
@@ -81,7 +80,7 @@ export default function AIAssistantScreen() {
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
             <KorsetAvatar size={34}/>
             <div style={{ background: '#151525', border: '1px solid rgba(255,255,255,0.08)', padding: '13px 16px', borderRadius: '4px 18px 18px 18px', maxWidth: '85%', fontSize: 15, lineHeight: 1.65, color: 'rgba(255,255,255,0.85)' }}>
-              {t('aiGeneral.intro')}
+              Привет! Спроси меня про любой товар, рецепт или что найти в магазине 🛒
             </div>
           </div>
         )}
@@ -128,7 +127,7 @@ export default function AIAssistantScreen() {
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <input value={input} onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input) } }}
-            placeholder={t('aiGeneral.placeholder')} disabled={loading}
+            placeholder="Спросить про товары..." disabled={loading}
             style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 24, padding: '13px 18px', fontSize: 15, color: '#fff', fontFamily: 'var(--font-body)', outline: 'none' }}
           />
           <button onClick={() => sendMessage(input)} disabled={loading || !input.trim()} style={{ width: 48, height: 48, borderRadius: '50%', border: 'none', cursor: input.trim() ? 'pointer' : 'default', background: 'linear-gradient(135deg, #7C3AED, #6D28D9)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 16px rgba(124,58,237,0.4)', opacity: input.trim() ? 1 : 0.5 }}>

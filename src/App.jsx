@@ -17,7 +17,7 @@ export default function App() {
   const { pathname } = useLocation()
   const hideNav = pathname === '/qr-print'
   const [showOnboarding, setShowOnboarding] = useState(
-    !localStorage.getItem('korset_onboarding_done')
+    !localStorage.getItem('korset_onboarding_done') || !localStorage.getItem('korset_lang')
   )
 
   return (

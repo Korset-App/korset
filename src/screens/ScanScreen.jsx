@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { lookupProduct } from '../utils/productLookup.js'
-import { useI18n } from '../utils/i18n.js'
 
 // ─── Barcode Scanner ───────────────────────────────────────────────────────────
-function BarcodeScanner({ onDetected, onClose, t }) {
+function BarcodeScanner({ onDetected, onClose }) {
   const [status, setStatus]       = useState('starting')
   const [error, setError]         = useState(null)
   const [searching, setSearching] = useState(false)
@@ -55,7 +54,7 @@ function BarcodeScanner({ onDetected, onClose, t }) {
               const cam = cameras.find(c => /back|rear|environment/i.test(c.label)) || cameras[cameras.length - 1]
               return { deviceId: { exact: cam.id } }
             })()
-        if (!cameraConfig) { setError(t('scan.cameraNotFound')); setStatus('error'); return }
+        if (!cameraConfig) { setError('Камера не обнаружена'); setStatus('error'); return }
         if (!mounted) return
         await scanner.start(
           cameraConfig,
@@ -158,8 +157,8 @@ function BarcodeScanner({ onDetected, onClose, t }) {
         {searching && (
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.88)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
             <div style={{ width: 48, height: 48, borderRadius: '50%', border: '3px solid rgba(167,139,250,0.2)', borderTop: '3px solid #A78BFA', animation: 'spin 0.8s linear infinite' }} />
-            <p style={{ color: '#C4B5FD', fontSize: 15, fontWeight: 500 }}>{t('scan.searching')}</p>
-            <p style={{ color: '#58587A', fontSize: 12 }}>{t('scan.checkingDb')}</p>
+            <p style={{ color: '#C4B5FD', fontSize: 15, fontWeight: 500 }}>Ищем товар...</p>
+            <p style={{ color: '#58587A', fontSize: 12 }}>Проверяем базу данных</p>
           </div>
         )}
 
@@ -168,7 +167,7 @@ function BarcodeScanner({ onDetected, onClose, t }) {
           <div style={{ position: 'absolute', inset: 0, background: '#07070F', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 28px', gap: 18, textAlign: 'center' }}>
             <div style={{ fontSize: 52 }}>📷</div>
             <p style={{ color: '#F87171', fontSize: 15, lineHeight: 1.8, whiteSpace: 'pre-line' }}>{error}</p>
-            <button onClick={onClose} style={{ padding: '13px 36px', borderRadius: 14, background: '#7C3AED', border: 'none', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>{t('scan.close')}</button>
+            <button onClick={onClose} style={{ padding: '13px 36px', borderRadius: 14, background: '#7C3AED', border: 'none', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>← Назад</button>
           </div>
         )}
 
@@ -238,7 +237,7 @@ function BarcodeScanner({ onDetected, onClose, t }) {
             animation: 'fadeSlideDown 0.25s ease',
             backdropFilter: 'blur(10px)',
           }}>
-            {t('scan.torchError')}
+            ⚠️ Фонарик недоступен в этом браузере
           </div>
         )}
       </div>
@@ -251,9 +250,9 @@ function BarcodeScanner({ onDetected, onClose, t }) {
           textAlign: 'center',
         }}>
           <p style={{ color: status === 'ready' ? '#C4B5FD' : '#9898B8', fontSize: 15, fontWeight: 500, marginBottom: 4 }}>
-            {status === 'ready' ? t('scan.aim') : t('scan.launching')}
+            {status === 'ready' ? 'Наведите на штрихкод товара' : 'Запуск камеры...'}
           </p>
-          <p style={{ color: '#58587A', fontSize: 12 }}>{t('scan.formats')}</p>
+          <p style={{ color: '#58587A', fontSize: 12 }}>Поддерживаются все форматы штрихкодов</p>
         </div>
       )}
 
@@ -269,7 +268,7 @@ function BarcodeScanner({ onDetected, onClose, t }) {
   )
 }
 
-// ─── {t('scan.notFoundTitle')} ───────────────────────────────────────────────────────────
+// ─── Товар не найден ───────────────────────────────────────────────────────────
 function NotFoundScreen({ ean, onRetry, onClose }) {
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 80, zIndex: 50, background: '#07070F', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 28px', gap: 20, textAlign: 'center' }}>
@@ -279,14 +278,14 @@ function NotFoundScreen({ ean, onRetry, onClose }) {
         </svg>
       </div>
       <div>
-        <p style={{ color: '#F0F0FF', fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{t('scan.notFoundTitle')}</p>
+        <p style={{ color: '#F0F0FF', fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Товар не найден</p>
         <p style={{ color: '#6060A0', fontSize: 13, lineHeight: 1.6 }}>
           Штрихкод <span style={{ color: '#A78BFA', fontFamily: 'monospace' }}>{ean}</span><br />не найден в базе данных
         </p>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 280 }}>
         <button onClick={onRetry} style={{ padding: '14px', borderRadius: 14, background: '#7C3AED', border: 'none', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>
-          {t('scan.scanAgain')}
+          Сканировать ещё раз
         </button>
         <button onClick={onClose} style={{ padding: '14px', borderRadius: 14, background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: '#8080A0', fontSize: 14, cursor: 'pointer' }}>
           Назад
@@ -298,7 +297,6 @@ function NotFoundScreen({ ean, onRetry, onClose }) {
 
 // ─── Главный экран ─────────────────────────────────────────────────────────────
 export default function ScanScreen() {
-  const { t } = useI18n()
   const navigate = useNavigate()
   const [mode, setMode] = useState('idle')
   const [notFoundEan, setNotFoundEan] = useState(null)
@@ -315,7 +313,7 @@ export default function ScanScreen() {
     }
   }
 
-  if (mode === 'scanning') return <BarcodeScanner t={t} onDetected={handleDetected} onClose={() => setMode('idle')} />
+  if (mode === 'scanning') return <BarcodeScanner onDetected={handleDetected} onClose={() => setMode('idle')} />
   if (mode === 'not_found') return <NotFoundScreen ean={notFoundEan} onRetry={() => setMode('scanning')} onClose={() => setMode('idle')} />
 
   return (
@@ -389,7 +387,7 @@ export default function ScanScreen() {
             </svg>
           </div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(220,220,255,0.9)' }}>{t('scan.million')} в базе</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(220,220,255,0.9)' }}>3+ млн товаров в базе</div>
             <div style={{ fontSize: 11, color: 'rgba(130,130,180,0.8)', marginTop: 2 }}>Open Food Facts · Обновляется автоматически</div>
           </div>
           <div style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: '#10B981', background: 'rgba(16,185,129,0.1)', padding: '3px 10px', borderRadius: 20, border: '1px solid rgba(16,185,129,0.2)', flexShrink: 0 }}>

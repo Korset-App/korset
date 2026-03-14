@@ -3,12 +3,23 @@ import { useNavigate } from 'react-router-dom'
 import products from '../data/products.json'
 import { checkProductFit, formatPrice } from '../utils/fitCheck.js'
 import { loadProfile } from '../utils/profile.js'
-import { useI18n } from '../utils/i18n.js'
 
 const CATEGORY_ORDER = ['grocery', 'electronics', 'diy']
 
-const FILTERS = ['all','fit','grocery','electronics','diy']
-const SORT_OPTIONS = ['fit','cheap','pricey','rating']
+const FILTERS = [
+  { id: 'all',         label: 'Все' },
+  { id: 'fit',         label: 'Для вас' },
+  { id: 'grocery',     label: 'Продукты' },
+  { id: 'electronics', label: 'Электроника' },
+  { id: 'diy',         label: 'Стройка' },
+]
+
+const SORT_OPTIONS = [
+  { id: 'fit',    label: 'Подходящие мне' },
+  { id: 'cheap',  label: 'Сначала дешевле' },
+  { id: 'pricey', label: 'Сначала дороже' },
+  { id: 'rating', label: 'По рейтингу' },
+]
 
 const NUTRISCORE_COLORS = {
   A: '#1a7c1a', B: '#4a9a1a', C: '#d4b800', D: '#e07000', E: '#c0392b'
@@ -40,7 +51,6 @@ function ProductThumb({ product }) {
 export default function CatalogScreen() {
   const navigate = useNavigate()
   const profile  = loadProfile()
-  const { t } = useI18n()
   const [q, setQ] = useState('')
   const [activeFilter, setActiveFilter] = useState('all')
   const [sortOpen, setSortOpen] = useState(false)
@@ -83,7 +93,7 @@ export default function CatalogScreen() {
     return arr
   }, [q, activeFilter, sort, hasProfile])
 
-  const activeSort = sort
+  const activeSort = SORT_OPTIONS.find(s => s.id === sort)
 
   return (
     <div className="screen" onClick={() => setSortOpen(false)}>
@@ -97,10 +107,10 @@ export default function CatalogScreen() {
               fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 900,
               color: '#fff', letterSpacing: '-0.5px', lineHeight: 1,
             }}>
-              {t('catalog.title')}
+              Каталог
             </div>
             <div style={{ fontSize: 12, color: 'rgba(167,139,250,0.7)', marginTop: 3, fontWeight: 500 }}>
-              {products.length} {t('catalog.count')}
+              {products.length} товаров в базе
             </div>
           </div>
 
@@ -117,7 +127,7 @@ export default function CatalogScreen() {
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M3 6h18M7 12h10M11 18h2"/>
               </svg>
-              {t(`catalog.sorts.${activeSort}`)}
+              {activeSort?.label}
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
                 style={{ transform: sortOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
                 <path d="M6 9l6 6 6-6"/>
@@ -132,10 +142,10 @@ export default function CatalogScreen() {
                 boxShadow: '0 12px 32px rgba(0,0,0,0.5)', zIndex: 200,
               }}>
                 {SORT_OPTIONS.map((opt, i) => {
-                  if (opt === 'fit' && !hasProfile) return null
-                  const active = sort === opt
+                  if (opt.id === 'fit' && !hasProfile) return null
+                  const active = sort === opt.id
                   return (
-                    <button key={opt} onClick={() => { setSort(opt); setSortOpen(false) }}
+                    <button key={opt.id} onClick={() => { setSort(opt.id); setSortOpen(false) }}
                       style={{
                         width: '100%', padding: '11px 14px',
                         background: active ? 'rgba(124,58,237,0.15)' : 'transparent',
@@ -146,7 +156,7 @@ export default function CatalogScreen() {
                         color: active ? '#C4B5FD' : 'rgba(220,220,250,0.85)',
                         fontWeight: active ? 700 : 400,
                       }}>
-                      {t(`catalog.sorts.${opt}`)}
+                      {opt.label}
                     </button>
                   )
                 })}
@@ -170,7 +180,7 @@ export default function CatalogScreen() {
               background: 'transparent', border: 'none', outline: 'none',
               color: '#fff', fontSize: 14, fontFamily: 'var(--font-body)', flex: 1,
             }}
-            placeholder={t('catalog.search')} value={q} onChange={e => setQ(e.target.value)}
+            placeholder="Поиск продуктов..." value={q} onChange={e => setQ(e.target.value)}
           />
           {q && (
             <button onClick={() => setQ('')} style={{
@@ -183,10 +193,10 @@ export default function CatalogScreen() {
         {/* Фильтры */}
         <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', marginBottom: 18 }}>
           {FILTERS.map(f => {
-            if (f === 'fit' && !hasProfile) return null
-            const active = activeFilter === f
+            if (f.id === 'fit' && !hasProfile) return null
+            const active = activeFilter === f.id
             return (
-              <button key={f} onClick={() => setActiveFilter(f)} style={{
+              <button key={f.id} onClick={() => setActiveFilter(f.id)} style={{
                 flexShrink: 0, padding: '8px 18px', borderRadius: 24,
                 fontSize: 13, fontWeight: 600, cursor: 'pointer',
                 fontFamily: 'var(--font-body)',
@@ -196,7 +206,7 @@ export default function CatalogScreen() {
                 boxShadow: active ? '0 2px 14px rgba(124,58,237,0.45)' : 'none',
                 transition: 'all 0.18s ease',
               }}>
-                {t(`catalog.cats.${f}`)}
+                {f.label}
               </button>
             )
           })}
@@ -208,7 +218,7 @@ export default function CatalogScreen() {
         {list.length === 0 ? (
           <div style={{ padding: '60px 0', textAlign: 'center', color: 'rgba(160,160,200,0.6)' }}>
             <div style={{ fontSize: 40, marginBottom: 10 }}>🔍</div>
-            <p style={{ fontSize: 14 }}>{t('catalog.empty')}</p>
+            <p style={{ fontSize: 14 }}>Ничего не найдено</p>
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>

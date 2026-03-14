@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { useI18n, formatHomeDate } from '../utils/i18n.js'
+import { useI18n } from '../utils/i18n.js'
 
 export default function HomeScreen() {
   const navigate = useNavigate()
@@ -12,17 +12,17 @@ export default function HomeScreen() {
         {/* Лого + заголовок */}
         <div style={{ marginBottom: 28 }}>
           <div style={{ fontSize: 13, color: 'rgba(167,139,250,0.7)', fontWeight: 600, marginBottom: 8, letterSpacing: '0.3px' }}>
-            {formatHomeDate(lang)}
+            {new Date().toLocaleDateString(lang === 'kz' ? 'kk-KZ' : 'ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })}
           </div>
           <h1 style={{
             fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 900,
             color: '#fff', lineHeight: 1.15, letterSpacing: '-0.5px', marginBottom: 8,
           }}>
-            {t('home.welcome')}<br/>
+            {t.home.welcome}<br/>
             в <span style={{ color: '#A78BFA' }}>Körset</span>
           </h1>
           <p style={{ fontSize: 14, color: 'rgba(180,180,210,0.65)', lineHeight: 1.55 }}>
-            {t('home.subtitle')}
+            {t.home.intro}
           </p>
         </div>
 
@@ -51,10 +51,10 @@ export default function HomeScreen() {
           </div>
           <div style={{ textAlign: 'left' }}>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 700, color: '#E9D5FF', marginBottom: 3 }}>
-              {t('home.scanTitle')}
+              {t.home.scanBtn}
             </div>
             <div style={{ fontSize: 12, color: 'rgba(167,139,250,0.6)' }}>
-              {t('home.scanSub')}
+              {t.home.scanSub}
             </div>
           </div>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(167,139,250,0.5)" strokeWidth="2" strokeLinecap="round" style={{ marginLeft: 'auto', flexShrink: 0 }}>
@@ -75,8 +75,8 @@ export default function HomeScreen() {
               <rect x="3" y="14" width="7" height="7" rx="1.5" fill="rgba(96,165,250,0.15)"/>
               <rect x="14" y="14" width="7" height="7" rx="1.5" fill="rgba(96,165,250,0.15)"/>
             </svg>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', fontFamily: 'var(--font-display)' }}>{t('home.catalogTitle')}</div>
-            <div style={{ fontSize: 11, color: 'rgba(96,165,250,0.6)', marginTop: 2 }}>{t('home.catalogSub')}</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', fontFamily: 'var(--font-display)' }}>Каталог</div>
+            <div style={{ fontSize: 11, color: 'rgba(96,165,250,0.6)', marginTop: 2 }}>Все товары</div>
           </button>
 
           <button onClick={() => navigate('/ai')} style={{
@@ -88,19 +88,19 @@ export default function HomeScreen() {
               <circle cx="12" cy="12" r="9" fill="rgba(167,139,250,0.1)"/>
               <path d="M8 12h.01M12 12h.01M16 12h.01" strokeWidth="2.5"/>
             </svg>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', fontFamily: 'var(--font-display)' }}>{t('home.aiTitle')}</div>
-            <div style={{ fontSize: 11, color: 'rgba(167,139,250,0.6)', marginTop: 2 }}>{t('home.aiSub')}</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', fontFamily: 'var(--font-display)' }}>AI помощник</div>
+            <div style={{ fontSize: 11, color: 'rgba(167,139,250,0.6)', marginTop: 2 }}>Спроси что угодно</div>
           </button>
         </div>
 
         {/* Как работает */}
         <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(160,160,200,0.4)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 12 }}>
-          {t('home.how')}
+          {t.home.how}
         </div>
         {[
-          { n: '1', color: '#A78BFA', bg: 'rgba(167,139,250,0.1)', text: t('home.steps.0') },
-          { n: '2', color: '#60A5FA', bg: 'rgba(96,165,250,0.1)',  text: t('home.steps.1') },
-          { n: '3', color: '#34D399', bg: 'rgba(52,211,153,0.1)',  text: t('home.steps.2') },
+          { n: '1', color: '#A78BFA', bg: 'rgba(167,139,250,0.1)', text: t.home.steps[0] },
+          { n: '2', color: '#60A5FA', bg: 'rgba(96,165,250,0.1)',  text: t.home.steps[1] },
+          { n: '3', color: '#34D399', bg: 'rgba(52,211,153,0.1)',  text: t.home.steps[2] },
         ].map(s => (
           <div key={s.n} style={{
             display: 'flex', alignItems: 'center', gap: 14,

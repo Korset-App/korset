@@ -1,33 +1,33 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { loadProfile, saveProfile } from '../utils/profile.js'
-import { useI18n } from '../utils/i18n.js'
+import { setLang, useI18n } from '../utils/i18n.js'
 
 const DIET_GOALS = [
-  { id: 'sugar_free',  label: 'Без сахара',    icon: 'nosugar'  },
-  { id: 'dairy_free',  label: 'Без молочки',   icon: 'nodairy'  },
-  { id: 'gluten_free', label: 'Без глютена',   icon: 'nogluten' },
-  { id: 'vegan',       label: 'Веган',         icon: 'vegan'    },
-  { id: 'vegetarian',  label: 'Вегетарианец',  icon: 'veggie'   },
-  { id: 'keto',        label: 'Кето',          icon: 'keto'     },
-  { id: 'low_calorie', label: 'Меньше калорий',icon: 'lowcal'   },
+  { id: 'sugar_free',  label: { ru: 'Без сахара', kz: 'Қантсыз' },    icon: 'nosugar'  },
+  { id: 'dairy_free',  label: { ru: 'Без молочки', kz: 'Сүтсіз' },   icon: 'nodairy'  },
+  { id: 'gluten_free', label: { ru: 'Без глютена', kz: 'Глютенсіз' },   icon: 'nogluten' },
+  { id: 'vegan',       label: { ru: 'Веган', kz: 'Веган' },         icon: 'vegan'    },
+  { id: 'vegetarian',  label: { ru: 'Вегетарианец', kz: 'Вегетариан' },  icon: 'veggie'   },
+  { id: 'keto',        label: { ru: 'Кето', kz: 'Кето' },          icon: 'keto'     },
+  { id: 'low_calorie', label: { ru: 'Меньше калорий', kz: 'Калориясы аз' },icon: 'lowcal'   },
 ]
 
 const ALLERGENS = [
-  { id: 'milk',      label: 'Молоко',   icon: 'milk'     },
-  { id: 'gluten',    label: 'Глютен',   icon: 'wheat'    },
-  { id: 'nuts',      label: 'Орехи',    icon: 'nuts'     },
-  { id: 'peanuts',   label: 'Арахис',   icon: 'peanut'   },
-  { id: 'soy',       label: 'Соя',      icon: 'soy'      },
-  { id: 'eggs',      label: 'Яйца',     icon: 'egg'      },
-  { id: 'fish',      label: 'Рыба',     icon: 'fish'     },
-  { id: 'shellfish', label: 'Моллюски', icon: 'shell'    },
+  { id: 'milk',      label: { ru: 'Молоко', kz: 'Сүт' },   icon: 'milk'     },
+  { id: 'gluten',    label: { ru: 'Глютен', kz: 'Глютен' },   icon: 'wheat'    },
+  { id: 'nuts',      label: { ru: 'Орехи', kz: 'Жаңғақ' },    icon: 'nuts'     },
+  { id: 'peanuts',   label: { ru: 'Арахис', kz: 'Жержаңғақ' },   icon: 'peanut'   },
+  { id: 'soy',       label: { ru: 'Соя', kz: 'Соя' },      icon: 'soy'      },
+  { id: 'eggs',      label: { ru: 'Яйца', kz: 'Жұмыртқа' },     icon: 'egg'      },
+  { id: 'fish',      label: { ru: 'Рыба', kz: 'Балық' },     icon: 'fish'     },
+  { id: 'shellfish', label: { ru: 'Моллюски', kz: 'Теңіз өнімдері' }, icon: 'shell'    },
 ]
 
 const PRIORITIES = [
-  { id: 'price',    label: 'Цена',     desc: 'Самый дешёвый',   icon: 'price'   },
-  { id: 'balanced', label: 'Баланс',   desc: 'Цена + качество', icon: 'balance' },
-  { id: 'quality',  label: 'Качество', desc: 'Лучший состав',   icon: 'quality' },
+  { id: 'price',    label: { ru: 'Цена', kz: 'Баға' },     desc: { ru: 'Ең арзан', kz: 'Ең арзан' },   icon: 'price'   },
+  { id: 'balanced', label: { ru: 'Баланс', kz: 'Теңгерім' },   desc: { ru: 'Цена + качество', kz: 'Баға + сапа' }, icon: 'balance' },
+  { id: 'quality',  label: { ru: 'Качество', kz: 'Сапа' }, desc: { ru: 'Лучший состав', kz: 'Ең жақсы құрам' },   icon: 'quality' },
 ]
 
 // Colored filled icons — no emoji
@@ -179,13 +179,12 @@ function Icon({ name, size = 20 }) {
 
 export default function ProfileScreen() {
   const navigate = useNavigate()
-  const { t, lang, setLang } = useI18n()
+  const { lang, t } = useI18n()
   const allergenInputRef = useRef(null)
   const [profile, setProfile] = useState(() => {
     const s = loadProfile()
     return {
       halal: s.halal || false,
-      lang: s.lang || lang,
       dietGoals: s.dietGoals || [],
       allergens: s.allergens || [],
       customAllergens: s.customAllergens || [],
@@ -194,7 +193,7 @@ export default function ProfileScreen() {
   })
   const [allergenInput, setAllergenInput] = useState('')
 
-  useEffect(() => { saveProfile({ ...profile, presetId: 'custom', lang }) }, [profile, lang])
+  useEffect(() => { saveProfile({ ...profile, presetId: 'custom' }) }, [profile])
 
   const toggleDiet = id => setProfile(p => ({
     ...p, dietGoals: p.dietGoals.includes(id) ? p.dietGoals.filter(x => x !== id) : [...p.dietGoals, id]
@@ -211,12 +210,7 @@ export default function ProfileScreen() {
   const removeCustom = val => setProfile(p => ({ ...p, customAllergens: p.customAllergens.filter(x => x !== val) }))
 
   const activeCount = profile.dietGoals.length + profile.allergens.length + profile.customAllergens.length + (profile.halal ? 1 : 0)
-
-
-  const dietLabel = (id) => t(`profile.options.${id}`)
-  const allergenLabel = (id) => t(`profile.options.${id}`)
-  const priorityLabel = (id) => t(`profile.options.${id}.0`)
-  const priorityDesc = (id) => t(`profile.options.${id}.1`)
+  const tr = (val) => typeof val === 'object' ? (val[lang] || val.ru) : val
 
   return (
     <div className="screen" style={{ paddingTop: 0, overflowX: 'hidden' }}>
@@ -234,14 +228,30 @@ export default function ProfileScreen() {
         />
         <p style={{ color: 'rgba(180,175,210,0.85)', fontSize: 13, lineHeight: 1.6,
           textAlign: 'center', padding: '4px 24px 18px', margin: 0 }}>
-          {t('profile.hero')}
+          {t.profile.subtitle}
         </p>
+      </div>
+
+
+      <div style={{ padding: '14px 20px 0' }}>
+        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: '12px 12px 10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', marginBottom: 3 }}>{t.profile.language}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>{t.profile.languageSub}</div>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setLang('ru')} style={{ padding: '9px 12px', borderRadius: 12, border: `1px solid ${lang === 'ru' ? 'rgba(124,58,237,0.55)' : 'var(--border)'}`, background: lang === 'ru' ? 'rgba(124,58,237,0.12)' : 'var(--surface)', color: lang === 'ru' ? 'var(--primary-bright)' : 'var(--text-sub)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Рус</button>
+              <button onClick={() => setLang('kz')} style={{ padding: '9px 12px', borderRadius: 12, border: `1px solid ${lang === 'kz' ? 'rgba(124,58,237,0.55)' : 'var(--border)'}`, background: lang === 'kz' ? 'rgba(124,58,237,0.12)' : 'var(--surface)', color: lang === 'kz' ? 'var(--primary-bright)' : 'var(--text-sub)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Қаз</button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ── HALAL ── */}
       <div style={{ padding: '20px 20px 8px' }}>
         <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '1.2px', marginBottom: 10 }}>
-          {t('profile.religion')}
+          {t.profile.religion}
         </div>
         <div onClick={() => setProfile(p => ({ ...p, halal: !p.halal }))} style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -259,8 +269,8 @@ export default function ProfileScreen() {
               </svg>
             </div>
             <div>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{t('profile.halalTitle')}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 1 }}>{t('profile.halalSub')}</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{t.profile.halalTitle}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 1 }}>{t.profile.halalSub}</div>
             </div>
           </div>
           <div style={{ width: 46, height: 26, borderRadius: 13,
@@ -278,8 +288,8 @@ export default function ProfileScreen() {
       {/* ── DIET ── */}
       <div style={{ padding: '16px 20px 8px' }}>
         <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '1.2px' }}>{t('profile.diet')}</div>
-          <div style={{ fontSize: 12, color: 'var(--text-dim)', opacity: 0.6, marginTop: 3 }}>{t('profile.dietSub')}</div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '1.2px' }}>{t.profile.diet}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-dim)', opacity: 0.6, marginTop: 3 }}>{t.profile.dietSub}</div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           {DIET_GOALS.map(d => {
@@ -298,7 +308,7 @@ export default function ProfileScreen() {
                   <Icon name={d.icon} size={16} />
                 </div>
                 <span style={{ fontSize: 13, fontWeight: 500, color: active ? 'var(--primary-bright)' : 'rgba(210,210,240,0.95)', lineHeight: 1.3 }}>
-                  {dietLabel(d.id)}
+                  {tr(d.label)}
                 </span>
                 {active && <div style={{ marginLeft: 'auto', width: 16, height: 16, borderRadius: '50%',
                   background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -312,8 +322,8 @@ export default function ProfileScreen() {
       {/* ── ALLERGENS ── */}
       <div style={{ padding: '16px 20px 8px' }}>
         <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '1.2px' }}>{t('profile.allergens')}</div>
-          <div style={{ fontSize: 12, color: 'var(--text-dim)', opacity: 0.6, marginTop: 3 }}>{t('profile.allergensSub')}</div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '1.2px' }}>{t.profile.allergens}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-dim)', opacity: 0.6, marginTop: 3 }}>{t.profile.allergensSub}</div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
           {ALLERGENS.map(a => {
@@ -333,7 +343,7 @@ export default function ProfileScreen() {
                   <Icon name={a.icon} size={17} />
                 </div>
                 <span style={{ fontSize: 11, fontWeight: 500, textAlign: 'center', lineHeight: 1.2,
-                  color: active ? '#F87171' : 'rgba(200,200,235,0.95)' }}>{allergenLabel(a.id)}</span>
+                  color: active ? '#F87171' : 'rgba(200,200,235,0.95)' }}>{tr(a.label)}</span>
                 {active && <div style={{ position: 'absolute', top: -5, right: -5,
                   width: 16, height: 16, borderRadius: '50%', background: '#EF4444',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -345,12 +355,12 @@ export default function ProfileScreen() {
 
         {/* Custom input */}
         <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: '12px 14px' }}>
-          <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 8 }}>{t('profile.customAllergen')}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 8 }}>{t.profile.customHint}</div>
           <div style={{ display: 'flex', gap: 8 }}>
             <input ref={allergenInputRef} value={allergenInput}
               onChange={e => setAllergenInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && addCustom()}
-              placeholder={t('profile.customPlaceholder')}
+              placeholder={t.profile.customPlaceholder}
               style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border-bright)',
                 borderRadius: 10, padding: '9px 12px', color: 'var(--text)',
                 fontSize: 13, fontFamily: 'var(--font-body)', outline: 'none' }}
@@ -359,7 +369,7 @@ export default function ProfileScreen() {
               background: 'var(--primary-dim)', border: '1px solid rgba(139,92,246,0.3)',
               color: 'var(--primary-bright)', fontSize: 13, fontWeight: 600,
               cursor: 'pointer', fontFamily: 'var(--font-body)', whiteSpace: 'nowrap' }}>
-              {t('common.save')}
+              {t.profile.add}
             </button>
           </div>
           {profile.customAllergens.length > 0 && (
@@ -381,7 +391,7 @@ export default function ProfileScreen() {
       {/* ── PRIORITY ── */}
       <div style={{ padding: '16px 20px 8px' }}>
         <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '1.2px', marginBottom: 12 }}>
-          {t('profile.priority')}
+          {t.profile.priority}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
           {PRIORITIES.map(p => {
@@ -404,30 +414,10 @@ export default function ProfileScreen() {
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 700,
-                    color: active ? 'var(--primary-bright)' : 'rgba(230,230,255,1)' }}>{priorityLabel(p.id)}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 3, lineHeight: 1.3 }}>{priorityDesc(p.id)}</div>
+                    color: active ? 'var(--primary-bright)' : 'rgba(230,230,255,1)' }}>{tr(p.label)}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 3, lineHeight: 1.3 }}>{tr(p.desc)}</div>
                 </div>
                 {active && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--primary)' }} />}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-
-      <div style={{ padding: '16px 20px 8px' }}>
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '1.2px' }}>{t('profile.langTitle')}</div>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          {['ru','kz'].map(code => {
-            const active = lang === code
-            return (
-              <button key={code} onClick={() => { setLang(code); setProfile(p => ({ ...p, lang: code })) }} style={{
-                padding: '12px 14px', borderRadius: 14, border: `1.5px solid ${active ? 'var(--primary-mid)' : 'var(--border)'}`,
-                background: active ? 'rgba(124,58,237,0.1)' : 'var(--card)', cursor: 'pointer', color: active ? 'var(--primary-bright)' : 'rgba(210,210,240,0.95)', fontWeight: 600,
-              }}>
-                {code === 'ru' ? t('common.russian') : t('common.kazakh')}
               </button>
             )
           })}
@@ -439,21 +429,21 @@ export default function ProfileScreen() {
         <div style={{ padding: '12px 20px 0' }}>
           <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '10px 14px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-sub)' }}>Активных фильтров: {activeCount}</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-sub)' }}>{lang === 'kz' ? 'Белсенді сүзгілер:' : 'Активных фильтров:'} {activeCount}</span>
               <button onClick={() => setProfile({ halal: false, dietGoals: [], allergens: [], customAllergens: [], priority: 'balanced' })}
                 style={{ background: 'none', border: 'none', color: 'var(--text-dim)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
-                Сбросить
+                {lang === 'kz' ? 'Тазалау' : 'Сбросить'}
               </button>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {profile.halal && <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'var(--primary-dim)', color: 'var(--primary-bright)', border: '1px solid rgba(139,92,246,0.2)' }}>Халал</span>}
+              {profile.halal && <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'var(--primary-dim)', color: 'var(--primary-bright)', border: '1px solid rgba(139,92,246,0.2)' }}>{lang === 'kz' ? 'Халал' : 'Халал'}</span>}
               {profile.dietGoals.map(id => {
                 const d = DIET_GOALS.find(x => x.id === id)
-                return <span key={id} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'var(--primary-dim)', color: 'var(--primary-bright)', border: '1px solid rgba(139,92,246,0.2)' }}>{d?.label}</span>
+                return <span key={id} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'var(--primary-dim)', color: 'var(--primary-bright)', border: '1px solid rgba(139,92,246,0.2)' }}>{d ? tr(d.label) : ''}</span>
               })}
               {profile.allergens.map(id => {
                 const a = ALLERGENS.find(x => x.id === id)
-                return <span key={id} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(239,68,68,0.1)', color: '#F87171', border: '1px solid rgba(239,68,68,0.2)' }}>{a?.label}</span>
+                return <span key={id} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(239,68,68,0.1)', color: '#F87171', border: '1px solid rgba(239,68,68,0.2)' }}>{a ? tr(a.label) : ''}</span>
               })}
               {profile.customAllergens.map(val => (
                 <span key={val} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(239,68,68,0.1)', color: '#F87171', border: '1px solid rgba(239,68,68,0.2)' }}>{val}</span>
@@ -467,7 +457,7 @@ export default function ProfileScreen() {
       <div style={{ padding: '20px 20px 40px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         <button className="btn btn-primary btn-full" onClick={() => navigate('/catalog')}
           style={{ justifyContent: 'center', gap: 12 }}>
-          <span>Показать подходящие товары</span>
+          <span>{lang === 'kz' ? 'Сәйкес тауарларды көрсету' : 'Показать подходящие товары'}</span>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M5 12h14M12 5l7 7-7 7"/>
           </svg>
@@ -478,7 +468,7 @@ export default function ProfileScreen() {
             <rect x="3" y="16" width="5" height="5" rx="1"/>
             <path d="M16 16h5v5M16 16v5M3 12h4M10 3v4M12 10h7M10 16v5"/>
           </svg>
-          Сканировать QR-код
+          {lang === 'kz' ? 'QR-кодты сканерлеу' : 'Сканировать QR-код'}
         </button>
         <div style={{ textAlign: 'center', paddingTop: 4 }}>
           <span onClick={() => navigate('/qr-print')} style={{ fontSize: 11, color: 'var(--text-dim)', opacity: 0.2, cursor: 'pointer' }}>v1.0</span>
