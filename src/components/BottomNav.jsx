@@ -27,11 +27,11 @@ export default function BottomNav() {
     {
       id: 'catalog', label: 'Каталог', path: '/catalog',
       icon: (on) => (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={col(on)} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="3" width="7" height="7" rx="1" fill={on ? 'rgba(167,139,250,0.25)' : 'none'}/>
-          <rect x="14" y="3" width="7" height="7" rx="1" fill={on ? 'rgba(167,139,250,0.25)' : 'none'}/>
-          <rect x="3" y="14" width="7" height="7" rx="1" fill={on ? 'rgba(167,139,250,0.25)' : 'none'}/>
-          <rect x="14" y="14" width="7" height="7" rx="1" fill={on ? 'rgba(167,139,250,0.25)' : 'none'}/>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="3" width="7" height="7" rx="1" stroke={col(on)} strokeWidth="1.8" fill={on ? '#A78BFA' : 'none'} fillOpacity={on ? '0.25' : '0'}/>
+          <rect x="14" y="3" width="7" height="7" rx="1" stroke={col(on)} strokeWidth="1.8" fill={on ? '#A78BFA' : 'none'} fillOpacity={on ? '0.25' : '0'}/>
+          <rect x="3" y="14" width="7" height="7" rx="1" stroke={col(on)} strokeWidth="1.8" fill={on ? '#A78BFA' : 'none'} fillOpacity={on ? '0.25' : '0'}/>
+          <rect x="14" y="14" width="7" height="7" rx="1" stroke={col(on)} strokeWidth="1.8" fill={on ? '#A78BFA' : 'none'} fillOpacity={on ? '0.25' : '0'}/>
         </svg>
       ),
     },
