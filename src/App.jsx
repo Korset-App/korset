@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { getLang } from './utils/i18n.js'
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import HomeScreen from './screens/HomeScreen.jsx'
 import ProfileScreen from './screens/ProfileScreen.jsx'
@@ -17,7 +18,7 @@ export default function App() {
   const { pathname } = useLocation()
   const hideNav = pathname === '/qr-print'
   const [showOnboarding, setShowOnboarding] = useState(
-    !localStorage.getItem('korset_onboarding_done')
+    !localStorage.getItem('korset_onboarding_done') || !localStorage.getItem('korset_lang')
   )
 
   return (

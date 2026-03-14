@@ -1,15 +1,17 @@
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useI18n } from '../utils/i18n.js'
 
 export default function BottomNav() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
 
+  const { t } = useI18n()
+
   const getActive = () => {
     if (pathname === '/') return 'home'
     if (pathname === '/profile') return 'profile'
-    if (pathname === '/scan') return 'scan'
     if (pathname === '/catalog' || pathname.startsWith('/product')) return 'catalog'
-    if (pathname === '/ai' || pathname.endsWith('/ai')) return 'ai'
+    if (pathname === '/ai') return 'ai'
     return 'home'
   }
   const active = getActive()
@@ -18,7 +20,7 @@ export default function BottomNav() {
 
   const TABS = [
     {
-      id: 'home', label: 'Главная', path: '/',
+      id: 'home', label: t('nav.home'), path: '/',
       icon: (on) => on ? (
         <svg width="22" height="22" viewBox="0 0 24 24" fill={col(true)}><path d="M21 20C21 20.5523 20.5523 21 20 21H4C3.44772 21 3 20.5523 3 20V9.48907C3 9.18048 3.14247 8.88917 3.38606 8.69972L11.3861 2.47749C11.7472 2.19663 12.2528 2.19663 12.6139 2.47749L20.6139 8.69972C20.8575 8.88917 21 9.18048 21 9.48907V20ZM11 13V19H13V13H11Z"/></svg>
       ) : (
@@ -26,7 +28,7 @@ export default function BottomNav() {
       ),
     },
     {
-      id: 'catalog', label: 'Каталог', path: '/catalog',
+      id: 'catalog', label: t('nav.catalog'), path: '/catalog',
       icon: (on) => on ? (
         <svg width="22" height="22" viewBox="0 0 24 24" fill={col(true)}>
           <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
@@ -46,7 +48,7 @@ export default function BottomNav() {
       ),
     },
     {
-      id: 'scan', label: 'Скан', path: '/scan', isScan: true,
+      id: 'scan', label: t('nav.scan'), path: '/scan', isScan: true,
       icon: () => (
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <path d="M4 8V6a2 2 0 0 1 2-2h2"/>
@@ -58,7 +60,7 @@ export default function BottomNav() {
       ),
     },
     {
-      id: 'ai', label: 'AI', path: '/ai',
+      id: 'ai', label: t('nav.ai'), path: '/ai',
       icon: (on) => on ? (
         <svg width="22" height="22" viewBox="0 0 24 24" fill={col(true)}><path d="M12 1.99996C12.9057 1.99996 13.7829 2.12194 14.6172 2.34762C14.2223 3.14741 14 4.04768 14 4.99997C14 8.31368 16.6863 11 20 11C20.6685 11 21.3106 10.8882 21.9111 10.6865C21.9676 11.1165 22 11.5546 22 12C22 17.5228 17.5228 22 12 22C10.2975 22 8.69425 21.5746 7.29102 20.8242L2 22L3.17578 16.709C2.42542 15.3057 2 13.7025 2 12C2.00002 6.47714 6.47717 1.99996 12 1.99996ZM19.5293 1.3193C19.7058 0.893513 20.2942 0.8935 20.4707 1.3193L20.7236 1.93063C21.1555 2.97343 21.9615 3.80614 22.9746 4.2568L23.6914 4.57614C24.1022 4.75882 24.1022 5.35635 23.6914 5.53903L22.9326 5.87692C21.945 6.3162 21.1534 7.11943 20.7139 8.1279L20.4668 8.69333C20.2863 9.10747 19.7136 9.10747 19.5332 8.69333L19.2861 8.1279C18.8466 7.11942 18.0551 6.3162 17.0674 5.87692L16.3076 5.53903C15.8974 5.35618 15.8974 4.75895 16.3076 4.57614L17.0254 4.2568C18.0384 3.80614 18.8445 2.97343 19.2764 1.93063L19.5293 1.3193Z"/></svg>
       ) : (
@@ -66,7 +68,7 @@ export default function BottomNav() {
       ),
     },
     {
-      id: 'profile', label: 'Профиль', path: '/profile',
+      id: 'profile', label: t('nav.profile'), path: '/profile',
       icon: (on) => on ? (
         <svg width="22" height="22" viewBox="0 0 24 24" fill={col(true)}><path d="M4 22C4 17.5817 7.58172 14 12 14C16.4183 14 20 17.5817 20 22H4ZM12 13C8.685 13 6 10.315 6 7C6 3.685 8.685 1 12 1C15.315 1 18 3.685 18 7C18 10.315 15.315 13 12 13Z"/></svg>
       ) : (
@@ -93,10 +95,9 @@ export default function BottomNav() {
               width: 52, height: 52, borderRadius: '50%', border: 'none', cursor: 'pointer',
               background: 'linear-gradient(145deg, #7C3AED, #5B21B6)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: on ? '0 0 0 6px rgba(124,58,237,0.24), 0 8px 28px rgba(124,58,237,0.62)' : '0 0 0 4px rgba(124,58,237,0.2), 0 4px 20px rgba(124,58,237,0.5)',
+              boxShadow: '0 0 0 4px rgba(124,58,237,0.2), 0 4px 20px rgba(124,58,237,0.5)',
               flexShrink: 0,
-              transform: on ? 'translateY(-14px) scale(1.04)' : 'translateY(-10px)',
-              transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+              transform: 'translateY(-10px)',
             }}>
               {tab.icon()}
             </button>
