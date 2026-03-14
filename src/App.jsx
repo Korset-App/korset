@@ -15,7 +15,7 @@ import OnboardingScreen from './screens/OnboardingScreen.jsx'
 
 export default function App() {
   const { pathname } = useLocation()
-  const hideNav = pathname.endsWith('/ai') || pathname === '/qr-print'
+  const hideNav = pathname.endsWith('/ai') || pathname === '/qr-print' || pathname === '/scan'
   const [showOnboarding, setShowOnboarding] = useState(
     !localStorage.getItem('korset_onboarding_done')
   )

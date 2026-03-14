@@ -75,11 +75,11 @@ export default function AIAssistantScreen() {
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, bottom: 80, background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
+    <div className="screen" style={{ display: 'flex', flexDirection: 'column', paddingBottom: 0, height: '100%' }}>
 
       {/* Хедер */}
       <div style={{
-        padding: '52px 20px 14px',
+        padding: '16px 20px 14px',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
         display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0,
       }}>
