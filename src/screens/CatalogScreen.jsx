@@ -99,7 +99,7 @@ export default function CatalogScreen() {
     <div className="screen" onClick={() => setSortOpen(false)}>
 
       {/* ── Хедер ── */}
-      <div style={{ padding: '52px 20px 0' }}>
+      <div style={{ padding: '16px 20px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
           {/* Заголовок */}
           <div>
@@ -256,12 +256,12 @@ export default function CatalogScreen() {
                     {fits !== null && (
                       <div style={{
                         position: 'absolute', top: 18, right: 18,
-                        width: 28, height: 28, borderRadius: 9,
+                        width: 36, height: 36, borderRadius: 11,
                         background: fits ? '#10B981' : '#EF4444',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         boxShadow: fits ? '0 2px 8px rgba(16,185,129,0.5)' : '0 2px 8px rgba(239,68,68,0.4)',
                       }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round">
                           {fits
                             ? <polyline points="20 6 9 17 4 12"/>
                             : <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>
