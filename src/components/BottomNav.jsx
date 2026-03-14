@@ -26,12 +26,21 @@ export default function BottomNav() {
     },
     {
       id: 'catalog', label: 'Каталог', path: '/catalog',
-      icon: (on) => (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <rect x="3" y="3" width="7" height="7" rx="1" stroke={col(on)} strokeWidth="1.8" fill={on ? '#A78BFA' : 'none'} fillOpacity={on ? '0.25' : '0'}/>
-          <rect x="14" y="3" width="7" height="7" rx="1" stroke={col(on)} strokeWidth="1.8" fill={on ? '#A78BFA' : 'none'} fillOpacity={on ? '0.25' : '0'}/>
-          <rect x="3" y="14" width="7" height="7" rx="1" stroke={col(on)} strokeWidth="1.8" fill={on ? '#A78BFA' : 'none'} fillOpacity={on ? '0.25' : '0'}/>
-          <rect x="14" y="14" width="7" height="7" rx="1" stroke={col(on)} strokeWidth="1.8" fill={on ? '#A78BFA' : 'none'} fillOpacity={on ? '0.25' : '0'}/>
+      icon: (on) => on ? (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill={col(true)}>
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+          <path d="M9 3a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-4a2 2 0 0 1 -2 -2v-4a2 2 0 0 1 2 -2z"/>
+          <path d="M19 3a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-4a2 2 0 0 1 -2 -2v-4a2 2 0 0 1 2 -2z"/>
+          <path d="M9 13a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-4a2 2 0 0 1 -2 -2v-4a2 2 0 0 1 2 -2z"/>
+          <path d="M19 13a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-4a2 2 0 0 1 -2 -2v-4a2 2 0 0 1 2 -2z"/>
+        </svg>
+      ) : (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={col(false)} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+          <path d="M4 5a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4"/>
+          <path d="M14 5a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4"/>
+          <path d="M4 15a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4"/>
+          <path d="M14 15a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4"/>
         </svg>
       ),
     },

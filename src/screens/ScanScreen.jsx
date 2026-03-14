@@ -194,34 +194,16 @@ function BarcodeScanner({ onDetected, onClose }) {
               }}
             >
               {/* Иконка фонарика — вертикальный факел сверху вниз */}
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                {/* Лучи когда включён */}
-                {torchOn && <>
-                  <line x1="12" y1="1" x2="12" y2="3"   stroke="#FDE68A" strokeWidth="2"/>
-                  <line x1="17" y1="3" x2="15.5" y2="4.5" stroke="#FDE68A" strokeWidth="2"/>
-                  <line x1="7"  y1="3" x2="8.5"  y2="4.5" stroke="#FDE68A" strokeWidth="2"/>
-                </>}
-                {/* Голова (отражатель) */}
-                <path
-                  d="M9 5 h6 l1 3 H8 Z"
-                  fill={torchOn ? 'rgba(253,230,138,0.3)' : 'rgba(255,255,255,0.1)'}
-                  stroke={torchOn ? '#FDE68A' : 'rgba(255,255,255,0.7)'}
-                  strokeWidth="1.5"
-                />
-                {/* Корпус */}
-                <rect
-                  x="10" y="8" width="4" height="9" rx="1"
-                  fill={torchOn ? 'rgba(253,230,138,0.2)' : 'rgba(255,255,255,0.08)'}
-                  stroke={torchOn ? '#FDE68A' : 'rgba(255,255,255,0.7)'}
-                  strokeWidth="1.5"
-                />
-                {/* Кнопка внизу */}
-                <rect
-                  x="11" y="17" width="2" height="2.5" rx="0.8"
-                  fill={torchOn ? '#FDE68A' : 'rgba(255,255,255,0.5)'}
-                />
-              </svg>
-            </button>
+              {/* Иконка молнии */}
+              {torchOn ? (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <path fillRule="evenodd" clipRule="evenodd" d="M13.2319 2.28681C13.5409 2.38727 13.75 2.6752 13.75 3.00005V9.25005H19C19.2821 9.25005 19.5403 9.40834 19.6683 9.65972C19.7963 9.9111 19.7725 10.213 19.6066 10.4412L11.6066 21.4412C11.4155 21.7039 11.077 21.8137 10.7681 21.7133C10.4591 21.6128 10.25 21.3249 10.25 21.0001V14.7501H5C4.71791 14.7501 4.45967 14.5918 4.33167 14.3404C4.20366 14.089 4.22753 13.7871 4.39345 13.5589L12.3935 2.55892C12.5845 2.2962 12.923 2.18635 13.2319 2.28681Z" fill="#FDE68A"/>
+                </svg>
+              ) : (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M13 10V3L5 14H11V21L19 10H13Z"/>
+                </svg>
+              )}
 
             {/* Закрыть */}
             <button

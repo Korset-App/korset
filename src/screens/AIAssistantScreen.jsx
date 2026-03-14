@@ -14,7 +14,7 @@ function KorsetAvatar({ size = 34 }) {
   )
 }
 
-const CHIPS = ['Что приготовить на ужин?', 'Есть ли халал мясо?', 'Что купить без глютена?']
+const CHIPS = ['Есть ли халал продукты?', 'Что без лактозы?', 'Где найти орехи?', 'Что для рататуя?']
 
 export default function AIAssistantScreen() {
   const [messages, setMessages] = useState([])
@@ -63,7 +63,7 @@ export default function AIAssistantScreen() {
 
       {/* Хедер */}
       <div style={{
-        padding: '52px 20px 14px', flexShrink: 0,
+        padding: '16px 20px 14px', flexShrink: 0,
         borderBottom: '1px solid rgba(255,255,255,0.06)',
         display: 'flex', alignItems: 'center', gap: 12,
       }}>
