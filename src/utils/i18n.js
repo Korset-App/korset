@@ -27,7 +27,7 @@ export const dictionaries = {
     onboarding: {
       langTitle: 'Выберите язык',
       step1Title: 'Сканируй и узнай всё о товаре',
-      step1Sub: 'Körset покажет, подходит ли тебе товар, определит халал-статус, состав, аллергены и предложит альтернативы.',
+      step1Sub: '',
       step2Title: 'Выбери свои предпочтения',
       step2Sub: 'Отметь важные фильтры. Потом всё можно изменить в профиле.',
       step3Title: 'Добавь аллергены и исключения',
@@ -37,7 +37,7 @@ export const dictionaries = {
       finish: 'Сохранить и продолжить',
       customPlaceholder: 'Например: желатин, дрожжи...',
       add: 'Добавить',
-      featuresTitle: 'Что умеет Körset',
+      featuresTitle: 'Körset умеет',
       features: {
         fit: 'Подходит ли тебе',
         halal: 'Халал',
@@ -90,7 +90,7 @@ export const dictionaries = {
     onboarding: {
       langTitle: 'Тілді таңдаңыз',
       step1Title: 'Сканерле де, тауар туралы бәрін біл',
-      step1Sub: 'Körset тауардың саған сай келетінін, халал мәртебесін, құрамын, аллергендерін көрсетіп, лайықты баламаларды ұсынады.',
+      step1Sub: '',
       step2Title: 'Өзіңе маңыздыны таңда',
       step2Sub: 'Басты сүзгілерді белгіле. Кейін бәрін профильден өзгерте аласың.',
       step3Title: 'Аллергендер мен шектеулерді қос',
@@ -100,7 +100,7 @@ export const dictionaries = {
       finish: 'Сақтап, жалғастыру',
       customPlaceholder: 'Мысалы: желатин, ашытқы...',
       add: 'Қосу',
-      featuresTitle: 'Körset не істей алады',
+      featuresTitle: 'Körset мүмкіндіктері',
       features: {
         fit: 'Саған сай ма',
         halal: 'Халал',
