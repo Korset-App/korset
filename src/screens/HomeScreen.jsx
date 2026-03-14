@@ -1,9 +1,7 @@
 import { useNavigate } from 'react-router-dom'
-import { useI18n, formatDateLocalized } from '../utils/i18n.js'
 
 export default function HomeScreen() {
   const navigate = useNavigate()
-  const { t, lang } = useI18n()
 
   return (
     <div className="screen" style={{ paddingBottom: 100 }}>
@@ -12,17 +10,17 @@ export default function HomeScreen() {
         {/* Лого + заголовок */}
         <div style={{ marginBottom: 28 }}>
           <div style={{ fontSize: 13, color: 'rgba(167,139,250,0.7)', fontWeight: 600, marginBottom: 8, letterSpacing: '0.3px' }}>
-            {formatDateLocalized(new Date(), lang)}
+            {new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })}
           </div>
           <h1 style={{
             fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 900,
             color: '#fff', lineHeight: 1.15, letterSpacing: '-0.5px', marginBottom: 8,
           }}>
-            {t('home.welcome')}<br/>
-            в <span style={{ color: '#A78BFA' }}>{t('common.appName')}</span>
+            Добро пожаловать<br/>
+            в <span style={{ color: '#A78BFA' }}>Körset</span>
           </h1>
           <p style={{ fontSize: 14, color: 'rgba(180,180,210,0.65)', lineHeight: 1.55 }}>
-            {t('home.subtitle')}
+            Сканируй товары и узнай — подходят ли они именно тебе
           </p>
         </div>
 
@@ -51,10 +49,10 @@ export default function HomeScreen() {
           </div>
           <div style={{ textAlign: 'left' }}>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 700, color: '#E9D5FF', marginBottom: 3 }}>
-              {t('home.scanTitle')}
+              Сканировать штрихкод
             </div>
             <div style={{ fontSize: 12, color: 'rgba(167,139,250,0.6)' }}>
-              {t('home.scanSub')}
+              Наведи на любой товар в магазине
             </div>
           </div>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(167,139,250,0.5)" strokeWidth="2" strokeLinecap="round" style={{ marginLeft: 'auto', flexShrink: 0 }}>

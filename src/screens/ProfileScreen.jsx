@@ -1,186 +1,459 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { loadProfile, saveProfile } from '../utils/profile.js'
-import { languageOptions, useI18n } from '../utils/i18n.js'
 
-const DIET_GOAL_IDS = [
-  { id: 'sugar_free', icon: 'nosugar' },
-  { id: 'dairy_free', icon: 'nodairy' },
-  { id: 'gluten_free', icon: 'nogluten' },
-  { id: 'vegan', icon: 'vegan' },
-  { id: 'vegetarian', icon: 'veggie' },
-  { id: 'keto', icon: 'keto' },
-  { id: 'low_calorie', icon: 'lowcal' },
+const DIET_GOALS = [
+  { id: 'sugar_free',  label: 'Без сахара',    icon: 'nosugar'  },
+  { id: 'dairy_free',  label: 'Без молочки',   icon: 'nodairy'  },
+  { id: 'gluten_free', label: 'Без глютена',   icon: 'nogluten' },
+  { id: 'vegan',       label: 'Веган',         icon: 'vegan'    },
+  { id: 'vegetarian',  label: 'Вегетарианец',  icon: 'veggie'   },
+  { id: 'keto',        label: 'Кето',          icon: 'keto'     },
+  { id: 'low_calorie', label: 'Меньше калорий',icon: 'lowcal'   },
 ]
 
-const ALLERGEN_IDS = [
-  { id: 'milk', icon: 'milk' },
-  { id: 'gluten', icon: 'wheat' },
-  { id: 'nuts', icon: 'nuts' },
-  { id: 'peanuts', icon: 'peanut' },
-  { id: 'soy', icon: 'soy' },
-  { id: 'eggs', icon: 'egg' },
-  { id: 'fish', icon: 'fish' },
-  { id: 'shellfish', icon: 'shell' },
+const ALLERGENS = [
+  { id: 'milk',      label: 'Молоко',   icon: 'milk'     },
+  { id: 'gluten',    label: 'Глютен',   icon: 'wheat'    },
+  { id: 'nuts',      label: 'Орехи',    icon: 'nuts'     },
+  { id: 'peanuts',   label: 'Арахис',   icon: 'peanut'   },
+  { id: 'soy',       label: 'Соя',      icon: 'soy'      },
+  { id: 'eggs',      label: 'Яйца',     icon: 'egg'      },
+  { id: 'fish',      label: 'Рыба',     icon: 'fish'     },
+  { id: 'shellfish', label: 'Моллюски', icon: 'shell'    },
 ]
 
-const PRIORITY_IDS = [
-  { id: 'price', icon: 'price' },
-  { id: 'balanced', icon: 'balance' },
-  { id: 'quality', icon: 'quality' },
+const PRIORITIES = [
+  { id: 'price',    label: 'Цена',     desc: 'Самый дешёвый',   icon: 'price'   },
+  { id: 'balanced', label: 'Баланс',   desc: 'Цена + качество', icon: 'balance' },
+  { id: 'quality',  label: 'Качество', desc: 'Лучший состав',   icon: 'quality' },
 ]
 
-function localizeDietLabel(id, t) {
-  const map = {
-    sugar_free: { ru: 'Без сахара', kz: 'Қантсыз' }, dairy_free: { ru: 'Без молочки', kz: 'Сүтсіз' }, gluten_free: { ru: 'Без глютена', kz: 'Глютенсіз' },
-    vegan: { ru: 'Веган', kz: 'Веган' }, vegetarian: { ru: 'Вегетарианец', kz: 'Вегетариан' }, keto: { ru: 'Кето', kz: 'Кето' }, low_calorie: { ru: 'Меньше калорий', kz: 'Калориясы аз' },
-  }
-  return map[id]?.[t('common.language') === 'Тіл' ? 'kz' : 'ru'] || id
-}
-
-function localizeAllergenLabel(id, lang) {
-  const map = {
-    milk: { ru: 'Молоко', kz: 'Сүт' }, gluten: { ru: 'Глютен', kz: 'Глютен' }, nuts: { ru: 'Орехи', kz: 'Жаңғақ' }, peanuts: { ru: 'Арахис', kz: 'Жержаңғақ' }, soy: { ru: 'Соя', kz: 'Соя' }, eggs: { ru: 'Яйца', kz: 'Жұмыртқа' }, fish: { ru: 'Рыба', kz: 'Балық' }, shellfish: { ru: 'Моллюски', kz: 'Теңіз өнімдері' },
-  }
-  return map[id]?.[lang] || id
-}
-
-function localizePriority(id, lang) {
-  const map = {
-    price: { ru: ['Цена', 'Самый дешёвый'], kz: ['Баға', 'Ең арзан'] },
-    balanced: { ru: ['Баланс', 'Цена + качество'], kz: ['Теңгерім', 'Баға + сапа'] },
-    quality: { ru: ['Качество', 'Лучший состав'], kz: ['Сапа', 'Ең жақсы құрам'] },
-  }
-  const pair = map[id]?.[lang] || [id, '']
-  return { label: pair[0], desc: pair[1] }
-}
-
-function Icon({ name, size = 18 }) {
+// Colored filled icons — no emoji
+function Icon({ name, size = 20 }) {
   const w = size, h = size
   switch (name) {
-    case 'nosugar': return <svg width={w} height={h} viewBox="0 0 24 24" fill="none"><path d="M7 11h10M9 7h6M7 15h10M5 4l14 16" stroke="#F87171" strokeWidth="1.8" strokeLinecap="round"/></svg>
-    case 'nodairy': return <svg width={w} height={h} viewBox="0 0 24 24" fill="none"><path d="M8 4h6l2 4v8a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3V8l2-4Z" stroke="#60A5FA" strokeWidth="1.8"/><path d="M5 5l14 14" stroke="#F87171" strokeWidth="1.8" strokeLinecap="round"/></svg>
-    case 'nogluten': return <svg width={w} height={h} viewBox="0 0 24 24" fill="none"><path d="M12 3c0 6-3 8-3 12a3 3 0 0 0 6 0c0-4-3-6-3-12Z" stroke="#FBBF24" strokeWidth="1.8"/><path d="M5 5l14 14" stroke="#F87171" strokeWidth="1.8" strokeLinecap="round"/></svg>
-    case 'vegan': return <svg width={w} height={h} viewBox="0 0 24 24" fill="none"><path d="M6 13c4.5-.2 6.6-2.7 8-7 3.6 1.2 5 4.6 4 8-1.3 4-6.1 6.2-10.3 4.9C5.3 18.2 4 16.1 4 14" stroke="#34D399" strokeWidth="1.8"/></svg>
-    case 'veggie': return <svg width={w} height={h} viewBox="0 0 24 24" fill="none"><path d="M12 20c4-2.5 6-5.5 6-9a6 6 0 0 0-12 0c0 3.5 2 6.5 6 9Z" stroke="#A3E635" strokeWidth="1.8"/></svg>
-    case 'keto': return <svg width={w} height={h} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="#F59E0B" strokeWidth="1.8"/><path d="M12 7v10M9 10.5h6" stroke="#F59E0B" strokeWidth="1.8" strokeLinecap="round"/></svg>
-    case 'lowcal': return <svg width={w} height={h} viewBox="0 0 24 24" fill="none"><path d="M13 3L6 14h5l-1 7 8-11h-5l0-7Z" fill="#FBBF24" opacity="0.28" stroke="#FBBF24" strokeWidth="1.4"/></svg>
-    case 'milk': return <svg width={w} height={h} viewBox="0 0 24 24" fill="none"><path d="M8 3h7l2 4v9a3 3 0 0 1-3 3H10a3 3 0 0 1-3-3V7l1-4Z" stroke="#93C5FD" strokeWidth="1.8"/></svg>
-    case 'wheat': return <svg width={w} height={h} viewBox="0 0 24 24" fill="none"><path d="M12 3v18M9 7l3 2 3-2M8 11l4 2 4-2M8 15l4 2 4-2" stroke="#FCD34D" strokeWidth="1.8"/></svg>
-    case 'nuts': return <svg width={w} height={h} viewBox="0 0 24 24" fill="none"><path d="M8 9a4 4 0 1 1 8 0v4a4 4 0 1 1-8 0V9Z" stroke="#F9A8D4" strokeWidth="1.8"/></svg>
-    case 'peanut': return <svg width={w} height={h} viewBox="0 0 24 24" fill="none"><path d="M9 6c-2 1-3 3-3 5s1 4 3 5m6-10c2 1 3 3 3 5s-1 4-3 5M9 6c1 0 2 1 3 2 1-1 2-2 3-2" stroke="#D6A35D" strokeWidth="1.8" strokeLinecap="round"/></svg>
-    case 'soy': return <svg width={w} height={h} viewBox="0 0 24 24" fill="none"><path d="M7 15c0-5 4-8 10-9 0 6-3 10-8 10-1 0-2-.3-2-1Z" stroke="#22C55E" strokeWidth="1.8"/></svg>
-    case 'egg': return <svg width={w} height={h} viewBox="0 0 24 24" fill="none"><path d="M12 4c3 2.8 5 6 5 9a5 5 0 0 1-10 0c0-3 2-6.2 5-9Z" stroke="#FDE68A" strokeWidth="1.8"/></svg>
-    case 'fish': return <svg width={w} height={h} viewBox="0 0 24 24" fill="none"><path d="M4 12c2.5-3.5 6-5 10-5 2.2 0 4.2.5 6 1.8-1.8 1.3-3.8 3.7-6 5-4 0-7.5-1.5-10-5Z" stroke="#60A5FA" strokeWidth="1.8"/><circle cx="17.5" cy="9.5" r="1" fill="#60A5FA"/></svg>
-    case 'shell': return <svg width={w} height={h} viewBox="0 0 24 24" fill="none"><path d="M16 4c2 1.5 3 4 2 7l-2 3-3 2-2 4" stroke="#F9A8D4" strokeWidth="1.8" strokeLinecap="round"/></svg>
-    case 'price': return <svg width={w} height={h} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" fill="#34D399" opacity="0.15" stroke="#34D399" strokeWidth="1.8"/><path d="M12 6v1.5M12 16.5V18" stroke="#34D399" strokeWidth="1.8" strokeLinecap="round"/><path d="M9.5 9.5c0-1.1.9-2 2.5-2s2.5.9 2.5 2c0 2.5-5 2.5-5 5 0 1.1.9 2 2.5 2s2.5-.9 2.5-2" stroke="#34D399" strokeWidth="1.8" strokeLinecap="round"/></svg>
-    case 'balance': return <svg width={w} height={h} viewBox="0 0 24 24" fill="none"><path d="M12 3v18M4 7h16" stroke="#A78BFA" strokeWidth="1.8" strokeLinecap="round"/><path d="M5 7L2 13h6l-3-6zM19 7l3 6h-6l3-6z" fill="#A78BFA" opacity="0.25" stroke="#A78BFA" strokeWidth="1.6"/></svg>
-    case 'quality': return <svg width={w} height={h} viewBox="0 0 24 24" fill="none"><path d="M12 2l2.5 7.5H22l-6.5 4.7 2.5 7.5L12 17l-6 4.7 2.5-7.5L2 9.5h7.5L12 2z" fill="#FCD34D" opacity="0.3" stroke="#FCD34D" strokeWidth="1.8"/></svg>
+    // DIET — colored, filled, instantly recognizable
+    case 'nosugar': return (
+      <svg width={w} height={h} viewBox="0 0 24 24" fill="none">
+        {/* Sugar = cube with slash */}
+        <rect x="4" y="9" width="16" height="11" rx="2" fill="#A78BFA" opacity="0.25"/>
+        <rect x="4" y="9" width="16" height="11" rx="2" stroke="#A78BFA" strokeWidth="1.8"/>
+        <path d="M8 9V7a4 4 0 0 1 8 0v2" stroke="#A78BFA" strokeWidth="1.8" strokeLinecap="round"/>
+        <line x1="3" y1="3" x2="21" y2="21" stroke="#F87171" strokeWidth="2.2" strokeLinecap="round"/>
+      </svg>
+    )
+    case 'nodairy': return (
+      <svg width={w} height={h} viewBox="0 0 24 24" fill="none">
+        <path d="M9 3h6l2 5v12a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V8l2-5z" fill="#60A5FA" opacity="0.2"/>
+        <path d="M9 3h6l2 5v12a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V8l2-5z" stroke="#60A5FA" strokeWidth="1.8" strokeLinejoin="round"/>
+        <path d="M7 8h10" stroke="#60A5FA" strokeWidth="1.8" strokeLinecap="round"/>
+        <line x1="3" y1="3" x2="21" y2="21" stroke="#F87171" strokeWidth="2.2" strokeLinecap="round"/>
+      </svg>
+    )
+    case 'nogluten': return (
+      <svg width={w} height={h} viewBox="0 0 24 24" fill="none">
+        <path d="M12 2v20" stroke="#FCD34D" strokeWidth="1.8" strokeLinecap="round"/>
+        <path d="M8 6c1.3.9 2.7 1 4 .5s2.7-.4 4 .5M8 10c1.3.9 2.7 1 4 .5s2.7-.4 4 .5M8 14c1.3.9 2.7 1 4 .5" stroke="#FCD34D" strokeWidth="1.8" strokeLinecap="round"/>
+        <line x1="3" y1="3" x2="21" y2="21" stroke="#F87171" strokeWidth="2.2" strokeLinecap="round"/>
+      </svg>
+    )
+    case 'vegan': return (
+      <svg width={w} height={h} viewBox="0 0 24 24" fill="none">
+        <path d="M21 3C9 3 4 12 4 20" stroke="#34D399" strokeWidth="1.8" strokeLinecap="round"/>
+        <path d="M4 20c3-7 9-12 17-11C21 13 18 19 4 20z" fill="#34D399" opacity="0.3" stroke="#34D399" strokeWidth="1.8" strokeLinejoin="round"/>
+      </svg>
+    )
+    case 'veggie': return (
+      <svg width={w} height={h} viewBox="0 0 24 24" fill="none">
+        {/* Carrot */}
+        <path d="M12 4c0 0 5 3 5 9s-5 9-5 9-5-3-5-9 5-9 5-9z" fill="#F97316" opacity="0.3" stroke="#F97316" strokeWidth="1.8" strokeLinejoin="round"/>
+        <path d="M10 4c-1-2-2-3-3-2M12 4c0-2 0-3.5 1-4M14 4c1-2 2-3 3-2" stroke="#34D399" strokeWidth="1.8" strokeLinecap="round"/>
+        <path d="M10 10h4M10 13h4" stroke="#E2724A" strokeWidth="1.4" strokeLinecap="round"/>
+      </svg>
+    )
+    case 'keto': return (
+      <svg width={w} height={h} viewBox="0 0 24 24" fill="none">
+        {/* Avocado */}
+        <path d="M12 3c4.5 0 7 3.5 7 8 0 5.5-3.5 10-7 11-3.5-1-7-5.5-7-11 0-4.5 2.5-8 7-8z" fill="#84CC16" opacity="0.25" stroke="#84CC16" strokeWidth="1.8"/>
+        <circle cx="12" cy="13.5" r="3" fill="#A16207" opacity="0.5" stroke="#A16207" strokeWidth="1.5"/>
+      </svg>
+    )
+    case 'lowcal': return (
+      <svg width={w} height={h} viewBox="0 0 24 24" fill="none">
+        {/* Scale */}
+        <path d="M12 3v18" stroke="#C084FC" strokeWidth="1.8" strokeLinecap="round"/>
+        <path d="M4 12h16" stroke="#C084FC" strokeWidth="1.8" strokeLinecap="round"/>
+        <path d="M5 12l-2 5h6l-2-5-2 0zM19 12l-2 5h6l-2-5-2 0z" fill="#C084FC" opacity="0.25" stroke="#C084FC" strokeWidth="1.6" strokeLinejoin="round"/>
+        <path d="M6 21h12" stroke="#C084FC" strokeWidth="1.8" strokeLinecap="round"/>
+      </svg>
+    )
+    // ALLERGENS — distinctive colored icons
+    case 'milk': return (
+      <svg width={w} height={h} viewBox="0 0 24 24" fill="none">
+        <path d="M9 3h6l2 5v12a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V8l2-5z" fill="#E2E8F0" opacity="0.15" stroke="#E2E8F0" strokeWidth="1.8" strokeLinejoin="round"/>
+        <path d="M7 8h10" stroke="#E2E8F0" strokeWidth="1.8" strokeLinecap="round"/>
+        <path d="M9 14c1.5 1.5 5.5 1.5 7 0" stroke="#94A3B8" strokeWidth="1.5" strokeLinecap="round"/>
+      </svg>
+    )
+    case 'wheat': return (
+      <svg width={w} height={h} viewBox="0 0 24 24" fill="none">
+        <path d="M12 2v20" stroke="#FCD34D" strokeWidth="1.8" strokeLinecap="round"/>
+        <ellipse cx="8.5" cy="7" rx="3" ry="1.8" fill="#FCD34D" opacity="0.4" stroke="#FCD34D" strokeWidth="1.2" transform="rotate(-30 8.5 7)"/>
+        <ellipse cx="15.5" cy="7" rx="3" ry="1.8" fill="#FCD34D" opacity="0.4" stroke="#FCD34D" strokeWidth="1.2" transform="rotate(30 15.5 7)"/>
+        <ellipse cx="8" cy="11" rx="3" ry="1.8" fill="#FCD34D" opacity="0.4" stroke="#FCD34D" strokeWidth="1.2" transform="rotate(-30 8 11)"/>
+        <ellipse cx="16" cy="11" rx="3" ry="1.8" fill="#FCD34D" opacity="0.4" stroke="#FCD34D" strokeWidth="1.2" transform="rotate(30 16 11)"/>
+        <ellipse cx="9" cy="15" rx="2.5" ry="1.6" fill="#FCD34D" opacity="0.4" stroke="#FCD34D" strokeWidth="1.2" transform="rotate(-30 9 15)"/>
+        <ellipse cx="15" cy="15" rx="2.5" ry="1.6" fill="#FCD34D" opacity="0.4" stroke="#FCD34D" strokeWidth="1.2" transform="rotate(30 15 15)"/>
+      </svg>
+    )
+    case 'nuts': return (
+      <svg width={w} height={h} viewBox="0 0 24 24" fill="none">
+        <path d="M12 3c5 0 8 3 8 7 0 5.5-4 10-8 11-4-1-8-5.5-8-11 0-4 3-7 8-7z" fill="#A16207" opacity="0.3" stroke="#A16207" strokeWidth="1.8"/>
+        <path d="M12 3v5" stroke="#92400E" strokeWidth="1.8" strokeLinecap="round"/>
+        <path d="M9 7h6" stroke="#92400E" strokeWidth="1.8" strokeLinecap="round"/>
+      </svg>
+    )
+    case 'peanut': return (
+      <svg width={w} height={h} viewBox="0 0 24 24" fill="none">
+        <path d="M9.5 3.5a3.5 3.5 0 1 0 0 7h5a3.5 3.5 0 1 0 0-7h-5z" fill="#D97706" opacity="0.3" stroke="#D97706" strokeWidth="1.8"/>
+        <path d="M9.5 13.5a3.5 3.5 0 1 0 0 7h5a3.5 3.5 0 1 0 0-7h-5z" fill="#D97706" opacity="0.3" stroke="#D97706" strokeWidth="1.8"/>
+        <path d="M10 10.5c.5.5 1 .8 2 .8s1.5-.3 2-.8M10 13.5c.5-.5 1-.8 2-.8s1.5.3 2 .8" stroke="#D97706" strokeWidth="1.4" strokeLinecap="round"/>
+      </svg>
+    )
+    case 'soy': return (
+      <svg width={w} height={h} viewBox="0 0 24 24" fill="none">
+        <ellipse cx="9" cy="8" rx="4" ry="6" fill="#84CC16" opacity="0.25" stroke="#84CC16" strokeWidth="1.6" transform="rotate(-15 9 8)"/>
+        <ellipse cx="15" cy="8" rx="4" ry="6" fill="#84CC16" opacity="0.25" stroke="#84CC16" strokeWidth="1.6" transform="rotate(15 15 8)"/>
+        <ellipse cx="12" cy="16" rx="3.5" ry="5" fill="#84CC16" opacity="0.35" stroke="#84CC16" strokeWidth="1.6"/>
+      </svg>
+    )
+    case 'egg': return (
+      <svg width={w} height={h} viewBox="0 0 24 24" fill="none">
+        <path d="M12 3C8.5 3 6 8 6 12.5a6 6 0 0 0 12 0C18 8 15.5 3 12 3z" fill="#FEF3C7" opacity="0.3" stroke="#FCD34D" strokeWidth="1.8"/>
+        <ellipse cx="12" cy="14" rx="2.5" ry="2" fill="#FDE68A" opacity="0.6" stroke="#F59E0B" strokeWidth="1.2"/>
+      </svg>
+    )
+    case 'fish': return (
+      <svg width={w} height={h} viewBox="0 0 24 24" fill="none">
+        <path d="M20 12c-3-3.5-7-5-12-3.5L4 12l4 3.5c5 2 9 1 12-3.5z" fill="#60A5FA" opacity="0.3" stroke="#60A5FA" strokeWidth="1.8" strokeLinejoin="round"/>
+        <circle cx="17.5" cy="9.5" r="1" fill="#60A5FA"/>
+        <path d="M4 12L2 8M4 12l-2 4" stroke="#60A5FA" strokeWidth="1.8" strokeLinecap="round"/>
+      </svg>
+    )
+    case 'shell': return (
+      <svg width={w} height={h} viewBox="0 0 24 24" fill="none">
+        {/* Shrimp */}
+        <path d="M16 4c2 1.5 3 4 2 7l-2 3-3 2-2 4" stroke="#F9A8D4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M16 4c-2 0-4 1-5 3l-2 5 2 4" stroke="#F9A8D4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+        <circle cx="16.5" cy="4.5" r="1.5" fill="#F9A8D4" opacity="0.7"/>
+        <path d="M11 20l2-2M9 19l3-2" stroke="#F9A8D4" strokeWidth="1.4" strokeLinecap="round"/>
+      </svg>
+    )
+    // PRIORITIES
+    case 'price': return (
+      <svg width={w} height={h} viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="9" fill="#34D399" opacity="0.15" stroke="#34D399" strokeWidth="1.8"/>
+        <path d="M12 6v1.5M12 16.5V18" stroke="#34D399" strokeWidth="1.8" strokeLinecap="round"/>
+        <path d="M9.5 9.5c0-1.1.9-2 2.5-2s2.5.9 2.5 2c0 2.5-5 2.5-5 5 0 1.1.9 2 2.5 2s2.5-.9 2.5-2" stroke="#34D399" strokeWidth="1.8" strokeLinecap="round"/>
+      </svg>
+    )
+    case 'balance': return (
+      <svg width={w} height={h} viewBox="0 0 24 24" fill="none">
+        <path d="M12 3v18" stroke="#A78BFA" strokeWidth="1.8" strokeLinecap="round"/>
+        <path d="M4 7h16" stroke="#A78BFA" strokeWidth="1.8" strokeLinecap="round"/>
+        <path d="M5 7L2 13h6l-3-6zM19 7l3 6h-6l3-6z" fill="#A78BFA" opacity="0.25" stroke="#A78BFA" strokeWidth="1.6" strokeLinejoin="round"/>
+        <path d="M4 21h16" stroke="#A78BFA" strokeWidth="1.8" strokeLinecap="round"/>
+      </svg>
+    )
+    case 'quality': return (
+      <svg width={w} height={h} viewBox="0 0 24 24" fill="none">
+        <path d="M12 2l2.5 7.5H22l-6.5 4.7 2.5 7.5L12 17l-6 4.7 2.5-7.5L2 9.5h7.5L12 2z" fill="#FCD34D" opacity="0.3" stroke="#FCD34D" strokeWidth="1.8" strokeLinejoin="round"/>
+      </svg>
+    )
     default: return null
   }
 }
 
+
 export default function ProfileScreen() {
   const navigate = useNavigate()
-  const { t, lang, setLang } = useI18n()
+  const allergenInputRef = useRef(null)
   const [profile, setProfile] = useState(() => {
     const s = loadProfile()
-    return { halal: s.halal || s.halalOnly || false, dietGoals: s.dietGoals || [], allergens: s.allergens || [], customAllergens: s.customAllergens || [], priority: s.priority || 'balanced', lang: s.lang || lang }
+    return {
+      halal: s.halal || false,
+      dietGoals: s.dietGoals || [],
+      allergens: s.allergens || [],
+      customAllergens: s.customAllergens || [],
+      priority: s.priority || 'balanced',
+    }
   })
   const [allergenInput, setAllergenInput] = useState('')
 
-  useEffect(() => { saveProfile({ ...profile, presetId: 'custom', lang }) }, [profile, lang])
+  useEffect(() => { saveProfile({ ...profile, presetId: 'custom' }) }, [profile])
 
-  const toggleDiet = id => setProfile(p => ({ ...p, dietGoals: p.dietGoals.includes(id) ? p.dietGoals.filter(x => x !== id) : [...p.dietGoals, id] }))
-  const toggleAllergen = id => setProfile(p => ({ ...p, allergens: p.allergens.includes(id) ? p.allergens.filter(x => x !== id) : [...p.allergens, id] }))
-  const addCustom = () => { const val = allergenInput.trim(); if (!val || profile.customAllergens.includes(val)) return; setProfile(p => ({ ...p, customAllergens: [...p.customAllergens, val] })); setAllergenInput('') }
+  const toggleDiet = id => setProfile(p => ({
+    ...p, dietGoals: p.dietGoals.includes(id) ? p.dietGoals.filter(x => x !== id) : [...p.dietGoals, id]
+  }))
+  const toggleAllergen = id => setProfile(p => ({
+    ...p, allergens: p.allergens.includes(id) ? p.allergens.filter(x => x !== id) : [...p.allergens, id]
+  }))
+  const addCustom = () => {
+    const val = allergenInput.trim()
+    if (!val || profile.customAllergens.includes(val)) return
+    setProfile(p => ({ ...p, customAllergens: [...p.customAllergens, val] }))
+    setAllergenInput('')
+  }
   const removeCustom = val => setProfile(p => ({ ...p, customAllergens: p.customAllergens.filter(x => x !== val) }))
+
   const activeCount = profile.dietGoals.length + profile.allergens.length + profile.customAllergens.length + (profile.halal ? 1 : 0)
 
   return (
     <div className="screen" style={{ paddingTop: 0, overflowX: 'hidden' }}>
-      <div style={{ background: 'linear-gradient(180deg, rgba(124,58,237,0.2) 0%, transparent 100%)', borderBottom: '1px solid var(--border)', position: 'relative', overflow: 'hidden', paddingTop: 44 }}>
-        <img src="/logo.png" alt="Körset" style={{ width: '60%', margin: '0 auto', display: 'block', objectFit: 'contain', filter: 'drop-shadow(0 0 48px rgba(139,92,246,0.95))' }} />
-        <p style={{ color: 'rgba(180,175,210,0.85)', fontSize: 13, lineHeight: 1.6, textAlign: 'center', padding: '4px 24px 18px', margin: 0 }}>{t('profile.hero')}</p>
+
+      {/* ── HERO ── */}
+      <div style={{
+        background: 'linear-gradient(180deg, rgba(124,58,237,0.2) 0%, transparent 100%)',
+        borderBottom: '1px solid var(--border)',
+        position: 'relative', overflow: 'hidden',
+        paddingTop: 44,
+      }}>
+        <img src="/logo.png" alt="Körset"
+          style={{ width: '60%', margin: '0 auto', display: 'block', objectFit: 'contain',
+            filter: 'drop-shadow(0 0 48px rgba(139,92,246,0.95))' }}
+        />
+        <p style={{ color: 'rgba(180,175,210,0.85)', fontSize: 13, lineHeight: 1.6,
+          textAlign: 'center', padding: '4px 24px 18px', margin: 0 }}>
+          Настройте профиль — AI мгновенно покажет подходит ли товар вам
+        </p>
       </div>
 
-      <div style={{ padding: '18px 20px 4px' }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '1.2px', marginBottom: 10 }}>{t('profile.prefsLanguage')}</div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {languageOptions.map(option => {
-            const active = lang === option.id
-            return <button key={option.id} onClick={() => setLang(option.id)} style={{ flex: 1, padding: '12px 14px', borderRadius: 14, border: `1.5px solid ${active ? 'var(--primary-mid)' : 'var(--border)'}`, background: active ? 'rgba(124,58,237,0.1)' : 'var(--card)', color: active ? 'var(--primary-bright)' : 'rgba(210,210,240,0.95)', fontWeight: 700, cursor: 'pointer' }}>{t(option.labelKey)}</button>
-          })}
-        </div>
-      </div>
-
+      {/* ── HALAL ── */}
       <div style={{ padding: '20px 20px 8px' }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '1.2px', marginBottom: 10 }}>{t('profile.religious')}</div>
-        <div onClick={() => setProfile(p => ({ ...p, halal: !p.halal }))} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: profile.halal ? 'rgba(124,58,237,0.1)' : 'var(--card)', border: `1.5px solid ${profile.halal ? 'var(--primary-mid)' : 'var(--border)'}`, borderRadius: 'var(--radius)', padding: '14px 16px', cursor: 'pointer' }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '1.2px', marginBottom: 10 }}>
+          Религиозные требования
+        </div>
+        <div onClick={() => setProfile(p => ({ ...p, halal: !p.halal }))} style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: profile.halal ? 'rgba(124,58,237,0.1)' : 'var(--card)',
+          border: `1.5px solid ${profile.halal ? 'var(--primary-mid)' : 'var(--border)'}`,
+          borderRadius: 'var(--radius)', padding: '14px 16px', cursor: 'pointer', transition: 'all 0.2s',
+        }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 12, background: profile.halal ? 'var(--primary-dim)' : 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={profile.halal ? 'var(--primary-bright)' : 'var(--text-dim)'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.2A8.5 8.5 0 1 1 11.8 3a7 7 0 1 0 9.2 9.2Z"/><path d="M16.5 7.5l.6 1.6 1.7.1-1.3 1 .5 1.7-1.5-.9-1.5.9.5-1.7-1.3-1 1.7-.1.6-1.6Z"/></svg></div>
+            <div style={{ width: 38, height: 38, borderRadius: 12,
+              background: profile.halal ? 'var(--primary-dim)' : 'var(--surface)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={profile.halal ? 'var(--primary-bright)' : 'var(--text-dim)'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12.2A8.5 8.5 0 1 1 11.8 3a7 7 0 1 0 9.2 9.2Z"/>
+                <path d="M16.5 7.5l.6 1.6 1.7.1-1.3 1 .5 1.7-1.5-.9-1.5.9.5-1.7-1.3-1 1.7-.1.6-1.6Z"/>
+              </svg>
+            </div>
             <div>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{t('profile.halalOnly')}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 1 }}>{t('profile.halalOnlySub')}</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Только Халал</div>
+              <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 1 }}>Исключит товары без маркировки</div>
             </div>
           </div>
-          <div style={{ width: 46, height: 26, borderRadius: 13, background: profile.halal ? 'var(--primary)' : 'var(--border-bright)', position: 'relative', flexShrink: 0, boxShadow: profile.halal ? '0 0 10px var(--primary-glow)' : 'none' }}><span style={{ position: 'absolute', width: 20, height: 20, borderRadius: '50%', background: 'white', top: 3, left: profile.halal ? 23 : 3, transition: 'left 0.2s cubic-bezier(0.34,1.3,0.64,1)', boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }} /></div>
-        </div>
-      </div>
-
-      <div style={{ padding: '16px 20px 8px' }}>
-        <div style={{ marginBottom: 12 }}><div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '1.2px' }}>{t('profile.dietPrefs')}</div><div style={{ fontSize: 12, color: 'var(--text-dim)', opacity: 0.6, marginTop: 3 }}>{t('profile.dietHint')}</div></div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          {DIET_GOAL_IDS.map(d => {
-            const active = profile.dietGoals.includes(d.id)
-            const label = localizeDietLabel(d.id, t)
-            return <button key={d.id} onClick={() => toggleDiet(d.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 14, border: `1.5px solid ${active ? 'var(--primary-mid)' : 'var(--border)'}`, background: active ? 'rgba(124,58,237,0.1)' : 'var(--card)', cursor: 'pointer' }}><div style={{ width: 32, height: 32, borderRadius: 10, flexShrink: 0, background: active ? 'var(--primary-dim)' : 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={d.icon} size={16} /></div><span style={{ fontSize: 13, fontWeight: 500, color: active ? 'var(--primary-bright)' : 'rgba(210,210,240,0.95)', lineHeight: 1.3 }}>{label}</span>{active && <div style={{ marginLeft: 'auto', width: 16, height: 16, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'white' }}>✓</div>}</button>
-          })}
-        </div>
-      </div>
-
-      <div style={{ padding: '16px 20px 8px' }}>
-        <div style={{ marginBottom: 12 }}><div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '1.2px' }}>{t('profile.allergens')}</div><div style={{ fontSize: 12, color: 'var(--text-dim)', opacity: 0.6, marginTop: 3 }}>{t('profile.allergensHint')}</div></div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
-          {ALLERGEN_IDS.map(a => {
-            const active = profile.allergens.includes(a.id)
-            return <button key={a.id} onClick={() => toggleAllergen(a.id)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, padding: '12px 6px', borderRadius: 14, position: 'relative', border: `1.5px solid ${active ? 'rgba(239,68,68,0.55)' : 'var(--border)'}`, background: active ? 'rgba(239,68,68,0.08)' : 'var(--card)', cursor: 'pointer' }}><div style={{ width: 34, height: 34, borderRadius: 10, background: active ? 'rgba(239,68,68,0.16)' : 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={a.icon} size={18} /></div><span style={{ fontSize: 11, textAlign: 'center', lineHeight: 1.2, color: active ? '#FCA5A5' : 'rgba(210,210,240,0.85)' }}>{localizeAllergenLabel(a.id, lang)}</span>{active && <div style={{ position: 'absolute', top: 8, right: 8, width: 16, height: 16, borderRadius: '50%', background: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: 'white', fontWeight: 800 }}>✕</div>}</button>
-          })}
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 8 }}>{t('profile.customHint')}</div>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-          <input value={allergenInput} onChange={(e) => setAllergenInput(e.target.value)} placeholder={t('profile.customPlaceholder')} style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '12px 14px', color: '#fff', fontSize: 14, outline: 'none' }} />
-          <button onClick={addCustom} style={{ padding: '0 16px', borderRadius: 14, border: '1px solid rgba(124,58,237,0.35)', background: 'rgba(124,58,237,0.1)', color: '#E9D5FF', fontWeight: 700, cursor: 'pointer' }}>+ {t('common.add')}</button>
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {profile.customAllergens.map((val) => <div key={val} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 999, background: 'rgba(239,68,68,0.08)', color: '#FCA5A5', border: '1px solid rgba(239,68,68,0.2)', fontSize: 12 }}>⚠️ {val}<span onClick={() => removeCustom(val)} style={{ cursor: 'pointer', opacity: 0.7, fontSize: 15 }}>×</span></div>)}
-        </div>
-      </div>
-
-      <div style={{ padding: '16px 20px 8px' }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '1.2px', marginBottom: 10 }}>{t('profile.priority')}</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8 }}>
-          {PRIORITY_IDS.map(item => {
-            const active = profile.priority === item.id
-            const localized = localizePriority(item.id, lang)
-            return <button key={item.id} onClick={() => setProfile(p => ({ ...p, priority: item.id }))} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderRadius: 16, border: `1.5px solid ${active ? 'var(--primary-mid)' : 'var(--border)'}`, background: active ? 'rgba(124,58,237,0.1)' : 'var(--card)', cursor: 'pointer' }}><div style={{ width: 36, height: 36, borderRadius: 12, background: active ? 'var(--primary-dim)' : 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={item.icon} size={18} /></div><div style={{ textAlign: 'left' }}><div style={{ color: 'var(--text)', fontWeight: 700, fontSize: 14 }}>{localized.label}</div><div style={{ color: 'var(--text-dim)', fontSize: 12 }}>{localized.desc}</div></div></button>
-          })}
-        </div>
-      </div>
-
-      <div style={{ padding: '18px 20px 24px' }}>
-        <div style={{ padding: '14px 16px', borderRadius: 18, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}><span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-sub)' }}>{t('profile.activeFilters', { count: activeCount })}</span><button onClick={() => setProfile({ halal: false, dietGoals: [], allergens: [], customAllergens: [], priority: 'balanced', lang })} style={{ border: 'none', background: 'transparent', color: 'var(--primary-bright)', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>{t('common.reset')}</button></div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {profile.halal && <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'var(--primary-dim)', color: 'var(--primary-bright)', border: '1px solid rgba(139,92,246,0.2)' }}>{t('onboarding.halalLabel')}</span>}
-            {profile.dietGoals.map(id => <span key={id} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(255,255,255,0.06)', color: 'rgba(220,220,240,0.85)' }}>{localizeDietLabel(id, t)}</span>)}
-            {profile.allergens.map(id => <span key={id} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(239,68,68,0.08)', color: '#FCA5A5' }}>{localizeAllergenLabel(id, lang)}</span>)}
-            {profile.customAllergens.map(id => <span key={id} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(239,68,68,0.08)', color: '#FCA5A5' }}>{id}</span>)}
+          <div style={{ width: 46, height: 26, borderRadius: 13,
+            background: profile.halal ? 'var(--primary)' : 'var(--border-bright)',
+            position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+            boxShadow: profile.halal ? '0 0 10px var(--primary-glow)' : 'none' }}>
+            <span style={{ position: 'absolute', width: 20, height: 20, borderRadius: '50%',
+              background: 'white', top: 3, left: profile.halal ? 23 : 3,
+              transition: 'left 0.2s cubic-bezier(0.34,1.3,0.64,1)',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }} />
           </div>
         </div>
+      </div>
 
-        <button onClick={() => navigate('/catalog')} style={{ width: '100%', padding: '16px', borderRadius: 16, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #7C3AED, #6D28D9)', color: '#fff', fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 700, marginBottom: 10 }}><span>{t('profile.showProducts')}</span></button>
-        <button onClick={() => navigate('/qr-print')} style={{ width: '100%', padding: '14px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', color: 'var(--text)', fontWeight: 600, cursor: 'pointer' }}>{t('profile.scanQr')}</button>
+      {/* ── DIET ── */}
+      <div style={{ padding: '16px 20px 8px' }}>
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '1.2px' }}>Диета и предпочтения</div>
+          <div style={{ fontSize: 12, color: 'var(--text-dim)', opacity: 0.6, marginTop: 3 }}>Нажмите всё что подходит</div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {DIET_GOALS.map(d => {
+            const active = profile.dietGoals.includes(d.id)
+            return (
+              <button key={d.id} onClick={() => toggleDiet(d.id)} style={{
+                display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
+                borderRadius: 14, border: `1.5px solid ${active ? 'var(--primary-mid)' : 'var(--border)'}`,
+                background: active ? 'rgba(124,58,237,0.1)' : 'var(--card)',
+                cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all 0.15s',
+              }}>
+                <div style={{ width: 32, height: 32, borderRadius: 10, flexShrink: 0,
+                  background: active ? 'var(--primary-dim)' : 'rgba(255,255,255,0.06)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: active ? 'var(--primary-bright)' : 'rgba(200,200,240,1)' }}>
+                  <Icon name={d.icon} size={16} />
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 500, color: active ? 'var(--primary-bright)' : 'rgba(210,210,240,0.95)', lineHeight: 1.3 }}>
+                  {d.label}
+                </span>
+                {active && <div style={{ marginLeft: 'auto', width: 16, height: 16, borderRadius: '50%',
+                  background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0, fontSize: 10, color: 'white' }}>✓</div>}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* ── ALLERGENS ── */}
+      <div style={{ padding: '16px 20px 8px' }}>
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '1.2px' }}>Мои аллергены</div>
+          <div style={{ fontSize: 12, color: 'var(--text-dim)', opacity: 0.6, marginTop: 3 }}>Товары с этим составом будут помечены ⚠️</div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
+          {ALLERGENS.map(a => {
+            const active = profile.allergens.includes(a.id)
+            return (
+              <button key={a.id} onClick={() => toggleAllergen(a.id)} style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7,
+                padding: '12px 6px', borderRadius: 14, position: 'relative',
+                border: `1.5px solid ${active ? 'rgba(239,68,68,0.55)' : 'var(--border)'}`,
+                background: active ? 'rgba(239,68,68,0.08)' : 'var(--card)',
+                cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all 0.15s',
+              }}>
+                <div style={{ width: 34, height: 34, borderRadius: 10,
+                  background: active ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.07)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: active ? '#F87171' : 'rgba(200,200,240,1)' }}>
+                  <Icon name={a.icon} size={17} />
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 500, textAlign: 'center', lineHeight: 1.2,
+                  color: active ? '#F87171' : 'rgba(200,200,235,0.95)' }}>{a.label}</span>
+                {active && <div style={{ position: 'absolute', top: -5, right: -5,
+                  width: 16, height: 16, borderRadius: '50%', background: '#EF4444',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 9, color: 'white', fontWeight: 800 }}>✕</div>}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Custom input */}
+        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: '12px 14px' }}>
+          <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 8 }}>Не нашли? Введите вручную</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input ref={allergenInputRef} value={allergenInput}
+              onChange={e => setAllergenInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addCustom()}
+              placeholder="Клубника, кунжут..."
+              style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border-bright)',
+                borderRadius: 10, padding: '9px 12px', color: 'var(--text)',
+                fontSize: 13, fontFamily: 'var(--font-body)', outline: 'none' }}
+            />
+            <button onClick={addCustom} style={{ padding: '9px 14px', borderRadius: 10,
+              background: 'var(--primary-dim)', border: '1px solid rgba(139,92,246,0.3)',
+              color: 'var(--primary-bright)', fontSize: 13, fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'var(--font-body)', whiteSpace: 'nowrap' }}>
+              + Добавить
+            </button>
+          </div>
+          {profile.customAllergens.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+              {profile.customAllergens.map(val => (
+                <span key={val} style={{ display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: '5px 12px', borderRadius: 20, fontSize: 12,
+                  background: 'rgba(239,68,68,0.1)', color: '#F87171',
+                  border: '1px solid rgba(239,68,68,0.25)' }}>
+                  ⚠️ {val}
+                  <span onClick={() => removeCustom(val)} style={{ cursor: 'pointer', opacity: 0.7, fontSize: 15 }}>×</span>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── PRIORITY ── */}
+      <div style={{ padding: '16px 20px 8px' }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '1.2px', marginBottom: 12 }}>
+          Приоритет выбора
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+          {PRIORITIES.map(p => {
+            const active = profile.priority === p.id
+            return (
+              <button key={p.id} onClick={() => setProfile(prev => ({ ...prev, priority: p.id }))} style={{
+                padding: '16px 8px', borderRadius: 16, cursor: 'pointer',
+                border: `1.5px solid ${active ? 'var(--primary-mid)' : 'var(--border)'}`,
+                background: active ? 'rgba(124,58,237,0.1)' : 'var(--card)',
+                fontFamily: 'var(--font-body)', transition: 'all 0.15s',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+                boxShadow: active ? '0 0 18px rgba(124,58,237,0.12)' : 'none',
+              }}>
+                <div style={{ width: 44, height: 44, borderRadius: 14,
+                  background: active ? 'var(--primary-dim)' : 'rgba(255,255,255,0.07)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: active ? 'var(--primary-bright)' : 'rgba(210,210,245,1)',
+                  transition: 'all 0.15s' }}>
+                  <Icon name={p.icon} size={22} />
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 700,
+                    color: active ? 'var(--primary-bright)' : 'rgba(230,230,255,1)' }}>{p.label}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 3, lineHeight: 1.3 }}>{p.desc}</div>
+                </div>
+                {active && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--primary)' }} />}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* ── SUMMARY ── */}
+      {activeCount > 0 && (
+        <div style={{ padding: '12px 20px 0' }}>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '10px 14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-sub)' }}>Активных фильтров: {activeCount}</span>
+              <button onClick={() => setProfile({ halal: false, dietGoals: [], allergens: [], customAllergens: [], priority: 'balanced' })}
+                style={{ background: 'none', border: 'none', color: 'var(--text-dim)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                Сбросить
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {profile.halal && <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'var(--primary-dim)', color: 'var(--primary-bright)', border: '1px solid rgba(139,92,246,0.2)' }}>Халал</span>}
+              {profile.dietGoals.map(id => {
+                const d = DIET_GOALS.find(x => x.id === id)
+                return <span key={id} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'var(--primary-dim)', color: 'var(--primary-bright)', border: '1px solid rgba(139,92,246,0.2)' }}>{d?.label}</span>
+              })}
+              {profile.allergens.map(id => {
+                const a = ALLERGENS.find(x => x.id === id)
+                return <span key={id} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(239,68,68,0.1)', color: '#F87171', border: '1px solid rgba(239,68,68,0.2)' }}>{a?.label}</span>
+              })}
+              {profile.customAllergens.map(val => (
+                <span key={val} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(239,68,68,0.1)', color: '#F87171', border: '1px solid rgba(239,68,68,0.2)' }}>{val}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── CTA ── */}
+      <div style={{ padding: '20px 20px 40px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <button className="btn btn-primary btn-full" onClick={() => navigate('/catalog')}
+          style={{ justifyContent: 'center', gap: 12 }}>
+          <span>Показать подходящие товары</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </button>
+        <button className="btn btn-secondary btn-full" onClick={() => navigate('/scan')}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="3" y="3" width="5" height="5" rx="1"/><rect x="16" y="3" width="5" height="5" rx="1"/>
+            <rect x="3" y="16" width="5" height="5" rx="1"/>
+            <path d="M16 16h5v5M16 16v5M3 12h4M10 3v4M12 10h7M10 16v5"/>
+          </svg>
+          Сканировать QR-код
+        </button>
+        <div style={{ textAlign: 'center', paddingTop: 4 }}>
+          <span onClick={() => navigate('/qr-print')} style={{ fontSize: 11, color: 'var(--text-dim)', opacity: 0.2, cursor: 'pointer' }}>v1.0</span>
+        </div>
       </div>
     </div>
   )
