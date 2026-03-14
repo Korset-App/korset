@@ -209,7 +209,7 @@ export default function AIScreen() {
       </div>
 
       {/* ── Сообщения ── */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* Пустое состояние */}
         {messages.length === 0 && (
@@ -289,7 +289,7 @@ export default function AIScreen() {
 
       {/* ── Поле ввода ── */}
       <div style={{
-        padding: '10px 16px 32px',
+        padding: '10px 16px calc(104px + env(safe-area-inset-bottom, 0px))',
         background: '#0C0C18',
         borderTop: '1px solid rgba(255,255,255,0.06)',
         flexShrink: 0,
