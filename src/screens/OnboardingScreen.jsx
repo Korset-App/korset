@@ -108,6 +108,7 @@ function ChoiceIcon({ name, active = false, size = 18 }) {
   }
 }
 
+
 function StepIndicator({ step }) {
   return (
     <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginBottom: 14 }}>
@@ -118,7 +119,7 @@ function StepIndicator({ step }) {
   )
 }
 
-function CircleRows({ rows, renderItem, gap = 8, rowGap = 10 }) {
+function CircleRows({ rows, renderItem, gap = 6, rowGap = 10 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: rowGap, width: '100%' }}>
       {rows.map((row, index) => (
@@ -130,7 +131,7 @@ function CircleRows({ rows, renderItem, gap = 8, rowGap = 10 }) {
   )
 }
 
-function CircleCard({ children, selected = false, onClick, size = 110, label, delay = 0 }) {
+function CircleCard({ children, selected = false, onClick, size = 106, label, delay = 0 }) {
   const Comp = onClick ? 'button' : 'div'
   return (
     <Comp
@@ -162,23 +163,42 @@ function CircleCard({ children, selected = false, onClick, size = 110, label, de
       }}
     >
       {children}
-      {label && <div style={{ fontSize: 14, fontWeight: 800, lineHeight: 1.18, maxWidth: size - 22 }}>{label}</div>}
+      {label && <div style={{ fontSize: 13, fontWeight: 800, lineHeight: 1.16, maxWidth: size - 18 }}>{label}</div>}
     </Comp>
   )
 }
 
-function FeatureCard({ name, label, size = 112, delay = 0 }) {
+function FeaturePill({ name, label, delay = 0, wide = false }) {
   return (
-    <CircleCard size={size} label={label} delay={delay}>
+    <div
+      style={{
+        minHeight: 48,
+        padding: wide ? '0 18px' : '0 16px',
+        borderRadius: 999,
+        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03))',
+        boxShadow: '0 10px 24px rgba(0,0,0,0.18)',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        color: '#F5F3FF',
+        fontSize: 14,
+        fontWeight: 800,
+        animation: 'onboardPop 420ms cubic-bezier(0.22, 1, 0.36, 1) both',
+        animationDelay: `${delay}ms`,
+      }}
+    >
       <FeatureIcon name={name} />
-    </CircleCard>
+      <span>{label}</span>
+    </div>
   )
 }
 
-function ChoicePill({ item, label, active, onClick, size = 112, delay = 0 }) {
+function ChoicePill({ item, label, active, onClick, size = 106, delay = 0 }) {
   return (
     <CircleCard size={size} selected={active} onClick={onClick} label={label} delay={delay}>
-      <ChoiceIcon name={item.icon} active={active} size={22} />
+      <ChoiceIcon name={item.icon} active={active} size={30} />
     </CircleCard>
   )
 }
@@ -195,7 +215,49 @@ function FeatureByKey(key, labels, rowIndex = 0, itemIndex = 0) {
     history: 'История сканов',
   }
   const label = labels[key] || fallback[key] || key
-  return <FeatureCard key={key} name={key} label={label} size={112} delay={(rowIndex * 3 + itemIndex) * 55} />
+  return <FeaturePill key={key} name={key} label={label} wide={label.length > 14} delay={(rowIndex * 3 + itemIndex) * 60} />
+}
+
+function HeroPreview() {
+  return (
+    <div style={{
+      position: 'relative',
+      borderRadius: 28,
+      padding: 18,
+      minHeight: 206,
+      background: 'linear-gradient(180deg, rgba(124,58,237,0.16), rgba(255,255,255,0.04))',
+      border: '1px solid rgba(255,255,255,0.08)',
+      boxShadow: '0 18px 44px rgba(0,0,0,0.24)',
+      overflow: 'hidden',
+      animation: 'onboardPop 460ms cubic-bezier(0.22, 1, 0.36, 1) both',
+    }}>
+      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 80% 20%, rgba(124,58,237,0.24), transparent 35%)' }} />
+      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: 'rgba(216,180,254,0.92)', letterSpacing: '.08em', textTransform: 'uppercase' }}>Körset</div>
+          <div style={{ padding: '7px 10px', borderRadius: 999, background: 'rgba(16,185,129,0.16)', border: '1px solid rgba(16,185,129,0.22)', color: '#6EE7B7', fontSize: 12, fontWeight: 800 }}>Саған сай</div>
+        </div>
+        <div style={{ display: 'flex', gap: 14, alignItems: 'stretch' }}>
+          <div style={{ flex: 1.1, minHeight: 128, borderRadius: 22, border: '1px solid rgba(255,255,255,0.08)', background: 'linear-gradient(180deg, rgba(7,7,16,0.9), rgba(19,19,34,0.95))', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', inset: 14, borderRadius: 16, border: '2px dashed rgba(167,139,250,0.55)' }} />
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ScanIcon active /></div>
+          </div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ borderRadius: 18, padding: '12px 12px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', marginBottom: 8 }}>Knorr Soup</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                <span style={{ padding: '5px 8px', borderRadius: 999, background: 'rgba(16,185,129,0.14)', color: '#6EE7B7', fontSize: 11, fontWeight: 800 }}>Халал</span>
+                <span style={{ padding: '5px 8px', borderRadius: 999, background: 'rgba(248,113,113,0.14)', color: '#FCA5A5', fontSize: 11, fontWeight: 800 }}>Аллерген</span>
+              </div>
+            </div>
+            <div style={{ borderRadius: 18, padding: '12px 12px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', color: '#C4B5FD', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <AIIcon active /> AI түсіндіреді
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default function OnboardingScreen({ onDone }) {
@@ -281,21 +343,21 @@ export default function OnboardingScreen({ onDone }) {
     <div style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'linear-gradient(180deg, #080811 0%, #05050D 100%)', overflowY: 'auto' }}>
       <style>{`@keyframes onboardPop { 0% { opacity: 0; transform: scale(.74) translateY(12px); } 60% { opacity: 1; transform: scale(1.05) translateY(-3px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }`} </style>
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(circle at 50% -10%, rgba(124,58,237,0.18) 0%, transparent 45%)' }} />
-      <div style={{ position: 'relative', padding: '22px 16px 30px', minHeight: '100%' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, minHeight: 72 }}>
-          <img src="/korset_logo.svg" alt="Körset" style={{ height: 74, width: 'auto', filter: 'drop-shadow(0 10px 24px rgba(124,58,237,0.20))' }} />
+      <div style={{ position: 'relative', padding: '12px 16px 26px', minHeight: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, minHeight: 56 }}>
+          <img src="/korset_logo.svg" alt="Körset" style={{ height: 58, width: 'auto', filter: 'drop-shadow(0 8px 20px rgba(124,58,237,0.18))' }} />
           {step === 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ color: 'rgba(185,185,214,0.78)', fontSize: 14, fontWeight: 800, whiteSpace: 'nowrap', lineHeight: 1 }}>{t.onboarding.langTitle}</span>
-            <button onClick={() => setLang('ru')} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 42, padding: 0, borderRadius: 999, border: `1px solid ${lang === 'ru' ? 'rgba(124,58,237,0.55)' : 'rgba(255,255,255,0.08)'}`, background: lang === 'ru' ? 'rgba(124,58,237,0.14)' : 'rgba(255,255,255,0.03)', color: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 800 }}>RU</button>
-            <button onClick={() => setLang('kz')} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 42, padding: 0, borderRadius: 999, border: `1px solid ${lang === 'kz' ? 'rgba(124,58,237,0.55)' : 'rgba(255,255,255,0.08)'}`, background: lang === 'kz' ? 'rgba(124,58,237,0.14)' : 'rgba(255,255,255,0.03)', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>KZ</button>
+            <span style={{ color: 'rgba(185,185,214,0.78)', fontSize: 13, fontWeight: 800, whiteSpace: 'nowrap', lineHeight: 1 }}>{t.onboarding.langTitle}</span>
+            <button onClick={() => setLang('ru')} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 46, height: 34, padding: 0, borderRadius: 999, border: `1px solid ${lang === 'ru' ? 'rgba(124,58,237,0.55)' : 'rgba(255,255,255,0.08)'}`, background: lang === 'ru' ? 'rgba(124,58,237,0.14)' : 'rgba(255,255,255,0.03)', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 800, textAlign:'center' }}>RU</button>
+            <button onClick={() => setLang('kz')} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 46, height: 34, padding: 0, borderRadius: 999, border: `1px solid ${lang === 'kz' ? 'rgba(124,58,237,0.55)' : 'rgba(255,255,255,0.08)'}`, background: lang === 'kz' ? 'rgba(124,58,237,0.14)' : 'rgba(255,255,255,0.03)', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 800, textAlign:'center' }}>KZ</button>
           </div>
-        ) : <div style={{ width: 196, height: 52 }} />}
+        ) : <div style={{ width: 170, height: 34 }} />}
         </div>
 
         <StepIndicator step={step} />
 
-        <div style={{ textAlign: 'center', marginBottom: 14, opacity: leaving ? 0 : 1, transform: leaving ? 'translateY(10px)' : 'translateY(0)', transition: 'all 0.28s ease' }}>
+        <div style={{ textAlign: 'center', marginBottom: step === 0 ? 16 : 14, opacity: leaving ? 0 : 1, transform: leaving ? 'translateY(10px)' : 'translateY(0)', transition: 'all 0.28s ease' }}>
           <h1 style={{ margin: 0, fontFamily: 'var(--font-display)', fontSize: step === 0 ? 30 : 28, lineHeight: 1.08, color: '#fff', letterSpacing: '-0.7px' }}>{stepTitle}</h1>
           {step > 0 && <p style={{ margin: '10px auto 0', maxWidth: 330, fontSize: 14, lineHeight: 1.55, color: 'rgba(185,185,214,0.84)' }}>{stepSub}</p>}
         </div>
@@ -303,18 +365,21 @@ export default function OnboardingScreen({ onDone }) {
         <div style={{ opacity: leaving ? 0 : 1, transform: leaving ? 'translateY(16px)' : 'translateY(0)', transition: 'all 0.32s cubic-bezier(0.22, 1, 0.36, 1)' }}>
           {step === 0 && (
             <>
-              <div style={{ marginBottom: 12, fontSize: 12, fontWeight: 800, color: 'rgba(175,175,205,0.74)', textTransform: 'uppercase', letterSpacing: '1.05px', textAlign: 'center' }}>{t.onboarding.featuresTitle}</div>
-              <CircleRows rows={FEATURE_ROWS} renderItem={(key, rowIndex, itemIndex) => FeatureByKey(key, featureLabels, rowIndex, itemIndex)} />
+              <HeroPreview />
+              <div style={{ marginTop: 18, marginBottom: 10, fontSize: 12, fontWeight: 800, color: 'rgba(175,175,205,0.74)', textTransform: 'uppercase', letterSpacing: '1.05px', textAlign: 'center' }}>{t.onboarding.featuresTitle}</div>
+              <div style={{ display:'flex', flexWrap:'wrap', justifyContent:'center', gap: 10 }}>
+                {FEATURE_ROWS.flat().map((key, idx) => FeatureByKey(key, featureLabels, Math.floor(idx/3), idx%3))}
+              </div>
             </>
           )}
 
           {step === 1 && (
-            <CircleRows rows={PREFERENCE_ROWS} renderItem={(id, rowIndex, itemIndex) => { const item = PREFERENCES.find((x) => x.id === id); const active = selectedPrefs.has(item.id); return <ChoicePill key={item.id} item={item} label={lang === 'kz' ? item.kz : item.ru} active={active} onClick={() => toggle(setSelectedPrefs, item.id)} size={112} delay={(rowIndex * 3 + itemIndex) * 55} /> }} />
+            <CircleRows rows={PREFERENCE_ROWS} gap={6} rowGap={10} renderItem={(id, rowIndex, itemIndex) => { const item = PREFERENCES.find((x) => x.id === id); const active = selectedPrefs.has(item.id); return <ChoicePill key={item.id} item={item} label={lang === 'kz' ? item.kz : item.ru} active={active} onClick={() => toggle(setSelectedPrefs, item.id)} size={106} delay={(rowIndex * 3 + itemIndex) * 55} /> }} />
           )}
 
           {step === 2 && (
             <>
-              <CircleRows rows={ALLERGEN_ROWS} renderItem={(id, rowIndex, itemIndex) => { const item = ALLERGENS.find((x) => x.id === id); const active = selectedAllergens.has(item.id); return <ChoicePill key={item.id} item={item} label={lang === 'kz' ? item.kz : item.ru} active={active} onClick={() => toggle(setSelectedAllergens, item.id)} size={108} delay={(rowIndex * 3 + itemIndex) * 55} /> }} />
+              <CircleRows rows={ALLERGEN_ROWS} gap={6} rowGap={10} renderItem={(id, rowIndex, itemIndex) => { const item = ALLERGENS.find((x) => x.id === id); const active = selectedAllergens.has(item.id); return <ChoicePill key={item.id} item={item} label={lang === 'kz' ? item.kz : item.ru} active={active} onClick={() => toggle(setSelectedAllergens, item.id)} size={106} delay={(rowIndex * 3 + itemIndex) * 55} /> }} />
               <div style={{ borderRadius: 18, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', padding: 14, marginTop: 16 }}>
                 <div style={{ fontSize: 12, color: 'rgba(185,185,214,0.74)', marginBottom: 8 }}>{lang === 'kz' ? 'Өз шектеуіңізді қосыңыз' : 'Добавьте своё исключение'}</div>
                 <div style={{ display: 'flex', gap: 8 }}>
