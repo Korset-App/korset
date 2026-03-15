@@ -70,9 +70,9 @@ function ChoiceIcon({ name, active = false, size = 18 }) {
   const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none' }
   switch (name) {
     case 'nosugar':
-      return <svg {...common}><rect x="5" y="8" width="14" height="11" rx="2" stroke={color} strokeWidth="1.7" fill={fill}/><line x1="4" y1="4" x2="20" y2="20" stroke="#F87171" strokeWidth="2" strokeLinecap="round"/></svg>
+      return <svg {...common}><path d="M7 8h10v8a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V8Z" stroke={color} strokeWidth="1.8" fill={fill}/><path d="M9 8V6a3 3 0 0 1 6 0v2" stroke={color} strokeWidth="1.8" strokeLinecap="round"/><line x1="5" y1="5" x2="19" y2="19" stroke="#F87171" strokeWidth="2.2" strokeLinecap="round"/></svg>
     case 'nodairy':
-      return <svg {...common}><path d="M9 3h6l2 5v12H7V8l2-5Z" stroke={color} strokeWidth="1.7" fill={fill}/><line x1="4" y1="4" x2="20" y2="20" stroke="#F87171" strokeWidth="2" strokeLinecap="round"/></svg>
+      return <svg {...common}><path d="M9 3h6l2 5v12H7V8l2-5Z" stroke={color} strokeWidth="1.8" fill={fill}/><line x1="4" y1="4" x2="20" y2="20" stroke="#F87171" strokeWidth="2.2" strokeLinecap="round"/></svg>
     case 'nogluten':
       return <svg {...common}><path d="M12 2v20" stroke={color} strokeWidth="1.7" strokeLinecap="round"/><path d="M9 8c1 .7 1.8 1 3 .5M15 8c-1 .7-1.8 1-3 .5M9 12c1 .7 1.8 1 3 .5M15 12c-1 .7-1.8 1-3 .5" stroke={color} strokeWidth="1.6" strokeLinecap="round"/><line x1="4" y1="4" x2="20" y2="20" stroke="#F87171" strokeWidth="2" strokeLinecap="round"/></svg>
     case 'vegan':
@@ -119,11 +119,20 @@ function StepIndicator({ step }) {
   )
 }
 
-function CircleRows({ rows, renderItem, gap = 4, rowGap = 8 }) {
+function CircleRows({ rows, renderItem, gap = 8, rowGap = 10 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: rowGap, width: '100%' }}>
       {rows.map((row, index) => (
-        <div key={index} style={{ display: 'flex', justifyContent: row.length === 3 ? 'space-between' : 'center', alignItems: 'center', gap, width: '100%' }}>
+        <div
+          key={index}
+          style={{
+            display: 'flex',
+            justifyContent: row.length === 3 ? 'space-between' : 'center',
+            alignItems: 'center',
+            gap: row.length === 2 ? 18 : gap,
+            width: '100%',
+          }}
+        >
           {row.map((item, itemIndex) => renderItem(item, index, itemIndex))}
         </div>
       ))}
@@ -151,14 +160,15 @@ function CircleCard({ children, selected = false, onClick, size = 118, label, de
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 10,
+        gap: 8,
         color: '#F5F3FF',
         transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease',
         transform: selected ? 'scale(1.03)' : 'scale(1)',
         animation: `onboardPop 420ms cubic-bezier(0.22, 1, 0.36, 1) both`,
         animationDelay: `${delay}ms`,
         cursor: onClick ? 'pointer' : 'default',
-        padding: 12,
+                padding: 10,
+        aspectRatio: '1 / 1',
         textAlign: 'center',
       }}
     >
@@ -181,7 +191,7 @@ function FeaturePill({ name, label, delay = 0, wide = false }) {
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 10,
+        gap: 8,
         color: '#F5F3FF',
         fontSize: 14,
         fontWeight: 800,
@@ -195,10 +205,10 @@ function FeaturePill({ name, label, delay = 0, wide = false }) {
   )
 }
 
-function ChoicePill({ item, label, active, onClick, size = 118, delay = 0 }) {
+function ChoicePill({ item, label, active, onClick, size = 112, delay = 0 }) {
   return (
     <CircleCard size={size} selected={active} onClick={onClick} label={label} delay={delay}>
-      <ChoiceIcon name={item.icon} active={active} size={38} />
+      <ChoiceIcon name={item.icon} active={active} size={44} />
     </CircleCard>
   )
 }
@@ -343,9 +353,9 @@ export default function OnboardingScreen({ onDone }) {
     <div style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'linear-gradient(180deg, #080811 0%, #05050D 100%)', overflowY: 'auto' }}>
       <style>{`@keyframes onboardPop { 0% { opacity: 0; transform: scale(.74) translateY(12px); } 60% { opacity: 1; transform: scale(1.05) translateY(-3px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }`} </style>
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(circle at 50% -10%, rgba(124,58,237,0.18) 0%, transparent 45%)' }} />
-      <div style={{ position: 'relative', padding: '12px 16px 26px', minHeight: '100%' }}>
+      <div style={{ position: 'relative', padding: '8px 16px 22px', minHeight: '100%' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, minHeight: 56 }}>
-          <img src="/korset_logo.svg" alt="Körset" style={{ height: 58, width: 'auto', filter: 'drop-shadow(0 8px 20px rgba(124,58,237,0.18))' }} />
+          <img src="/korset_logo.svg" alt="Körset" style={{ height: 64, width: 'auto', filter: 'drop-shadow(0 8px 20px rgba(124,58,237,0.18))' }} />
           {step === 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ color: 'rgba(185,185,214,0.78)', fontSize: 13, fontWeight: 800, whiteSpace: 'nowrap', lineHeight: 1 }}>{t.onboarding.langTitle}</span>
@@ -374,12 +384,12 @@ export default function OnboardingScreen({ onDone }) {
           )}
 
           {step === 1 && (
-            <CircleRows rows={PREFERENCE_ROWS} gap={4} rowGap={8} renderItem={(id, rowIndex, itemIndex) => { const item = PREFERENCES.find((x) => x.id === id); const active = selectedPrefs.has(item.id); return <ChoicePill key={item.id} item={item} label={lang === 'kz' ? item.kz : item.ru} active={active} onClick={() => toggle(setSelectedPrefs, item.id)} size={118} delay={(rowIndex * 3 + itemIndex) * 55} /> }} />
+            <CircleRows rows={PREFERENCE_ROWS} gap={4} rowGap={8} renderItem={(id, rowIndex, itemIndex) => { const item = PREFERENCES.find((x) => x.id === id); const active = selectedPrefs.has(item.id); return <ChoicePill key={item.id} item={item} label={lang === 'kz' ? item.kz : item.ru} active={active} onClick={() => toggle(setSelectedPrefs, item.id)} size={112} delay={(rowIndex * 3 + itemIndex) * 55} /> }} />
           )}
 
           {step === 2 && (
             <>
-              <CircleRows rows={ALLERGEN_ROWS} gap={4} rowGap={8} renderItem={(id, rowIndex, itemIndex) => { const item = ALLERGENS.find((x) => x.id === id); const active = selectedAllergens.has(item.id); return <ChoicePill key={item.id} item={item} label={lang === 'kz' ? item.kz : item.ru} active={active} onClick={() => toggle(setSelectedAllergens, item.id)} size={118} delay={(rowIndex * 3 + itemIndex) * 55} /> }} />
+              <CircleRows rows={ALLERGEN_ROWS} gap={4} rowGap={8} renderItem={(id, rowIndex, itemIndex) => { const item = ALLERGENS.find((x) => x.id === id); const active = selectedAllergens.has(item.id); return <ChoicePill key={item.id} item={item} label={lang === 'kz' ? item.kz : item.ru} active={active} onClick={() => toggle(setSelectedAllergens, item.id)} size={112} delay={(rowIndex * 3 + itemIndex) * 55} /> }} />
               <div style={{ borderRadius: 18, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', padding: 14, marginTop: 16 }}>
                 <div style={{ fontSize: 12, color: 'rgba(185,185,214,0.74)', marginBottom: 8 }}>{lang === 'kz' ? 'Өз шектеуіңізді қосыңыз' : 'Добавьте своё исключение'}</div>
                 <div style={{ display: 'flex', gap: 8 }}>
