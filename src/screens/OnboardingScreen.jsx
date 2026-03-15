@@ -119,11 +119,11 @@ function StepIndicator({ step }) {
   )
 }
 
-function CircleRows({ rows, renderItem, gap = 6, rowGap = 10 }) {
+function CircleRows({ rows, renderItem, gap = 4, rowGap = 8 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: rowGap, width: '100%' }}>
       {rows.map((row, index) => (
-        <div key={index} style={{ display: 'flex', justifyContent: row.length === 3 ? 'space-between' : 'center', gap, width: '100%' }}>
+        <div key={index} style={{ display: 'flex', justifyContent: row.length === 3 ? 'space-between' : 'center', alignItems: 'center', gap, width: '100%' }}>
           {row.map((item, itemIndex) => renderItem(item, index, itemIndex))}
         </div>
       ))}
@@ -131,7 +131,7 @@ function CircleRows({ rows, renderItem, gap = 6, rowGap = 10 }) {
   )
 }
 
-function CircleCard({ children, selected = false, onClick, size = 106, label, delay = 0 }) {
+function CircleCard({ children, selected = false, onClick, size = 118, label, delay = 0 }) {
   const Comp = onClick ? 'button' : 'div'
   return (
     <Comp
@@ -151,19 +151,19 @@ function CircleCard({ children, selected = false, onClick, size = 106, label, de
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 8,
+        gap: 10,
         color: '#F5F3FF',
         transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease',
         transform: selected ? 'scale(1.03)' : 'scale(1)',
         animation: `onboardPop 420ms cubic-bezier(0.22, 1, 0.36, 1) both`,
         animationDelay: `${delay}ms`,
         cursor: onClick ? 'pointer' : 'default',
-        padding: 10,
+        padding: 12,
         textAlign: 'center',
       }}
     >
       {children}
-      {label && <div style={{ fontSize: 13, fontWeight: 800, lineHeight: 1.16, maxWidth: size - 18 }}>{label}</div>}
+      {label && <div style={{ fontSize: 13, fontWeight: 800, lineHeight: 1.14, maxWidth: size - 20 }}>{label}</div>}
     </Comp>
   )
 }
@@ -181,7 +181,7 @@ function FeaturePill({ name, label, delay = 0, wide = false }) {
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 8,
+        gap: 10,
         color: '#F5F3FF',
         fontSize: 14,
         fontWeight: 800,
@@ -195,10 +195,10 @@ function FeaturePill({ name, label, delay = 0, wide = false }) {
   )
 }
 
-function ChoicePill({ item, label, active, onClick, size = 106, delay = 0 }) {
+function ChoicePill({ item, label, active, onClick, size = 118, delay = 0 }) {
   return (
     <CircleCard size={size} selected={active} onClick={onClick} label={label} delay={delay}>
-      <ChoiceIcon name={item.icon} active={active} size={30} />
+      <ChoiceIcon name={item.icon} active={active} size={38} />
     </CircleCard>
   )
 }
@@ -374,12 +374,12 @@ export default function OnboardingScreen({ onDone }) {
           )}
 
           {step === 1 && (
-            <CircleRows rows={PREFERENCE_ROWS} gap={6} rowGap={10} renderItem={(id, rowIndex, itemIndex) => { const item = PREFERENCES.find((x) => x.id === id); const active = selectedPrefs.has(item.id); return <ChoicePill key={item.id} item={item} label={lang === 'kz' ? item.kz : item.ru} active={active} onClick={() => toggle(setSelectedPrefs, item.id)} size={106} delay={(rowIndex * 3 + itemIndex) * 55} /> }} />
+            <CircleRows rows={PREFERENCE_ROWS} gap={4} rowGap={8} renderItem={(id, rowIndex, itemIndex) => { const item = PREFERENCES.find((x) => x.id === id); const active = selectedPrefs.has(item.id); return <ChoicePill key={item.id} item={item} label={lang === 'kz' ? item.kz : item.ru} active={active} onClick={() => toggle(setSelectedPrefs, item.id)} size={118} delay={(rowIndex * 3 + itemIndex) * 55} /> }} />
           )}
 
           {step === 2 && (
             <>
-              <CircleRows rows={ALLERGEN_ROWS} gap={6} rowGap={10} renderItem={(id, rowIndex, itemIndex) => { const item = ALLERGENS.find((x) => x.id === id); const active = selectedAllergens.has(item.id); return <ChoicePill key={item.id} item={item} label={lang === 'kz' ? item.kz : item.ru} active={active} onClick={() => toggle(setSelectedAllergens, item.id)} size={106} delay={(rowIndex * 3 + itemIndex) * 55} /> }} />
+              <CircleRows rows={ALLERGEN_ROWS} gap={4} rowGap={8} renderItem={(id, rowIndex, itemIndex) => { const item = ALLERGENS.find((x) => x.id === id); const active = selectedAllergens.has(item.id); return <ChoicePill key={item.id} item={item} label={lang === 'kz' ? item.kz : item.ru} active={active} onClick={() => toggle(setSelectedAllergens, item.id)} size={118} delay={(rowIndex * 3 + itemIndex) * 55} /> }} />
               <div style={{ borderRadius: 18, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', padding: 14, marginTop: 16 }}>
                 <div style={{ fontSize: 12, color: 'rgba(185,185,214,0.74)', marginBottom: 8 }}>{lang === 'kz' ? 'Өз шектеуіңізді қосыңыз' : 'Добавьте своё исключение'}</div>
                 <div style={{ display: 'flex', gap: 8 }}>
@@ -387,7 +387,7 @@ export default function OnboardingScreen({ onDone }) {
                   <button onClick={addCustom} style={{ padding: '0 16px', borderRadius: 12, border: '1px solid rgba(124,58,237,0.32)', background: 'rgba(124,58,237,0.16)', color: '#E9D5FF', fontWeight: 700, cursor: 'pointer' }}>{t.onboarding.add}</button>
                 </div>
                 {customItems.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 12 }}>
                     {customItems.map((item) => (
                       <span key={item} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 999, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.18)', color: '#FCA5A5', fontSize: 12 }}>
                         {item}
