@@ -69,4 +69,7 @@ function localApiPlugin() {
 export default defineConfig({
   plugins: [react(), localApiPlugin()],
   base: '/',
+  build: {
+    chunkSizeWarningLimit: 1000,
+  }
 })
