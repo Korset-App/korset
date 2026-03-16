@@ -494,6 +494,9 @@ export default function ProfileScreen() {
           </svg>
           {t.profile.scanBarcode}
         </button>
+        <button onClick={() => { localStorage.removeItem('korset_onboarding_done'); window.location.reload() }} style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-dim)', padding: '12px', borderRadius: 14, fontSize: 13, fontWeight: 600, cursor: 'pointer', marginTop: 8 }}>
+          {lang === 'kz' ? 'Нұсқаулықты қайта көру (Оқыту)' : 'Повторить обучение (Онбординг)'}
+        </button>
         <div style={{ textAlign: 'center', paddingTop: 4 }}>
           <span onClick={() => navigate('/qr-print')} style={{ fontSize: 11, color: 'var(--text-dim)', opacity: 0.2, cursor: 'pointer' }}>v1.0</span>
         </div>

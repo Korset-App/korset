@@ -146,6 +146,14 @@ export default function AIScreen() {
       {/* ── Сообщения ── */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
+        {/* Дисклеймер ИИ */}
+        <div style={{ background: 'rgba(250,204,21,0.08)', border: '1px solid rgba(250,204,21,0.2)', padding: '10px 14px', borderRadius: 12, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+          <span style={{ fontSize: 16 }}>⚠️</span>
+          <div style={{ fontSize: 11, color: '#FDE68A', lineHeight: 1.4, opacity: 0.9 }}>
+            {lang === 'kz' ? 'Ескерту: Жасанды интеллект қателесуі мүмкін. Құрамды әрқашан қаптамадан тексеріңіз. Бұл тек ұсыныс ретінде берілген ақпарат.' : 'Внимание: ИИ может ошибаться. Всегда проверяйте состав на упаковке (особенно при строгих правилах Халяль и сильных аллергиях).'}
+          </div>
+        </div>
+
         {/* Пустое состояние */}
         {messages.length === 0 && (
           <div style={{ padding: '24px 0 8px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>

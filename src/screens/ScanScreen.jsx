@@ -60,7 +60,7 @@ function BarcodeScanner({ onDetected, onClose, t }) {
         if (!mounted) return
         await scanner.start(
           cameraConfig,
-          { fps: 10, qrbox: { width: 300, height: 130 }, aspectRatio: 1.777 },
+          { fps: 10, qrbox: { width: 330, height: 230 }, aspectRatio: 1.777 },
           async (ean) => {
             if (busyRef.current || !mounted) return
             busyRef.current = true
@@ -127,7 +127,7 @@ function BarcodeScanner({ onDetected, onClose, t }) {
         {status === 'ready' && !searching && (
           <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }} />
-            <div style={{ position: 'relative', zIndex: 2, width: 300, height: 130, boxShadow: '0 0 0 9999px rgba(0,0,0,0.6)' }}>
+            <div style={{ position: 'relative', zIndex: 2, width: 330, height: 230, boxShadow: '0 0 0 9999px rgba(0,0,0,0.6)' }}>
               {[
                 { top: -2, left: -2,  borderTop: '2px solid rgba(255,255,255,0.9)', borderLeft:  '2px solid rgba(255,255,255,0.9)', borderRadius: '6px 0 0 0' },
                 { top: -2, right: -2, borderTop: '2px solid rgba(255,255,255,0.9)', borderRight: '2px solid rgba(255,255,255,0.9)', borderRadius: '0 6px 0 0' },
