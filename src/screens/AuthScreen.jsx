@@ -9,7 +9,6 @@ export default function AuthScreen() {
   const { lang, t } = useI18n()
   
   const [mode, setMode] = useState('login') // 'login' | 'register'
-  const [method, setMethod] = useState('email') // 'email' | 'phone'
   
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -48,22 +47,7 @@ export default function AuthScreen() {
     }
   }
 
-  const handlePhoneAuth = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
-    setMessage(null)
-    // В Supabase вход по телефону обычно требует отправки OTP кода
-    try {
-      const { error } = await supabase.auth.signInWithOtp({ phone })
-      if (error) throw error
-      setMessage(lang === 'kz' ? 'SMS код жіберілді. Телефонды тексеріңіз (Бұл мүмкіндікті Supabase ішінде қосу қажет).' : 'SMS с кодом отправлено (Функция требует настройки провайдера SMS в Supabase).')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
+
 
   const handleGoogleAuth = async () => {
     try {
@@ -94,41 +78,23 @@ export default function AuthScreen() {
       </div>
 
       <div style={{ padding: '0 24px' }}>
-        {/* Method Switcher */}
-        <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 4, marginBottom: 24 }}>
-          <button onClick={() => setMethod('email')} style={{ flex: 1, padding: '10px 0', borderRadius: 8, fontSize: 13, fontWeight: 600, border: 'none', background: method === 'email' ? 'rgba(124,58,237,0.3)' : 'transparent', color: method === 'email' ? '#fff' : 'var(--text-dim)', cursor: 'pointer', transition: 'all 0.2s' }}>
-            Email
-          </button>
-          <button onClick={() => setMethod('phone')} style={{ flex: 1, padding: '10px 0', borderRadius: 8, fontSize: 13, fontWeight: 600, border: 'none', background: method === 'phone' ? 'rgba(124,58,237,0.3)' : 'transparent', color: method === 'phone' ? '#fff' : 'var(--text-dim)', cursor: 'pointer', transition: 'all 0.2s' }}>
-            {lang === 'kz' ? 'Телефон' : 'Телефон'}
-          </button>
-        </div>
+
 
         {error && <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#F87171', padding: '12px 16px', borderRadius: 12, fontSize: 13, marginBottom: 20 }}>{error}</div>}
         {message && <div style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.3)', color: '#34D399', padding: '12px 16px', borderRadius: 12, fontSize: 13, marginBottom: 20 }}>{message}</div>}
 
         {/* Forms */}
-        {method === 'email' ? (
-          <form onSubmit={handleEmailAuth} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {mode === 'register' && (
-              <input type="text" placeholder={lang === 'kz' ? 'Атыңыз' : 'Ваше Имя (можно псевдоним)'} value={name} onChange={e => setName(e.target.value)} required style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '14px 16px', borderRadius: 14, color: '#fff', fontSize: 15, width: '100%', outline: 'none' }} />
-            )}
-            <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '14px 16px', borderRadius: 14, color: '#fff', fontSize: 15, width: '100%', outline: 'none' }} />
-            <input type="password" placeholder={lang === 'kz' ? 'Құпиясөз' : 'Пароль'} value={password} onChange={e => setPassword(e.target.value)} required style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '14px 16px', borderRadius: 14, color: '#fff', fontSize: 15, width: '100%', outline: 'none' }} />
-            
-            <button type="submit" disabled={loading} style={{ background: '#7C3AED', color: '#fff', border: 'none', padding: '16px', borderRadius: 14, fontSize: 16, fontWeight: 700, cursor: loading ? 'default' : 'pointer', marginTop: 10, opacity: loading ? 0.7 : 1 }}>
-              {loading ? '...' : (mode === 'login' ? (lang === 'kz' ? 'Кіру' : 'Войти') : (lang === 'kz' ? 'Тіркелу' : 'Зарегистрироваться'))}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={handlePhoneAuth} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <input type="tel" placeholder={lang === 'kz' ? '+7 (777) 000-00-00' : '+7 (777) 000-00-00'} value={phone} onChange={e => setPhone(e.target.value)} required style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '14px 16px', borderRadius: 14, color: '#fff', fontSize: 15, width: '100%', outline: 'none' }} />
-            
-            <button type="submit" disabled={loading} style={{ background: '#7C3AED', color: '#fff', border: 'none', padding: '16px', borderRadius: 14, fontSize: 16, fontWeight: 700, cursor: loading ? 'default' : 'pointer', marginTop: 10, opacity: loading ? 0.7 : 1 }}>
-              {loading ? '...' : (lang === 'kz' ? 'SMS код жіберу' : 'Получить SMS код')}
-            </button>
-          </form>
-        )}
+        <form onSubmit={handleEmailAuth} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {mode === 'register' && (
+            <input type="text" placeholder={lang === 'kz' ? 'Атыңыз' : 'Ваше Имя (оставьте пустым или псевдоним)'} value={name} onChange={e => setName(e.target.value)} required style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '14px 16px', borderRadius: 14, color: '#fff', fontSize: 15, width: '100%', outline: 'none' }} />
+          )}
+          <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '14px 16px', borderRadius: 14, color: '#fff', fontSize: 15, width: '100%', outline: 'none' }} />
+          <input type="password" placeholder={lang === 'kz' ? 'Құпиясөз' : 'Пароль'} value={password} onChange={e => setPassword(e.target.value)} required style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '14px 16px', borderRadius: 14, color: '#fff', fontSize: 15, width: '100%', outline: 'none' }} />
+          
+          <button type="submit" disabled={loading} style={{ background: '#7C3AED', color: '#fff', border: 'none', padding: '16px', borderRadius: 14, fontSize: 16, fontWeight: 700, cursor: loading ? 'default' : 'pointer', marginTop: 10, opacity: loading ? 0.7 : 1 }}>
+            {loading ? '...' : (mode === 'login' ? (lang === 'kz' ? 'Кіру' : 'Войти') : (lang === 'kz' ? 'Тіркелу' : 'Зарегистрироваться'))}
+          </button>
+        </form>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0' }}>
           <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.1)' }} />
