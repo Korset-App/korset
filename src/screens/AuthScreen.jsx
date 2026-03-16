@@ -13,7 +13,6 @@ export default function AuthScreen() {
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
-  const [name, setName] = useState('') // только для регистрации
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [message, setMessage] = useState(null)
@@ -28,10 +27,7 @@ export default function AuthScreen() {
       if (mode === 'register') {
         const { data, error } = await supabase.auth.signUp({
           email,
-          password,
-          options: {
-            data: { full_name: name || 'Пользователь Körset' }
-          }
+          password
         })
         if (error) throw error
         setMessage(lang === 'kz' ? 'Тіркелу сәтті өтті! Электрондық поштаңызды растаңыз.' : 'Регистрация успешна! Проверьте вашу почту для подтверждения.')
@@ -85,9 +81,6 @@ export default function AuthScreen() {
 
         {/* Forms */}
         <form onSubmit={handleEmailAuth} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {mode === 'register' && (
-            <input type="text" placeholder={lang === 'kz' ? 'Атыңыз' : 'Ваше Имя (оставьте пустым или псевдоним)'} value={name} onChange={e => setName(e.target.value)} required style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '14px 16px', borderRadius: 14, color: '#fff', fontSize: 15, width: '100%', outline: 'none' }} />
-          )}
           <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '14px 16px', borderRadius: 14, color: '#fff', fontSize: 15, width: '100%', outline: 'none' }} />
           <input type="password" placeholder={lang === 'kz' ? 'Құпиясөз' : 'Пароль'} value={password} onChange={e => setPassword(e.target.value)} required style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '14px 16px', borderRadius: 14, color: '#fff', fontSize: 15, width: '100%', outline: 'none' }} />
           

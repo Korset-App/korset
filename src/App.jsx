@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
+import { Routes, Route, useLocation, Navigate, useNavigate } from 'react-router-dom'
 import HomeScreen from './screens/HomeScreen.jsx'
 import ProfileScreen from './screens/ProfileScreen.jsx'
 import CatalogScreen from './screens/CatalogScreen.jsx'
@@ -13,46 +13,64 @@ import QRPrintScreen from './screens/QRPrintScreen.jsx'
 import BottomNav from './components/BottomNav.jsx'
 import OnboardingScreen from './screens/OnboardingScreen.jsx'
 import AuthScreen from './screens/AuthScreen.jsx'
+import SetupProfileScreen from './screens/SetupProfileScreen.jsx'
 import HistoryScreen from './screens/HistoryScreen.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
-import { AuthProvider } from './contexts/AuthContext.jsx'
+import { AuthProvider, useAuth } from './contexts/AuthContext.jsx'
 import { ProfileProvider } from './contexts/ProfileContext.jsx'
 import { StoreProvider } from './contexts/StoreContext.jsx'
 
-export default function App() {
+function AppInner() {
   const { pathname } = useLocation()
-  const hideNav = pathname === '/qr-print' || pathname === '/auth'
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  
+  const hideNav = pathname === '/qr-print' || pathname === '/auth' || pathname === '/setup-profile'
   const [showOnboarding, setShowOnboarding] = useState(
     !localStorage.getItem('korset_onboarding_done') || !localStorage.getItem('korset_lang')
   )
 
-  // Читаем ?store=CODE из QR-кода при первом визите. Теперь обрабатывается внутри StoreProvider.
+  useEffect(() => {
+    // Если пользователь авторизован, но ещё не завершил настройку профиля
+    if (user && user.user_metadata?.profile_setup_done !== true) {
+      if (pathname !== '/setup-profile') {
+        navigate('/setup-profile', { replace: true })
+      }
+    }
+  }, [user, pathname, navigate])
 
+  return (
+    <div className="app-frame">
+      {showOnboarding && <OnboardingScreen onDone={() => setShowOnboarding(false)} />}
+      <Routes>
+        <Route path="/"                         element={<HomeScreen />} />
+        <Route path="/profile"                  element={<ProfileScreen />} />
+        <Route path="/catalog"                  element={<CatalogScreen />} />
+        <Route path="/scan"                     element={<ScanScreen />} />
+        <Route path="/ai"                       element={<AIAssistantScreen />} />
+        <Route path="/history"                  element={<HistoryScreen />} />
+        <Route path="/auth"                     element={<AuthScreen />} />
+        <Route path="/setup-profile"            element={<SetupProfileScreen />} />
+        <Route path="/qr-print"                 element={<QRPrintScreen />} />
+        <Route path="/product/ext/:ean"         element={<ExternalProductScreen />} />
+        <Route path="/product/ext/:ean/ai"      element={<AIScreen />} />
+        <Route path="/product/:id"              element={<ProductScreen />} />
+        <Route path="/product/:id/alternatives" element={<AlternativesScreen />} />
+        <Route path="/product/:id/ai"           element={<AIScreen />} />
+        <Route path="*"                         element={<Navigate to="/" replace />} />
+      </Routes>
+      {!hideNav && <BottomNav />}
+    </div>
+  )
+}
+
+export default function App() {
   return (
     <AuthProvider>
       <StoreProvider>
         <ProfileProvider>
           <ErrorBoundary>
-            <div className="app-frame">
-              {showOnboarding && <OnboardingScreen onDone={() => setShowOnboarding(false)} />}
-              <Routes>
-                <Route path="/"                         element={<HomeScreen />} />
-                <Route path="/profile"                  element={<ProfileScreen />} />
-                <Route path="/catalog"                  element={<CatalogScreen />} />
-                <Route path="/scan"                     element={<ScanScreen />} />
-                <Route path="/ai"                       element={<AIAssistantScreen />} />
-                <Route path="/history"                  element={<HistoryScreen />} />
-                <Route path="/auth"                     element={<AuthScreen />} />
-                <Route path="/qr-print"                 element={<QRPrintScreen />} />
-                <Route path="/product/ext/:ean"         element={<ExternalProductScreen />} />
-                <Route path="/product/ext/:ean/ai"      element={<AIScreen />} />
-                <Route path="/product/:id"              element={<ProductScreen />} />
-                <Route path="/product/:id/alternatives" element={<AlternativesScreen />} />
-                <Route path="/product/:id/ai"           element={<AIScreen />} />
-                <Route path="*"                         element={<Navigate to="/" replace />} />
-              </Routes>
-              {!hideNav && <BottomNav />}
-            </div>
+            <AppInner />
           </ErrorBoundary>
         </ProfileProvider>
       </StoreProvider>
