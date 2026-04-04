@@ -1,28 +1,58 @@
 import products from '../data/products.json'
 import { STORE_PRODUCT_MAP } from '../data/stores.js'
+import { getStoreInventory } from '../data/storeInventories.js'
 
-function withStoreMeta(product, storeSlug = null) {
+function cloneProduct(product) {
+  return product ? JSON.parse(JSON.stringify(product)) : null
+}
+
+function applyStoreOverlay(product, overlay = null, storeSlug = null) {
   if (!product) return null
+  const next = cloneProduct(product)
+  const priceKzt = overlay?.priceKzt ?? null
+  const shelf = overlay?.shelf ?? null
+  const stockStatus = overlay?.stockStatus ?? null
+  const isStoreProduct = Boolean(storeSlug && overlay)
+
   return {
-    ...product,
+    ...next,
+    priceKzt,
+    shelf,
+    stockStatus,
+    isStoreProduct,
     storeSlug: storeSlug || null,
-    canonicalId: product.ean || product.id,
+    canonicalId: next.ean || next.id,
   }
 }
 
+function getBaseProducts() {
+  return products.filter((product) => product?.ean)
+}
+
 export function getGlobalDemoProducts() {
-  return products.map((product) => withStoreMeta(product))
+  return getBaseProducts().map((product) => applyStoreOverlay(product))
 }
 
 export function getStoreCatalogProducts(storeSlug) {
   if (!storeSlug || !STORE_PRODUCT_MAP[storeSlug]) return []
   const allowedEans = new Set(STORE_PRODUCT_MAP[storeSlug])
-  return products
+  const inventoryMap = new Map(getStoreInventory(storeSlug).map((item) => [item.ean, item]))
+
+  return getBaseProducts()
     .filter((product) => allowedEans.has(product.ean))
-    .map((product) => withStoreMeta(product, storeSlug))
+    .map((product) => applyStoreOverlay(product, inventoryMap.get(product.ean) || null, storeSlug))
+}
+
+export function getGlobalProductByEan(ean) {
+  return getGlobalDemoProducts().find((product) => product.ean === ean) || null
+}
+
+export function getStoreCatalogProductByEan(storeSlug, ean) {
+  return getStoreCatalogProducts(storeSlug).find((product) => product.ean === ean) || null
 }
 
 export function getAnyKnownProductByRef(ref, storeSlug = null) {
+  if (!ref) return null
   return (
     getStoreCatalogProducts(storeSlug).find((product) => product.ean === ref || product.id === ref) ||
     getGlobalDemoProducts().find((product) => product.ean === ref || product.id === ref) ||
@@ -32,10 +62,6 @@ export function getAnyKnownProductByRef(ref, storeSlug = null) {
 
 export function getProductByEan(ean, storeSlug = null) {
   return getAnyKnownProductByRef(ean, storeSlug)
-}
-
-export function getStoreCatalogProductByEan(storeSlug, ean) {
-  return getStoreCatalogProducts(storeSlug).find((product) => product.ean === ean) || null
 }
 
 export function isStoreCatalogProduct(storeSlug, ean) {

@@ -130,6 +130,7 @@ export default function ProductScreen() {
   const manufacturerText = getManufacturerText(product)
   const nutrition = product.nutritionPer100
   const isFood = product.category === 'grocery'
+  const hasStoreOverlay = Boolean(product.isStoreProduct || activeStoreSlug) && (product.priceKzt != null || product.shelf || product.stockStatus)
 
   const keySpecs = useMemo(() => {
     const entries = Object.entries(product.specs || {})
@@ -253,6 +254,12 @@ export default function ProductScreen() {
               <span style={{ fontSize: 13, color: 'var(--text-dim)' }}>{t.product.noManufacturer}</span>
             )}
           </div>
+
+          {!hasStoreOverlay ? (
+            <div style={{ marginBottom: 12, padding: '10px 12px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--text-sub)', fontSize: 12, lineHeight: 1.5 }}>
+              Глобальная карточка товара. Цена и полка магазина пока недоступны.
+            </div>
+          ) : null}
 
           {/* Characteristics */}
           <div style={{ marginTop: 8 }}>

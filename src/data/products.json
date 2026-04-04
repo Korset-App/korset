@@ -5,8 +5,7 @@
     "name": "Snickers 50г",
     "category": "grocery",
     "group": "chocolate_bar",
-    "priceKzt": 420,
-    "halal": "no",
+    "halal": false,
     "allergens": [
       "milk",
       "nuts",
@@ -18,7 +17,6 @@
       "contains_sugar"
     ],
     "qualityScore": 82,
-    "shelf": "Полка C1",
     "tags": [
       "шоколад",
       "батончик",
@@ -46,7 +44,8 @@
     },
     "images": [
       "/products/1.png"
-    ]
+    ],
+    "halalStatus": "no"
   },
   {
     "id": "p002",
@@ -54,8 +53,7 @@
     "name": "Snickers 80г",
     "category": "grocery",
     "group": "chocolate_bar",
-    "priceKzt": 620,
-    "halal": "no",
+    "halal": false,
     "allergens": [
       "milk",
       "nuts",
@@ -67,7 +65,6 @@
       "contains_sugar"
     ],
     "qualityScore": 82,
-    "shelf": "Полка C1",
     "tags": [
       "шоколад",
       "батончик",
@@ -95,7 +92,8 @@
     },
     "images": [
       "/products/1_2.png"
-    ]
+    ],
+    "halalStatus": "no"
   },
   {
     "id": "p003",
@@ -103,8 +101,7 @@
     "name": "Батончик Step 50г",
     "category": "grocery",
     "group": "chocolate_bar",
-    "priceKzt": 180,
-    "halal": "yes",
+    "halal": true,
     "allergens": [
       "milk",
       "gluten"
@@ -115,7 +112,6 @@
       "contains_sugar"
     ],
     "qualityScore": 62,
-    "shelf": "Полка C1",
     "tags": [
       "шоколад",
       "батончик",
@@ -143,7 +139,8 @@
     },
     "images": [
       "/products/2.png"
-    ]
+    ],
+    "halalStatus": "yes"
   },
   {
     "id": "p004",
@@ -151,14 +148,12 @@
     "name": "Coca-Cola 0.5л",
     "category": "grocery",
     "group": "cola",
-    "priceKzt": 320,
-    "halal": "yes",
+    "halal": true,
     "allergens": [],
     "dietTags": [
       "contains_sugar"
     ],
     "qualityScore": 70,
-    "shelf": "Полка B1",
     "tags": [
       "кола",
       "напиток",
@@ -187,7 +182,8 @@
     },
     "images": [
       "/products/3.png"
-    ]
+    ],
+    "halalStatus": "yes"
   },
   {
     "id": "p005",
@@ -195,14 +191,12 @@
     "name": "Coca-Cola 1л",
     "category": "grocery",
     "group": "cola",
-    "priceKzt": 520,
-    "halal": "yes",
+    "halal": true,
     "allergens": [],
     "dietTags": [
       "contains_sugar"
     ],
     "qualityScore": 70,
-    "shelf": "Полка B1",
     "tags": [
       "кола",
       "напиток",
@@ -231,7 +225,8 @@
     },
     "images": [
       "/products/3_1.png"
-    ]
+    ],
+    "halalStatus": "yes"
   },
   {
     "id": "p006",
@@ -239,14 +234,12 @@
     "name": "Coca-Cola Zero 0.5л",
     "category": "grocery",
     "group": "cola_zero",
-    "priceKzt": 340,
-    "halal": "yes",
+    "halal": true,
     "allergens": [],
     "dietTags": [
       "sugar_free"
     ],
     "qualityScore": 68,
-    "shelf": "Полка B1",
     "tags": [
       "кола",
       "без сахара",
@@ -276,7 +269,8 @@
     },
     "images": [
       "/products/3_2.png"
-    ]
+    ],
+    "halalStatus": "yes"
   },
   {
     "id": "p007",
@@ -284,14 +278,12 @@
     "name": "Pepsi 0.5л",
     "category": "grocery",
     "group": "cola",
-    "priceKzt": 300,
-    "halal": "yes",
+    "halal": true,
     "allergens": [],
     "dietTags": [
       "contains_sugar"
     ],
     "qualityScore": 68,
-    "shelf": "Полка B2",
     "tags": [
       "пепси",
       "напиток",
@@ -320,7 +312,8 @@
     },
     "images": [
       "/products/4.png"
-    ]
+    ],
+    "halalStatus": "yes"
   },
   {
     "id": "p008",
@@ -328,14 +321,12 @@
     "name": "Cool Cola 1л",
     "category": "grocery",
     "group": "cola",
-    "priceKzt": 220,
-    "halal": "yes",
+    "halal": true,
     "allergens": [],
     "dietTags": [
       "contains_sugar"
     ],
     "qualityScore": 52,
-    "shelf": "Полка B3",
     "tags": [
       "кола",
       "напиток",
@@ -363,7 +354,8 @@
     },
     "images": [
       "/products/11.png"
-    ]
+    ],
+    "halalStatus": "yes"
   },
   {
     "id": "p009",
@@ -371,8 +363,7 @@
     "name": "Tassay 0.5л",
     "category": "grocery",
     "group": "water",
-    "priceKzt": 180,
-    "halal": "yes",
+    "halal": true,
     "allergens": [],
     "dietTags": [
       "sugar_free",
@@ -381,7 +372,6 @@
       "dairy_free"
     ],
     "qualityScore": 88,
-    "shelf": "Полка A1",
     "tags": [
       "вода",
       "тассай",
@@ -411,7 +401,8 @@
     },
     "images": [
       "/products/5.png"
-    ]
+    ],
+    "halalStatus": "yes"
   },
   {
     "id": "p010",
@@ -419,8 +410,7 @@
     "name": "Tassay 1л",
     "category": "grocery",
     "group": "water",
-    "priceKzt": 260,
-    "halal": "yes",
+    "halal": true,
     "allergens": [],
     "dietTags": [
       "sugar_free",
@@ -429,7 +419,6 @@
       "dairy_free"
     ],
     "qualityScore": 88,
-    "shelf": "Полка A1",
     "tags": [
       "вода",
       "тассай",
@@ -459,7 +448,8 @@
     },
     "images": [
       "/products/5_1.png"
-    ]
+    ],
+    "halalStatus": "yes"
   },
   {
     "id": "p011",
@@ -467,8 +457,7 @@
     "name": "Samal 0.5л",
     "category": "grocery",
     "group": "water",
-    "priceKzt": 150,
-    "halal": "yes",
+    "halal": true,
     "allergens": [],
     "dietTags": [
       "sugar_free",
@@ -477,7 +466,6 @@
       "dairy_free"
     ],
     "qualityScore": 72,
-    "shelf": "Полка A2",
     "tags": [
       "вода",
       "самал",
@@ -505,7 +493,8 @@
     },
     "images": [
       "/products/6.png"
-    ]
+    ],
+    "halalStatus": "yes"
   },
   {
     "id": "p012",
@@ -513,8 +502,7 @@
     "name": "Samal 1л",
     "category": "grocery",
     "group": "water",
-    "priceKzt": 200,
-    "halal": "yes",
+    "halal": true,
     "allergens": [],
     "dietTags": [
       "sugar_free",
@@ -523,7 +511,6 @@
       "dairy_free"
     ],
     "qualityScore": 72,
-    "shelf": "Полка A2",
     "tags": [
       "вода",
       "самал",
@@ -551,7 +538,8 @@
     },
     "images": [
       "/products/6_1.png"
-    ]
+    ],
+    "halalStatus": "yes"
   },
   {
     "id": "p013",
@@ -559,8 +547,7 @@
     "name": "Рис Цесна 700г",
     "category": "grocery",
     "group": "rice",
-    "priceKzt": 890,
-    "halal": "yes",
+    "halal": true,
     "allergens": [],
     "dietTags": [
       "sugar_free",
@@ -569,7 +556,6 @@
       "dairy_free"
     ],
     "qualityScore": 82,
-    "shelf": "Полка D1",
     "tags": [
       "рис",
       "цесна",
@@ -599,7 +585,8 @@
     },
     "images": [
       "/products/7.png"
-    ]
+    ],
+    "halalStatus": "yes"
   },
   {
     "id": "p014",
@@ -607,8 +594,7 @@
     "name": "Рис Makfa 800г",
     "category": "grocery",
     "group": "rice",
-    "priceKzt": 750,
-    "halal": "yes",
+    "halal": true,
     "allergens": [],
     "dietTags": [
       "sugar_free",
@@ -617,7 +603,6 @@
       "dairy_free"
     ],
     "qualityScore": 78,
-    "shelf": "Полка D1",
     "tags": [
       "рис",
       "makfa",
@@ -647,7 +632,8 @@
     },
     "images": [
       "/products/7_1.png"
-    ]
+    ],
+    "halalStatus": "yes"
   },
   {
     "id": "p015",
@@ -655,15 +641,13 @@
     "name": "Тушёнка Кублей говядина 338г",
     "category": "grocery",
     "group": "canned_meat",
-    "priceKzt": 1750,
-    "halal": "yes",
+    "halal": true,
     "allergens": [],
     "dietTags": [
       "gluten_free",
       "dairy_free"
     ],
     "qualityScore": 77,
-    "shelf": "Полка E2",
     "tags": [
       "халал",
       "консервы",
@@ -692,7 +676,8 @@
     },
     "images": [
       "/products/8.png"
-    ]
+    ],
+    "halalStatus": "yes"
   },
   {
     "id": "p016",
@@ -700,8 +685,7 @@
     "name": "Колбаса Мама Может 400г",
     "category": "grocery",
     "group": "sausage",
-    "priceKzt": 1890,
-    "halal": "no",
+    "halal": false,
     "allergens": [
       "gluten",
       "milk"
@@ -711,7 +695,6 @@
       "contains_dairy"
     ],
     "qualityScore": 55,
-    "shelf": "Полка E1",
     "tags": [
       "колбаса",
       "мясо",
@@ -739,6 +722,7 @@
     },
     "images": [
       "/products/12.png"
-    ]
+    ],
+    "halalStatus": "no"
   }
 ]
