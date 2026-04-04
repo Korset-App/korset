@@ -338,11 +338,8 @@ export default function ProfileScreen() {
         {prefOpen && (
           <div style={{ padding: '0 20px 16px' }}>
             <div className="glass-card" style={{ padding: 18 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 14 }}>
                 <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>{lang === 'kz' ? 'Сіздің баптауларыңыз' : 'Ваши предпочтения'}</div>
-                <button type="button" onClick={() => navigate('/setup-profile?mode=edit')} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#C4B5FD', borderRadius: 12, padding: '8px 12px', cursor: 'pointer', fontWeight: 600 }}>
-                  {lang === 'kz' ? 'Өңдеу' : 'Изменить'}
-                </button>
               </div>
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 12, letterSpacing: 1, textTransform: 'uppercase', color: 'rgba(255,255,255,0.34)', marginBottom: 10 }}>{lang === 'kz' ? 'Диета' : 'Диета'}</div>

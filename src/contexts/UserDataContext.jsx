@@ -1,16 +1,12 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { supabase } from '../utils/supabase.js'
 import { useAuth } from './AuthContext.jsx'
+import { buildHistoryOwnerKey, readLocalScanHistory, SCAN_HISTORY_STORAGE_KEY } from '../utils/localHistory.js'
 
 const UserDataContext = createContext()
 
-function getLocalScanHistoryCount() {
-  try {
-    const raw = JSON.parse(localStorage.getItem('korset_scan_history_cache') || '[]')
-    return Array.isArray(raw) ? raw.length : 0
-  } catch {
-    return 0
-  }
+function getLocalScanHistoryCount(user) {
+  return readLocalScanHistory(buildHistoryOwnerKey(user)).length
 }
 
 export function UserDataProvider({ children }) {
@@ -27,7 +23,7 @@ export function UserDataProvider({ children }) {
     // Если нет юзера, быстро очищаем стейт в ноль
     if (!user || !internalUserId) {
       setFavoriteEans(new Set())
-      setScanCount(getLocalScanHistoryCount())
+      setScanCount(getLocalScanHistoryCount(null))
       setUserDataLoaded(true)
       return
     }
@@ -43,7 +39,7 @@ export function UserDataProvider({ children }) {
         
         // 2. Грузим количество сканирований для профиля
         const { count } = await supabase.from('scan_events').select('ean', { count: 'exact', head: true }).eq('user_id', internalUserId)
-        const localCount = getLocalScanHistoryCount()
+        const localCount = getLocalScanHistoryCount(user)
         setScanCount(Math.max(count || 0, localCount))
       } catch (err) {
         console.error('Failed to load user data cache', err)
@@ -116,14 +112,14 @@ export function UserDataProvider({ children }) {
 
   // Метод для инкремента истории сканирований (используется ProductScreen)
   const incrementScanCount = () => {
-    const localCount = getLocalScanHistoryCount()
+    const localCount = getLocalScanHistoryCount(user)
     setScanCount((prev) => Math.max(prev, localCount))
   }
 
   useEffect(() => {
     const handleScanAdded = () => incrementScanCount()
     const handleStorage = (event) => {
-      if (event.key === 'korset_scan_history_cache') incrementScanCount()
+      if (event.key === SCAN_HISTORY_STORAGE_KEY) incrementScanCount()
     }
     const handleFocus = () => incrementScanCount()
     window.addEventListener('korset:scan_added', handleScanAdded)
@@ -134,7 +130,7 @@ export function UserDataProvider({ children }) {
       window.removeEventListener('storage', handleStorage)
       window.removeEventListener('focus', handleFocus)
     }
-  }, [])
+  }, [user])
 
   return (
     <UserDataContext.Provider value={{

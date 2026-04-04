@@ -7,38 +7,9 @@ import { useI18n } from '../utils/i18n.js'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { buildProductPath } from '../utils/routes.js'
 import { hydrateProductsFromFavoriteRows, hydrateProductsFromScanRows } from '../domain/product/resolver.js'
+import { buildHistoryOwnerKey, readLocalScanHistory, SCAN_HISTORY_STORAGE_KEY } from '../utils/localHistory.js'
 
 const fontAdvent = "'Advent Pro', sans-serif"
-
-function readLocalHistory() {
-  try {
-    const raw = JSON.parse(localStorage.getItem('korset_scan_history_cache') || '[]')
-    const items = Array.isArray(raw) ? raw : []
-    return items.map((item) => ({
-      ...item,
-      scanDate: item.scanDate ? new Date(item.scanDate) : null,
-    }))
-  } catch {
-    return []
-  }
-}
-
-function mergeHistory(remoteItems, localItems) {
-  const mergedHistoryMap = new Map()
-  for (const item of [...remoteItems, ...localItems]) {
-    if (!item?.ean) continue
-    const existing = mergedHistoryMap.get(item.ean)
-    const itemTime = new Date(item.scanDate || item.scanned_at || item.scannedAt || 0).getTime() || 0
-    const existingTime = existing ? (new Date(existing.scanDate || existing.scanned_at || existing.scannedAt || 0).getTime() || 0) : -1
-    if (!existing || itemTime >= existingTime) mergedHistoryMap.set(item.ean, item)
-  }
-  return Array.from(mergedHistoryMap.values()).sort((a, b) => {
-    const at = new Date(a.scanDate || a.scanned_at || a.scannedAt || 0).getTime() || 0
-    const bt = new Date(b.scanDate || b.scanned_at || b.scannedAt || 0).getTime() || 0
-    return bt - at
-  })
-}
-
 export default function HistoryScreen() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -58,10 +29,8 @@ export default function HistoryScreen() {
   }, [searchParams, tab])
 
   useEffect(() => {
-    const localHistory = readLocalHistory()
-
     if (!user || !internalUserId) {
-      setHistory(localHistory)
+      setHistory([])
       setFavorites([])
       setLoading(false)
       return
@@ -71,51 +40,69 @@ export default function HistoryScreen() {
 
     const loadData = async () => {
       setLoading(true)
-      const [histRes, favRes] = await Promise.all([
-        supabase
-          .from('scan_events')
-          .select('ean, global_product_id, scanned_at')
-          .eq('user_id', internalUserId)
-          .order('scanned_at', { ascending: false })
-          .limit(50),
-        supabase
-          .from('user_favorites')
-          .select('ean, global_product_id, added_at')
-          .eq('user_id', internalUserId)
-          .order('added_at', { ascending: false }),
-      ])
+      try {
+        const [histRes, favRes] = await Promise.all([
+          supabase
+            .from('scan_events')
+            .select('ean, global_product_id, scanned_at')
+            .eq('user_id', internalUserId)
+            .order('scanned_at', { ascending: false })
+            .limit(50),
+          supabase
+            .from('user_favorites')
+            .select('ean, global_product_id, added_at')
+            .eq('user_id', internalUserId)
+            .order('added_at', { ascending: false }),
+        ])
 
-      let hydratedHistory = []
-      let hydratedFavorites = []
+        if (histRes.error) throw histRes.error
+        if (favRes.error) throw favRes.error
 
-      if (!histRes.error) {
-        hydratedHistory = await hydrateProductsFromScanRows(histRes.data || [])
-      } else {
-        console.warn('HistoryScreen scan_events fallback to local cache:', histRes.error.message)
-      }
+        const [hydratedHistory, hydratedFavorites] = await Promise.all([
+          hydrateProductsFromScanRows(histRes.data || []),
+          hydrateProductsFromFavoriteRows(favRes.data || []),
+        ])
 
-      if (!favRes.error) {
-        hydratedFavorites = await hydrateProductsFromFavoriteRows(favRes.data || [])
-      } else {
-        console.warn('HistoryScreen user_favorites read failed:', favRes.error.message)
-      }
+        const localHistory = (() => {
+          try {
+            const raw = JSON.parse(localStorage.getItem('korset_scan_history_cache') || '[]')
+            return Array.isArray(raw) ? raw : []
+          } catch {
+            return []
+          }
+        })()
 
-      if (!cancelled) {
-        setHistory(mergeHistory(hydratedHistory, localHistory))
-        setFavorites(hydratedFavorites)
-        setLoading(false)
+        const mergedHistoryMap = new Map()
+        for (const item of [...hydratedHistory, ...localHistory]) {
+          if (!item?.ean) continue
+          const existing = mergedHistoryMap.get(item.ean)
+          const itemTime = new Date(item.scanDate || item.scanned_at || item.scannedAt || 0).getTime() || 0
+          const existingTime = existing ? (new Date(existing.scanDate || existing.scanned_at || existing.scannedAt || 0).getTime() || 0) : -1
+          if (!existing || itemTime >= existingTime) mergedHistoryMap.set(item.ean, item)
+        }
+
+        const mergedHistory = Array.from(mergedHistoryMap.values()).sort((a, b) => {
+          const at = new Date(a.scanDate || a.scanned_at || a.scannedAt || 0).getTime() || 0
+          const bt = new Date(b.scanDate || b.scanned_at || b.scannedAt || 0).getTime() || 0
+          return bt - at
+        })
+
+        if (!cancelled) {
+          setHistory(mergedHistory)
+          setFavorites(hydratedFavorites)
+        }
+      } catch (error) {
+        console.error('HistoryScreen loadData failed', error)
+        if (!cancelled) {
+          setHistory([])
+          setFavorites([])
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
       }
     }
 
-    loadData().catch((error) => {
-      console.error('HistoryScreen loadData failed', error)
-      if (!cancelled) {
-        setHistory(localHistory)
-        setFavorites([])
-        setLoading(false)
-      }
-    })
-
+    loadData()
     return () => {
       cancelled = true
     }
@@ -124,6 +111,22 @@ export default function HistoryScreen() {
   useEffect(() => {
     setFavorites((prev) => prev.filter((item) => !item.ean || favoriteEans.has(item.ean)))
   }, [favoriteEans])
+
+  useEffect(() => {
+    const syncLocalHistory = () => {
+      const scopedLocalHistory = readLocalHistory(user)
+      setHistory((prev) => mergeHistory(prev, scopedLocalHistory))
+    }
+    const handleStorage = (event) => {
+      if (!event || event.key === SCAN_HISTORY_STORAGE_KEY) syncLocalHistory()
+    }
+    window.addEventListener('storage', handleStorage)
+    window.addEventListener('korset:scan_added', syncLocalHistory)
+    return () => {
+      window.removeEventListener('storage', handleStorage)
+      window.removeEventListener('korset:scan_added', syncLocalHistory)
+    }
+  }, [user])
 
   const removeFavorite = async (product, event) => {
     event.stopPropagation()
