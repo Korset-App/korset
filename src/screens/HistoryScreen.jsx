@@ -9,12 +9,6 @@ import { buildProductPath } from '../utils/routes.js'
 import { hydrateProductsFromFavoriteRows, hydrateProductsFromScanRows } from '../domain/product/resolver.js'
 
 const fontAdvent = "'Advent Pro', sans-serif"
-const EXTERNAL_SOURCES = new Set(['cache', 'off', 'unknown', 'openfoodfacts'])
-
-function isExternalProduct(product) {
-  return EXTERNAL_SOURCES.has(product?.source)
-}
-
 export default function HistoryScreen() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -68,8 +62,32 @@ export default function HistoryScreen() {
           hydrateProductsFromFavoriteRows(favRes.data || []),
         ])
 
+        const localHistory = (() => {
+          try {
+            const raw = JSON.parse(localStorage.getItem('korset_scan_history_cache') || '[]')
+            return Array.isArray(raw) ? raw : []
+          } catch {
+            return []
+          }
+        })()
+
+        const mergedHistoryMap = new Map()
+        for (const item of [...hydratedHistory, ...localHistory]) {
+          if (!item?.ean) continue
+          const existing = mergedHistoryMap.get(item.ean)
+          const itemTime = new Date(item.scanDate || item.scanned_at || item.scannedAt || 0).getTime() || 0
+          const existingTime = existing ? (new Date(existing.scanDate || existing.scanned_at || existing.scannedAt || 0).getTime() || 0) : -1
+          if (!existing || itemTime >= existingTime) mergedHistoryMap.set(item.ean, item)
+        }
+
+        const mergedHistory = Array.from(mergedHistoryMap.values()).sort((a, b) => {
+          const at = new Date(a.scanDate || a.scanned_at || a.scannedAt || 0).getTime() || 0
+          const bt = new Date(b.scanDate || b.scanned_at || b.scannedAt || 0).getTime() || 0
+          return bt - at
+        })
+
         if (!cancelled) {
-          setHistory(hydratedHistory)
+          setHistory(mergedHistory)
           setFavorites(hydratedFavorites)
         }
       } catch (error) {
@@ -106,8 +124,7 @@ export default function HistoryScreen() {
 
   const goToProduct = (product) => {
     if (!product?.ean) return
-    const external = isExternalProduct(product)
-    navigate(buildProductPath(currentStore?.slug || null, product.ean, external), {
+    navigate(buildProductPath(currentStore?.slug || null, product.ean), {
       state: { product },
     })
   }

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { checkProductFit, formatPrice, CATEGORY_LABELS } from '../utils/fitCheck.js'
 import { useProfile } from '../contexts/ProfileContext.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
@@ -8,6 +8,7 @@ import { useI18n } from '../utils/i18n.js'
 import { useUserData } from '../contexts/UserDataContext.jsx'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { getAnyKnownProductByRef } from '../utils/storeCatalog.js'
+import { coerceProductEntity } from '../domain/product/normalizers.js'
 import { buildCatalogPath, buildProductAIPath, buildProductAlternativesPath } from '../utils/routes.js'
 
 function clamp(n, a, b) {
@@ -91,6 +92,7 @@ function formatShelfLine(product, lang, t) {
 export default function ProductScreen() {
   const { ean, storeSlug } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const { profile } = useProfile()
   const { user } = useAuth()
   const { lang, t } = useI18n()
@@ -99,7 +101,14 @@ export default function ProductScreen() {
   const { checkIsFavorite, toggleFavorite } = useUserData()
 
   const activeStoreSlug = storeSlug || currentStore?.slug || null
-  const product = useMemo(() => getAnyKnownProductByRef(ean, activeStoreSlug), [ean, activeStoreSlug])
+  const product = useMemo(() => {
+    const known = getAnyKnownProductByRef(ean, activeStoreSlug)
+    const stateProduct = coerceProductEntity(location.state?.product)
+
+    if (known) return known
+    if (stateProduct && stateProduct.ean === ean) return stateProduct
+    return stateProduct || null
+  }, [ean, activeStoreSlug, location.state])
   const isFavorite = checkIsFavorite(product?.ean)
 
   const handleToggleFavorite = async () => {

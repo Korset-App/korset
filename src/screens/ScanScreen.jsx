@@ -283,10 +283,10 @@ export default function ScanScreen() {
 
   const handleDetected = async (ean) => {
     const result = await lookupProduct(ean, storeId)
-    if (result.type === 'local') {
-      navigate(buildProductPath(currentStore?.slug || null, result.product.ean || ean))
-    } else if (result.type === 'external') {
-      navigate(buildProductPath(currentStore?.slug || null, ean, true), { state: { product: result.product } })
+    if (result.type === 'local' || result.type === 'external') {
+      navigate(buildProductPath(currentStore?.slug || null, result.product?.ean || ean), {
+        state: { product: result.product },
+      })
     } else {
       setNotFoundEan(ean)
       setMode('not_found')

@@ -324,10 +324,34 @@ function tryParse(val, fallback) {
   }
 }
 
+
+function cacheLocalScan(product, meta = {}) {
+  try {
+    if (!product?.ean) return
+    const raw = JSON.parse(localStorage.getItem('korset_scan_history_cache') || '[]')
+    const list = Array.isArray(raw) ? raw : []
+    const nextItem = {
+      ean: product.ean,
+      name: product.name || `Товар ${product.ean}`,
+      brand: product.brand || null,
+      image: product.image || product.images?.[0] || null,
+      images: Array.isArray(product.images) ? product.images : (product.image ? [product.image] : []),
+      source: product.source || 'unknown',
+      scanDate: new Date().toISOString(),
+      scannedAt: new Date().toISOString(),
+      storeId: meta.storeId || null,
+    }
+    const filtered = list.filter((item) => item?.ean !== product.ean)
+    filtered.unshift(nextItem)
+    localStorage.setItem('korset_scan_history_cache', JSON.stringify(filtered.slice(0, 50)))
+  } catch {}
+}
+
 export async function lookupProduct(ean, storeId = null) {
   const demoStoreProduct = findInDemoStore(ean, storeId)
   if (demoStoreProduct) {
     logScan({ ean, foundStatus: 'found_store', storeId })
+    cacheLocalScan(demoStoreProduct, { storeId })
     return { type: 'local', product: demoStoreProduct }
   }
 
@@ -340,24 +364,28 @@ export async function lookupProduct(ean, storeId = null) {
       storeProductId: storeProduct.storeProductId,
       storeId,
     })
+    cacheLocalScan(storeProduct, { storeId })
     return { type: 'local', product: storeProduct }
   }
 
   const globalProduct = await findInGlobalProducts(ean)
   if (globalProduct) {
     logScan({ ean, foundStatus: 'found_global', globalProductId: globalProduct.id, storeId })
+    cacheLocalScan(globalProduct, { storeId })
     return { type: 'local', product: globalProduct }
   }
 
   const local = getGlobalDemoProducts().find((p) => p.ean === ean)
   if (local) {
     logScan({ ean, foundStatus: 'found_global', storeId })
+    cacheLocalScan(local, { storeId })
     return { type: 'local', product: local }
   }
 
   const cached = await findInCache(ean)
   if (cached) {
     logScan({ ean, foundStatus: 'found_cache', storeId })
+    cacheLocalScan(cached, { storeId })
     return { type: 'external', product: cached }
   }
 
@@ -366,6 +394,7 @@ export async function lookupProduct(ean, storeId = null) {
     const enriched = await enrichWithAI(off)
     saveToCache(enriched)
     logScan({ ean, foundStatus: 'found_off', storeId })
+    cacheLocalScan(enriched, { storeId })
     return { type: 'external', product: enriched }
   }
 
