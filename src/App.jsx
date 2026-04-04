@@ -26,7 +26,7 @@ function AppInner() {
   const navigate = useNavigate()
   const { user } = useAuth()
   
-  const hideNav = pathname === '/qr-print' || pathname === '/auth' || pathname === '/setup-profile'
+  const hideNav = pathname === '/' || pathname === '/qr-print' || pathname === '/auth' || pathname === '/setup-profile'
   const [showOnboarding, setShowOnboarding] = useState(
     !localStorage.getItem('korset_onboarding_done') || !localStorage.getItem('korset_lang')
   )
