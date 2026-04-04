@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useProfile } from '../contexts/ProfileContext.jsx'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { buildProductAIPath, buildScanPath } from '../utils/routes.js'
 import { useI18n } from '../utils/i18n.js'
-import { ALLERGEN_NAMES, OFF_ALLERGEN_MAP, getAllergenName } from '../data/allergens.js'
-const ALLERGEN_MAP = OFF_ALLERGEN_MAP
+import { ALLERGEN_NAMES, OFF_ALLERGEN_MAP } from '../data/allergens.js'
+import { coerceProductEntity } from '../domain/product/normalizers.js'
 
-// ALLERGEN_NAMES now imported from shared data
+const ALLERGEN_MAP = OFF_ALLERGEN_MAP
 
 const NUTRISCORE_COLORS = {
   a: { bg: 'rgba(3,129,65,0.15)', border: 'rgba(3,129,65,0.4)', text: '#22c55e' },
@@ -19,13 +19,58 @@ const NUTRISCORE_COLORS = {
 
 function parseAllergens(product) {
   const raw = product.allergens_tags || product.allergens_hierarchy || []
-  return [...new Set(raw.map(a => ALLERGEN_MAP[a]).filter(Boolean))]
+  return [...new Set(raw.map((item) => ALLERGEN_MAP[item]).filter(Boolean))]
 }
 
 function detectHalal(labelsTag = []) {
-  if (labelsTag.some(t => t.includes('halal'))) return true
-  if (labelsTag.some(t => t.includes('pork') || t.includes('alcohol'))) return false
+  if (labelsTag.some((tag) => tag.includes('halal'))) return true
+  if (labelsTag.some((tag) => tag.includes('pork') || tag.includes('alcohol'))) return false
   return null
+}
+
+function toExternalProductShape(raw, lang) {
+  if (!raw) return null
+
+  // Already normalized canonical product from lookup/cache.
+  if (raw.nutritionPer100 || raw.halalStatus || raw.sourceMeta) {
+    const canonical = coerceProductEntity(raw)
+    return {
+      ean: canonical.ean,
+      name: canonical.name || (lang === 'kz' ? 'Белгісіз тауар' : 'Неизвестный товар'),
+      brand: canonical.brand || '',
+      image: canonical.image || canonical.images?.[0] || null,
+      quantity: canonical.quantity || '',
+      ingredients: canonical.ingredients || '',
+      allergens: canonical.allergens || [],
+      isHalal: canonical.halalStatus === 'yes' ? true : canonical.halalStatus === 'no' ? false : null,
+      nutriscore: canonical.nutriscore || null,
+      nutrition: canonical.nutritionPer100 || {},
+      source: canonical.source,
+    }
+  }
+
+  // Raw OFF shape from direct fetch.
+  const nutr = raw.nutriments || {}
+  return {
+    ean: raw.ean,
+    name: raw.product_name || (lang === 'kz' ? 'Белгісіз тауар' : 'Неизвестный товар'),
+    brand: raw.brands || '',
+    image: raw.image_front_url || null,
+    quantity: raw.quantity || '',
+    ingredients: raw.ingredients_text_ru || raw.ingredients_text || '',
+    allergens: parseAllergens(raw),
+    isHalal: detectHalal(raw.labels_tags || []),
+    nutriscore: raw.nutriscore_grade || null,
+    nutrition: {
+      kcal: nutr['energy-kcal_100g'] ?? null,
+      protein: nutr.proteins_100g ?? null,
+      fat: nutr.fat_100g ?? null,
+      carbs: nutr.carbohydrates_100g ?? null,
+      sugar: nutr.sugars_100g ?? null,
+      fiber: nutr.fiber_100g ?? null,
+    },
+    source: 'openfoodfacts',
+  }
 }
 
 function checkFit(product, profile, t) {
@@ -35,59 +80,51 @@ function checkFit(product, profile, t) {
   const allergens = product.allergens || []
 
   if (halalOn) {
-    if (product.isHalal === true) {
-      // позитив добавим ниже
-    } else if (product.isHalal === false) {
-      reasons.push({ type: 'fail', text: t.product.halalNot })
-    } else {
-      reasons.push({ type: 'warn', text: t.product.halalUnknown })
-    }
+    if (product.isHalal === false) reasons.push({ type: 'fail', text: t.product.halalNot })
+    else if (product.isHalal == null) reasons.push({ type: 'warn', text: t.product.halalUnknown })
   }
 
   const profileAllergens = profile.allergens || []
-  const found = allergens.filter(a => profileAllergens.includes(a))
-  found.forEach(a => reasons.push({ type: 'fail', text: `${t.product.containsAllergen} ${ALLERGEN_NAMES[a] || a}` }))
+  const found = allergens.filter((item) => profileAllergens.includes(item))
+  found.forEach((item) => reasons.push({ type: 'fail', text: `${t.product.containsAllergen} ${ALLERGEN_NAMES[item] || item}` }))
 
   const customAllergens = profile.customAllergens || []
-  customAllergens.forEach(ca => {
-    if (ingredients.includes(ca.toLowerCase()))
-      reasons.push({ type: 'fail', text: `${t.product.contains} ${ca}` })
+  customAllergens.forEach((item) => {
+    if (ingredients.includes(item.toLowerCase())) reasons.push({ type: 'fail', text: `${t.product.contains} ${item}` })
   })
 
   const goals = profile.dietGoals || []
-
   if (goals.includes('sugar_free') || profile.sugarFree) {
-    const sw = ['сахар', 'sugar', 'sucre', 'zucker', 'глюкоз', 'фруктоз', 'сироп']
-    if (sw.some(w => ingredients.includes(w)))
-      reasons.push({ type: 'fail', text: t.product.containsSugar })
+    const sugarWords = ['сахар', 'sugar', 'sucre', 'zucker', 'глюкоз', 'фруктоз', 'сироп']
+    if (sugarWords.some((word) => ingredients.includes(word))) reasons.push({ type: 'fail', text: t.product.containsSugar })
   }
 
   if (goals.includes('dairy_free')) {
-    const dw = ['молок', 'сливк', 'масло слив', 'сметан', 'сыр', 'milk', 'cream', 'butter', 'cheese', 'whey', 'casein', 'лактоз']
-    if (allergens.includes('milk') || dw.some(w => ingredients.includes(w)))
-      reasons.push({ type: 'fail', text: t.product.containsDairy })
+    const dairyWords = ['молок', 'сливк', 'масло слив', 'сметан', 'сыр', 'milk', 'cream', 'butter', 'cheese', 'whey', 'casein', 'лактоз']
+    if (allergens.includes('milk') || dairyWords.some((word) => ingredients.includes(word))) reasons.push({ type: 'fail', text: t.product.containsDairy })
   }
 
   if (goals.includes('gluten_free')) {
-    if (allergens.includes('gluten') || allergens.includes('wheat') ||
-        ['пшениц', 'wheat', 'gluten', 'ячмен', 'рожь'].some(w => ingredients.includes(w)))
+    if (allergens.includes('gluten') || allergens.includes('wheat') || ['пшениц', 'wheat', 'gluten', 'ячмен', 'рожь'].some((word) => ingredients.includes(word))) {
       reasons.push({ type: 'fail', text: t.product.containsGluten })
+    }
   }
 
   if (goals.includes('vegan')) {
-    const mw = ['говядин', 'свинин', 'курин', 'мясо', 'beef', 'pork', 'chicken', 'meat']
-    if (allergens.includes('milk') || allergens.includes('eggs') || mw.some(w => ingredients.includes(w)))
+    const meatWords = ['говядин', 'свинин', 'курин', 'мясо', 'beef', 'pork', 'chicken', 'meat']
+    if (allergens.includes('milk') || allergens.includes('eggs') || meatWords.some((word) => ingredients.includes(word))) {
       reasons.push({ type: 'fail', text: t.product.notForVegans })
+    }
   }
 
-  const fits = !reasons.some(r => r.type === 'fail')
+  const fits = !reasons.some((reason) => reason.type === 'fail')
 
   if (fits) {
-    const pos = []
-    if (halalOn && product.isHalal === true) pos.push({ type: 'pass', text: t.product.halalConfirmed })
-    if (profileAllergens.length > 0 && allergens.length === 0) pos.push({ type: 'pass', text: t.product.noAllergens })
-    if (pos.length === 0) pos.push({ type: 'pass', text: t.product.matchesPrefs })
-    return { fits, reasons: [...reasons, ...pos].slice(0, 3) }
+    const positive = []
+    if (halalOn && product.isHalal === true) positive.push({ type: 'pass', text: t.product.halalConfirmed })
+    if (profileAllergens.length > 0 && allergens.length === 0) positive.push({ type: 'pass', text: t.product.noAllergens })
+    if (positive.length === 0) positive.push({ type: 'pass', text: t.product.matchesPrefs })
+    return { fits, reasons: [...reasons, ...positive].slice(0, 3) }
   }
 
   return { fits, reasons: reasons.slice(0, 3) }
@@ -96,7 +133,7 @@ function checkFit(product, profile, t) {
 function formatNutri(val) {
   if (val == null) return null
   const n = Number(val)
-  if (isNaN(n)) return null
+  if (Number.isNaN(n)) return null
   return Number.isInteger(n) ? String(n) : n.toFixed(1)
 }
 
@@ -107,17 +144,14 @@ function NutriGrid({ nutrition, t }) {
     [t.product.carbs, nutrition.carbs, 'г'],
     [t.product.kcal, nutrition.kcal, 'ккал'],
   ]
-  if (!items.some(([, v]) => v != null)) return null
+  if (!items.some(([, value]) => value != null)) return null
   return (
     <div className="nutri-grid" style={{ marginBottom: 10 }}>
-      {items.map(([label, val, unit]) => (
+      {items.map(([label, value, unit]) => (
         <div key={label} className="nutri-item">
           <div className="nutri-label">{label}</div>
           <div className="nutri-value">
-            {val == null
-              ? <span className="nutri-num">—</span>
-              : <><span className="nutri-num">{formatNutri(val)}</span><span className="nutri-unit">{unit}</span></>
-            }
+            {value == null ? <span className="nutri-num">—</span> : <><span className="nutri-num">{formatNutri(value)}</span><span className="nutri-unit">{unit}</span></>}
           </div>
         </div>
       ))}
@@ -127,19 +161,13 @@ function NutriGrid({ nutrition, t }) {
 
 function NutriscoreBadge({ grade }) {
   if (!grade) return null
-  const g = grade.toLowerCase()
+  const g = String(grade).toLowerCase()
   const c = NUTRISCORE_COLORS[g]
   if (!c) return null
   return (
-    <div style={{
-      display: 'inline-flex', alignItems: 'center', gap: 6,
-      padding: '4px 12px', borderRadius: 999,
-      background: c.bg, border: `1px solid ${c.border}`,
-    }}>
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 999, background: c.bg, border: `1px solid ${c.border}` }}>
       <span style={{ fontSize: 11, color: 'var(--text-dim)', fontWeight: 600 }}>Nutri-Score</span>
-      <span style={{ fontSize: 16, fontWeight: 900, fontFamily: 'var(--font-display)', color: c.text }}>
-        {g.toUpperCase()}
-      </span>
+      <span style={{ fontSize: 16, fontWeight: 900, fontFamily: 'var(--font-display)', color: c.text }}>{g.toUpperCase()}</span>
     </div>
   )
 }
@@ -147,22 +175,18 @@ function NutriscoreBadge({ grade }) {
 function ProductHeroImage({ src, name }) {
   const [ok, setOk] = useState(true)
   if (!src || !ok) {
-    return (
-      <div className="product-hero-placeholder" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 56 }}>
-        📦
-      </div>
-    )
+    return <div className="product-hero-placeholder" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 56 }}>📦</div>
   }
-  return (
-    <img src={src} alt={name} className="product-hero-img" loading="lazy" onError={() => setOk(false)} />
-  )
+  return <img src={src} alt={name} className="product-hero-img" loading="lazy" onError={() => setOk(false)} />
 }
 
 export default function ExternalProductScreen() {
-  const { ean } = useParams()
+  const { ean, storeSlug } = useParams()
   const navigate = useNavigate()
   const { state: navState } = useLocation()
   const { profile } = useProfile()
+  const { currentStore } = useStore()
+  const activeStoreSlug = storeSlug || currentStore?.slug || null
   const { lang, t } = useI18n()
 
   const [status, setStatus] = useState('loading')
@@ -171,54 +195,52 @@ export default function ExternalProductScreen() {
   const [moreOpen, setMoreOpen] = useState(false)
 
   useEffect(() => {
+    let cancelled = false
+
     if (navState?.product) {
-      const p = navState.product
-      setProduct(p)
-      setFitResult(checkFit(p, profile, t))
+      const parsed = toExternalProductShape(navState.product, lang)
+      setProduct(parsed)
+      setFitResult(checkFit(parsed, profile, t))
       setStatus('found')
-      return
+      return () => {}
     }
 
     async function fetchProduct() {
       try {
-        const res = await fetch(
-          `https://world.openfoodfacts.org/api/v2/product/${ean}?fields=product_name,brands,image_front_url,nutriments,allergens_tags,allergens_hierarchy,ingredients_text_ru,ingredients_text,quantity,labels_tags,nutriscore_grade`,
-          { signal: AbortSignal.timeout(10000) }
-        )
-        const data = await res.json()
-        if (data.status === 0 || !data.product?.product_name) { setStatus('notfound'); return }
-
-        const p = data.product
-        const allergens = parseAllergens(p)
-        const nutr = p.nutriments || {}
-        const parsed = {
-          ean,
-          name: p.product_name || lang === 'kz' ? 'Белгісіз тауар' : 'Неизвестный товар',
-          brand: p.brands || '',
-          image: p.image_front_url || null,
-          quantity: p.quantity || '',
-          ingredients: p.ingredients_text_ru || p.ingredients_text || '',
-          allergens,
-          isHalal: detectHalal(p.labels_tags || []),
-          nutriscore: p.nutriscore_grade || null,
-          nutrition: {
-            kcal:    nutr['energy-kcal_100g'] ?? null,
-            protein: nutr.proteins_100g ?? null,
-            fat:     nutr.fat_100g ?? null,
-            carbs:   nutr.carbohydrates_100g ?? null,
-            sugar:   nutr.sugars_100g ?? null,
-            fiber:   nutr.fiber_100g ?? null,
-          },
+        const res = await fetch(`/api/off?ean=${encodeURIComponent(ean)}`, { signal: AbortSignal.timeout(10000) })
+        if (!res.ok) {
+          if (!cancelled) setStatus('error')
+          return
         }
-        setProduct(parsed)
-        setFitResult(checkFit(parsed, profile, t))
-        setStatus('found')
+        const data = await res.json()
+        if (!data?.product) {
+          if (!cancelled) setStatus('notfound')
+          return
+        }
+
+        const parsed = toExternalProductShape({ ...data.product, ean }, lang)
+        if (!parsed?.name) {
+          if (!cancelled) setStatus('notfound')
+          return
+        }
+
+        if (!cancelled) {
+          setProduct(parsed)
+          setFitResult(checkFit(parsed, profile, t))
+          setStatus('found')
+        }
       } catch {
-        setStatus('error')
+        if (!cancelled) setStatus('error')
       }
     }
+
     fetchProduct()
-  }, [ean])
+    return () => {
+      cancelled = true
+    }
+  }, [ean, navState, lang, profile, t])
+
+  const nutr = useMemo(() => product?.nutrition || product?.nutritionPer100 || {}, [product])
 
   if (status === 'loading') {
     return (
@@ -230,167 +252,129 @@ export default function ExternalProductScreen() {
     )
   }
 
-  if (status === 'notfound' || status === 'error') {
+  if (status === 'notfound' || status === 'error' || !product || !fitResult) {
     return (
       <div className="screen" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '0 32px', textAlign: 'center' }}>
         <div style={{ fontSize: 56 }}>🔍</div>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>{t.scan.notFoundTitle}</div>
         <p style={{ color: 'var(--text-dim)', fontSize: 14, lineHeight: 1.6 }}>
-          {status === 'error'
-            ? t.product.noConnection
-            : t.product.notFoundInDb}
+          {status === 'error' ? t.product.noConnection : t.product.notFoundInDb}
         </p>
         <p style={{ color: 'var(--text-dim)', fontSize: 12, fontFamily: 'monospace', opacity: 0.6 }}>EAN: {ean}</p>
-        <button className="btn btn-primary btn-full" style={{ marginTop: 8 }} onClick={() => navigate(buildScanPath(activeStoreSlug))}>
-          {t.common.scanAgain}
-        </button>
+        <button className="btn btn-primary btn-full" style={{ marginTop: 8 }} onClick={() => navigate(buildScanPath(activeStoreSlug))}>{t.common.scanAgain}</button>
         <button className="btn btn-secondary btn-full" onClick={() => navigate(-1)}>{t.common.back}</button>
       </div>
     )
   }
 
   const { fits, reasons } = fitResult
-  const nutr = product.nutrition
-  const hasNutr = Object.values(nutr).some(v => v != null)
-  const showMore = Boolean(product.ingredients || nutr.sugar != null || nutr.fiber != null)
+  const hasNutr = Object.values(nutr || {}).some((value) => value != null)
+  const showMore = Boolean(product.ingredients || nutr?.sugar != null || nutr?.fiber != null)
 
   return (
     <div className="screen">
-
-      {/* Header */}
       <div className="header">
         <button className="back-btn" onClick={() => navigate(-1)}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M19 12H5M12 5l-7 7 7 7" />
-          </svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7" /></svg>
           {t.common.back}
         </button>
-        <div className="header-row">
-          <div className="screen-title">{t.product.title}</div>
-        </div>
+        <div className="header-row"><div className="screen-title">{t.product.title}</div></div>
       </div>
 
-      {/* Карточка товара */}
       <div className="section">
         <div className="card" style={{ marginBottom: 0 }}>
-
-          {/* Строка: категория + Nutriscore */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.02em', color: 'var(--text)', opacity: 0.9 }}>
-              {t.product.foodCategory}
-            </span>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.02em', color: 'var(--text)', opacity: 0.9 }}>{t.product.foodCategory}</span>
             <NutriscoreBadge grade={product.nutriscore} />
           </div>
 
-          {/* Фото */}
           <div className="product-hero" style={{ marginBottom: 12 }}>
             <ProductHeroImage src={product.image} name={product.name} />
           </div>
 
-          {/* Название */}
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 800, lineHeight: 1.25, marginBottom: 6, color: 'var(--text)' }}>
-            {product.name}
-          </h2>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 800, lineHeight: 1.25, marginBottom: 6, color: 'var(--text)' }}>{product.name}</h2>
+          {(product.brand || product.quantity) && <div style={{ fontSize: 14, color: 'var(--text-sub)', marginBottom: 10 }}>{[product.brand, product.quantity].filter(Boolean).join(' · ')}</div>}
 
-          {/* Бренд + объём */}
-          {(product.brand || product.quantity) && (
-            <div style={{ fontSize: 14, color: 'var(--text-sub)', marginBottom: 10 }}>
-              {[product.brand, product.quantity].filter(Boolean).join(' · ')}
+          <div style={{ marginBottom: 12, padding: '10px 12px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--text-sub)', fontSize: 12, lineHeight: 1.5 }}>
+            Глобальная карточка товара. Цена и полка магазина пока недоступны.
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+            <button className="btn btn-primary btn-full" onClick={() => navigate(buildProductAIPath(activeStoreSlug, ean, true), { state: { product } })}>{t.common.askAI}</button>
+          </div>
+
+          <div style={{
+            borderRadius: 18,
+            padding: '18px 20px',
+            display: 'flex', alignItems: 'center', gap: 16,
+            background: fits ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+            border: `1.5px solid ${fits ? 'rgba(16,185,129,0.35)' : 'rgba(239,68,68,0.35)'}`,
+            marginBottom: 16,
+          }}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, flexShrink: 0, background: fits ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {fits ? <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg> : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>}
+            </div>
+            <div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: fits ? '#10B981' : '#EF4444', fontFamily: 'var(--font-display)' }}>{fits ? t.product.fits : t.product.notFits}</div>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>{fits ? t.product.fitsDesc : t.product.notFitsDesc}</div>
+            </div>
+          </div>
+
+          {reasons.length > 0 && (
+            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+              {reasons.map((reason, index) => (
+                <div key={index} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: reason.type === 'pass' ? '#10B981' : reason.type === 'warn' ? '#F59E0B' : '#EF4444' }} />
+                  <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', lineHeight: 1.4 }}>{reason.text}</span>
+                </div>
+              ))}
             </div>
           )}
 
-          {/* КБЖУ */}
           {hasNutr && (
-            <div style={{ marginTop: 8 }}>
-              <div className="section-title" style={{ marginBottom: 8 }}>
-                {t.product.characteristics}
-                <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--text-dim)', fontWeight: 500 }}>
-                  {t.product.nutrition} ({t.product.nutritionPer100})
-                </span>
-              </div>
+            <>
+              <div className="section-title" style={{ marginBottom: 8 }}>{t.product.nutrition} <span style={{ color: 'var(--text-dim)', fontSize: 12, fontWeight: 500 }}>{t.product.nutritionPer100}</span></div>
               <NutriGrid nutrition={nutr} t={t} />
-            </div>
+            </>
           )}
 
           {showMore && (
-            <button onClick={() => setMoreOpen(s => !s)} className="more-btn" type="button">
-              {moreOpen ? t.product.hide : t.product.more}
-              <span style={{ marginLeft: 8, opacity: 0.9 }}>{moreOpen ? '▴' : '▾'}</span>
-            </button>
-          )}
-
-          {moreOpen && (
-            <div style={{ marginTop: 10 }}>
-              {(nutr.sugar != null || nutr.fiber != null) && (
-                <div style={{ marginBottom: 10 }}>
-                  <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 6 }}>{t.product.more}</div>
-                  {nutr.sugar != null && <div className="info-row"><span className="info-label">{t.product.sugarOf}</span><span className="info-value">{formatNutri(nutr.sugar)} г</span></div>}
-                  {nutr.fiber != null && <div className="info-row"><span className="info-label">{t.product.fiber}</span><span className="info-value">{formatNutri(nutr.fiber)} г</span></div>}
+            <div style={{ marginTop: 14 }}>
+              <button className="more-btn" type="button" onClick={() => setMoreOpen((prev) => !prev)}>
+                {moreOpen ? t.product.hide : t.product.more}
+                <span style={{ marginLeft: 8, opacity: 0.9 }} aria-hidden="true">{moreOpen ? '▴' : '▾'}</span>
+              </button>
+              {moreOpen && (
+                <div style={{ marginTop: 10 }}>
+                  {product.ingredients && (
+                    <div style={{ marginBottom: 10 }}>
+                      <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 6 }}>{t.product.ingredients}</div>
+                      <div style={{ fontSize: 13, color: 'var(--text-sub)', lineHeight: 1.55 }}>{product.ingredients}</div>
+                    </div>
+                  )}
+                  {product.allergens?.length > 0 && (
+                    <div style={{ marginBottom: 10 }}>
+                      <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 6 }}>{t.product.allergens}</div>
+                      <div style={{ fontSize: 13, color: 'var(--text-sub)', lineHeight: 1.55 }}>{product.allergens.map((item) => ALLERGEN_NAMES[item] || item).join(', ')}</div>
+                    </div>
+                  )}
+                  {nutr?.sugar != null && (
+                    <div style={{ marginBottom: 10 }}>
+                      <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 6 }}>{t.product.sugarOf}</div>
+                      <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>{formatNutri(nutr.sugar)} г</div>
+                    </div>
+                  )}
+                  {nutr?.fiber != null && (
+                    <div>
+                      <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 6 }}>{t.product.fiber}</div>
+                      <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>{formatNutri(nutr.fiber)} г</div>
+                    </div>
+                  )}
                 </div>
               )}
-              {product.ingredients && (
-                <div>
-                  <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 6 }}>{t.product.ingredients}</div>
-                  <div style={{ fontSize: 13, color: 'var(--text-sub)', lineHeight: 1.55 }}>{product.ingredients}</div>
-                </div>
-              )}
             </div>
           )}
         </div>
-      </div>
-
-      {/* Подходит / Не подходит */}
-      <div className="section" style={{ paddingTop: 0 }}>
-        <div className={`status-badge ${fits ? 'fit' : 'no-fit'}`}>
-          <span className="status-icon">{fits ? '✅' : '❌'}</span>
-          <div>
-            <div className="status-text">{fits ? t.product.fitsShort : t.product.notFitsShort}</div>
-            <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 2 }}>
-              {fits ? t.product.fitsProfile : t.product.notFitsProfile}
-            </div>
-          </div>
-        </div>
-        <div className="card" style={{ marginTop: 12 }}>
-          <div className="section-title" style={{ marginBottom: 8 }}>{t.product.reasons}</div>
-          {reasons.map((r, i) => (
-            <div key={i} className="reason-item" style={{ animationDelay: `${0.1 + i * 0.08}s` }}>
-              <div className={`reason-dot ${r.type}`} />
-              <span className="reason-text">{r.text}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Аллергены */}
-      {product.allergens.length > 0 && (
-        <div className="section" style={{ paddingTop: 0 }}>
-          <div className="section-title" style={{ marginBottom: 10 }}>{t.product.allergens}</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {product.allergens.map(a => (
-              <span key={a} style={{ padding: '5px 12px', borderRadius: 20, fontSize: 13, background: 'rgba(220,38,38,0.1)', color: 'var(--error-bright)', border: '1px solid rgba(220,38,38,0.2)' }}>
-                ⚠️ {ALLERGEN_NAMES[a] || a}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* CTA */}
-      <div style={{ padding: '0 20px 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <button
-          className="btn btn-secondary btn-full"
-          onClick={() => navigate(buildProductAIPath(activeStoreSlug, ean, true), { state: { product } })}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8L12 2z" />
-            <path d="M4 14l1.2 3.2L8 18.4l-3.2 1.2L4 22l-1.2-2.4L0.6 18.4l2.2-1.2L4 14z" opacity="0.75" />
-          </svg>
-          {t.common.askAI}
-        </button>
-      </div>
-
-      <div style={{ padding: '0 20px 32px', fontSize: 11, color: 'var(--text-dim)', opacity: 0.45, textAlign: 'center' }}>
-        {t.product.dataSource} {ean}
       </div>
     </div>
   )
