@@ -1,17 +1,20 @@
+
 import { useState, useRef, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import products from '../data/products.json'
 import { useProfile } from '../contexts/ProfileContext.jsx'
+import { useStoreId } from '../contexts/StoreContext.jsx'
 import { useI18n } from '../utils/i18n.js'
 import KorsetAvatar from '../components/KorsetAvatar.jsx'
 import { askProductAI } from '../services/ai.js'
+import { resolveProductByRef } from '../domain/product/resolver.js'
+import { coerceProductEntity } from '../domain/product/normalizers.js'
 
 function getChips(t) {
   return [
-    { id: 'why',     label: t.ai.chips.why },
-    { id: 'cook',    label: t.ai.chips.cook },
+    { id: 'why', label: t.ai.chips.why },
+    { id: 'cook', label: t.ai.chips.cook },
     { id: 'compare', label: t.ai.chips.compare },
-    { id: 'store',   label: t.ai.chips.store },
+    { id: 'store', label: t.ai.chips.store },
   ]
 }
 
@@ -20,23 +23,33 @@ function buildChipQuestion(chipId, product, t) {
   return fn ? fn(product.name) : chipId
 }
 
-
 export default function AIScreen() {
   const { id, ean } = useParams()
   const navigate = useNavigate()
   const { state: navState } = useLocation()
   const { profile } = useProfile()
   const { lang, t } = useI18n()
-  const isExternal = Boolean(ean)
-  const product = isExternal
-    ? (navState?.product ?? null)
-    : products.find(p => p.id === id)
+  const storeId = useStoreId()
 
+  const [product, setProduct] = useState(navState?.product ? coerceProductEntity(navState.product) : null)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const bottomRef = useRef(null)
+
+  useEffect(() => {
+    let cancelled = false
+    if (product) return undefined
+
+    async function loadProduct() {
+      const nextProduct = await resolveProductByRef(ean ? { ean } : { canonicalId: id }, storeId)
+      if (!cancelled) setProduct(nextProduct)
+    }
+
+    loadProduct()
+    return () => { cancelled = true }
+  }, [id, ean, storeId, product])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -52,10 +65,10 @@ export default function AIScreen() {
     setLoading(true)
     try {
       const reply = await askProductAI(newMessages, product, profile, lang)
-      setMessages(prev => [...prev, { role: 'assistant', content: reply }])
-    } catch (e) {
-      setError(`${t.ai.errorPrefix} ${e.message}`)
-      setMessages(prev => prev.slice(0, -1))
+      setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
+    } catch (err) {
+      setError(`${t.ai.errorPrefix} ${err.message}`)
+      setMessages((prev) => prev.slice(0, -1))
     } finally {
       setLoading(false)
     }
@@ -63,8 +76,8 @@ export default function AIScreen() {
 
   if (!product) {
     return (
-      <div className="screen" style={{ display:'flex', alignItems:'center', justifyContent:'center' }}>
-        <p style={{ color:'var(--text-dim)' }}>{t.common.notFound}</p>
+      <div className="screen" style={{ display: 'grid', placeItems: 'center' }}>
+        <p style={{ color: 'var(--text-dim)' }}>{t.common.loading}</p>
       </div>
     )
   }
@@ -72,234 +85,99 @@ export default function AIScreen() {
   const productImage = product.image || product.images?.[0] || null
 
   return (
-    <div style={{ position:'fixed', inset:0, background:'var(--bg)', display:'flex', flexDirection:'column' }}>
-
-      {/* ── Хедер: назад + "Körset AI" + статус ── */}
-      <div style={{
-        padding: '14px 20px 14px',
-        background: 'var(--bg)',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
-        display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0,
-      }}>
-        {/* Кнопка назад */}
+    <div style={{ position: 'fixed', inset: 0, background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '14px 20px 14px', background: 'var(--bg)', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
         <button
-          onClick={() => isExternal
-            ? navigate(`/product/ext/${ean}`, { replace: true, state: { product } })
-            : navigate(`/product/${id}`, { replace: true })
-          }
-          style={{
-            width: 38, height: 38, borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)',
-            background: 'rgba(255,255,255,0.05)', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-          }}
+          onClick={() => navigate(`/product/${encodeURIComponent(product.canonicalId)}`, { replace: true, state: { product } })}
+          style={{ width: 38, height: 38, borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="2" strokeLinecap="round">
             <path d="M19 12H5M12 5l-7 7 7 7"/>
           </svg>
         </button>
-
-        {/* Аватар */}
         <KorsetAvatar size={38} />
-
-        {/* Имя + статус */}
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', fontFamily: 'var(--font-display)', lineHeight: 1.2 }}>
-            Körset AI
-          </div>
-          <div style={{ fontSize: 12, color: '#34D399', fontWeight: 500, marginTop: 1 }}>
-            {t.common.online}
-          </div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', fontFamily: 'var(--font-display)', lineHeight: 1.2 }}>Körset AI</div>
+          <div style={{ fontSize: 12, color: '#34D399', fontWeight: 500, marginTop: 1 }}>{t.common.online}</div>
         </div>
       </div>
 
-      {/* ── Контекст товара ── */}
-      <div style={{
-        margin: '12px 16px 4px',
-        padding: '10px 14px',
-        background: 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 14,
-        display: 'flex', alignItems: 'center', gap: 12,
-        flexShrink: 0,
-      }}>
-        {/* Фото */}
-        <div style={{
-          width: 42, height: 42, borderRadius: 10, overflow: 'hidden', flexShrink: 0,
-          background: 'rgba(255,255,255,0.06)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          {productImage
-            ? <img src={productImage} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
-            : <span style={{ fontSize: 22 }}>🛍️</span>
-          }
+      <div style={{ margin: '12px 16px 4px', padding: '10px 14px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+        <div style={{ width: 42, height: 42, borderRadius: 10, overflow: 'hidden', flexShrink: 0, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {productImage ? <img src={productImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}/> : <span style={{ fontSize: 22 }}>🛍️</span>}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 2 }}>
-            {t.ai.productContext}
-          </div>
-          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {product.name}
-          </div>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 2 }}>{t.ai.productContext}</div>
+          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{product.name}</div>
         </div>
       </div>
 
-      {/* ── Сообщения ── */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-        {/* Дисклеймер ИИ */}
         <div style={{ background: 'rgba(250,204,21,0.08)', border: '1px solid rgba(250,204,21,0.2)', padding: '10px 14px', borderRadius: 12, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
           <span style={{ fontSize: 16 }}>⚠️</span>
           <div style={{ fontSize: 11, color: '#FDE68A', lineHeight: 1.4, opacity: 0.9 }}>
-            {lang === 'kz' ? 'Ескерту: Жасанды интеллект қателесуі мүмкін. Құрамды әрқашан қаптамадан тексеріңіз. Бұл тек ұсыныс ретінде берілген ақпарат.' : 'Внимание: ИИ может ошибаться. Всегда проверяйте состав на упаковке (особенно при строгих правилах Халяль и сильных аллергиях).'}
+            {lang === 'kz' ? 'Ескерту: Жасанды интеллект қателесуі мүмкін. Құрамды әрқашан қаптамадан тексеріңіз.' : 'Внимание: ИИ может ошибаться. Всегда проверяйте состав на упаковке.'}
           </div>
         </div>
 
-        {/* Пустое состояние */}
         {messages.length === 0 && (
           <div style={{ padding: '24px 0 8px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
             <KorsetAvatar size={34} />
-            <div style={{
-              background: '#151525', border: '1px solid rgba(255,255,255,0.08)',
-              padding: '13px 16px', borderRadius: '4px 18px 18px 18px',
-              maxWidth: '85%', fontSize: 15, lineHeight: 1.65, color: 'rgba(255,255,255,0.85)',
-            }}>
+            <div style={{ background: '#151525', border: '1px solid rgba(255,255,255,0.08)', padding: '13px 16px', borderRadius: '4px 18px 18px 18px', maxWidth: '85%', fontSize: 15, lineHeight: 1.65, color: 'rgba(255,255,255,0.85)' }}>
               {t.ai.welcomeProduct} <strong style={{ color: '#fff' }}>{product.name}</strong> {t.ai.welcomeProductEnd}
             </div>
           </div>
         )}
 
-        {/* Переписка */}
         {messages.map((msg, i) => (
-          <div key={i} style={{
-            display: 'flex',
-            justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
-            alignItems: 'flex-end',
-            gap: 10,
-          }}>
-            {/* Аватар AI слева */}
+          <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', alignItems: 'flex-end', gap: 10 }}>
             {msg.role === 'assistant' && <KorsetAvatar size={34} />}
-
-            <div style={msg.role === 'user' ? {
-              background: '#7C3AED',
-              padding: '12px 16px',
-              borderRadius: '18px 18px 4px 18px',
-              maxWidth: '78%',
-              fontSize: 15, lineHeight: 1.65, color: '#fff',
-              boxShadow: '0 4px 16px rgba(124,58,237,0.35)',
-            } : {
-              background: '#151525',
-              border: '1px solid rgba(255,255,255,0.08)',
-              padding: '13px 16px',
-              borderRadius: '4px 18px 18px 18px',
-              maxWidth: '85%',
-              fontSize: 15, lineHeight: 1.65,
-              color: 'rgba(255,255,255,0.85)',
+            <div style={{
+              background: msg.role === 'user' ? 'linear-gradient(135deg, rgba(124,58,237,0.95), rgba(91,33,182,0.95))' : '#151525',
+              border: msg.role === 'user' ? 'none' : '1px solid rgba(255,255,255,0.08)',
+              padding: '12px 14px',
+              borderRadius: msg.role === 'user' ? '18px 18px 4px 18px' : '4px 18px 18px 18px',
+              maxWidth: '82%',
+              color: '#fff',
+              fontSize: 14,
+              lineHeight: 1.6,
+              whiteSpace: 'pre-wrap',
             }}>
               {msg.content}
             </div>
           </div>
         ))}
 
-        {/* Индикатор печатает */}
         {loading && (
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             <KorsetAvatar size={34} />
-            <div style={{
-              background: '#151525', border: '1px solid rgba(255,255,255,0.08)',
-              padding: '14px 18px', borderRadius: '4px 18px 18px 18px',
-            }}>
-              <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-                {[0,1,2].map(i => (
-                  <div key={i} style={{
-                    width: 7, height: 7, borderRadius: '50%',
-                    background: 'rgba(167,139,250,0.7)',
-                    animation: `bounce 1.2s ease-in-out ${i * 0.2}s infinite`,
-                  }}/>
-                ))}
-              </div>
+            <div style={{ background: '#151525', border: '1px solid rgba(255,255,255,0.08)', padding: '12px 14px', borderRadius: '4px 18px 18px 18px', color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>
+              {lang === 'kz' ? 'Жауап дайындап жатырмын...' : 'Думаю над ответом...'}
             </div>
           </div>
         )}
 
-        {error && (
-          <div style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.2)', borderRadius: 12, padding: '12px 14px', fontSize: 13, color: '#F87171' }}>
-            {error}
-          </div>
-        )}
+        {error && <div style={{ color: '#FCA5A5', fontSize: 13 }}>{error}</div>}
 
-        <div ref={bottomRef} />
-      </div>
-
-      {/* ── Поле ввода ── */}
-      <div style={{
-        padding: '10px 16px calc(108px + env(safe-area-inset-bottom, 0px))',
-        background: '#0C0C18',
-        borderTop: '1px solid rgba(255,255,255,0.06)',
-        flexShrink: 0,
-      }}>
-        {/* Быстрые вопросы */}
-        {messages.length === 0 && (
-          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 10, scrollbarWidth: 'none' }}>
-            {getChips(t).map(chip => (
-              <button key={chip.id} onClick={() => sendMessage(buildChipQuestion(chip.id, product, t))} disabled={loading}
-                style={{
-                  flexShrink: 0, padding: '7px 14px', borderRadius: 20,
-                  fontSize: 13, fontWeight: 500, cursor: 'pointer',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  background: 'rgba(255,255,255,0.05)',
-                  color: 'rgba(255,255,255,0.7)',
-                  fontFamily: 'var(--font-body)',
-                  whiteSpace: 'nowrap',
-                }}>
+        {messages.length === 0 && !loading && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {getChips(t).map((chip) => (
+              <button key={chip.id} onClick={() => sendMessage(buildChipQuestion(chip.id, product, t))} style={{ padding: '10px 12px', borderRadius: 999, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#E8E8FF', fontSize: 13, cursor: 'pointer' }}>
                 {chip.label}
               </button>
             ))}
           </div>
         )}
 
-        {/* Инпут */}
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <input
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input) } }}
-            placeholder={t.ai.inputProduct}
-            disabled={loading}
-            style={{
-              flex: 1,
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 24,
-              padding: '13px 18px',
-              fontSize: 15,
-              color: '#fff',
-              fontFamily: 'var(--font-body)',
-              outline: 'none',
-            }}
-          />
-          <button
-            onClick={() => sendMessage(input)}
-            disabled={loading || !input.trim()}
-            style={{
-              width: 48, height: 48, borderRadius: '50%', border: 'none', cursor: input.trim() ? 'pointer' : 'default',
-              background: 'linear-gradient(135deg, #7C3AED, #6D28D9)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              boxShadow: '0 4px 16px rgba(124,58,237,0.4)',
-              transition: 'all 0.2s ease',
-            }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
-              <path d="M12 19V5M5 12l7-7 7 7"/>
-            </svg>
-          </button>
-        </div>
+        <div ref={bottomRef} />
       </div>
 
-      <style>{`
-        @keyframes bounce {
-          0%, 60%, 100% { transform: translateY(0) }
-          30% { transform: translateY(-6px) }
-        }
-      `}</style>
+      <div style={{ padding: '12px 16px 18px', borderTop: '1px solid rgba(255,255,255,0.06)', background: 'var(--bg)' }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+          <textarea value={input} onChange={(e) => setInput(e.target.value)} rows={1} placeholder={t.ai.inputProduct} style={{ flex: 1, resize: 'none', borderRadius: 16, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#fff', padding: '12px 14px', fontSize: 14, minHeight: 48, maxHeight: 120 }} />
+          <button onClick={() => sendMessage(input)} disabled={!input.trim() || loading} style={{ minWidth: 48, height: 48, borderRadius: 16, border: 'none', background: input.trim() && !loading ? '#7C3AED' : 'rgba(255,255,255,0.08)', color: '#fff', cursor: input.trim() && !loading ? 'pointer' : 'default' }}>➜</button>
+        </div>
+      </div>
     </div>
   )
 }

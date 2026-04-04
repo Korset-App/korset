@@ -71,7 +71,8 @@ export function UserDataProvider({ children }) {
       if (!isFav) {
         // Добавление лайка (upsert для пущей надежности по ключу user_id + ean)
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        const validGlobalId = uuidRegex.test(product.id) ? product.id : null;
+        const candidateGlobalId = product?.sourceMeta?.globalProductId || product?.id || null;
+        const validGlobalId = candidateGlobalId && uuidRegex.test(candidateGlobalId) ? candidateGlobalId : null;
 
         const { error } = await supabase.from('user_favorites').upsert({
           user_id: internalUserId,
