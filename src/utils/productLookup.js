@@ -161,11 +161,15 @@ async function logScan({ ean, foundStatus, globalProductId, storeProductId, stor
       if (data) internalUserId = data.id
     }
 
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const validGlobalId = globalProductId && uuidRegex.test(globalProductId) ? globalProductId : null;
+    const validStoreProductId = storeProductId && uuidRegex.test(storeProductId) ? storeProductId : null;
+
     const { error } = await supabase.from('scan_events').insert({
       ean,
       found_status:       foundStatus,
-      global_product_id:  globalProductId  || null,
-      store_product_id:   storeProductId   || null,
+      global_product_id:  validGlobalId,
+      store_product_id:   validStoreProductId,
       store_id:           storeId          || null,
       user_id:            internalUserId,
       fit_result:         fitResult        ?? null,

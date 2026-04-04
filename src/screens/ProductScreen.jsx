@@ -97,10 +97,10 @@ export default function ProductScreen() {
   const product = useMemo(() => products.find((p) => p.id === id), [id])
 
   useEffect(() => {
-    if (internalUserId && product) {
-      supabase.from('user_favorites').select('id').eq('user_id', internalUserId).eq('global_product_id', product.id).maybeSingle()
+    if (internalUserId && product && product.ean) {
+      supabase.from('user_favorites').select('id').eq('user_id', internalUserId).eq('ean', product.ean).maybeSingle()
         .then(({ data, error }) => {
-          if (error) console.warn('Fav check error:', error.message)
+          if (error && error.code !== 'PGRST116') console.warn('Fav check error:', error.message)
           setIsFavorite(!!data)
         })
     } else {
@@ -138,16 +138,18 @@ export default function ProductScreen() {
     const newVal = !isFavorite
     setIsFavorite(newVal)
     try {
+      const validGlobalId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(product.id) ? product.id : null;
+
       if (newVal) {
-        // First check if it exists:
-        const { data } = await supabase.from('user_favorites').select('id').eq('user_id', finalUserId).eq('global_product_id', product.id).maybeSingle()
+        // First check if it exists by EAN:
+        const { data } = await supabase.from('user_favorites').select('id').eq('user_id', finalUserId).eq('ean', product.ean).maybeSingle()
         if (!data) {
-          const { error } = await supabase.from('user_favorites').insert({ user_id: finalUserId, global_product_id: product.id, ean: product.ean || 'LOCAL' })
+          const { error } = await supabase.from('user_favorites').insert({ user_id: finalUserId, global_product_id: validGlobalId, ean: product.ean })
           if (error) throw error
         }
       } else {
         const { error } = await supabase.from('user_favorites')
-          .delete().eq('user_id', finalUserId).eq('global_product_id', product.id)
+          .delete().eq('user_id', finalUserId).eq('ean', product.ean)
         if (error) throw error
       }
     } catch (err) {
