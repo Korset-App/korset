@@ -152,6 +152,7 @@ export default function ProductScreen() {
       }
     } catch (err) {
       console.error('Favorite toggle error:', err.message)
+      alert("Ошибка базы данных: " + err.message + (err.details ? " | " + err.details : "") + (err.hint ? " | " + err.hint : ""))
       setIsFavorite(!newVal) // revert on error
     }
   }
