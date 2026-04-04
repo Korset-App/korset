@@ -1,4 +1,4 @@
-import { getGlobalDemoProducts, getStoreCatalogProductByEan } from './storeCatalog.js'
+import { getGlobalDemoProducts, getStoreCatalogProductByEan, getGlobalProductByEan } from './storeCatalog.js'
 import { supabase } from './supabase.js'
 import { enrichProductAI } from '../services/ai.js'
 
@@ -375,7 +375,7 @@ export async function lookupProduct(ean, storeId = null) {
     return { type: 'local', product: globalProduct }
   }
 
-  const local = getGlobalDemoProducts().find((p) => p.ean === ean)
+  const local = getGlobalProductByEan(ean)
   if (local) {
     logScan({ ean, foundStatus: 'found_global', storeId })
     cacheLocalScan(local, { storeId })

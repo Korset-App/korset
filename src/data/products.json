@@ -45,7 +45,11 @@
     "images": [
       "/products/1.png"
     ],
-    "halalStatus": "no"
+    "halalStatus": "no",
+    "alternateEans": [
+      "5900951311505",
+      "5000159461122"
+    ]
   },
   {
     "id": "p002",
@@ -93,7 +97,11 @@
     "images": [
       "/products/1_2.png"
     ],
-    "halalStatus": "no"
+    "halalStatus": "no",
+    "alternateEans": [
+      "5000159559065",
+      "5000159407410"
+    ]
   },
   {
     "id": "p003",

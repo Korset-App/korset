@@ -6,6 +6,16 @@ function cloneProduct(product) {
   return product ? JSON.parse(JSON.stringify(product)) : null
 }
 
+function getAllKnownEans(product) {
+  const eans = [product?.ean, ...(Array.isArray(product?.alternateEans) ? product.alternateEans : [])]
+  return [...new Set(eans.filter(Boolean).map(String))]
+}
+
+function matchesProductEan(product, ean) {
+  if (!product || !ean) return false
+  return getAllKnownEans(product).includes(String(ean))
+}
+
 function applyStoreOverlay(product, overlay = null, storeSlug = null) {
   if (!product) return null
   const next = cloneProduct(product)
@@ -22,6 +32,7 @@ function applyStoreOverlay(product, overlay = null, storeSlug = null) {
     isStoreProduct,
     storeSlug: storeSlug || null,
     canonicalId: next.ean || next.id,
+    image: next.image || next.images?.[0] || null,
   }
 }
 
@@ -44,18 +55,18 @@ export function getStoreCatalogProducts(storeSlug) {
 }
 
 export function getGlobalProductByEan(ean) {
-  return getGlobalDemoProducts().find((product) => product.ean === ean) || null
+  return getGlobalDemoProducts().find((product) => matchesProductEan(product, ean)) || null
 }
 
 export function getStoreCatalogProductByEan(storeSlug, ean) {
-  return getStoreCatalogProducts(storeSlug).find((product) => product.ean === ean) || null
+  return getStoreCatalogProducts(storeSlug).find((product) => matchesProductEan(product, ean)) || null
 }
 
 export function getAnyKnownProductByRef(ref, storeSlug = null) {
   if (!ref) return null
   return (
-    getStoreCatalogProducts(storeSlug).find((product) => product.ean === ref || product.id === ref) ||
-    getGlobalDemoProducts().find((product) => product.ean === ref || product.id === ref) ||
+    getStoreCatalogProducts(storeSlug).find((product) => matchesProductEan(product, ref) || product.id === ref) ||
+    getGlobalDemoProducts().find((product) => matchesProductEan(product, ref) || product.id === ref) ||
     null
   )
 }
@@ -66,4 +77,8 @@ export function getProductByEan(ean, storeSlug = null) {
 
 export function isStoreCatalogProduct(storeSlug, ean) {
   return Boolean(getStoreCatalogProductByEan(storeSlug, ean))
+}
+
+export function getAllKnownEansForProduct(product) {
+  return getAllKnownEans(product)
 }
