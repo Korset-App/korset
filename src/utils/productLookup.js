@@ -343,7 +343,9 @@ function cacheLocalScan(product, meta = {}) {
     }
     const filtered = list.filter((item) => item?.ean !== product.ean)
     filtered.unshift(nextItem)
-    localStorage.setItem('korset_scan_history_cache', JSON.stringify(filtered.slice(0, 50)))
+    const nextList = filtered.slice(0, 50)
+    localStorage.setItem('korset_scan_history_cache', JSON.stringify(nextList))
+    window.dispatchEvent(new CustomEvent('korset:scan_added', { detail: { count: nextList.length, ean: product.ean } }))
   } catch {}
 }
 
