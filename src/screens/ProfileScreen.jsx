@@ -5,7 +5,7 @@ import { useProfile } from '../contexts/ProfileContext.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { useUserData } from '../contexts/UserDataContext.jsx'
-import { buildHistoryPath } from '../utils/routes.js'
+import { buildHistoryPath, buildNotificationsPath } from '../utils/routes.js'
 import { supabase } from '../utils/supabase.js'
 import { ALLERGENS } from '../data/allergens.js'
 import { DIET_GOALS } from '../data/dietGoals.js'
@@ -220,9 +220,9 @@ export default function ProfileScreen() {
 
   const settingsMain = useMemo(() => ([
     { icon: <PrefIcon type="user" active />, label: lang === 'kz' ? 'Жеке деректер' : 'Личные данные', onClick: () => navigate('/setup-profile?mode=edit') },
-    { icon: <PrefIcon type="bell" active />, label: lang === 'kz' ? 'Хабарландырулар' : 'Уведомления' },
+    { icon: <PrefIcon type="bell" active />, label: lang === 'kz' ? 'Хабарландырулар' : 'Уведомления', onClick: () => navigate(buildNotificationsPath(currentStore?.slug || null)) },
     { icon: <PrefIcon type="privacy" active />, label: lang === 'kz' ? 'Құпиялық' : 'Приватность' },
-  ]), [lang, navigate])
+  ]), [lang, navigate, currentStore?.slug])
 
   const settingsApp = useMemo(() => ([
     {

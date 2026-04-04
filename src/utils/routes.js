@@ -23,6 +23,10 @@ export function buildHistoryPath(storeSlug = null, tab = null) {
   return tab ? `${base}?tab=${tab}` : base
 }
 
+
+export function buildNotificationsPath(storeSlug = null) {
+  return storeSlug ? `${buildStoreAppBase(storeSlug)}/notifications` : '/notifications'
+}
 export function buildAIHomePath(storeSlug = null) {
   return storeSlug ? `${buildStoreAppBase(storeSlug)}/ai` : '/ai'
 }

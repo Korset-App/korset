@@ -18,6 +18,7 @@ import HistoryScreen from './screens/HistoryScreen.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import StoresScreen from './screens/StoresScreen.jsx'
 import StorePublicScreen from './screens/StorePublicScreen.jsx'
+import NotificationSettingsScreen from './screens/NotificationSettingsScreen.jsx'
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx'
 import { ProfileProvider } from './contexts/ProfileContext.jsx'
 import { StoreProvider } from './contexts/StoreContext.jsx'
@@ -56,6 +57,7 @@ function AppInner() {
         <Route path="/s/:storeSlug/scan" element={<ScanScreen />} />
         <Route path="/s/:storeSlug/ai" element={<AIAssistantScreen />} />
         <Route path="/s/:storeSlug/history" element={<HistoryScreen />} />
+        <Route path="/s/:storeSlug/notifications" element={<NotificationSettingsScreen />} />
         <Route path="/s/:storeSlug/product/:ean" element={<ProductScreen />} />
         <Route path="/s/:storeSlug/product/:ean/alternatives" element={<AlternativesScreen />} />
         <Route path="/s/:storeSlug/product/:ean/ai" element={<AIScreen />} />
@@ -67,6 +69,7 @@ function AppInner() {
         <Route path="/scan" element={<ScanScreen />} />
         <Route path="/ai" element={<AIAssistantScreen />} />
         <Route path="/history" element={<HistoryScreen />} />
+        <Route path="/notifications" element={<NotificationSettingsScreen />} />
         <Route path="/auth" element={<AuthScreen />} />
         <Route path="/setup-profile" element={<SetupProfileScreen />} />
         <Route path="/qr-print" element={<QRPrintScreen />} />

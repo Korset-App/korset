@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { useAuth } from './AuthContext.jsx'
 import { supabase } from '../utils/supabase.js'
+import { DEFAULT_NOTIFICATION_SETTINGS, normalizeNotificationSettings } from '../utils/notificationSettings.js'
 
 const ProfileContext = createContext(null)
 
@@ -9,13 +10,20 @@ const DEFAULT_PROFILE = {
   dietGoals: [],
   allergens: [],
   customAllergens: [],
-  priority: 'balanced' // 'balanced', 'price', 'quality'
+  priority: 'balanced', // 'balanced', 'price', 'quality'
+  notifications: { ...DEFAULT_NOTIFICATION_SETTINGS }
 }
 
 function loadProfileLocal() {
   try {
     const raw = localStorage.getItem('korset_profile')
-    return raw ? { ...DEFAULT_PROFILE, ...JSON.parse(raw) } : DEFAULT_PROFILE
+    if (!raw) return DEFAULT_PROFILE
+    const parsed = JSON.parse(raw)
+    return {
+      ...DEFAULT_PROFILE,
+      ...parsed,
+      notifications: normalizeNotificationSettings(parsed?.notifications),
+    }
   } catch {
     return DEFAULT_PROFILE
   }
@@ -31,7 +39,7 @@ export function ProfileProvider({ children }) {
     supabase.from('users').select('preferences').eq('auth_id', user.id).maybeSingle()
       .then(({ data, error }) => {
         if (!error && data?.preferences) {
-          const mergedPrefs = { ...DEFAULT_PROFILE, ...data.preferences }
+          const mergedPrefs = { ...DEFAULT_PROFILE, ...data.preferences, notifications: normalizeNotificationSettings(data.preferences?.notifications) }
           setProfileState(mergedPrefs)
           localStorage.setItem('korset_profile', JSON.stringify(mergedPrefs))
         }
@@ -42,7 +50,7 @@ export function ProfileProvider({ children }) {
   const updateProfile = async (newProfile) => {
     let merged
     setProfileState(prev => {
-      merged = { ...prev, ...newProfile }
+      merged = { ...prev, ...newProfile, notifications: normalizeNotificationSettings(newProfile?.notifications ?? prev?.notifications) }
       localStorage.setItem('korset_profile', JSON.stringify(merged))
       return merged
     })
