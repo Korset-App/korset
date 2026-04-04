@@ -14,11 +14,20 @@ export function UserDataProvider({ children }) {
   // Флаг загрузки (на случай если мы хотим показывать лоадер, но в 99% он не понадобится)
   const [userDataLoaded, setUserDataLoaded] = useState(false)
 
+  const getLocalScanCount = () => {
+    try {
+      const raw = JSON.parse(localStorage.getItem('korset_scan_history_cache') || '[]')
+      return Array.isArray(raw) ? raw.length : 0
+    } catch {
+      return 0
+    }
+  }
+
   useEffect(() => {
     // Если нет юзера, быстро очищаем стейт в ноль
     if (!user || !internalUserId) {
       setFavoriteEans(new Set())
-      setScanCount(0)
+      setScanCount(getLocalScanCount())
       setUserDataLoaded(true)
       return
     }
@@ -34,7 +43,7 @@ export function UserDataProvider({ children }) {
         
         // 2. Грузим количество сканирований для профиля
         const { count } = await supabase.from('scan_events').select('ean', { count: 'exact', head: true }).eq('user_id', internalUserId)
-        setScanCount(count || 0)
+        setScanCount(Math.max(count || 0, getLocalScanCount()))
       } catch (err) {
         console.error('Failed to load user data cache', err)
       }
@@ -106,13 +115,22 @@ export function UserDataProvider({ children }) {
 
   // Метод для инкремента истории сканирований (используется ProductScreen)
   const incrementScanCount = () => {
-    setScanCount(prev => prev + 1)
+    setScanCount(prev => Math.max(prev + 1, getLocalScanCount()))
   }
 
   useEffect(() => {
     const handleScanAdded = () => incrementScanCount()
+    const handleStorage = (e) => {
+      if (!e || e.key === 'korset_scan_history_cache') {
+        setScanCount((prev) => Math.max(prev, getLocalScanCount()))
+      }
+    }
     window.addEventListener('korset:scan_added', handleScanAdded)
-    return () => window.removeEventListener('korset:scan_added', handleScanAdded)
+    window.addEventListener('storage', handleStorage)
+    return () => {
+      window.removeEventListener('korset:scan_added', handleScanAdded)
+      window.removeEventListener('storage', handleStorage)
+    }
   }, [])
 
   return (
