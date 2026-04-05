@@ -71,6 +71,16 @@ export default function ProfileScreen() {
 
   const fontAdvent = "'Advent Pro', sans-serif"
 
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut({ scope: 'local' })
+    } catch (error) {
+      console.error('signOut failed', error)
+    } finally {
+      navigate(buildProfilePath(currentStore?.slug || null), { replace: true })
+    }
+  }
+
   return (
     <>
       <style>{`
@@ -377,7 +387,7 @@ export default function ProfileScreen() {
               {user && (
                 <>
                   <div style={{ height: 1, background: 'rgba(255,255,255,0.03)', margin: '0 18px' }} />
-                  <div className="settings-item" onClick={() => supabase.auth.signOut()} style={{
+                  <div className="settings-item" onClick={handleLogout} style={{
                     display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', cursor: 'pointer'
                   }}>
                     <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(220,38,38,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

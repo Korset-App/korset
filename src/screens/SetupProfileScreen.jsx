@@ -9,6 +9,13 @@ import ProfileAvatar from '../components/ProfileAvatar.jsx'
 
 const stepCount = 2
 
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
+  ])
+}
+
 const compressImage = (file) => new Promise((resolve, reject) => {
   const reader = new FileReader()
   reader.readAsDataURL(file)
@@ -201,24 +208,41 @@ export default function SetupProfileScreen() {
     setLoading(true)
     try {
       const avatarValue = selectedAvatarId === 'custom' ? customAvatarUrl : selectedAvatarId
-      const { error } = await supabase.auth.updateUser({
+
+      const updateAuthTask = supabase.auth.updateUser({
         data: {
           full_name: name.trim(),
           avatar_id: avatarValue,
           profile_setup_done: true,
         },
       })
-      if (error) throw error
 
-      await supabase
+      const upsertProfileTask = supabase
         .from('users')
-        .update({ name: name.trim(), updated_at: new Date().toISOString() })
-        .eq('auth_id', user.id)
+        .upsert({
+          auth_id: user.id,
+          name: name.trim(),
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'auth_id' })
 
-      await refreshAccountProfile()
+      const [authResult, profileResult] = await Promise.all([
+        withTimeout(updateAuthTask, 8000),
+        withTimeout(upsertProfileTask, 8000),
+      ])
+
+      if (authResult?.error) throw authResult.error
+      if (profileResult?.error) throw profileResult.error
+
+      try {
+        await withTimeout(refreshAccountProfile(), 2500)
+      } catch (refreshError) {
+        console.warn('refreshAccountProfile skipped', refreshError)
+      }
+
       navigate(backTarget, { replace: true })
     } catch (error) {
-      alert(error.message || 'Не удалось сохранить профиль')
+      console.error('saveProfile failed', error)
+      alert(error?.message || 'Не удалось сохранить профиль')
     } finally {
       setLoading(false)
     }
@@ -239,10 +263,10 @@ export default function SetupProfileScreen() {
 
   if (editMode) {
     return (
-      <div className="screen" style={{ background: '#07070F', paddingTop: 0, paddingBottom: 'max(28px, env(safe-area-inset-bottom))' }}>
-        <div style={{ padding: 'max(20px, env(safe-area-inset-top)) 20px 28px' }}>
+      <div className="screen" style={{ background: '#07070F', paddingTop: 0, paddingBottom: 'max(28px, env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
+        <div style={{ padding: 'max(20px, env(safe-area-inset-top)) 20px calc(108px + env(safe-area-inset-bottom))', flex: 1, overflowY: 'auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 22 }}>
-            <button onClick={goBack} style={{ width: 42, height: 42, borderRadius: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <button onClick={goBack} aria-label="Назад" style={{ width: 44, height: 44, borderRadius: 14, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
             </button>
             <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#fff', letterSpacing: '-0.02em' }}>{texts.editTitle}</h1>
@@ -271,6 +295,8 @@ export default function SetupProfileScreen() {
             />
           </SurfaceCard>
 
+        </div>
+        <div style={{ position: 'sticky', bottom: 0, padding: '14px 20px calc(16px + env(safe-area-inset-bottom))', background: 'linear-gradient(180deg, rgba(7,7,15,0) 0%, rgba(7,7,15,0.82) 18%, #07070F 48%)', zIndex: 20 }}>
           <button onClick={onPrimaryAction} disabled={loading || !canContinueName || !hasAvatar} style={{
             width: '100%', height: 56, borderRadius: 18, border: 'none', cursor: loading ? 'default' : 'pointer',
             background: loading || !canContinueName || !hasAvatar ? 'rgba(139,92,246,0.35)' : '#7C3AED',
@@ -284,10 +310,10 @@ export default function SetupProfileScreen() {
   }
 
   return (
-    <div className="screen" style={{ background: '#07070F', paddingTop: 0, paddingBottom: 'max(32px, env(safe-area-inset-bottom))' }}>
-      <div style={{ padding: 'max(20px, env(safe-area-inset-top)) 20px 24px' }}>
+    <div className="screen" style={{ background: '#07070F', paddingTop: 0, paddingBottom: 'max(32px, env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
+      <div style={{ padding: 'max(20px, env(safe-area-inset-top)) 20px calc(118px + env(safe-area-inset-bottom))', flex: 1, overflowY: 'auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-          <button onClick={goBack} style={{ width: 42, height: 42, borderRadius: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <button onClick={goBack} aria-label="Назад" style={{ width: 44, height: 44, borderRadius: 14, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
           </button>
           <div style={{ minWidth: 96, textAlign: 'center' }}>
@@ -328,6 +354,8 @@ export default function SetupProfileScreen() {
           </SurfaceCard>
         )}
 
+      </div>
+      <div style={{ position: 'sticky', bottom: 0, padding: '14px 20px calc(16px + env(safe-area-inset-bottom))', background: 'linear-gradient(180deg, rgba(7,7,15,0) 0%, rgba(7,7,15,0.82) 18%, #07070F 48%)', zIndex: 20 }}>
         <button onClick={onPrimaryAction} disabled={loading || (step === 1 ? !canContinueName : !hasAvatar)} style={{
           width: '100%', height: 56, borderRadius: 18, border: 'none', cursor: loading ? 'default' : 'pointer',
           background: loading || (step === 1 ? !canContinueName : !hasAvatar) ? 'rgba(139,92,246,0.35)' : '#7C3AED',
