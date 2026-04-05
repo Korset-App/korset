@@ -10,6 +10,8 @@ import AlternativesScreen from './screens/AlternativesScreen.jsx'
 import AIScreen from './screens/AIScreen.jsx'
 import AIAssistantScreen from './screens/AIAssistantScreen.jsx'
 import QRPrintScreen from './screens/QRPrintScreen.jsx'
+import StoresScreen from './screens/StoresScreen.jsx'
+import StorePublicScreen from './screens/StorePublicScreen.jsx'
 import BottomNav from './components/BottomNav.jsx'
 import OnboardingScreen from './screens/OnboardingScreen.jsx'
 import AuthScreen from './screens/AuthScreen.jsx'
@@ -52,9 +54,23 @@ function AppInner() {
         <Route path="/ai"                       element={<AIAssistantScreen />} />
         <Route path="/history"                  element={<HistoryScreen />} />
         <Route path="/notifications"            element={<NotificationSettingsScreen />} />
-        <Route path="/s/:storeSlug/notifications" element={<NotificationSettingsScreen />} />
+        <Route path="/stores"                   element={<StoresScreen />} />
         <Route path="/privacy"                  element={<PrivacySettingsScreen />} />
+        <Route path="/stores/:storeSlug"        element={<StorePublicScreen />} />
+        <Route path="/s/:storeSlug"             element={<Navigate to="catalog" replace />} />
+        <Route path="/s/:storeSlug/catalog"     element={<CatalogScreen />} />
+        <Route path="/s/:storeSlug/scan"        element={<ScanScreen />} />
+        <Route path="/s/:storeSlug/ai"          element={<AIAssistantScreen />} />
+        <Route path="/s/:storeSlug/history"     element={<HistoryScreen />} />
+        <Route path="/s/:storeSlug/profile"     element={<ProfileScreen />} />
+        <Route path="/s/:storeSlug/notifications" element={<NotificationSettingsScreen />} />
         <Route path="/s/:storeSlug/privacy"    element={<PrivacySettingsScreen />} />
+        <Route path="/s/:storeSlug/product/ext/:ean" element={<ExternalProductScreen />} />
+        <Route path="/s/:storeSlug/product/ext/:ean/ai" element={<AIScreen />} />
+        <Route path="/s/:storeSlug/product/:id" element={<ProductScreen />} />
+        <Route path="/s/:storeSlug/product/:id/alternatives" element={<AlternativesScreen />} />
+        <Route path="/s/:storeSlug/product/:id/ai" element={<AIScreen />} />
+
         <Route path="/auth"                     element={<AuthScreen />} />
         <Route path="/setup-profile"            element={<SetupProfileScreen />} />
         <Route path="/qr-print"                 element={<QRPrintScreen />} />

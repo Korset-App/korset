@@ -373,7 +373,7 @@ export default function HomeScreen() {
         </section>
 
         {/* How it works */}
-        <section className="section-padding" style={{ maxWidth: 1200, margin: '0 auto' }}>
+        <section id="b2b-section" className="section-padding" style={{ maxWidth: 1200, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 64 }}>
             <h2 className="font-headline" style={{ fontSize: 'clamp(32px, 5vw, 48px)', fontWeight: 700, marginBottom: 16 }}>Как это работает</h2>
             <div style={{ width: 80, height: 4, background: 'var(--primary)', margin: '0 auto', borderRadius: 99 }}></div>
@@ -384,9 +384,7 @@ export default function HomeScreen() {
             <div className="step-card group">
               <div className="step-num">01</div>
               <div style={{ marginBottom: 32 }}>
-                <svg width="48" height="48" viewBox="0 -960 960 960" fill="var(--primary)">
-                  <path d="M40-120v-200h80v120h120v80H40Zm680 0v-80h120v-120h80v200H720ZM160-320v-320h80v320h-80Zm120 0v-320h120v320H280Zm160 0v-320h80v320h-80Zm120 0v-320h40v320h-40Zm80 0v-320h80v320h-80ZM40-640v-200h200v80H120v120H40Zm800 0v-120H720v-80h200v200h-80Z"/>
-                </svg>
+                <span className="material-symbols-outlined" style={{ fontSize: 48, color: 'var(--primary)' }}>barcode_scanner</span>
               </div>
               <h3 className="font-headline" style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>Сканируйте штрихкод</h3>
               <p className="font-label" style={{ color: 'var(--on-surface-variant)', lineHeight: 1.6, fontSize: 15 }}>Просто наведите камеру на штрихкод продукта, чтобы мгновенно получить его данные прямо в магазине.</p>
@@ -396,9 +394,7 @@ export default function HomeScreen() {
             <div className="step-card group">
               <div className="step-num">02</div>
               <div style={{ marginBottom: 32 }}>
-                <svg width="48" height="48" viewBox="0 -960 960 960" fill="var(--primary)">
-                  <path d="M360-120v-120q-33 0-56.5-23.5T280-320v-50L130-470q-11-11-11-28v-62q0-28 17-48.5t43-26.5q21-12 43.5-13.5T266-646q28-79 92-126.5T500-820q109 0 184.5 75.5T760-560v200h80v80h-80v160H560v-142q-20 6-40 8t-40 2v152H360Zm200-340q50 0 85-35t35-85q0-50-35-85t-85-35q-50 0-85 35t-35 85q0 50 35 85t85 35Zm-42-49q-12-6-24.5-9.5T468-524l-8-26h-40l-8 26q-14 3-25.5 8.5T364-500l-24-12-28 28 12 24q-7 10-12.5 22.5T302-412l-26 8v40l26 8q3 14 8.5 26.5T324-308l-12 24 28 28 24-12q11 7 22.5 11.5T412-248l8 26h40l8-26q14-3 26.5-7.5T516-268l24 12 28-28-12-24q7-11 11.5-23.5T576-356l26-8v-40l-26-8q-3-13-8-25t-12-23l12-24-28-28-24 12ZM200-472ZM480-480Z"/>
-                </svg>
+                <span className="material-symbols-outlined" style={{ fontSize: 48, color: 'var(--primary)' }}>psychology</span>
               </div>
               <h3 className="font-headline" style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>Анализ нейросетью</h3>
               <p className="font-label" style={{ color: 'var(--on-surface-variant)', lineHeight: 1.6, fontSize: 15 }}>Наши алгоритмы Körset AI расшифруют состав, найдут добавки, консерванты и скрытые аллергены.</p>
@@ -408,9 +404,7 @@ export default function HomeScreen() {
             <div className="step-card group">
               <div className="step-num">03</div>
               <div style={{ marginBottom: 32 }}>
-                <svg width="48" height="48" viewBox="0 -960 960 960" fill="var(--primary)">
-                  <path d="m424-296 282-282-56-56-226 226-114-114-56 56 170 170Zm56 216-136-58-152 36 18-152-112-108 112-108-18-152 152 36 136-58 136 58 152-36-18 152 112 108-112 108 18 152-152-36-136 58Z"/>
-                </svg>
+                <span className="material-symbols-outlined" style={{ fontSize: 48, color: 'var(--primary)' }}>fact_check</span>
               </div>
               <h3 className="font-headline" style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>Умный вердикт</h3>
               <p className="font-label" style={{ color: 'var(--on-surface-variant)', lineHeight: 1.6, fontSize: 15 }}>Получите строгую оценку качества продукта и его соответствия вашим предпочтениям.</p>
@@ -435,7 +429,7 @@ export default function HomeScreen() {
             {/* Карточка 2: Умный сканер */}
             <div className="glass" style={{ padding: '32px', borderRadius: 20, display: 'flex', flexDirection: 'column', gap: 24, borderLeft: '2px solid rgba(255, 183, 132, 0.5)' }}>
                <div>
-                  <svg width="24" height="24" viewBox="0 -960 960 960" fill="var(--tertiary)"><path d="M440-40v-400H200L520-920v400h240L440-40Z"/></svg>
+                  <span className="material-symbols-outlined" style={{ fontSize: 32, color: 'var(--tertiary)' }}>center_focus_strong</span>
                </div>
                <div>
                   <h4 className="font-headline" style={{ fontSize: 24, fontWeight: 700, color: '#fff', marginBottom: 12 }}>Умный сканер</h4>
@@ -449,7 +443,7 @@ export default function HomeScreen() {
             <div className="glass" style={{ padding: '32px', borderRadius: 20, display: 'flex', flexDirection: 'column', gap: 24 }}>
                <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
                   <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(210, 187, 255, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                     <svg width="24" height="24" viewBox="0 -960 960 960" fill="var(--primary)"><path d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-300v-60h80v200H600v-80h63q-35-46-86.5-73T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q77 0 139-44t87-116h84q-28 106-114 173t-196 67Zm-20-200v-160h-80v-80h160v240h-80Z"/></svg>
+                     <span className="material-symbols-outlined" style={{ fontSize: 24, color: 'var(--primary)' }}>person_search</span>
                   </div>
                   <h3 className="font-headline" style={{ fontSize: 26, fontWeight: 700, color: '#fff' }}>Ваш профиль</h3>
                </div>
@@ -462,7 +456,7 @@ export default function HomeScreen() {
             <div className="glass" style={{ padding: '32px', borderRadius: 20, display: 'flex', flexDirection: 'column', gap: 24, borderLeft: '2px solid rgba(16, 185, 129, 0.5)' }}>
                <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
                   <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                     <svg width="24" height="24" viewBox="0 -960 960 960" fill="#10B981"><path d="M480-160 256-384q-33-33-50.5-74t-17.5-86q0-92 64-156t156-64q46 0 86 17.5T564-696q21-22 51.5-43T684-776q-47-24-99-36t-105-12q-125 0-212.5 87.5T180-524q0 58 24 112t68 96l208 208v-52Z"/></svg>
+                     <span className="material-symbols-outlined" style={{ fontSize: 24, color: '#10B981' }}>health_and_safety</span>
                   </div>
                   <h3 className="font-headline" style={{ fontSize: 26, fontWeight: 700, color: '#fff' }}>Детектор аллергий</h3>
                </div>
