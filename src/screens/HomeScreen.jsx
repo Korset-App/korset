@@ -249,8 +249,11 @@ export default function HomeScreen() {
           cursor: pointer;
           transition: background 0.2s;
         }
-        .cta-btn-sec:hover { background: rgba(255,255,255,0.1); }
-        .cta-btn-sec:active { background: rgba(255,255,255,0.08); transform: scale(0.98); }
+        @media (hover: hover) and (pointer: fine) {
+          .cta-btn-sec:hover { background: rgba(255,255,255,0.1); }
+        }
+        .cta-btn-sec:active,
+        .cta-btn-sec:focus-visible { background: rgba(255,255,255,0.08); transform: scale(0.98); outline: none; }
 
         .neon-glow-primary { box-shadow: 0 0 40px -10px rgba(210, 187, 255, 0.4); }
         .neon-glow-tertiary { box-shadow: 0 0 40px -10px rgba(255, 183, 132, 0.4); }
@@ -265,12 +268,23 @@ export default function HomeScreen() {
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
           border: 1px solid rgba(210, 187, 255, 0.1);
-          transition: transform 0.3s ease, box-shadow 0.3s ease;
+          transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
           z-index: 1;
+          touch-action: manipulation;
+          outline: none;
         }
-        .step-card:hover {
-          transform: scale(1.03);
-          box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        @media (hover: hover) and (pointer: fine) {
+          .step-card:hover {
+            transform: scale(1.03);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            border-color: rgba(210, 187, 255, 0.18);
+          }
+        }
+        .step-card:active,
+        .step-card:focus-visible {
+          transform: scale(1.02);
+          box-shadow: 0 16px 34px rgba(0,0,0,0.34);
+          border-color: rgba(210, 187, 255, 0.2);
         }
         .step-num {
           position: absolute;
@@ -285,7 +299,13 @@ export default function HomeScreen() {
           z-index: -1;
           pointer-events: none;
         }
-        .step-card:hover .step-num {
+        @media (hover: hover) and (pointer: fine) {
+          .step-card:hover .step-num {
+            color: rgba(210, 187, 255, 0.08);
+          }
+        }
+        .step-card:active .step-num,
+        .step-card:focus-visible .step-num {
           color: rgba(210, 187, 255, 0.08);
         }
 
@@ -381,7 +401,7 @@ export default function HomeScreen() {
 
           <div className="grid-3">
             {/* Step 1 */}
-            <div className="step-card group">
+            <div className="step-card group" tabIndex={0}>
               <div className="step-num">01</div>
               <div style={{ marginBottom: 32 }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 48, color: 'var(--primary)' }}>barcode_scanner</span>
@@ -391,7 +411,7 @@ export default function HomeScreen() {
             </div>
             
             {/* Step 2 */}
-            <div className="step-card group">
+            <div className="step-card group" tabIndex={0}>
               <div className="step-num">02</div>
               <div style={{ marginBottom: 32 }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 48, color: 'var(--primary)' }}>psychology</span>
@@ -401,7 +421,7 @@ export default function HomeScreen() {
             </div>
 
             {/* Step 3 */}
-            <div className="step-card group">
+            <div className="step-card group" tabIndex={0}>
               <div className="step-num">03</div>
               <div style={{ marginBottom: 32 }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 48, color: 'var(--primary)' }}>fact_check</span>
