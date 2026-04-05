@@ -6,7 +6,7 @@ import { PRIVACY_EVENT } from '../utils/privacySettings.js'
 
 const UserDataContext = createContext()
 
-function withTimeout(promise, ms = 7000) {
+function withTimeout(promise, ms = 5000) {
   return Promise.race([
     promise,
     new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
@@ -40,25 +40,34 @@ export function UserDataProvider({ children }) {
 
       setUserDataLoaded(false)
 
-      try {
-        const [{ data: favs }, scanRes] = await withTimeout(Promise.all([
-          supabase.from('user_favorites').select('ean').eq('user_id', internalUserId),
-          supabase.from('scan_events').select('ean', { count: 'exact', head: true }).eq('user_id', internalUserId),
-        ]), 7000)
+      const [favRes, scanRes] = await Promise.allSettled([
+        withTimeout(supabase.from('user_favorites').select('ean').eq('user_id', internalUserId), 5000),
+        withTimeout(supabase.from('scan_events').select('id', { count: 'exact', head: true }).eq('user_id', internalUserId), 5000),
+      ])
 
-        if (cancelled) return
+      if (cancelled) return
 
-        setFavoriteEans(new Set((favs || []).map((item) => item.ean).filter(Boolean)))
-        setScanCount(Math.max(scanRes?.count || 0, localCount))
-      } catch (err) {
-        console.error('Failed to load user data cache', err)
-        if (!cancelled) setScanCount(localCount)
-      } finally {
-        if (!cancelled) setUserDataLoaded(true)
-      }
+      const favoriteList = favRes.status === 'fulfilled' && !favRes.value?.error
+        ? new Set((favRes.value?.data || []).map((item) => item.ean).filter(Boolean))
+        : new Set()
+
+      const remoteCount = scanRes.status === 'fulfilled' && !scanRes.value?.error
+        ? (scanRes.value?.count || 0)
+        : 0
+
+      setFavoriteEans(favoriteList)
+      setScanCount(Math.max(remoteCount, localCount))
+      setUserDataLoaded(true)
     }
 
-    loadIdentifiers()
+    loadIdentifiers().catch((err) => {
+      console.error('Failed to load user data cache', err)
+      if (!cancelled) {
+        setScanCount(getScopedLocalScanCount(user))
+        setUserDataLoaded(true)
+      }
+    })
+
     return () => {
       cancelled = true
     }

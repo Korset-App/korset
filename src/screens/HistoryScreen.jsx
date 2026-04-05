@@ -35,7 +35,7 @@ function formatDate(value, lang) {
   }
 }
 
-function withTimeout(promise, ms = 7000) {
+function withTimeout(promise, ms = 5000) {
   return Promise.race([
     promise,
     new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
@@ -74,64 +74,65 @@ export default function HistoryScreen() {
   }, [searchParams, tab])
 
   useEffect(() => {
+    const ownerKey = buildHistoryOwnerKey(user)
+    const scopedLocalHistory = loadPrivacySettings().localHistoryEnabled ? readLocalScanHistory(ownerKey) : []
+
     if (!user || !internalUserId) {
-      setHistory([])
+      setHistory(scopedLocalHistory)
       setFavorites([])
       setLoading(false)
       return
     }
 
     let cancelled = false
+    setLoading(true)
 
-    const loadData = async () => {
-      setLoading(true)
-      const ownerKey = buildHistoryOwnerKey(user)
-      const scopedLocalHistory = loadPrivacySettings().localHistoryEnabled ? readLocalScanHistory(ownerKey) : []
-
-      try {
-        const [histRes, favRes] = await withTimeout(Promise.all([
+    async function loadData() {
+      const [histRes, favRes] = await Promise.allSettled([
+        withTimeout(
           supabase
             .from('scan_events')
             .select('ean, global_product_id, scanned_at')
             .eq('user_id', internalUserId)
             .order('scanned_at', { ascending: false })
             .limit(50),
+        5000),
+        withTimeout(
           supabase
             .from('user_favorites')
             .select('ean, global_product_id, added_at')
             .eq('user_id', internalUserId)
             .order('added_at', { ascending: false }),
-        ]), 7000)
+        5000),
+      ])
 
-        const historyRows = histRes?.error ? [] : (histRes?.data || [])
-        const favoriteRows = favRes?.error ? [] : (favRes?.data || [])
+      const historyRows = histRes.status === 'fulfilled' && !histRes.value?.error ? (histRes.value?.data || []) : []
+      const favoriteRows = favRes.status === 'fulfilled' && !favRes.value?.error ? (favRes.value?.data || []) : [...favoriteEans].map((ean) => ({ ean, added_at: null }))
 
-        if (histRes.error) console.warn('HistoryScreen: scan_events read failed, using local cache', histRes.error)
-        if (favRes.error) console.warn('HistoryScreen: user_favorites read failed', favRes.error)
+      const [hydratedHistoryRes, hydratedFavoritesRes] = await Promise.allSettled([
+        withTimeout(hydrateProductsFromScanRows(historyRows), 5000),
+        withTimeout(hydrateProductsFromFavoriteRows(favoriteRows), 5000),
+      ])
 
-        const [hydratedHistory, hydratedFavorites] = await withTimeout(Promise.all([
-          hydrateProductsFromScanRows(historyRows),
-          hydrateProductsFromFavoriteRows(favoriteRows.length ? favoriteRows : [...favoriteEans].map((ean) => ({ ean, added_at: null }))),
-        ]), 7000)
+      if (cancelled) return
 
-        const mergedHistory = mergeHistoryItems(hydratedHistory, scopedLocalHistory)
+      const hydratedHistory = hydratedHistoryRes.status === 'fulfilled' ? hydratedHistoryRes.value : []
+      const hydratedFavorites = hydratedFavoritesRes.status === 'fulfilled' ? hydratedFavoritesRes.value : favoriteRows.map((row) => ({ ean: row.ean, name: `Товар ${row.ean}` }))
 
-        if (!cancelled) {
-          setHistory(mergedHistory)
-          setFavorites(hydratedFavorites)
-        }
-      } catch (error) {
-        console.error('HistoryScreen loadData failed', error)
-        if (!cancelled) {
-          setHistory(mergeHistoryItems([], scopedLocalHistory))
-          setFavorites([])
-        }
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
+      setHistory(mergeHistoryItems(hydratedHistory, scopedLocalHistory))
+      setFavorites(hydratedFavorites)
+      setLoading(false)
     }
 
-    loadData()
+    loadData().catch((error) => {
+      console.error('HistoryScreen loadData failed', error)
+      if (!cancelled) {
+        setHistory(mergeHistoryItems([], scopedLocalHistory))
+        setFavorites([...favoriteEans].map((ean) => ({ ean, name: `Товар ${ean}` })))
+        setLoading(false)
+      }
+    })
+
     return () => {
       cancelled = true
     }
@@ -221,10 +222,10 @@ export default function HistoryScreen() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', background: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: 3 }}>
+        <div style={{ display: 'flex', gap: 8, padding: 4, borderRadius: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
           <button onClick={() => setActiveTab('history')} style={{
             flex: 1, padding: '10px 0', borderRadius: 9, fontSize: 13, fontWeight: 600, fontFamily: fontAdvent,
-            border: 'none', background: tab === 'history' ? 'rgba(124,58,237,0.25)' : 'transparent',
+            border: 'none', background: tab === 'history' ? 'rgba(124,58,237,0.16)' : 'transparent',
             color: tab === 'history' ? '#C4B5FD' : 'var(--text-dim)', cursor: 'pointer', transition: 'all 0.2s',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           }}>

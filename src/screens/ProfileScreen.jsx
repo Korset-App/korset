@@ -1,14 +1,15 @@
 import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { setLang, useI18n } from '../utils/i18n.js'
 import { useProfile } from '../contexts/ProfileContext.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { supabase } from '../utils/supabase.js'
 import { useStore } from '../contexts/StoreContext.jsx'
-import { buildNotificationSettingsPath, buildPrivacyPath } from '../utils/routes.js'
+import { buildHistoryPath, buildNotificationSettingsPath, buildPrivacyPath, buildProfilePath } from '../utils/routes.js'
 import ProfileAvatar from '../components/ProfileAvatar.jsx'
 import { ALLERGENS } from '../data/allergens.js'
 import { DIET_GOALS } from '../data/dietGoals.js'
+import { buildAuthNavigateState } from '../utils/authFlow.js'
 
 /* ─── DIET/ALLERGEN ICONS ─── */
 function DietIcon({ name, size = 18 }) {
@@ -39,6 +40,7 @@ import { useUserData } from '../contexts/UserDataContext.jsx'
 
 export default function ProfileScreen() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { lang, t } = useI18n()
   const allergenInputRef = useRef(null)
   const { profile, updateProfile: setProfile } = useProfile()
@@ -108,7 +110,7 @@ export default function ProfileScreen() {
             <h1 style={{ fontFamily: fontAdvent, fontSize: 24, fontWeight: 500, color: '#fff', margin: 0, lineHeight: 1 }}>
               {lang === 'kz' ? 'Профиль' : 'Профиль'}
             </h1>
-            <button onClick={() => navigate('/setup-profile?mode=edit')} style={{
+            {user && (<button onClick={() => navigate('/setup-profile?mode=edit')} style={{
               background: 'rgba(124,58,237,0.12)', border: '1px solid rgba(124,58,237,0.2)',
               padding: '8px 16px', borderRadius: 12, color: '#A78BFA', fontSize: 12,
               fontWeight: 600, fontFamily: fontAdvent, cursor: 'pointer',
@@ -116,7 +118,7 @@ export default function ProfileScreen() {
             }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
               {lang === 'kz' ? 'Өзгерту' : 'Изменить'}
-            </button>
+            </button>)}
           </div>
 
           {/* ── AVATAR + NAME ── */}
@@ -147,7 +149,7 @@ export default function ProfileScreen() {
                 <h2 style={{ fontFamily: fontAdvent, fontSize: 28, fontWeight: 700, color: '#fff', margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: 2 }}>
                   {t.profile.guest}
                 </h2>
-                <button onClick={() => navigate('/auth')} style={{
+                <button onClick={() => navigate('/auth', { state: buildAuthNavigateState(location, { reason: 'profile_required', message: lang === 'kz' ? 'Профиль баптауларын пайдалану үшін аккаунтқа кіріңіз.' : 'Войдите в аккаунт, чтобы использовать настройки профиля.' }) })} style={{
                   background: 'transparent', border: '1.5px solid rgba(255,255,255,0.2)',
                   color: '#fff', fontSize: 13, fontFamily: fontAdvent, fontWeight: 500,
                   padding: '10px 28px', borderRadius: 12, cursor: 'pointer', letterSpacing: 0.5
@@ -159,7 +161,7 @@ export default function ProfileScreen() {
           {/* ── STATS — 3 GLASS CARDS ── */}
           <div style={{ display: 'flex', justifyContent: 'center', gap: 12, padding: '30px 20px 28px' }}>
             {/* Favorites */}
-            <div onClick={() => navigate('/history?tab=favorites')} style={{ flex: 1, position: 'relative', paddingTop: 28, cursor: 'pointer' }}>
+            <div onClick={() => navigate(buildHistoryPath(currentStore?.slug || null, 'favorites'))} style={{ flex: 1, position: 'relative', paddingTop: 28, cursor: 'pointer' }}>
               <div style={{
                 position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', zIndex: 2,
                 width: 56, height: 56, borderRadius: '50%',
@@ -195,7 +197,7 @@ export default function ProfileScreen() {
             </div>
 
             {/* Scans */}
-            <div onClick={() => navigate('/history?tab=history')} style={{ flex: 1, position: 'relative', paddingTop: 28, cursor: 'pointer' }}>
+            <div onClick={() => navigate(buildHistoryPath(currentStore?.slug || null, 'history'))} style={{ flex: 1, position: 'relative', paddingTop: 28, cursor: 'pointer' }}>
               <div style={{
                 position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', zIndex: 2,
                 width: 56, height: 56, borderRadius: '50%',
@@ -305,7 +307,7 @@ export default function ProfileScreen() {
             {
               title: lang === 'kz' ? 'Негізгі' : 'Основное',
               items: [
-                { icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" strokeWidth="2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>, label: lang === 'kz' ? 'Жеке деректер' : 'Личные данные', onClick: () => navigate('/setup-profile?mode=edit') },
+                { icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" strokeWidth="2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>, label: lang === 'kz' ? 'Жеке деректер' : 'Личные данные', onClick: () => user ? navigate('/setup-profile?mode=edit') : navigate('/auth', { state: buildAuthNavigateState(location, { reason: 'profile_required', message: lang === 'kz' ? 'Жеке деректерді көру және өзгерту үшін аккаунтқа кіріңіз.' : 'Сначала войдите в аккаунт, чтобы видеть и редактировать личные данные.' }) }) },
                 { icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" strokeWidth="2" strokeLinecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>, label: lang === 'kz' ? 'Хабарландырулар' : 'Уведомления', onClick: () => navigate(buildNotificationSettingsPath(currentStore?.slug || null)) },
                 { icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" strokeWidth="2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>, label: lang === 'kz' ? 'Құпиялылық' : 'Приватность', onClick: () => navigate(buildPrivacyPath(currentStore?.slug || null)) },
               ]
@@ -375,7 +377,7 @@ export default function ProfileScreen() {
               {user && (
                 <>
                   <div style={{ height: 1, background: 'rgba(255,255,255,0.03)', margin: '0 18px' }} />
-                  <div className="settings-item" onClick={logout} style={{
+                  <div className="settings-item" onClick={async () => { await logout(); navigate(buildProfilePath(currentStore?.slug || null), { replace: true }) }} style={{
                     display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', cursor: 'pointer'
                   }}>
                     <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(220,38,38,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

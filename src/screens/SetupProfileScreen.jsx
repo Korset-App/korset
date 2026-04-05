@@ -111,11 +111,30 @@ function AvatarGrid({ fileInputRef, uploadingAvatar, texts, customAvatarUrl, sel
   )
 }
 
+function withTimeout(promise, ms = 8000) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
+  ])
+}
+
+async function updateAuthUserWithRetry(payload, retries = 1) {
+  let lastError = null
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    const { error } = await supabase.auth.updateUser({ data: payload })
+    if (!error) return
+    lastError = error
+    if (!/lock request|lock is aborted/i.test(error.message || '') || attempt === retries) break
+    await new Promise((resolve) => setTimeout(resolve, 250))
+  }
+  throw lastError || new Error('auth_update_failed')
+}
+
 export default function SetupProfileScreen() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { currentStore } = useStore()
-  const { user, displayName, avatarId, refreshAccountProfile } = useAuth()
+  const { user, displayName, avatarId, refreshAccountProfile, applyProfileSnapshot } = useAuth()
   const { lang } = useI18n()
   const fileInputRef = useRef(null)
 
@@ -130,7 +149,7 @@ export default function SetupProfileScreen() {
 
   useEffect(() => {
     if (!user) return
-    const currentName = displayName || user.user_metadata?.full_name || ''
+    const currentName = displayName || user.user_metadata?.full_name || user.user_metadata?.name || ''
     const currentAvatar = avatarId || user.user_metadata?.avatar_id || user.user_metadata?.avatar_url || user.user_metadata?.picture || AVATAR_PRESETS[0].id
     setName(currentName)
     if (typeof currentAvatar === 'string' && /^https?:/i.test(currentAvatar)) {
@@ -139,10 +158,10 @@ export default function SetupProfileScreen() {
     } else {
       setSelectedAvatarId(currentAvatar || AVATAR_PRESETS[0].id)
     }
-  }, [user])
+  }, [user, displayName, avatarId])
 
   const backTarget = currentStore ? `/s/${currentStore.slug}/profile` : '/profile'
-  const canContinueName = name.trim().length >= 2 && !nameError
+  const canContinueName = name.trim().length >= 3 && !nameError
   const hasAvatar = selectedAvatarId === 'custom' ? Boolean(customAvatarUrl) : Boolean(selectedAvatarId)
   const progress = (step / stepCount) * 100
 
@@ -159,6 +178,7 @@ export default function SetupProfileScreen() {
     finish: lang === 'kz' ? 'Дайын' : 'Готово',
     gallery: lang === 'kz' ? 'Галерея' : 'Галерея',
     invalid: lang === 'kz' ? 'Тек әріптер, сандар және бос орын' : 'Только буквы, цифры и пробелы',
+    minName: lang === 'kz' ? 'Аты кемінде 3 таңбадан тұруы керек' : 'Имя должно быть минимум из 3 букв',
   }), [lang])
 
   const goBack = () => {
@@ -179,7 +199,7 @@ export default function SetupProfileScreen() {
       return
     }
     if (value.trim().length > 0 && value.trim().length < 3) {
-      setNameError(lang === 'kz' ? 'Аты кемінде 3 таңбадан тұруы керек' : 'Имя должно быть минимум из 3 букв')
+      setNameError(texts.minName)
       return
     }
     setNameError('')
@@ -209,31 +229,36 @@ export default function SetupProfileScreen() {
     const trimmedName = name.trim()
     if (!user || !trimmedName || nameError || !hasAvatar) return
     setLoading(true)
-    try {
-      const avatarValue = selectedAvatarId === 'custom' ? customAvatarUrl : selectedAvatarId
-      const deviceId = getOrCreateDeviceId()
+    const avatarValue = selectedAvatarId === 'custom' ? customAvatarUrl : selectedAvatarId
+    const deviceId = getOrCreateDeviceId()
 
-      const { error: userRowError } = await supabase
-        .from('users')
-        .upsert({
-          auth_id: user.id,
-          device_id: deviceId,
-          name: trimmedName,
-        }, { onConflict: 'auth_id' })
+    try {
+      const { error: userRowError } = await withTimeout(
+        supabase
+          .from('users')
+          .upsert({
+            auth_id: user.id,
+            device_id: deviceId,
+            name: trimmedName,
+          }, { onConflict: 'auth_id' }),
+        8000,
+      )
       if (userRowError) throw userRowError
 
-      const { error: authError } = await supabase.auth.updateUser({
-        data: {
-          full_name: trimmedName,
-          avatar_id: avatarValue,
-          profile_setup_done: true,
-        },
-      })
-      if (authError) throw authError
+      await withTimeout(updateAuthUserWithRetry({
+        full_name: trimmedName,
+        avatar_id: avatarValue,
+        profile_setup_done: true,
+      }), 8000)
 
       writeCachedProfileName(user.id, trimmedName)
       writeCachedProfileAvatar(user.id, avatarValue)
-      await refreshAccountProfile(user)
+      applyProfileSnapshot(user.id, { name: trimmedName, avatarId: avatarValue })
+
+      refreshAccountProfile(user).catch((error) => {
+        console.warn('Background profile refresh failed', error)
+      })
+
       navigate(backTarget, { replace: true })
     } catch (error) {
       alert(error.message || 'Не удалось сохранить профиль')
