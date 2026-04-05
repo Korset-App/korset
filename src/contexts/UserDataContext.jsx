@@ -1,55 +1,60 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../utils/supabase.js'
 import { useAuth } from './AuthContext.jsx'
-import { buildHistoryOwnerKey, readLocalScanHistory, SCAN_HISTORY_STORAGE_KEY } from '../utils/localHistory.js'
-import { loadPrivacySettings, PRIVACY_EVENT } from '../utils/privacySettings.js'
+import { buildHistoryOwnerKey, getLocalScanHistoryCount, SCAN_HISTORY_STORAGE_KEY } from '../utils/localHistory.js'
+import { PRIVACY_EVENT } from '../utils/privacySettings.js'
 
 const UserDataContext = createContext()
 
-function getLocalScanHistoryCount(user) {
-  if (!loadPrivacySettings().localHistoryEnabled) return 0
-  return readLocalScanHistory(buildHistoryOwnerKey(user)).length
+function getScopedLocalScanCount(user) {
+  return getLocalScanHistoryCount(buildHistoryOwnerKey(user))
 }
 
 export function UserDataProvider({ children }) {
   const { user, internalUserId } = useAuth()
-  
-  // Храним только EAN-коды для молниеносной проверки (O(1)) задержки 0мс
   const [favoriteEans, setFavoriteEans] = useState(new Set())
   const [scanCount, setScanCount] = useState(0)
-  
-  // Флаг загрузки (на случай если мы хотим показывать лоадер, но в 99% он не понадобится)
   const [userDataLoaded, setUserDataLoaded] = useState(false)
 
   useEffect(() => {
-    // Если нет юзера, быстро очищаем стейт в ноль
-    if (!user || !internalUserId) {
-      setFavoriteEans(new Set())
-      setScanCount(getLocalScanHistoryCount(null))
-      setUserDataLoaded(true)
-      return
-    }
+    let cancelled = false
 
-    setUserDataLoaded(false)
-    const loadIdentifiers = async () => {
-      try {
-        // 1. Грузим лайки (достаточно только ean для быстрой проверки)
-        const { data: favs } = await supabase.from('user_favorites').select('ean').eq('user_id', internalUserId)
-        if (favs) {
-          setFavoriteEans(new Set(favs.map(f => f.ean)))
+    async function loadIdentifiers() {
+      const localCount = getScopedLocalScanCount(user)
+
+      if (!user || !internalUserId) {
+        if (!cancelled) {
+          setFavoriteEans(new Set())
+          setScanCount(localCount)
+          setUserDataLoaded(true)
         }
-        
-        // 2. Грузим количество сканирований для профиля
-        const { count } = await supabase.from('scan_events').select('ean', { count: 'exact', head: true }).eq('user_id', internalUserId)
-        const localCount = getLocalScanHistoryCount(user)
-        setScanCount(Math.max(count || 0, localCount))
+        return
+      }
+
+      setUserDataLoaded(false)
+
+      try {
+        const [{ data: favs }, scanRes] = await Promise.all([
+          supabase.from('user_favorites').select('ean').eq('user_id', internalUserId),
+          supabase.from('scan_events').select('ean', { count: 'exact', head: true }).eq('user_id', internalUserId),
+        ])
+
+        if (cancelled) return
+
+        setFavoriteEans(new Set((favs || []).map((item) => item.ean).filter(Boolean)))
+        setScanCount(Math.max(scanRes?.count || 0, localCount))
       } catch (err) {
         console.error('Failed to load user data cache', err)
+        if (!cancelled) setScanCount(localCount)
+      } finally {
+        if (!cancelled) setUserDataLoaded(true)
       }
-      setUserDataLoaded(true)
     }
-    
+
     loadIdentifiers()
+    return () => {
+      cancelled = true
+    }
   }, [user, internalUserId])
 
   const checkIsFavorite = (ean) => {
@@ -59,16 +64,15 @@ export function UserDataProvider({ children }) {
 
   const toggleFavorite = async (product) => {
     if (!internalUserId) {
-      alert("Не удалось загрузить ваш профиль. Попробуйте перезайти в аккаунт.")
+      alert('Не удалось загрузить ваш профиль. Попробуйте перезайти в аккаунт.')
       return
     }
     if (!product || !product.ean) return
 
     const ean = product.ean
     const isFav = favoriteEans.has(ean)
-    
-    // 💡 Оптимистичный UI-update: Мгновенно обновляем стейт памяти
-    setFavoriteEans(prev => {
+
+    setFavoriteEans((prev) => {
       const next = new Set(prev)
       if (isFav) next.delete(ean)
       else next.add(ean)
@@ -77,57 +81,60 @@ export function UserDataProvider({ children }) {
 
     try {
       if (!isFav) {
-        // Добавление лайка (upsert для пущей надежности по ключу user_id + ean)
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        const candidateGlobalId = product?.sourceMeta?.globalProductId || product?.id || null;
-        const validGlobalId = candidateGlobalId && uuidRegex.test(candidateGlobalId) ? candidateGlobalId : null;
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+        const candidateGlobalId = product?.sourceMeta?.globalProductId || product?.id || null
+        const validGlobalId = candidateGlobalId && uuidRegex.test(candidateGlobalId) ? candidateGlobalId : null
 
         const { error } = await supabase.from('user_favorites').upsert({
           user_id: internalUserId,
           global_product_id: validGlobalId,
-          ean: ean
+          ean,
         }, { onConflict: 'user_id, ean' })
-        
+
         if (error) throw error
       } else {
-        // Удаление лайка
-        const { error } = await supabase.from('user_favorites')
-          .delete()
-          .eq('user_id', internalUserId)
-          .eq('ean', ean)
-          
+        const { error } = await supabase.from('user_favorites').delete().eq('user_id', internalUserId).eq('ean', ean)
         if (error) throw error
       }
     } catch (err) {
-      // Откат оптимистичного изменения при ошибке базы
       console.error('Toggle favorite failed', err)
-      alert("Ошибка базы данных: " + err.message)
-      setFavoriteEans(prev => {
+      alert('Ошибка базы данных: ' + err.message)
+      setFavoriteEans((prev) => {
         const next = new Set(prev)
-        if (isFav) next.add(ean) // reverse to fav
-        else next.delete(ean)    // reverse to not fav
+        if (isFav) next.add(ean)
+        else next.delete(ean)
         return next
       })
-      throw err // пробрасываем дальше если компонент тоже захочет отловить
+      throw err
     }
   }
 
-  // Метод для инкремента истории сканирований (используется ProductScreen)
-  const incrementScanCount = () => {
-    const localCount = getLocalScanHistoryCount(user)
-    setScanCount((prev) => Math.max(prev, localCount))
+  const syncScanCount = () => {
+    setScanCount((prev) => Math.max(prev, getScopedLocalScanCount(user)))
   }
 
   useEffect(() => {
-    const handleScanAdded = () => incrementScanCount()
-    const handleStorage = (event) => {
-      if (event.key === SCAN_HISTORY_STORAGE_KEY) incrementScanCount()
+    const handleScanAdded = (event) => {
+      const ownerKey = buildHistoryOwnerKey(user)
+      if (event?.detail?.ownerKey && event.detail.ownerKey !== ownerKey) return
+      if (typeof event?.detail?.count === 'number') {
+        setScanCount((prev) => Math.max(prev, event.detail.count))
+        return
+      }
+      syncScanCount()
     }
-    const handleFocus = () => incrementScanCount()
+
+    const handleStorage = (event) => {
+      if (!event || event.key === SCAN_HISTORY_STORAGE_KEY) syncScanCount()
+    }
+
+    const handleFocus = () => syncScanCount()
+
     window.addEventListener('korset:scan_added', handleScanAdded)
     window.addEventListener('storage', handleStorage)
     window.addEventListener('focus', handleFocus)
     window.addEventListener(PRIVACY_EVENT, handleFocus)
+
     return () => {
       window.removeEventListener('korset:scan_added', handleScanAdded)
       window.removeEventListener('storage', handleStorage)
@@ -143,8 +150,8 @@ export function UserDataProvider({ children }) {
       toggleFavorite,
       favoritesCount: favoriteEans.size,
       scanCount,
-      incrementScanCount,
-      userDataLoaded
+      incrementScanCount: syncScanCount,
+      userDataLoaded,
     }}>
       {children}
     </UserDataContext.Provider>

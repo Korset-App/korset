@@ -1,7 +1,10 @@
-
 import localProducts from '../../data/products.json'
 import { supabase } from '../../utils/supabase.js'
 import { enrichProductAI } from '../../services/ai.js'
+import { getGlobalProductByEan, getStoreCatalogProductByEan } from '../../utils/storeCatalog.js'
+import { buildLocalScanHistoryEntry, appendLocalScanHistory, getCurrentHistoryOwnerKey } from '../../utils/localHistory.js'
+import { loadPrivacySettings } from '../../utils/privacySettings.js'
+import { getOrCreateDeviceId, getOrCreateSessionId, resolveCurrentInternalUserId } from '../../utils/userIdentity.js'
 import { normalizeDemoProduct, normalizeGlobalProduct, normalizeCacheProduct, normalizeOFFProduct, coerceProductEntity } from './normalizers.js'
 import { isUuid, parseRouteProductRef } from './model.js'
 
@@ -173,24 +176,6 @@ async function saveToCache(product, rawPayload = {}) {
   }
 }
 
-function getDeviceId() {
-  let id = localStorage.getItem('korset_device_id')
-  if (!id) {
-    id = 'dev_' + Math.random().toString(36).slice(2) + Date.now().toString(36)
-    localStorage.setItem('korset_device_id', id)
-  }
-  return id
-}
-
-function getSessionId() {
-  let id = sessionStorage.getItem('korset_session_id')
-  if (!id) {
-    id = 'ses_' + Math.random().toString(36).slice(2) + Date.now().toString(36)
-    sessionStorage.setItem('korset_session_id', id)
-  }
-  return id
-}
-
 async function logMissingProduct(ean, storeId) {
   try {
     await supabase.from('missing_products').upsert({
@@ -206,20 +191,22 @@ async function logMissingProduct(ean, storeId) {
   }
 }
 
-async function resolveInternalUserId() {
-  try {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return null
-    const { data } = await supabase.from('users').select('id').eq('auth_id', user.id).maybeSingle()
-    return data?.id || null
-  } catch {
-    return null
-  }
+async function persistLocalHistory(product, foundStatus, storeId) {
+  const privacy = loadPrivacySettings()
+  if (!privacy.localHistoryEnabled) return
+  if (!product?.ean) return
+  const ownerKey = await getCurrentHistoryOwnerKey()
+  const entry = buildLocalScanHistoryEntry(product, foundStatus, storeId)
+  if (!entry) return
+  appendLocalScanHistory(ownerKey, entry)
 }
 
 async function logScan({ ean, foundStatus, product, storeId, fitResult }) {
+  const privacy = loadPrivacySettings()
+  if (!privacy.analyticsEnabled) return
+
   try {
-    const internalUserId = await resolveInternalUserId()
+    const internalUserId = await resolveCurrentInternalUserId()
     const globalProductId = product?.sourceMeta?.globalProductId || (isUuid(product?.id) ? product.id : null)
     const storeProductId = product?.sourceMeta?.storeProductId || null
     const { error } = await supabase.from('scan_events').insert({
@@ -230,16 +217,25 @@ async function logScan({ ean, foundStatus, product, storeId, fitResult }) {
       store_id: storeId || null,
       user_id: internalUserId,
       fit_result: fitResult ?? null,
-      device_id: getDeviceId(),
-      session_id: getSessionId(),
+      device_id: getOrCreateDeviceId(),
+      session_id: getOrCreateSessionId(),
       app_version: '1.0',
     })
-    if (!error && typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('korset:scan_added'))
-    }
+    if (error) console.error('logScan error', error)
   } catch (error) {
     console.error('logScan error', error)
   }
+}
+
+async function finalizeResolvedProduct(product, { ean, foundStatus, storeId, fitResult, logScan: shouldLog }) {
+  if (!shouldLog) return product
+
+  await Promise.allSettled([
+    persistLocalHistory(product, foundStatus, storeId),
+    logScan({ ean, foundStatus, product, storeId, fitResult }),
+  ])
+
+  return product
 }
 
 export async function resolveProductByEan(ean, storeId = null, options = {}) {
@@ -247,29 +243,60 @@ export async function resolveProductByEan(ean, storeId = null, options = {}) {
   if (!normalizedEan) return null
 
   if (storeId) {
+    const localStoreProduct = coerceProductEntity(getStoreCatalogProductByEan(storeId, normalizedEan))
+    if (localStoreProduct) {
+      return finalizeResolvedProduct(localStoreProduct, {
+        ean: normalizedEan,
+        foundStatus: 'found_store',
+        storeId,
+        fitResult: options.fitResult,
+        logScan: options.logScan,
+      })
+    }
+
     const storeProduct = await findStoreProduct(normalizedEan, storeId)
     if (storeProduct) {
-      if (options.logScan) await logScan({ ean: normalizedEan, foundStatus: 'found_store', product: storeProduct, storeId, fitResult: options.fitResult })
-      return storeProduct
+      return finalizeResolvedProduct(storeProduct, {
+        ean: normalizedEan,
+        foundStatus: 'found_store',
+        storeId,
+        fitResult: options.fitResult,
+        logScan: options.logScan,
+      })
     }
   }
 
   const globalProduct = await findGlobalProductByEan(normalizedEan)
   if (globalProduct) {
-    if (options.logScan) await logScan({ ean: normalizedEan, foundStatus: 'found_global', product: globalProduct, storeId, fitResult: options.fitResult })
-    return globalProduct
+    return finalizeResolvedProduct(globalProduct, {
+      ean: normalizedEan,
+      foundStatus: 'found_global',
+      storeId,
+      fitResult: options.fitResult,
+      logScan: options.logScan,
+    })
   }
 
-  const demoProduct = getDemoProductByEan(normalizedEan)
+  const demoProduct = coerceProductEntity(getGlobalProductByEan(normalizedEan) || getDemoProductByEan(normalizedEan))
   if (demoProduct) {
-    if (options.logScan) await logScan({ ean: normalizedEan, foundStatus: 'found_global', product: demoProduct, storeId, fitResult: options.fitResult })
-    return demoProduct
+    return finalizeResolvedProduct(demoProduct, {
+      ean: normalizedEan,
+      foundStatus: 'found_global',
+      storeId,
+      fitResult: options.fitResult,
+      logScan: options.logScan,
+    })
   }
 
   const cachedProduct = await findCacheProduct(normalizedEan)
   if (cachedProduct) {
-    if (options.logScan) await logScan({ ean: normalizedEan, foundStatus: 'found_cache', product: cachedProduct, storeId, fitResult: options.fitResult })
-    return cachedProduct
+    return finalizeResolvedProduct(cachedProduct, {
+      ean: normalizedEan,
+      foundStatus: 'found_cache',
+      storeId,
+      fitResult: options.fitResult,
+      logScan: options.logScan,
+    })
   }
 
   const offProductRaw = await fetchFromOFFViaProxy(normalizedEan)
@@ -277,14 +304,22 @@ export async function resolveProductByEan(ean, storeId = null, options = {}) {
     let product = normalizeOFFProduct(normalizedEan, offProductRaw)
     product = await enrichProduct(product)
     await saveToCache(product, offProductRaw)
-    if (options.logScan) await logScan({ ean: normalizedEan, foundStatus: 'found_off', product, storeId, fitResult: options.fitResult })
-    return product
+    return finalizeResolvedProduct(product, {
+      ean: normalizedEan,
+      foundStatus: 'found_off',
+      storeId,
+      fitResult: options.fitResult,
+      logScan: options.logScan,
+    })
   }
 
   if (options.logScan) {
-    await logScan({ ean: normalizedEan, foundStatus: 'not_found', product: null, storeId, fitResult: options.fitResult })
-    await logMissingProduct(normalizedEan, storeId)
+    await Promise.allSettled([
+      logScan({ ean: normalizedEan, foundStatus: 'not_found', product: null, storeId, fitResult: options.fitResult }),
+      logMissingProduct(normalizedEan, storeId),
+    ])
   }
+
   return null
 }
 
@@ -334,7 +369,7 @@ export async function hydrateProductsFromScanRows(rows) {
 }
 
 export async function hydrateProductsFromFavoriteRows(rows) {
-  return hydrateProductRefs(rows.map((row) => ({ ...row, favoredAt: row.created_at || null })))
+  return hydrateProductRefs(rows.map((row) => ({ ...row, favoredAt: row.added_at || row.created_at || null })))
 }
 
 async function hydrateProductRefs(rows) {
@@ -387,6 +422,7 @@ async function hydrateProductRefs(rows) {
     let product = null
     if (row.global_product_id && globalById.has(row.global_product_id)) product = globalById.get(row.global_product_id)
     if (!product && row.ean && globalByEan.has(row.ean)) product = globalByEan.get(row.ean)
+    if (!product && row.ean) product = coerceProductEntity(getGlobalProductByEan(row.ean)) || null
     if (!product && row.ean && demoByEan.has(row.ean)) product = demoByEan.get(row.ean)
     if (!product && row.ean && cacheByEan.has(row.ean)) product = cacheByEan.get(row.ean)
     if (!product && row.ean) product = coerceProductEntity({ ean: row.ean, name: `Товар ${row.ean}`, source: 'unknown' })

@@ -4,7 +4,7 @@ import { supabase } from '../utils/supabase.js'
 import { useProfile } from '../contexts/ProfileContext.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useStore } from '../contexts/StoreContext.jsx'
-import { clearLocalScanHistory, buildHistoryOwnerKey, readLocalScanHistory } from '../utils/localHistory.js'
+import { clearLocalScanHistory, buildHistoryOwnerKey, getLocalScanHistoryCount } from '../utils/localHistory.js'
 import { DEFAULT_PRIVACY_SETTINGS, loadPrivacySettings, notifyPrivacyChanged } from '../utils/privacySettings.js'
 
 const fontDisplay = '"Bebas Neue", "Arial Narrow", sans-serif'
@@ -96,9 +96,7 @@ export default function PrivacySettingsScreen() {
     ...(profile?.privacy || {}),
   }), [profile])
 
-  const localHistoryCount = useMemo(() => {
-    return readLocalScanHistory(buildHistoryOwnerKey(user)).length
-  }, [user, profile])
+  const localHistoryCount = useMemo(() => getLocalScanHistoryCount(buildHistoryOwnerKey(user)), [user, profile])
 
   async function updatePrivacy(patch) {
     const next = { ...privacy, ...patch }
@@ -112,7 +110,6 @@ export default function PrivacySettingsScreen() {
       const ok = window.confirm('Отключить локальную историю и удалить уже сохранённые сканы на этом устройстве?')
       if (!ok) return
       clearLocalScanHistory(buildHistoryOwnerKey(user))
-      window.dispatchEvent(new CustomEvent('korset:scan_added'))
     }
     await updatePrivacy({ localHistoryEnabled: value })
   }
@@ -128,7 +125,6 @@ export default function PrivacySettingsScreen() {
     const ok = window.confirm('Удалить всю локальную историю сканов на этом устройстве?')
     if (!ok) return
     clearLocalScanHistory(buildHistoryOwnerKey(user))
-    window.dispatchEvent(new CustomEvent('korset:scan_added'))
     setStatusText('Локальная история на устройстве очищена.')
   }
 

@@ -55,6 +55,7 @@ export default function HistoryScreen() {
   const { toggleFavorite, favoriteEans } = useUserData()
 
   const [history, setHistory] = useState([])
+  const [remoteHistory, setRemoteHistory] = useState([])
   const [favorites, setFavorites] = useState([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState(searchParams.get('tab') || 'history')
@@ -66,6 +67,7 @@ export default function HistoryScreen() {
 
   useEffect(() => {
     if (!user || !internalUserId) {
+      setRemoteHistory([])
       setHistory([])
       setFavorites([])
       setLoading(false)
@@ -105,15 +107,15 @@ export default function HistoryScreen() {
           hydrateProductsFromFavoriteRows(favoriteRows),
         ])
 
-        const mergedHistory = mergeHistoryItems(hydratedHistory, scopedLocalHistory)
-
         if (!cancelled) {
-          setHistory(mergedHistory)
+          setRemoteHistory(hydratedHistory)
+          setHistory(mergeHistoryItems(hydratedHistory, scopedLocalHistory))
           setFavorites(hydratedFavorites)
         }
       } catch (error) {
         console.error('HistoryScreen loadData failed', error)
         if (!cancelled) {
+          setRemoteHistory([])
           setHistory(mergeHistoryItems([], scopedLocalHistory))
           setFavorites([])
         }
@@ -133,9 +135,11 @@ export default function HistoryScreen() {
   }, [favoriteEans])
 
   useEffect(() => {
-    const syncLocalHistory = () => {
-      const scopedLocalHistory = loadPrivacySettings().localHistoryEnabled ? readLocalScanHistory(buildHistoryOwnerKey(user)) : []
-      setHistory((prev) => mergeHistoryItems(prev, scopedLocalHistory))
+    const syncLocalHistory = (event) => {
+      const ownerKey = buildHistoryOwnerKey(user)
+      if (event?.detail?.ownerKey && event.detail.ownerKey !== ownerKey) return
+      const scopedLocalHistory = loadPrivacySettings().localHistoryEnabled ? readLocalScanHistory(ownerKey) : []
+      setHistory(mergeHistoryItems(remoteHistory, scopedLocalHistory))
     }
 
     const handleStorage = (event) => {
@@ -151,7 +155,7 @@ export default function HistoryScreen() {
       window.removeEventListener('korset:scan_added', syncLocalHistory)
       window.removeEventListener(PRIVACY_EVENT, syncLocalHistory)
     }
-  }, [user])
+  }, [user, remoteHistory])
 
   const removeFavorite = async (product, event) => {
     event.stopPropagation()
