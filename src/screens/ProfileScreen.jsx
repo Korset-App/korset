@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext.jsx'
 import { supabase } from '../utils/supabase.js'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { buildNotificationSettingsPath, buildPrivacyPath } from '../utils/routes.js'
-import KorsetAvatar from '../components/KorsetAvatar.jsx'
+import ProfileAvatar from '../components/ProfileAvatar.jsx'
 import { ALLERGENS } from '../data/allergens.js'
 import { DIET_GOALS } from '../data/dietGoals.js'
 
@@ -128,15 +128,7 @@ export default function ProfileScreen() {
               marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box'
             }}>
               {user ? (
-                user.user_metadata?.avatar_id && user.user_metadata.avatar_id.startsWith('http') ? (
-                  <img src={user.user_metadata.avatar_id} alt="Avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
-                ) : (
-                  <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: 'linear-gradient(135deg, #7C3AED, #6D28D9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ fontSize: 40, color: '#fff', fontFamily: fontAdvent, fontWeight: 700 }}>
-                      {user.user_metadata?.full_name ? user.user_metadata.full_name.charAt(0).toUpperCase() : 'K'}
-                    </span>
-                  </div>
-                )
+                <ProfileAvatar avatarId={user.user_metadata?.avatar_id} name={user.user_metadata?.full_name} rounded="circle" />
               ) : (
                 <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
