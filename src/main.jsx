@@ -4,21 +4,28 @@ import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import App from './App.jsx'
 
-const setViewportVars = () => {
-  const root = document.documentElement
-  const visualHeight = window.visualViewport?.height || window.innerHeight
-  const visualWidth = window.visualViewport?.width || window.innerWidth
-
-  root.style.setProperty('--app-height', `${window.innerHeight}px`)
-  root.style.setProperty('--app-safe-height', `${visualHeight}px`)
-  root.style.setProperty('--viewport-width', `${visualWidth}px`)
+function syncViewportVars() {
+  const doc = document.documentElement
+  const viewport = window.visualViewport
+  const height = viewport?.height || window.innerHeight
+  doc.style.setProperty('--app-vh', `${height}px`)
+  doc.style.setProperty('--app-safe-top', 'env(safe-area-inset-top, 0px)')
+  doc.style.setProperty('--app-safe-bottom', 'env(safe-area-inset-bottom, 0px)')
+  doc.style.setProperty('--app-safe-left', 'env(safe-area-inset-left, 0px)')
+  doc.style.setProperty('--app-safe-right', 'env(safe-area-inset-right, 0px)')
 }
 
-setViewportVars()
-window.addEventListener('resize', setViewportVars, { passive: true })
-window.addEventListener('orientationchange', setViewportVars, { passive: true })
-window.visualViewport?.addEventListener('resize', setViewportVars, { passive: true })
-window.visualViewport?.addEventListener('scroll', setViewportVars, { passive: true })
+if (typeof window !== 'undefined') {
+  syncViewportVars()
+  window.addEventListener('resize', syncViewportVars, { passive: true })
+  window.addEventListener('orientationchange', syncViewportVars, { passive: true })
+  window.addEventListener('pageshow', syncViewportVars, { passive: true })
+  window.visualViewport?.addEventListener('resize', syncViewportVars, { passive: true })
+
+  const touchCapable = window.matchMedia?.('(pointer: coarse)').matches || 'ontouchstart' in window
+  document.documentElement.classList.toggle('touch-ui', !!touchCapable)
+  document.documentElement.classList.toggle('fine-pointer-ui', !touchCapable)
+}
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

@@ -28,10 +28,6 @@
   --radius: 14px;
   --radius-lg: 20px;
   --radius-xl: 24px;
-  --app-height: 100dvh;
-  --app-safe-height: 100dvh;
-  --viewport-width: 100vw;
-  --focus-ring: 0 0 0 2px rgba(167, 139, 250, 0.38);
 }
 
 *, *::before, *::after {
@@ -41,63 +37,16 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-
-button,
-a,
-input,
-textarea,
-select,
-.card.interactive,
-.product-item,
-.preset-card,
-.alt-card,
-.chip,
-.scan-btn,
-.map-mock,
-.priority-btn,
-.tag,
-.toggle,
-.bottom-nav button,
-.step-card,
-.cta-btn-main,
-.cta-btn-sec {
-  touch-action: manipulation;
-}
-
-button:focus-visible,
-a:focus-visible,
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible,
-.card.interactive:focus-visible,
-.product-item:focus-visible,
-.preset-card:focus-visible,
-.alt-card:focus-visible,
-.chip:focus-visible,
-.scan-btn:focus-visible,
-.map-mock:focus-visible,
-.priority-btn:focus-visible,
-.tag:focus-visible,
-.toggle:focus-visible,
-.step-card:focus-visible,
-.cta-btn-main:focus-visible,
-.cta-btn-sec:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
-}
-
 html {
   height: 100%;
-  min-height: var(--app-height);
-  min-height: var(--app-safe-height);
+  min-height: 100%;
   background: var(--bg);
   scroll-behavior: smooth;
 }
 
 body {
   min-height: 100%;
-  min-height: var(--app-height);
-  min-height: var(--app-safe-height);
+  min-height: var(--app-vh, 100dvh);
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-body);
@@ -110,70 +59,40 @@ body {
   font-variant-numeric: lining-nums tabular-nums;
 }
 
-#root {
-  width: 100%;
-  min-height: 100%;
-  min-height: var(--app-height);
-  min-height: var(--app-safe-height);
-  background: var(--bg);
-  overflow-x: clip;
+body[data-shell='app'] {
+  overflow: hidden;
+  overscroll-behavior-y: none;
 }
 
-.public-shell,
-.app-shell,
-.retail-shell {
-  width: 100%;
-  min-height: 100vh;
-  min-height: var(--app-height);
-  min-height: var(--app-safe-height);
+body[data-shell='public'] {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+#root {
+  min-height: 100%;
+  min-height: var(--app-vh, 100dvh);
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
   background:
     radial-gradient(ellipse 80% 40% at 50% -10%, rgba(124, 58, 237, 0.18) 0%, transparent 60%),
     var(--bg);
 }
 
-.public-shell,
-.retail-shell {
-  overflow: visible;
-}
-
-.public-shell__content,
-.retail-shell__content {
-  width: 100%;
-  min-height: 100vh;
-  min-height: var(--app-height);
-  min-height: var(--app-safe-height);
-  height: auto;
-}
-
-.app-shell {
-  display: flex;
-  justify-content: center;
-  align-items: stretch;
-  min-height: 100vh;
-  min-height: var(--app-height);
-  min-height: var(--app-safe-height);
-  overflow: hidden;
-}
-
-.public-shell .screen {
+body[data-shell='public'] #root {
+  display: block;
   min-height: 100%;
-  padding-bottom: max(28px, env(safe-area-inset-bottom, 0px));
-}
-
-.public-shell .header {
-  top: 0;
+  min-height: var(--app-vh, 100dvh);
 }
 
 /* ─── App Frame ───────────────────────────────────── */
 .app-frame {
   width: 100%;
   max-width: 430px;
-  height: 100vh;
-  height: var(--app-height);
-  max-height: var(--app-height);
-  min-height: 100vh;
-  min-height: var(--app-height);
-  min-height: var(--app-safe-height);
+  height: var(--app-vh, 100dvh);
+  min-height: var(--app-vh, 100dvh);
+  max-height: var(--app-vh, 100dvh);
   background: var(--surface);
   position: relative;
   overflow: hidden;
@@ -181,20 +100,16 @@ body {
   flex-direction: column;
   border-left: 1px solid var(--border);
   border-right: 1px solid var(--border);
-  min-width: 0;
-  min-height: 0;
 }
 
-
-.public-shell__content {
-  max-width: 1440px;
-  margin: 0 auto;
-}
-
-@media (max-width: 768px) {
-  .public-shell__content {
-    max-width: none;
-  }
+body[data-shell='public'] .app-frame {
+  max-width: none;
+  height: auto;
+  min-height: var(--app-vh, 100dvh);
+  max-height: none;
+  overflow: visible;
+  border: none;
+  background: transparent;
 }
 
 /* ─── Screen ──────────────────────────────────────── */
@@ -203,12 +118,19 @@ body {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(88px + var(--app-safe-bottom, env(safe-area-inset-bottom, 0px)));
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
 }
 .screen::-webkit-scrollbar { display: none; }
+
+body[data-shell='public'] .screen {
+  overflow: visible;
+  min-height: auto;
+  padding-bottom: 0;
+  overscroll-behavior-y: auto;
+}
 
 /* ─── Header ──────────────────────────────────────── */
 .header {
@@ -352,6 +274,11 @@ body {
   font-size: 15px;
   box-shadow: 0 4px 24px var(--primary-glow);
 }
+.btn-primary:hover {
+  background: var(--primary-mid);
+  box-shadow: 0 6px 32px rgba(124, 58, 237, 0.45);
+  transform: translateY(-1px);
+}
 
 .btn-secondary {
   composes: btn;
@@ -361,6 +288,10 @@ body {
   padding: 15px 20px;
   font-size: 15px;
 }
+.btn-secondary:hover {
+  background: rgba(139, 92, 246, 0.18);
+  border-color: rgba(139, 92, 246, 0.4);
+}
 
 .btn-ghost {
   composes: btn;
@@ -369,6 +300,11 @@ body {
   padding: 12px 16px;
   font-size: 14px;
   border: 1px solid var(--border);
+}
+.btn-ghost:hover {
+  background: var(--card);
+  color: var(--text);
+  border-color: var(--border-bright);
 }
 
 .btn-full { width: 100%; }
@@ -382,6 +318,10 @@ body {
   transition: all 0.18s ease;
 }
 
+.card:hover {
+  border-color: var(--border-bright);
+  background: var(--card-hover);
+}
 
 .card.interactive { cursor: pointer; }
 
@@ -467,6 +407,11 @@ body {
   animation: slideUp 0.25s ease both;
 }
 
+.product-item:hover {
+  border-color: var(--border-bright);
+  background: var(--card-hover);
+  transform: translateX(3px);
+}
 
 .product-emoji {
   width: 48px;
@@ -554,6 +499,10 @@ body {
   transition: all 0.2s ease;
 }
 
+.preset-card:hover {
+  border-color: var(--border-bright);
+  background: var(--card-hover);
+}
 
 .preset-card.selected {
   border-color: var(--primary-mid);
@@ -737,6 +686,10 @@ body {
   animation: slideUp 0.3s ease both;
 }
 
+.alt-card:hover {
+  border-color: rgba(16, 185, 129, 0.3);
+  background: var(--card-hover);
+}
 
 .alt-card-header {
   display: flex;
@@ -788,6 +741,11 @@ body {
   transition: all 0.15s ease;
   font-family: var(--font-body);
 }
+.chip:hover {
+  background: var(--primary-dim);
+  border-color: rgba(139, 92, 246, 0.3);
+  color: var(--primary-bright);
+}
 .chip.active {
   background: var(--primary-dim);
   border-color: var(--primary-mid);
@@ -829,6 +787,7 @@ body {
   transition: all 0.18s;
   box-shadow: 0 2px 12px var(--primary-glow);
 }
+.ai-send-btn:hover { background: var(--primary-mid); transform: scale(1.05); }
 .ai-send-btn:active { transform: scale(0.95); }
 
 .ai-response {
@@ -899,6 +858,12 @@ body {
   font-size: 13px;
 }
 
+.scan-btn:hover {
+  background: rgba(124, 58, 237, 0.18);
+  border-color: var(--primary-mid);
+  transform: scale(1.03);
+  box-shadow: 0 0 40px var(--primary-glow);
+}
 
 .scan-btn.scanning {
   animation: scanPulse 0.8s ease infinite alternate;
@@ -934,6 +899,7 @@ body {
   cursor: pointer;
   transition: all 0.18s;
 }
+.map-mock:hover { border-color: var(--border-bright); color: var(--text); }
 
 /* ─── Priority Selector ───────────────────────────── */
 .priority-row {
@@ -1136,145 +1102,77 @@ body {
 }
 
 
-.public-scroll-surface {
-  min-height: 100%;
+/* ─── Cross-browser hardening ───────────────────── */
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }
 
-.app-scroll-surface {
-  min-height: 0;
+button,
+a,
+[role='button'],
+[data-pressable='true'] {
+  touch-action: manipulation;
 }
 
-@media (max-width: 768px) {
-  .app-shell {
-    overflow: hidden;
-  }
-
-  .app-frame {
-    max-width: none;
-    border-left: none;
-    border-right: none;
-  }
+button:focus-visible,
+a:focus-visible,
+[role='button']:focus-visible,
+[data-pressable='true']:focus-visible {
+  outline: 2px solid var(--primary-bright);
+  outline-offset: 2px;
 }
-
-
-@media (pointer: coarse) {
-  input,
-  textarea,
-  select {
-    font-size: 16px;
-  }
-}
-
 
 @media (hover: hover) and (pointer: fine) {
   .btn-primary:hover {
-    background: var(--primary-mid);
-    box-shadow: 0 6px 32px rgba(124, 58, 237, 0.45);
     transform: translateY(-1px);
+    box-shadow: 0 10px 28px rgba(124, 58, 237, 0.24);
   }
 
-  .btn-secondary:hover {
-    background: rgba(139, 92, 246, 0.18);
-    border-color: rgba(139, 92, 246, 0.4);
-  }
-
-  .btn-ghost:hover {
-    background: var(--card);
-    color: var(--text);
-    border-color: var(--border-bright);
-  }
-
+  .btn-secondary:hover,
+  .btn-ghost:hover,
   .card:hover,
-  .card.interactive:hover {
-    border-color: var(--border-bright);
-    background: var(--card-hover);
-  }
-
-  .product-item:hover {
-    border-color: var(--border-bright);
-    background: var(--card-hover);
-    transform: translateX(3px);
-  }
-
-  .preset-card:hover {
-    border-color: var(--border-bright);
-    background: var(--card-hover);
-  }
-
-  .alt-card:hover {
-    border-color: rgba(16, 185, 129, 0.3);
-    background: var(--card-hover);
-  }
-
-  .chip:hover {
-    background: var(--primary-dim);
-    border-color: rgba(139, 92, 246, 0.3);
-    color: var(--primary-bright);
-  }
-
-  .ai-send-btn:hover {
-    background: var(--primary-mid);
-    transform: scale(1.05);
-  }
-
-  .scan-btn:hover {
-    background: rgba(124, 58, 237, 0.18);
-    border-color: var(--primary-mid);
-    transform: scale(1.03);
-    box-shadow: 0 0 40px var(--primary-glow);
-  }
-
+  .product-item:hover,
+  .preset-card:hover,
+  .alt-card:hover,
+  .chip:hover,
+  .scan-btn:hover,
   .map-mock:hover {
-    border-color: var(--border-bright);
-    color: var(--text);
+    transform: translateY(-1px);
   }
 }
 
 @media (hover: none), (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
 
   .btn-primary:active,
   .btn-secondary:active,
   .btn-ghost:active,
-  .card.interactive:active,
+  .card:active,
   .product-item:active,
   .preset-card:active,
   .alt-card:active,
   .chip:active,
   .scan-btn:active,
   .map-mock:active,
-  .priority-btn:active,
-  .tag:active,
-  .toggle:active,
-  .cta-btn-main:active,
-  .cta-btn-sec:active,
-  .step-card:active {
-    transform: scale(0.985);
+  [data-pressable='true']:active {
+    transform: translateY(-1px) scale(0.99);
+  }
+}
+
+@supports (-webkit-touch-callout: none) {
+  body {
+    min-height: -webkit-fill-available;
   }
 
-  .card.interactive:active,
-  .product-item:active,
-  .preset-card:active,
-  .alt-card:active,
-  .chip:active,
-  .map-mock:active,
-  .priority-btn:active,
-  .tag:active,
-  .step-card:active {
-    background: var(--card-hover);
-  }
-
-  .product-item:active {
-    border-color: var(--border-bright);
-  }
-
-  .chip:active,
-  .tag:active,
-  .priority-btn:active {
-    border-color: rgba(139, 92, 246, 0.32);
-  }
-
-  .scan-btn:active {
-    border-color: var(--primary-mid);
-    box-shadow: 0 0 24px rgba(124, 58, 237, 0.28);
+  #root,
+  .app-frame {
+    min-height: var(--app-vh, -webkit-fill-available);
   }
 }
