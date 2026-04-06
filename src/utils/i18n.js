@@ -66,6 +66,10 @@ export const dictionaries = {
       galleryNoBarcode: 'Штрихкод не найден на фото. Попробуйте другое изображение.',
       galleryError: 'Не удалось прочитать изображение',
       galleryScanning: 'Читаем штрихкод с фото...',
+      switchCamera: 'Переключить камеру',
+      tapToFocus: 'Нажмите, чтобы сфокусировать',
+      notFoundToast: 'Товар не найден в базе',
+      notFoundSub: 'Штрихкод',
     },
     product: {
       title: 'Карточка товара',
@@ -304,6 +308,10 @@ export const dictionaries = {
       galleryNoBarcode: 'Суреттен штрихкод табылмады. Басқа суретті көріңіз.',
       galleryError: 'Суретті оқу мүмкін болмады',
       galleryScanning: 'Суреттен штрихкод оқылуда...',
+      switchCamera: 'Камераны ауыстыру',
+      tapToFocus: 'Фокустау үшін басыңыз',
+      notFoundToast: 'Тауар базадан табылмады',
+      notFoundSub: 'Штрихкод',
     },
     product: {
       title: 'Тауар картасы',
