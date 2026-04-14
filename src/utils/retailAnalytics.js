@@ -74,26 +74,35 @@ export async function getStoreCatalogProducts(storeId) {
   return data ?? []
 }
 
-export async function updateProductPrice(productId, priceKzt) {
-  const { error } = await supabase
+export async function updateProductPrice(productId, storeId, priceKzt) {
+  const { data, error } = await supabase
     .from('store_products')
     .update({ price_kzt: priceKzt, updated_at: new Date().toISOString() })
     .eq('id', productId)
+    .eq('store_id', storeId)
+    .select('id')
   if (error) throw new Error(error.message ?? error)
+  if (!data || data.length === 0) throw new Error('Update blocked: RLS or row not found')
 }
 
-export async function updateProductStock(productId, stockStatus) {
-  const { error } = await supabase
+export async function updateProductStock(productId, storeId, stockStatus) {
+  const { data, error } = await supabase
     .from('store_products')
     .update({ stock_status: stockStatus, updated_at: new Date().toISOString() })
     .eq('id', productId)
+    .eq('store_id', storeId)
+    .select('id')
   if (error) throw new Error(error.message ?? error)
+  if (!data || data.length === 0) throw new Error('Update blocked: RLS or row not found')
 }
 
-export async function updateProductShelf(productId, shelfZone) {
-  const { error } = await supabase
+export async function updateProductShelf(productId, storeId, shelfZone) {
+  const { data, error } = await supabase
     .from('store_products')
     .update({ shelf_zone: shelfZone, updated_at: new Date().toISOString() })
     .eq('id', productId)
+    .eq('store_id', storeId)
+    .select('id')
   if (error) throw new Error(error.message ?? error)
+  if (!data || data.length === 0) throw new Error('Update blocked: RLS or row not found')
 }

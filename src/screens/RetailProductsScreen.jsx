@@ -134,6 +134,10 @@ function PriceField({ productId, initialPrice, p, priceMutation }) {
 
   useEffect(() => () => clearTimeout(timerRef.current), [])
 
+  useEffect(() => {
+    if (saveState === 'idle') setDraft(initialPrice ?? '')
+  }, [initialPrice]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleBlur = useCallback(() => {
     const val = Number(draft)
     if (isNaN(val) || val < 0 || val === initialPrice) return
@@ -287,6 +291,10 @@ function ShelfField({ productId, initialShelf, p, shelfMutation }) {
   const timerRef = useRef(null)
 
   useEffect(() => () => clearTimeout(timerRef.current), [])
+
+  useEffect(() => {
+    if (saveState === 'idle') setDraft(initialShelf ?? '')
+  }, [initialShelf]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleBlur = useCallback(() => {
     const val = draft.trim()
@@ -509,11 +517,13 @@ export default function RetailProductsScreen() {
     queryKey: ['retail-products', storeId],
     queryFn: () => getStoreCatalogProducts(storeId),
     enabled: Boolean(storeId),
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   })
 
   // ── Stock mutation (optimistic) ────────────────────────────────
   const stockMutation = useMutation({
-    mutationFn: ({ id, status }) => updateProductStock(id, status),
+    mutationFn: ({ id, status }) => updateProductStock(id, storeId, status),
     onMutate: async ({ id, status }) => {
       await queryClient.cancelQueries({ queryKey: ['retail-products', storeId] })
       const prev = queryClient.getQueryData(['retail-products', storeId])
@@ -530,23 +540,41 @@ export default function RetailProductsScreen() {
     },
   })
 
-  // ── Price mutation (non-optimistic, save-on-blur) ──────────────
+  // ── Price mutation (optimistic + rollback + invalidate) ─────────
   const priceMutation = useMutation({
-    mutationFn: ({ id, price }) => updateProductPrice(id, price),
-    onSuccess: (_data, { id, price }) => {
+    mutationFn: ({ id, price }) => updateProductPrice(id, storeId, price),
+    onMutate: async ({ id, price }) => {
+      await queryClient.cancelQueries({ queryKey: ['retail-products', storeId] })
+      const prev = queryClient.getQueryData(['retail-products', storeId])
       queryClient.setQueryData(['retail-products', storeId], (old) =>
         old?.map((item) => (item.id === id ? { ...item, price_kzt: price } : item))
       )
+      return { prev }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(['retail-products', storeId], ctx.prev)
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['retail-products', storeId] })
     },
   })
 
-  // ── Shelf mutation (non-optimistic, save-on-blur) ──────────────
+  // ── Shelf mutation (optimistic + rollback + invalidate) ─────────
   const shelfMutation = useMutation({
-    mutationFn: ({ id, shelfZone }) => updateProductShelf(id, shelfZone),
-    onSuccess: (_data, { id, shelfZone }) => {
+    mutationFn: ({ id, shelfZone }) => updateProductShelf(id, storeId, shelfZone),
+    onMutate: async ({ id, shelfZone }) => {
+      await queryClient.cancelQueries({ queryKey: ['retail-products', storeId] })
+      const prev = queryClient.getQueryData(['retail-products', storeId])
       queryClient.setQueryData(['retail-products', storeId], (old) =>
         old?.map((item) => (item.id === id ? { ...item, shelf_zone: shelfZone } : item))
       )
+      return { prev }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(['retail-products', storeId], ctx.prev)
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['retail-products', storeId] })
     },
   })
 
