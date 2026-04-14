@@ -1396,13 +1396,8 @@ export default function HomeScreen() {
               alignItems: 'center',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <img src="/logo.png" alt="logo full" style={{ height: 32, objectFit: 'contain' }} />
-              <img
-                src="/icon_logo.svg"
-                alt="logo icon"
-                style={{ height: 32, width: 32, borderRadius: 6 }}
-              />
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <img src="/logo.png" alt="Körset" style={{ height: 32, objectFit: 'contain' }} />
             </div>
             <div style={{ display: 'flex', gap: 48 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
