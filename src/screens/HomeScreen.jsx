@@ -14,68 +14,405 @@ export default function HomeScreen() {
 
   if (isStoreApp && currentStore && routes) {
     return (
-      <div className="screen" style={{ paddingBottom: 100 }}>
-        <div style={{ padding: '20px 24px 0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
-            {(currentStore.logo_url || currentStore.logo)
-              ? <img src={currentStore.logo_url || currentStore.logo} alt={currentStore.name} style={{ width: 56, height: 56, borderRadius: 18, objectFit: 'cover', background: 'rgba(255,255,255,0.05)' }} />
-              : <div style={{ width: 56, height: 56, borderRadius: 18, background: 'linear-gradient(135deg, rgba(56,189,248,0.25), rgba(124,58,237,0.25))', border: '1px solid rgba(56,189,248,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 800, color: '#fff', fontFamily: 'var(--font-display)', flexShrink: 0 }}>{currentStore.name?.[0]?.toUpperCase() || 'K'}</div>
-            }
-            <div>
-              <div style={{ fontSize: 12, color: 'rgba(167,139,250,0.7)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
-                Körset Store Mode
+      <div
+        className="screen"
+        style={{ paddingBottom: 100, background: '#080C18', minHeight: '100vh' }}
+      >
+        {/* Background glow */}
+        <div
+          style={{
+            position: 'fixed',
+            top: -100,
+            left: -100,
+            width: 300,
+            height: 300,
+            background: 'radial-gradient(circle, rgba(124,58,237,0.15) 0%, transparent 70%)',
+            zIndex: 0,
+          }}
+        />
+        <div
+          style={{
+            position: 'fixed',
+            top: 200,
+            right: -150,
+            width: 400,
+            height: 400,
+            background: 'radial-gradient(circle, rgba(56,189,248,0.1) 0%, transparent 70%)',
+            zIndex: 0,
+          }}
+        />
+
+        <div style={{ padding: '20px 24px 0', position: 'relative', zIndex: 10 }}>
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32 }}>
+            {currentStore.logo_url || currentStore.logo ? (
+              <img
+                src={currentStore.logo_url || currentStore.logo}
+                alt={currentStore.name}
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: 20,
+                  objectFit: 'cover',
+                  background: 'rgba(255,255,255,0.05)',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: 20,
+                  background:
+                    'linear-gradient(135deg, rgba(56,189,248,0.25), rgba(124,58,237,0.25))',
+                  border: '1px solid rgba(56,189,248,0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 26,
+                  fontWeight: 800,
+                  color: '#fff',
+                  fontFamily: 'var(--font-display)',
+                  flexShrink: 0,
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                }}
+              >
+                {currentStore.name?.[0]?.toUpperCase() || 'K'}
               </div>
-              <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 900, color: '#fff', lineHeight: 1.1, margin: 0 }}>
+            )}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 14, color: '#38BDF8' }}
+                >
+                  verified
+                </span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: 'rgba(167,139,250,0.8)',
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.1em',
+                  }}
+                >
+                  Официальный магазин
+                </span>
+              </div>
+              <h1
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 28,
+                  fontWeight: 900,
+                  color: '#fff',
+                  lineHeight: 1.1,
+                  margin: 0,
+                  letterSpacing: '-0.02em',
+                }}
+              >
                 {currentStore.name}
               </h1>
-              <div style={{ fontSize: 13, color: 'rgba(180,180,210,0.65)', marginTop: 6 }}>
+              <div
+                style={{
+                  fontSize: 13,
+                  color: 'rgba(180,180,210,0.65)',
+                  marginTop: 6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+                  location_on
+                </span>
                 {currentStore.city} · {currentStore.address}
               </div>
             </div>
           </div>
 
-          <div style={{ padding: '16px 18px', borderRadius: 18, background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.28)', marginBottom: 18 }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#E9D5FF', marginBottom: 6 }}>Проверяйте товар в контексте магазина</div>
-            <div style={{ fontSize: 13, lineHeight: 1.6, color: 'rgba(220,220,255,0.75)' }}>
-              Состав, аллергены, халал, КБЖУ, цена и полка будут показаны в логике именно этого магазина.
+          {/* Context Banner */}
+          <div
+            style={{
+              padding: '16px 20px',
+              borderRadius: 20,
+              background: 'rgba(255,255,255,0.03)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              marginBottom: 24,
+              display: 'flex',
+              gap: 14,
+              alignItems: 'center',
+            }}
+          >
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                background: 'rgba(124,58,237,0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <span
+                className="material-symbols-outlined"
+                style={{ color: '#A78BFA', fontSize: 20 }}
+              >
+                info
+              </span>
+            </div>
+            <div>
+              <div
+                style={{
+                  fontSize: 14,
+                  fontWeight: 800,
+                  color: '#fff',
+                  marginBottom: 2,
+                  fontFamily: 'var(--font-display)',
+                }}
+              >
+                Контекст магазина
+              </div>
+              <div style={{ fontSize: 12, lineHeight: 1.4, color: 'rgba(220,220,255,0.6)' }}>
+                Аллергены, халал, КБЖУ, наличие и цена адаптированы под этот филиал.
+              </div>
             </div>
           </div>
 
-          <button onClick={() => navigate(routes.scan)} style={{
-            width: '100%', padding: '24px 20px', borderRadius: 22, cursor: 'pointer',
-            background: 'linear-gradient(135deg, rgba(124,58,237,0.22), rgba(109,40,217,0.1))',
-            border: '1.5px solid rgba(124,58,237,0.4)',
-            display: 'flex', alignItems: 'center', gap: 18,
-            boxShadow: '0 8px 32px rgba(124,58,237,0.12)', marginBottom: 14,
-          }}>
-            <div style={{ width: 52, height: 52, borderRadius: 16, flexShrink: 0, background: 'linear-gradient(135deg, #7C3AED, #6D28D9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round"><path d="M3 7V4a1 1 0 0 1 1-1h3"/><path d="M17 3h3a1 1 0 0 1 1 1v3"/><path d="M21 17v3a1 1 0 0 1-1 1h-3"/><path d="M7 21H4a1 1 0 0 1-1-1v-3"/><line x1="7" y1="12" x2="17" y2="12" strokeWidth="2.5"/></svg>
+          {/* Primary Action: Scan */}
+          <button
+            onClick={() => navigate(routes.scan)}
+            style={{
+              width: '100%',
+              padding: '24px 20px',
+              borderRadius: 24,
+              cursor: 'pointer',
+              background: 'linear-gradient(135deg, rgba(124,58,237,0.3), rgba(56,189,248,0.15))',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 20,
+              boxShadow: '0 16px 40px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
+              marginBottom: 16,
+              transition: 'transform 0.2s, box-shadow 0.2s',
+            }}
+            onActive={(e) => {
+              e.currentTarget.style.transform = 'scale(0.98)'
+            }}
+          >
+            <div
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 16,
+                flexShrink: 0,
+                background: 'linear-gradient(135deg, #7C3AED, #38BDF8)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 8px 24px rgba(56,189,248,0.4)',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ color: '#fff', fontSize: 28 }}>
+                barcode_scanner
+              </span>
             </div>
             <div style={{ textAlign: 'left' }}>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 700, color: '#E9D5FF', marginBottom: 3 }}>{t.home.scanBtn}</div>
-              <div style={{ fontSize: 12, color: 'rgba(167,139,250,0.6)' }}>{t.home.scanSub}</div>
+              <div
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 20,
+                  fontWeight: 800,
+                  color: '#fff',
+                  marginBottom: 4,
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                {t.home.scanBtn}
+              </div>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>
+                {t.home.scanSub}
+              </div>
             </div>
+            <span
+              className="material-symbols-outlined"
+              style={{ marginLeft: 'auto', color: 'rgba(255,255,255,0.3)', fontSize: 24 }}
+            >
+              chevron_right
+            </span>
           </button>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
-            <QuickCard title={t.home.catalog} sub={t.home.catalogSub} color="rgba(96,165,250,0.08)" border="rgba(96,165,250,0.18)" onClick={() => navigate(routes.catalog)} />
-            <QuickCard title={t.home.ai} sub={t.home.aiSub} color="rgba(124,58,237,0.1)" border="rgba(124,58,237,0.25)" onClick={() => navigate(routes.ai)} />
+          {/* Bento Grid for Secondary Actions */}
+          <div
+            style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}
+          >
+            <div
+              onClick={() => navigate(routes.catalog)}
+              style={{
+                padding: '20px 16px',
+                borderRadius: 24,
+                cursor: 'pointer',
+                background: 'rgba(255,255,255,0.03)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+              }}
+            >
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 14,
+                  background: 'rgba(56,189,248,0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <span
+                  className="material-symbols-outlined"
+                  style={{ color: '#38BDF8', fontSize: 22 }}
+                >
+                  inventory_2
+                </span>
+              </div>
+              <div>
+                <div
+                  style={{
+                    fontFamily: 'var(--font-display)',
+                    fontSize: 16,
+                    fontWeight: 800,
+                    color: '#fff',
+                    marginBottom: 2,
+                  }}
+                >
+                  {t.home.catalog}
+                </div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.3 }}>
+                  {t.home.catalogSub}
+                </div>
+              </div>
+            </div>
+
+            <div
+              onClick={() => navigate(routes.ai)}
+              style={{
+                padding: '20px 16px',
+                borderRadius: 24,
+                cursor: 'pointer',
+                background: 'rgba(255,255,255,0.03)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+              }}
+            >
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 14,
+                  background: 'rgba(167,139,250,0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <span
+                  className="material-symbols-outlined"
+                  style={{ color: '#A78BFA', fontSize: 22 }}
+                >
+                  smart_toy
+                </span>
+              </div>
+              <div>
+                <div
+                  style={{
+                    fontFamily: 'var(--font-display)',
+                    fontSize: 16,
+                    fontWeight: 800,
+                    color: '#fff',
+                    marginBottom: 2,
+                  }}
+                >
+                  {t.home.ai}
+                </div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.3 }}>
+                  {t.home.aiSub}
+                </div>
+              </div>
+            </div>
           </div>
 
-          <button onClick={() => navigate(routes.history)} style={{
-            width: '100%', padding: '16px', borderRadius: 18, cursor: 'pointer',
-            background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.18)',
-            display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20,
-          }}>
-            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'rgba(52,211,153,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🕘</div>
-            <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', fontFamily: 'var(--font-display)' }}>
+          <button
+            onClick={() => navigate(routes.history)}
+            style={{
+              width: '100%',
+              padding: '18px 20px',
+              borderRadius: 20,
+              cursor: 'pointer',
+              background: 'rgba(255,255,255,0.02)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.06)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 16,
+              marginBottom: 20,
+              boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+            }}
+          >
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                background: 'rgba(52,211,153,0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <span
+                className="material-symbols-outlined"
+                style={{ color: '#34D399', fontSize: 20 }}
+              >
+                history
+              </span>
+            </div>
+            <div style={{ textAlign: 'left', flex: 1 }}>
+              <div
+                style={{
+                  fontSize: 15,
+                  fontWeight: 800,
+                  color: '#fff',
+                  fontFamily: 'var(--font-display)',
+                  letterSpacing: '0.01em',
+                }}
+              >
                 {lang === 'kz' ? 'Менің тарихым' : 'Моя история'}
               </div>
-              <div style={{ fontSize: 11, color: 'rgba(52,211,153,0.6)', marginTop: 2 }}>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>
                 {lang === 'kz' ? 'Сканерленген тауарлар' : 'Отсканированные товары'}
               </div>
             </div>
+            <span
+              className="material-symbols-outlined"
+              style={{ color: 'rgba(255,255,255,0.2)', fontSize: 20 }}
+            >
+              arrow_forward
+            </span>
           </button>
         </div>
       </div>
@@ -327,25 +664,73 @@ export default function HomeScreen() {
         {/* Top Header */}
         <header className="top-nav">
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <img src="/icon_logo.svg" alt="logo" style={{ width: 36, height: 36, borderRadius: 10 }} />
-            <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.02em' }} className="font-headline">Körset</div>
+            <img
+              src="/icon_logo.svg"
+              alt="logo"
+              style={{ width: 36, height: 36, borderRadius: 10 }}
+            />
+            <div
+              style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.02em' }}
+              className="font-headline"
+            >
+              Körset
+            </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <button onClick={() => navigate('/retail')} style={{
-              padding: '9px 16px', borderRadius: 10, background: 'rgba(56,189,248,0.1)',
-              border: '1px solid rgba(56,189,248,0.25)', color: '#38BDF8', fontSize: 13,
-              fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-              fontFamily: 'var(--font-display, Manrope, sans-serif)', letterSpacing: '0.01em',
-              whiteSpace: 'nowrap',
-            }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>storefront</span>
+            <button
+              onClick={() => navigate('/retail')}
+              style={{
+                padding: '9px 16px',
+                borderRadius: 10,
+                background: 'rgba(56,189,248,0.1)',
+                border: '1px solid rgba(56,189,248,0.25)',
+                color: '#38BDF8',
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                fontFamily: 'var(--font-display, Manrope, sans-serif)',
+                letterSpacing: '0.01em',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                storefront
+              </span>
               Кабинет
             </button>
-            <button onClick={() => navigate(user ? '/retail' : '/auth', { state: user ? undefined : buildAuthNavigateState(location) })} style={{
-              width: 44, height: 44, borderRadius: '50%', background: 'rgba(53, 52, 57, 0.4)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', color: '#d2bbff'
-            }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <button
+              onClick={() =>
+                navigate(user ? '/retail' : '/auth', {
+                  state: user ? undefined : buildAuthNavigateState(location),
+                })
+              }
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: '50%',
+                background: 'rgba(53, 52, 57, 0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#d2bbff',
+              }}
+            >
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
             </button>
           </div>
         </header>
@@ -353,35 +738,102 @@ export default function HomeScreen() {
         {/* Hero */}
         <section className="hero-section">
           <div className="hero-radial"></div>
-          
+
           <div className="hero-content">
             <div className="floating-plates">
               <div className="plate plate-left ghost-border">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="#d2bbff" stroke="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-                <span className="font-label" style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Халал</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="#d2bbff" stroke="none">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                </svg>
+                <span
+                  className="font-label"
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.1em',
+                  }}
+                >
+                  Халал
+                </span>
               </div>
-              <div className="plate plate-center ghost-border" style={{ border: '1px solid rgba(210, 187, 255, 0.2)' }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d2bbff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-                <span className="font-label" style={{ fontSize: 15, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Умный анализ</span>
+              <div
+                className="plate plate-center ghost-border"
+                style={{ border: '1px solid rgba(210, 187, 255, 0.2)' }}
+              >
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#d2bbff"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                  <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                  <line x1="12" y1="22.08" x2="12" y2="12" />
+                </svg>
+                <span
+                  className="font-label"
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.1em',
+                  }}
+                >
+                  Умный анализ
+                </span>
               </div>
               <div className="plate plate-right ghost-border">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="#ffb784" stroke="none"><path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/></svg>
-                <span className="font-label" style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Без глютена</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="#ffb784" stroke="none">
+                  <path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z" />
+                </svg>
+                <span
+                  className="font-label"
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.1em',
+                  }}
+                >
+                  Без глютена
+                </span>
               </div>
             </div>
 
             <h1 className="hero-title font-headline">
-              Узнайте <span className="gradient-text">правду</span> о<br/>том, что вы едите
+              Узнайте <span className="gradient-text">правду</span> о<br />
+              том, что вы едите
             </h1>
-            <p className="font-label" style={{ color: 'rgba(255,255,255,0.7)', fontSize: 16, lineHeight: 1.6, maxWidth: 460, marginBottom: 40, fontWeight: 500 }}>
-              Körset за секунду расшифрует состав продукта, найдет скрытые Е-добавки и предупредит об аллергенах. Выбирайте еду осознанно.
+            <p
+              className="font-label"
+              style={{
+                color: 'rgba(255,255,255,0.7)',
+                fontSize: 16,
+                lineHeight: 1.6,
+                maxWidth: 460,
+                marginBottom: 40,
+                fontWeight: 500,
+              }}
+            >
+              Körset за секунду расшифрует состав продукта, найдет скрытые Е-добавки и предупредит
+              об аллергенах. Выбирайте еду осознанно.
             </p>
 
             <div className="hero-btns">
               <button className="cta-btn-main" onClick={() => navigate('/stores')}>
                 Выбрать магазин
               </button>
-              <button className="cta-btn-sec" onClick={() => document.getElementById('b2b-section')?.scrollIntoView({ behavior: 'smooth' })}>
+              <button
+                className="cta-btn-sec"
+                onClick={() =>
+                  document.getElementById('b2b-section')?.scrollIntoView({ behavior: 'smooth' })
+                }
+              >
                 О проекте
               </button>
             </div>
@@ -389,10 +841,27 @@ export default function HomeScreen() {
         </section>
 
         {/* How it works */}
-        <section id="b2b-section" className="section-padding" style={{ maxWidth: 1200, margin: '0 auto' }}>
+        <section
+          id="b2b-section"
+          className="section-padding"
+          style={{ maxWidth: 1200, margin: '0 auto' }}
+        >
           <div style={{ textAlign: 'center', marginBottom: 64 }}>
-            <h2 className="font-headline" style={{ fontSize: 'clamp(32px, 5vw, 48px)', fontWeight: 700, marginBottom: 16 }}>Как это работает</h2>
-            <div style={{ width: 80, height: 4, background: 'var(--primary)', margin: '0 auto', borderRadius: 99 }}></div>
+            <h2
+              className="font-headline"
+              style={{ fontSize: 'clamp(32px, 5vw, 48px)', fontWeight: 700, marginBottom: 16 }}
+            >
+              Как это работает
+            </h2>
+            <div
+              style={{
+                width: 80,
+                height: 4,
+                background: 'var(--primary)',
+                margin: '0 auto',
+                borderRadius: 99,
+              }}
+            ></div>
           </div>
 
           <div className="grid-3">
@@ -400,158 +869,610 @@ export default function HomeScreen() {
             <div className="step-card group">
               <div className="step-num">01</div>
               <div style={{ marginBottom: 32 }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 48, color: 'var(--primary)' }}>barcode_scanner</span>
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 48, color: 'var(--primary)' }}
+                >
+                  barcode_scanner
+                </span>
               </div>
-              <h3 className="font-headline" style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>Сканируйте штрихкод</h3>
-              <p className="font-label" style={{ color: 'var(--on-surface-variant)', lineHeight: 1.6, fontSize: 15 }}>Просто наведите камеру на штрихкод продукта, чтобы мгновенно получить его данные прямо в магазине.</p>
+              <h3
+                className="font-headline"
+                style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}
+              >
+                Сканируйте штрихкод
+              </h3>
+              <p
+                className="font-label"
+                style={{ color: 'var(--on-surface-variant)', lineHeight: 1.6, fontSize: 15 }}
+              >
+                Просто наведите камеру на штрихкод продукта, чтобы мгновенно получить его данные
+                прямо в магазине.
+              </p>
             </div>
-            
+
             {/* Step 2 */}
             <div className="step-card group">
               <div className="step-num">02</div>
               <div style={{ marginBottom: 32 }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 48, color: 'var(--primary)' }}>psychology</span>
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 48, color: 'var(--primary)' }}
+                >
+                  psychology
+                </span>
               </div>
-              <h3 className="font-headline" style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>Анализ нейросетью</h3>
-              <p className="font-label" style={{ color: 'var(--on-surface-variant)', lineHeight: 1.6, fontSize: 15 }}>Наши алгоритмы Körset AI расшифруют состав, найдут добавки, консерванты и скрытые аллергены.</p>
+              <h3
+                className="font-headline"
+                style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}
+              >
+                Анализ нейросетью
+              </h3>
+              <p
+                className="font-label"
+                style={{ color: 'var(--on-surface-variant)', lineHeight: 1.6, fontSize: 15 }}
+              >
+                Наши алгоритмы Körset AI расшифруют состав, найдут добавки, консерванты и скрытые
+                аллергены.
+              </p>
             </div>
 
             {/* Step 3 */}
             <div className="step-card group">
               <div className="step-num">03</div>
               <div style={{ marginBottom: 32 }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 48, color: 'var(--primary)' }}>fact_check</span>
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 48, color: 'var(--primary)' }}
+                >
+                  fact_check
+                </span>
               </div>
-              <h3 className="font-headline" style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>Умный вердикт</h3>
-              <p className="font-label" style={{ color: 'var(--on-surface-variant)', lineHeight: 1.6, fontSize: 15 }}>Получите строгую оценку качества продукта и его соответствия вашим предпочтениям.</p>
+              <h3
+                className="font-headline"
+                style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}
+              >
+                Умный вердикт
+              </h3>
+              <p
+                className="font-label"
+                style={{ color: 'var(--on-surface-variant)', lineHeight: 1.6, fontSize: 15 }}
+              >
+                Получите строгую оценку качества продукта и его соответствия вашим предпочтениям.
+              </p>
             </div>
           </div>
         </section>
 
         {/* Features Vertical Stack (Mobile First) */}
-        <section className="section-padding" style={{ background: 'rgba(27, 27, 31, 0.3)' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <section
+          className="section-padding"
+          style={{ background: 'rgba(14, 15, 20, 0.6)', backdropFilter: 'blur(30px)' }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 20,
+              maxWidth: 1100,
+              margin: '0 auto',
+            }}
+          >
             {/* Карточка 1: E-добавки */}
-            <div className="glass" style={{ padding: '32px', borderRadius: 20, display: 'flex', flexDirection: 'column', gap: 24, borderLeft: '2px solid rgba(210, 187, 255, 0.5)' }}>
-               <div>
-                  <span className="font-label" style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--primary)' }}>Распознавание</span>
-                  <div className="font-headline" style={{ fontSize: 44, fontWeight: 700, color: '#fff', marginTop: 8 }}>E-Добавки</div>
-               </div>
-               <p className="font-label" style={{ fontSize: 14, color: 'var(--on-surface-variant)', lineHeight: 1.5, opacity: 0.9 }}>
-                  Körset выявляет все скрытые красители, консерванты и эмульгаторы, разбивая сложный химический состав на понятные компоненты.
-               </p>
+            <div
+              className="glass"
+              style={{
+                padding: '32px',
+                borderRadius: 24,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 16,
+                borderTop: '1px solid rgba(210, 187, 255, 0.15)',
+                boxShadow: '0 16px 40px rgba(0,0,0,0.2)',
+              }}
+            >
+              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                <div
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: '50%',
+                    background:
+                      'linear-gradient(135deg, rgba(210, 187, 255, 0.15), rgba(124, 58, 237, 0.1))',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '1px solid rgba(210, 187, 255, 0.2)',
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: 28, color: 'var(--primary)' }}
+                  >
+                    science
+                  </span>
+                </div>
+                <h3
+                  className="font-headline"
+                  style={{ fontSize: 28, fontWeight: 800, color: '#fff', margin: 0 }}
+                >
+                  E-Добавки
+                </h3>
+              </div>
+              <p
+                className="font-label"
+                style={{
+                  fontSize: 16,
+                  color: 'var(--on-surface-variant)',
+                  lineHeight: 1.6,
+                  opacity: 0.9,
+                  margin: 0,
+                }}
+              >
+                Körset выявляет все скрытые красители, консерванты и эмульгаторы, разбивая сложный
+                химический состав на понятные компоненты.
+              </p>
             </div>
 
             {/* Карточка 2: Умный сканер */}
-            <div className="glass" style={{ padding: '32px', borderRadius: 20, display: 'flex', flexDirection: 'column', gap: 24, borderLeft: '2px solid rgba(255, 183, 132, 0.5)' }}>
-               <div>
-                  <span className="material-symbols-outlined" style={{ fontSize: 32, color: 'var(--tertiary)' }}>center_focus_strong</span>
-               </div>
-               <div>
-                  <h4 className="font-headline" style={{ fontSize: 24, fontWeight: 700, color: '#fff', marginBottom: 12 }}>Умный сканер</h4>
-                  <p className="font-label" style={{ fontSize: 14, color: 'var(--on-surface-variant)', lineHeight: 1.5, opacity: 0.9 }}>
-                    Наведите камеру смартфона на штрихкод товара, и вы за долю секунды получите подробный Fit-Check прямо у полки магазина.
-                  </p>
-               </div>
+            <div
+              className="glass"
+              style={{
+                padding: '32px',
+                borderRadius: 24,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 16,
+                borderTop: '1px solid rgba(255, 183, 132, 0.15)',
+                boxShadow: '0 16px 40px rgba(0,0,0,0.2)',
+              }}
+            >
+              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                <div
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: '50%',
+                    background:
+                      'linear-gradient(135deg, rgba(255, 183, 132, 0.15), rgba(161, 81, 0, 0.1))',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '1px solid rgba(255, 183, 132, 0.2)',
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: 28, color: 'var(--tertiary)' }}
+                  >
+                    center_focus_strong
+                  </span>
+                </div>
+                <h3
+                  className="font-headline"
+                  style={{ fontSize: 28, fontWeight: 800, color: '#fff', margin: 0 }}
+                >
+                  Умный сканер
+                </h3>
+              </div>
+              <p
+                className="font-label"
+                style={{
+                  fontSize: 16,
+                  color: 'var(--on-surface-variant)',
+                  lineHeight: 1.6,
+                  opacity: 0.9,
+                  margin: 0,
+                }}
+              >
+                Наведите камеру смартфона на штрихкод товара, и вы за долю секунды получите
+                подробный Fit-Check прямо у полки магазина.
+              </p>
             </div>
 
             {/* Карточка 3: Персональные фильтры (Халал/Веган) */}
-            <div className="glass" style={{ padding: '32px', borderRadius: 20, display: 'flex', flexDirection: 'column', gap: 24 }}>
-               <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                  <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(210, 187, 255, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                     <span className="material-symbols-outlined" style={{ fontSize: 24, color: 'var(--primary)' }}>person_search</span>
-                  </div>
-                  <h3 className="font-headline" style={{ fontSize: 26, fontWeight: 700, color: '#fff' }}>Ваш профиль</h3>
-               </div>
-               <p className="font-label" style={{ color: 'var(--on-surface-variant)', fontSize: 15, lineHeight: 1.6 }}>
-                 Настройте фильтры: Халал, Веган или диетические программы. Приложение заранее предупредит вас, если продукт вам не подходит.
-               </p>
+            <div
+              className="glass"
+              style={{
+                padding: '32px',
+                borderRadius: 24,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 16,
+                borderTop: '1px solid rgba(16, 185, 129, 0.15)',
+                boxShadow: '0 16px 40px rgba(0,0,0,0.2)',
+              }}
+            >
+              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                <div
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: '50%',
+                    background:
+                      'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(4, 120, 87, 0.1))',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '1px solid rgba(16, 185, 129, 0.2)',
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: 28, color: '#10B981' }}
+                  >
+                    person_search
+                  </span>
+                </div>
+                <h3
+                  className="font-headline"
+                  style={{ fontSize: 28, fontWeight: 800, color: '#fff', margin: 0 }}
+                >
+                  Ваш профиль
+                </h3>
+              </div>
+              <p
+                className="font-label"
+                style={{
+                  color: 'var(--on-surface-variant)',
+                  fontSize: 16,
+                  lineHeight: 1.6,
+                  margin: 0,
+                }}
+              >
+                Настройте фильтры: Халал, Веган или диетические программы. Приложение заранее
+                предупредит вас, если продукт вам не подходит.
+              </p>
             </div>
 
             {/* Карточка 4: Защита аллергиков */}
-            <div className="glass" style={{ padding: '32px', borderRadius: 20, display: 'flex', flexDirection: 'column', gap: 24, borderLeft: '2px solid rgba(16, 185, 129, 0.5)' }}>
-               <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                  <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                     <span className="material-symbols-outlined" style={{ fontSize: 24, color: '#10B981' }}>health_and_safety</span>
-                  </div>
-                  <h3 className="font-headline" style={{ fontSize: 26, fontWeight: 700, color: '#fff' }}>Детектор аллергий</h3>
-               </div>
-               <p className="font-label" style={{ color: 'var(--on-surface-variant)', fontSize: 15, lineHeight: 1.6 }}>
-                 Мгновенное выявление критичных аллергенов (орехи, лактоза, глютен и др.). Сохраняйте проверенные безопасные продукты в историю.
-               </p>
+            <div
+              className="glass"
+              style={{
+                padding: '32px',
+                borderRadius: 24,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 16,
+                borderTop: '1px solid rgba(244, 63, 94, 0.15)',
+                boxShadow: '0 16px 40px rgba(0,0,0,0.2)',
+              }}
+            >
+              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                <div
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: '50%',
+                    background:
+                      'linear-gradient(135deg, rgba(244, 63, 94, 0.15), rgba(159, 18, 57, 0.1))',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '1px solid rgba(244, 63, 94, 0.2)',
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: 28, color: '#F43F5E' }}
+                  >
+                    health_and_safety
+                  </span>
+                </div>
+                <h3
+                  className="font-headline"
+                  style={{ fontSize: 28, fontWeight: 800, color: '#fff', margin: 0 }}
+                >
+                  Детектор аллергий
+                </h3>
+              </div>
+              <p
+                className="font-label"
+                style={{
+                  color: 'var(--on-surface-variant)',
+                  fontSize: 16,
+                  lineHeight: 1.6,
+                  margin: 0,
+                }}
+              >
+                Мгновенное выявление критичных аллергенов (орехи, лактоза, глютен и др.). Сохраняйте
+                проверенные безопасные продукты в историю.
+              </p>
             </div>
           </div>
         </section>
 
         {/* B2B Section */}
-        <section style={{ padding: '80px 24px', background: 'rgba(8,12,24,0.8)' }}>
-          <div style={{ maxWidth: 720, margin: '0 auto', borderRadius: 28, background: 'linear-gradient(135deg, rgba(56,189,248,0.07), rgba(124,58,237,0.1))', border: '1px solid rgba(56,189,248,0.15)', padding: '48px 40px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 14, background: 'rgba(56,189,248,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 24, color: '#38BDF8' }}>storefront</span>
+        <section
+          className="section-padding"
+          style={{ background: 'rgba(8,12,24,0.95)', position: 'relative' }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '100%',
+              height: '100%',
+              background:
+                'radial-gradient(ellipse at center, rgba(56,189,248,0.1) 0%, transparent 60%)',
+              pointerEvents: 'none',
+            }}
+          />
+          <div
+            className="glass"
+            style={{
+              maxWidth: 1100,
+              margin: '0 auto',
+              borderRadius: 32,
+              borderTop: '1px solid rgba(56,189,248,0.2)',
+              padding: '64px 40px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 24,
+              textAlign: 'center',
+              boxShadow: '0 24px 60px rgba(0,0,0,0.3)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+              <div
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: '50%',
+                  background:
+                    'linear-gradient(135deg, rgba(56,189,248,0.15), rgba(124,58,237,0.1))',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1px solid rgba(56,189,248,0.2)',
+                }}
+              >
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 28, color: '#38BDF8' }}
+                >
+                  storefront
+                </span>
               </div>
-              <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgba(56,189,248,0.7)', fontFamily: 'Manrope, sans-serif' }}>Для бизнеса</div>
             </div>
-            <h2 style={{ fontFamily: "'Advent Pro', sans-serif", fontSize: 'clamp(26px, 5vw, 36px)', fontWeight: 700, color: '#fff', lineHeight: 1.2, margin: 0 }}>
-              Вы владелец магазина?<br />
-              <span style={{ background: 'linear-gradient(135deg, #38BDF8, #818CF8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Подключите Körset</span>
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                letterSpacing: '0.15em',
+                color: '#38BDF8',
+                fontFamily: 'Manrope, sans-serif',
+              }}
+            >
+              Для бизнеса
+            </div>
+
+            <h2
+              style={{
+                fontFamily: "'Advent Pro', sans-serif",
+                fontSize: 'clamp(32px, 6vw, 48px)',
+                fontWeight: 800,
+                color: '#fff',
+                lineHeight: 1.1,
+                margin: 0,
+              }}
+            >
+              Вы владелец магазина?
+              <br />
+              <span
+                style={{
+                  background: 'linear-gradient(135deg, #38BDF8, #A78BFA)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}
+              >
+                Подключите Körset
+              </span>
             </h2>
-            <p style={{ fontSize: 15, color: 'rgba(200,200,240,0.7)', lineHeight: 1.65, margin: 0, maxWidth: 480 }}>
-              Retail Cabinet даёт вам аналитику сканирований, статистику вовлечённости покупателей и инструменты управления каталогом — всё в одном месте.
+            <p
+              style={{
+                fontSize: 16,
+                color: 'rgba(200,200,240,0.7)',
+                lineHeight: 1.6,
+                margin: 0,
+                maxWidth: 600,
+              }}
+            >
+              Retail Cabinet даёт вам аналитику сканирований, статистику вовлечённости покупателей и
+              инструменты управления каталогом — всё в одном месте.
             </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, marginTop: 4 }}>
-              {[['analytics', 'Аналитика'], ['inventory_2', 'Каталог товаров'], ['qr_code_2', 'QR-интеграция']].map(([icon, label]) => (
-                <div key={icon} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#38BDF8' }}>{icon}</span>
-                  <span style={{ fontSize: 13, color: 'rgba(200,200,240,0.7)', fontFamily: 'Manrope, sans-serif' }}>{label}</span>
+
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                justifyContent: 'center',
+                gap: 32,
+                marginTop: 16,
+                marginBottom: 16,
+              }}
+            >
+              {[
+                ['analytics', 'Аналитика'],
+                ['inventory_2', 'Каталог товаров'],
+                ['qr_code_2', 'QR-интеграция'],
+              ].map(([icon, label]) => (
+                <div
+                  key={icon}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    background: 'rgba(255,255,255,0.03)',
+                    padding: '12px 24px',
+                    borderRadius: 99,
+                    border: '1px solid rgba(255,255,255,0.05)',
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: 22, color: '#A78BFA' }}
+                  >
+                    {icon}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: '#fff',
+                      fontFamily: 'Manrope, sans-serif',
+                    }}
+                  >
+                    {label}
+                  </span>
                 </div>
               ))}
             </div>
-            <button onClick={() => navigate('/retail')} style={{
-              marginTop: 8, padding: '16px 32px', borderRadius: 14, cursor: 'pointer',
-              background: 'linear-gradient(135deg, rgba(56,189,248,0.2), rgba(99,102,241,0.2))',
-              border: '1.5px solid rgba(56,189,248,0.4)', color: '#fff', fontSize: 15,
-              fontWeight: 700, fontFamily: "'Advent Pro', sans-serif", letterSpacing: '0.01em',
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-            }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>login</span>
+
+            <button
+              onClick={() => navigate('/retail')}
+              style={{
+                marginTop: 16,
+                padding: '20px 40px',
+                borderRadius: 99,
+                cursor: 'pointer',
+                background: 'linear-gradient(135deg, #38BDF8, #7C3AED)',
+                border: 'none',
+                color: '#fff',
+                fontSize: 16,
+                fontWeight: 800,
+                fontFamily: "'Advent Pro', sans-serif",
+                letterSpacing: '0.02em',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 12,
+                boxShadow: '0 12px 30px rgba(56,189,248,0.3)',
+                transition: 'transform 0.2s, box-shadow 0.2s',
+              }}
+              onActive={(e) => {
+                e.currentTarget.style.transform = 'scale(0.98)'
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 24 }}>
+                login
+              </span>
               {user ? 'Открыть Retail Cabinet' : 'Войти в кабинет магазина'}
             </button>
           </div>
         </section>
 
         {/* Footer */}
-        <footer style={{ padding: '60px 24px', background: '#0e0e12', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-          <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: 40, justifyContent: 'space-between', alignItems: 'center' }}>
-            <div className="font-headline" style={{ fontSize: 28, fontWeight: 700 }}>Körset</div>
+        <footer
+          style={{
+            padding: '60px 24px',
+            background: '#0e0e12',
+            borderTop: '1px solid rgba(255,255,255,0.05)',
+          }}
+        >
+          <div
+            style={{
+              maxWidth: 1200,
+              margin: '0 auto',
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 40,
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <div className="font-headline" style={{ fontSize: 28, fontWeight: 700 }}>
+              Körset
+            </div>
             <div style={{ display: 'flex', gap: 48 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <span className="font-label" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>Продукт</span>
-                <a href="#" className="font-label" style={{ color: '#fff', textDecoration: 'none', fontSize: 14 }}>Каталог</a>
-                <a href="#" className="font-label" style={{ color: '#fff', textDecoration: 'none', fontSize: 14 }}>О нас</a>
+                <span
+                  className="font-label"
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    letterSpacing: '0.1em',
+                    color: 'rgba(255,255,255,0.4)',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Продукт
+                </span>
+                <a
+                  href="#"
+                  className="font-label"
+                  style={{ color: '#fff', textDecoration: 'none', fontSize: 14 }}
+                >
+                  Каталог
+                </a>
+                <a
+                  href="#"
+                  className="font-label"
+                  style={{ color: '#fff', textDecoration: 'none', fontSize: 14 }}
+                >
+                  О нас
+                </a>
               </div>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', background: 'var(--surface-variant)', borderRadius: 99, marginBottom: 8 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)' }}></div>
-                <span className="font-label" style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Made in KZ 🇰🇿</span>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 16px',
+                  background: 'var(--surface-variant)',
+                  borderRadius: 99,
+                  marginBottom: 8,
+                }}
+              >
+                <div
+                  style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)' }}
+                ></div>
+                <span
+                  className="font-label"
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Made in KZ 🇰🇿
+                </span>
               </div>
-              <div className="font-label" style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>© 2024 Körset. All rights reserved.</div>
+              <div className="font-label" style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>
+                © 2024 Körset. All rights reserved.
+              </div>
             </div>
           </div>
         </footer>
-
       </div>
     </>
   )
 }
 
-
-
 function QuickCard({ title, sub, color, border, onClick }) {
   return (
-    <button onClick={onClick} style={{ padding: '16px', borderRadius: 18, cursor: 'pointer', background: color, border: `1px solid ${border}`, textAlign: 'left' }}>
-      <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', fontFamily: 'var(--font-display)' }}>{title}</div>
+    <button
+      onClick={onClick}
+      style={{
+        padding: '16px',
+        borderRadius: 18,
+        cursor: 'pointer',
+        background: color,
+        border: `1px solid ${border}`,
+        textAlign: 'left',
+      }}
+    >
+      <div
+        style={{ fontSize: 14, fontWeight: 700, color: '#fff', fontFamily: 'var(--font-display)' }}
+      >
+        {title}
+      </div>
       <div style={{ fontSize: 11, color: 'rgba(167,139,250,0.6)', marginTop: 4 }}>{sub}</div>
     </button>
   )

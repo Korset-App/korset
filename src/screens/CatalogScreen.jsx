@@ -50,6 +50,7 @@ export default function CatalogScreen() {
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState('all')
   const [sort, setSort] = useState('fit')
+  const [viewMode, setViewMode] = useState('list')
 
   const { data: dbProducts = [], isLoading } = useQuery({
     queryKey: ['store-catalog', storeId],
@@ -125,28 +126,49 @@ export default function CatalogScreen() {
           </div>
         </div>
 
-        <div
-          style={{
-            padding: '12px 14px',
-            borderRadius: 16,
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            marginBottom: 14,
-          }}
-        >
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder={t.catalog.searchPlaceholder}
+        <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+          <div
             style={{
-              width: '100%',
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              color: '#fff',
-              fontSize: 14,
+              flex: 1,
+              padding: '12px 14px',
+              borderRadius: 16,
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
             }}
-          />
+          >
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder={t.catalog.searchPlaceholder}
+              style={{
+                width: '100%',
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+                color: '#fff',
+                fontSize: 14,
+              }}
+            />
+          </div>
+          <button
+            onClick={() => setViewMode(viewMode === 'list' ? 'grid' : 'list')}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 14,
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: 'rgba(220,220,240,0.8)',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+              {viewMode === 'list' ? 'grid_view' : 'view_list'}
+            </span>
+          </button>
         </div>
 
         <div
@@ -204,9 +226,97 @@ export default function CatalogScreen() {
         </div>
       </div>
 
-      <div style={{ padding: '0 20px 100px', display: 'grid', gap: 10 }}>
+      <div
+        style={{
+          padding: '0 20px 100px',
+          display: 'grid',
+          gap: 10,
+          gridTemplateColumns:
+            viewMode === 'grid' ? 'repeat(auto-fill, minmax(140px, 1fr))' : '1fr',
+        }}
+      >
         {list.map((product) => {
           const fit = checkProductFit(product, profile)
+
+          if (viewMode === 'grid') {
+            return (
+              <div
+                key={product.ean}
+                onClick={() => navigate(buildProductPath(currentStore?.slug || null, product.ean))}
+                style={{
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 18,
+                  padding: 12,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  cursor: 'pointer',
+                  position: 'relative',
+                }}
+              >
+                <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 2 }}>
+                  <div
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: '50%',
+                      background: fit.fits ? '#34D399' : '#F87171',
+                      boxShadow: `0 0 10px ${fit.fits ? '#34D399' : '#F87171'}`,
+                    }}
+                  />
+                </div>
+                <div
+                  style={{
+                    width: '100%',
+                    aspectRatio: '1/1',
+                    borderRadius: 14,
+                    background: 'rgba(255,255,255,0.03)',
+                    overflow: 'hidden',
+                    marginBottom: 10,
+                  }}
+                >
+                  <ProductThumb product={product} />
+                </div>
+                <div
+                  style={{
+                    fontFamily: 'var(--font-display)',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: '#fff',
+                    lineHeight: 1.3,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    marginBottom: 6,
+                    flex: 1,
+                  }}
+                >
+                  {product.name}
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-end',
+                    marginTop: 'auto',
+                  }}
+                >
+                  <div
+                    style={{
+                      fontFamily: 'var(--font-display)',
+                      fontSize: 16,
+                      fontWeight: 900,
+                      color: '#A78BFA',
+                    }}
+                  >
+                    {formatPrice(product.priceKzt)}
+                  </div>
+                </div>
+              </div>
+            )
+          }
+
           return (
             <div
               key={product.ean}
