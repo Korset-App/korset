@@ -677,6 +677,18 @@ export default function HomeScreen() {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {/* Logos on the right */}
+            <img
+              src="/logo.png"
+              alt="logo full"
+              style={{ height: 28, objectFit: 'contain', marginRight: 8 }}
+            />
+            <img
+              src="/icon_logo.svg"
+              alt="logo icon"
+              style={{ height: 28, width: 28, borderRadius: 6, marginRight: 8 }}
+            />
+
             <button
               onClick={() => navigate('/retail')}
               style={{
@@ -1384,8 +1396,13 @@ export default function HomeScreen() {
               alignItems: 'center',
             }}
           >
-            <div className="font-headline" style={{ fontSize: 28, fontWeight: 700 }}>
-              Körset
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <img src="/logo.png" alt="logo full" style={{ height: 32, objectFit: 'contain' }} />
+              <img
+                src="/icon_logo.svg"
+                alt="logo icon"
+                style={{ height: 32, width: 32, borderRadius: 6 }}
+              />
             </div>
             <div style={{ display: 'flex', gap: 48 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
