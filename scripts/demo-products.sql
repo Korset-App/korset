@@ -114,9 +114,9 @@ INSERT INTO global_products (
 -- === ЗАМОРОЖЕННЫЕ ПРОДУКТЫ (3 шт) ===
 (gen_random_uuid(), '4602545000015', 'Dr. Oetker Pizza Margherita 325g', 'Dr. Oetker Пицца Маргарита 325г', 'Dr. Oetker', 'Замороженные', 'Пицца', '325 г', 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400', 'Wheat flour, tomato sauce, mozzarella cheese, water, yeast, salt, olive oil', 'Пшеничная мука, томатный соус, сыр моцарелла, вода, дрожжи, соль, оливковое масло', '["gluten","milk"]', '["vegetarian"]', 'unknown', 'C', 62, true, true, NOW(), NOW()),
 
-(gen_random_uuid(), '4602545001012', 'Hortons Fish Fingers 300g', 'Hortons Рыбные палочки 300г', 'Hortons', 'Замороженные', 'Рыба', '300 г', 'https://images.unsplash.com/photo-1534939561126-855b8675edd7?w=400', 'Alaska pollock fillet, breadcrumbs, wheat flour, vegetable oil, salt', 'Филе минтая аляска, панировочные сухари, пшеничная мука, растительное масло, соль', '["fish","gluten","soy","milk","eggs"]', '[]', 'unknown', 'C', 58, true, true, NOW(), NOW()),
+(gen_random_uuid(), '4602545001020', 'Hortons Fish Fingers 300g', 'Hortons Рыбные палочки 300г', 'Hortons', 'Замороженные', 'Рыба', '300 г', 'https://images.unsplash.com/photo-1534939561126-855b8675edd7?w=400', 'Alaska pollock fillet, breadcrumbs, wheat flour, vegetable oil, salt', 'Филе минтая аляска, панировочные сухари, пшеничная мука, растительное масло, соль', '["fish","gluten","soy","milk","eggs"]', '[]', 'unknown', 'C', 58, true, true, NOW(), NOW()),
 
-(gen_random_uuid(), '4602545002019', 'Green Giant Peas 400g', 'Green Giant Горошек зеленый 400г', 'Green Giant', 'Замороженные', 'Овощи', '400 г', 'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=400', 'Green peas, water, sugar, salt', 'Зеленый горошек, вода, сахар, соль', '[]', '["vegan","gluten-free"]', 'yes', 'A', 88, true, true, NOW(), NOW())
+(gen_random_uuid(), '4602545002020', 'Green Giant Peas 400g', 'Green Giant Горошек зеленый 400г', 'Green Giant', 'Замороженные', 'Овощи', '400 г', 'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=400', 'Green peas, water, sugar, salt', 'Зеленый горошек, вода, сахар, соль', '[]', '["vegan","gluten-free"]', 'yes', 'A', 88, true, true, NOW(), NOW())
 
 ON CONFLICT (ean) DO UPDATE SET
   name = EXCLUDED.name,
@@ -146,5 +146,5 @@ ON CONFLICT (ean) DO UPDATE SET
 --   '4602545005016','4602545000013','4602545001019','4602545002016','4602545003012',
 --   '4602545004019','4602545005013','4602545000019','4602545001016','4602545002013',
 --   '4602545003019','4602545004016','4602545000012','4602545001013','4602545002010',
---   '4602545003016','4602545004013','4602545000015','4602545001012','4602545002019'
+--   '4602545003016','4602545004013','4602545000015','4602545001020','4602545002020'
 -- );

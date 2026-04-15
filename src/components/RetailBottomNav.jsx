@@ -29,7 +29,7 @@ export default function RetailBottomNav() {
       id: 'products',
       label: t.retail.nav.products,
       path: `/retail/${storeSlug}/products`,
-      icon: 'inventory_2',
+      icon: 'shopping_bag',
     },
     {
       id: 'settings',

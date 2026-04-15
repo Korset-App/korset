@@ -8,7 +8,10 @@ function cloneProduct(product) {
 }
 
 function getAllKnownEans(product) {
-  const eans = [product?.ean, ...(Array.isArray(product?.alternateEans) ? product.alternateEans : [])]
+  const eans = [
+    product?.ean,
+    ...(Array.isArray(product?.alternateEans) ? product.alternateEans : []),
+  ]
   return [...new Set(eans.filter(Boolean).map(String))]
 }
 
@@ -60,14 +63,20 @@ export function getGlobalProductByEan(ean) {
 }
 
 export function getStoreCatalogProductByEan(storeSlug, ean) {
-  return getStoreCatalogProducts(storeSlug).find((product) => matchesProductEan(product, ean)) || null
+  return (
+    getStoreCatalogProducts(storeSlug).find((product) => matchesProductEan(product, ean)) || null
+  )
 }
 
 export function getAnyKnownProductByRef(ref, storeSlug = null) {
   if (!ref) return null
   return (
-    getStoreCatalogProducts(storeSlug).find((product) => matchesProductEan(product, ref) || product.id === ref) ||
-    getGlobalDemoProducts().find((product) => matchesProductEan(product, ref) || product.id === ref) ||
+    getStoreCatalogProducts(storeSlug).find(
+      (product) => matchesProductEan(product, ref) || product.id === ref
+    ) ||
+    getGlobalDemoProducts().find(
+      (product) => matchesProductEan(product, ref) || product.id === ref
+    ) ||
     null
   )
 }
@@ -88,7 +97,8 @@ export async function getStoreCatalogProductsFromDB(storeId) {
   if (!storeId) return []
   const { data, error } = await supabase
     .from('store_products')
-    .select(`
+    .select(
+      `
       *,
       global_products (
         id, ean, name, name_kz, brand, category, subcategory,
@@ -96,7 +106,8 @@ export async function getStoreCatalogProductsFromDB(storeId) {
         allergens_json, diet_tags_json, halal_status,
         nutriscore, data_quality_score
       )
-    `)
+    `
+    )
     .eq('store_id', storeId)
     .eq('is_active', true)
     .order('created_at', { ascending: false })
@@ -106,7 +117,7 @@ export async function getStoreCatalogProductsFromDB(storeId) {
     storeProductId: sp.id,
     storeId: sp.store_id,
     ean: sp.ean,
-    priceKzt: sp.price_kzt,
+    priceKzt: sp.price_kzt || null,
     stockStatus: sp.stock_status,
     shelfZone: sp.shelf_zone,
     shelfPosition: sp.shelf_position,

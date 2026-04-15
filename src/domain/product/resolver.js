@@ -2,10 +2,24 @@ import localProducts from '../../data/products.json'
 import { supabase } from '../../utils/supabase.js'
 import { enrichProductAI } from '../../services/ai.js'
 import { getGlobalProductByEan, getStoreCatalogProductByEan } from '../../utils/storeCatalog.js'
-import { buildLocalScanHistoryEntry, appendLocalScanHistory, getCurrentHistoryOwnerKey } from '../../utils/localHistory.js'
+import {
+  buildLocalScanHistoryEntry,
+  appendLocalScanHistory,
+  getCurrentHistoryOwnerKey,
+} from '../../utils/localHistory.js'
 import { loadPrivacySettings } from '../../utils/privacySettings.js'
-import { getOrCreateDeviceId, getOrCreateSessionId, resolveCurrentInternalUserId } from '../../utils/userIdentity.js'
-import { normalizeDemoProduct, normalizeGlobalProduct, normalizeCacheProduct, normalizeOFFProduct, coerceProductEntity } from './normalizers.js'
+import {
+  getOrCreateDeviceId,
+  getOrCreateSessionId,
+  resolveCurrentInternalUserId,
+} from '../../utils/userIdentity.js'
+import {
+  normalizeDemoProduct,
+  normalizeGlobalProduct,
+  normalizeCacheProduct,
+  normalizeOFFProduct,
+  coerceProductEntity,
+} from './normalizers.js'
 import { isUuid, parseRouteProductRef } from './model.js'
 
 const demoProducts = localProducts.map(normalizeDemoProduct)
@@ -26,14 +40,18 @@ export function getAllDemoProducts() {
 
 export function getDemoProductForEntity(product) {
   if (!product) return null
-  return getDemoProductById(product.demoId || product.id) || getDemoProductByEan(product.ean) || null
+  return (
+    getDemoProductById(product.demoId || product.id) || getDemoProductByEan(product.ean) || null
+  )
 }
 
 async function findStoreProduct(ean, storeId) {
   try {
     let query = supabase
       .from('store_products')
-      .select('id, ean, price_kzt, shelf_zone, shelf_position, local_name, local_sku, stock_status, global_product_id, store_id, is_active')
+      .select(
+        'id, ean, price_kzt, shelf_zone, shelf_position, local_name, local_sku, stock_status, global_product_id, store_id, is_active'
+      )
       .eq('ean', ean)
       .eq('is_active', true)
 
@@ -53,7 +71,7 @@ async function findStoreProduct(ean, storeId) {
 
     return normalizeGlobalProduct(globalRow, {
       storeProductId: data.id,
-      priceKzt: data.price_kzt,
+      priceKzt: data.price_kzt || null,
       shelf: [data.shelf_zone, data.shelf_position].filter(Boolean).join(' / ') || null,
       stockStatus: data.stock_status || null,
     })
@@ -143,7 +161,9 @@ async function enrichProduct(product) {
       description: enrichment.description || product.description,
       ingredients: enrichment.ingredients || product.ingredients,
       allergens: enrichment.allergens?.length ? enrichment.allergens : product.allergens,
-      dietTags: enrichment.dietTags?.length ? [...new Set([...(product.dietTags || []), ...enrichment.dietTags])] : product.dietTags,
+      dietTags: enrichment.dietTags?.length
+        ? [...new Set([...(product.dietTags || []), ...enrichment.dietTags])]
+        : product.dietTags,
       sourceMeta: {
         ...product.sourceMeta,
         aiEnriched: true,
@@ -156,21 +176,24 @@ async function enrichProduct(product) {
 
 async function saveToCache(product, rawPayload = {}) {
   try {
-    await supabase.from('external_product_cache').upsert({
-      ean: product.ean,
-      source: 'openfoodfacts',
-      raw_payload: rawPayload,
-      normalized_name: product.name,
-      normalized_brand: product.brand || null,
-      normalized_ingredients: product.ingredients || null,
-      normalized_allergens_json: product.allergens || [],
-      normalized_diet_tags_json: product.dietTags || [],
-      normalized_nutriments_json: product.nutritionPer100 || {},
-      image_url: product.image || null,
-      nutriscore: product.nutriscore || null,
-      scan_count: 1,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'ean' })
+    await supabase.from('external_product_cache').upsert(
+      {
+        ean: product.ean,
+        source: 'openfoodfacts',
+        raw_payload: rawPayload,
+        normalized_name: product.name,
+        normalized_brand: product.brand || null,
+        normalized_ingredients: product.ingredients || null,
+        normalized_allergens_json: product.allergens || [],
+        normalized_diet_tags_json: product.dietTags || [],
+        normalized_nutriments_json: product.nutritionPer100 || {},
+        image_url: product.image || null,
+        nutriscore: product.nutriscore || null,
+        scan_count: 1,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'ean' }
+    )
   } catch {
     // silent
   }
@@ -178,14 +201,17 @@ async function saveToCache(product, rawPayload = {}) {
 
 async function logMissingProduct(ean, storeId) {
   try {
-    await supabase.from('missing_products').upsert({
-      ean,
-      store_id: storeId || null,
-      scan_count: 1,
-      first_seen_at: new Date().toISOString(),
-      last_seen_at: new Date().toISOString(),
-      resolved: false,
-    }, { onConflict: 'store_id,ean' })
+    await supabase.from('missing_products').upsert(
+      {
+        ean,
+        store_id: storeId || null,
+        scan_count: 1,
+        first_seen_at: new Date().toISOString(),
+        last_seen_at: new Date().toISOString(),
+        resolved: false,
+      },
+      { onConflict: 'store_id,ean' }
+    )
   } catch {
     // silent
   }
@@ -207,7 +233,8 @@ async function logScan({ ean, foundStatus, product, storeId, fitResult }) {
 
   try {
     const internalUserId = await resolveCurrentInternalUserId({ ensureRow: true })
-    const globalProductId = product?.sourceMeta?.globalProductId || (isUuid(product?.id) ? product.id : null)
+    const globalProductId =
+      product?.sourceMeta?.globalProductId || (isUuid(product?.id) ? product.id : null)
     const storeProductId = product?.sourceMeta?.storeProductId || null
     const { error } = await supabase.from('scan_events').insert({
       ean,
@@ -227,7 +254,10 @@ async function logScan({ ean, foundStatus, product, storeId, fitResult }) {
   }
 }
 
-async function finalizeResolvedProduct(product, { ean, foundStatus, storeId, fitResult, logScan: shouldLog }) {
+async function finalizeResolvedProduct(
+  product,
+  { ean, foundStatus, storeId, fitResult, logScan: shouldLog }
+) {
   if (!shouldLog) return product
 
   await Promise.allSettled([
@@ -243,7 +273,9 @@ export async function resolveProductByEan(ean, storeId = null, options = {}) {
   if (!normalizedEan) return null
 
   if (storeId) {
-    const localStoreProduct = coerceProductEntity(getStoreCatalogProductByEan(storeId, normalizedEan))
+    const localStoreProduct = coerceProductEntity(
+      getStoreCatalogProductByEan(storeId, normalizedEan)
+    )
     if (localStoreProduct) {
       return finalizeResolvedProduct(localStoreProduct, {
         ean: normalizedEan,
@@ -277,7 +309,9 @@ export async function resolveProductByEan(ean, storeId = null, options = {}) {
     })
   }
 
-  const demoProduct = coerceProductEntity(getGlobalProductByEan(normalizedEan) || getDemoProductByEan(normalizedEan))
+  const demoProduct = coerceProductEntity(
+    getGlobalProductByEan(normalizedEan) || getDemoProductByEan(normalizedEan)
+  )
   if (demoProduct) {
     return finalizeResolvedProduct(demoProduct, {
       ean: normalizedEan,
@@ -315,7 +349,13 @@ export async function resolveProductByEan(ean, storeId = null, options = {}) {
 
   if (options.logScan) {
     await Promise.allSettled([
-      logScan({ ean: normalizedEan, foundStatus: 'not_found', product: null, storeId, fitResult: options.fitResult }),
+      logScan({
+        ean: normalizedEan,
+        foundStatus: 'not_found',
+        product: null,
+        storeId,
+        fitResult: options.fitResult,
+      }),
       logMissingProduct(normalizedEan, storeId),
     ])
   }
@@ -324,9 +364,10 @@ export async function resolveProductByEan(ean, storeId = null, options = {}) {
 }
 
 export async function resolveProductByRef(ref = {}, storeId = null) {
-  const routeRef = ref.canonicalId && !ref.id && !ref.ean && !ref.demoId
-    ? parseRouteProductRef(ref.canonicalId)
-    : ref
+  const routeRef =
+    ref.canonicalId && !ref.id && !ref.ean && !ref.demoId
+      ? parseRouteProductRef(ref.canonicalId)
+      : ref
 
   const demoId = routeRef.demoId || null
   const globalId = routeRef.id && isUuid(routeRef.id) ? routeRef.id : null
@@ -365,11 +406,15 @@ export async function resolveProductByRef(ref = {}, storeId = null) {
 }
 
 export async function hydrateProductsFromScanRows(rows) {
-  return hydrateProductRefs(rows.map((row) => ({ ...row, scannedAt: row.scanned_at || row.created_at || null })))
+  return hydrateProductRefs(
+    rows.map((row) => ({ ...row, scannedAt: row.scanned_at || row.created_at || null }))
+  )
 }
 
 export async function hydrateProductsFromFavoriteRows(rows) {
-  return hydrateProductRefs(rows.map((row) => ({ ...row, favoredAt: row.added_at || row.created_at || null })))
+  return hydrateProductRefs(
+    rows.map((row) => ({ ...row, favoredAt: row.added_at || row.created_at || null }))
+  )
 }
 
 async function hydrateProductRefs(rows) {
@@ -412,7 +457,10 @@ async function hydrateProductRefs(rows) {
 
   const missingCacheEans = eans.filter((ean) => !globalByEan.has(ean) && !demoByEan.has(ean))
   if (missingCacheEans.length) {
-    const { data } = await supabase.from('external_product_cache').select('*').in('ean', missingCacheEans)
+    const { data } = await supabase
+      .from('external_product_cache')
+      .select('*')
+      .in('ean', missingCacheEans)
     for (const row of data || []) {
       cacheByEan.set(row.ean, normalizeCacheProduct(row))
     }
@@ -420,13 +468,20 @@ async function hydrateProductRefs(rows) {
 
   return uniqueRefs.map((row) => {
     let product = null
-    if (row.global_product_id && globalById.has(row.global_product_id)) product = globalById.get(row.global_product_id)
+    if (row.global_product_id && globalById.has(row.global_product_id))
+      product = globalById.get(row.global_product_id)
     if (!product && row.ean && globalByEan.has(row.ean)) product = globalByEan.get(row.ean)
     if (!product && row.ean) product = coerceProductEntity(getGlobalProductByEan(row.ean)) || null
     if (!product && row.ean && demoByEan.has(row.ean)) product = demoByEan.get(row.ean)
     if (!product && row.ean && cacheByEan.has(row.ean)) product = cacheByEan.get(row.ean)
-    if (!product && row.ean) product = coerceProductEntity({ ean: row.ean, name: `Товар ${row.ean}`, source: 'unknown' })
-    if (!product && row.global_product_id) product = coerceProductEntity({ id: row.global_product_id, name: 'Неизвестный товар', source: 'unknown' })
+    if (!product && row.ean)
+      product = coerceProductEntity({ ean: row.ean, name: `Товар ${row.ean}`, source: 'unknown' })
+    if (!product && row.global_product_id)
+      product = coerceProductEntity({
+        id: row.global_product_id,
+        name: 'Неизвестный товар',
+        source: 'unknown',
+      })
 
     return {
       ...product,

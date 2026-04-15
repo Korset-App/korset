@@ -279,12 +279,21 @@ export default function HomeScreen() {
                   justifyContent: 'center',
                 }}
               >
-                <span
-                  className="material-symbols-outlined"
-                  style={{ color: '#38BDF8', fontSize: 22 }}
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#38BDF8"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 >
-                  inventory_2
-                </span>
+                  <rect x="3" y="3" width="7" height="7" rx="1" />
+                  <rect x="14" y="3" width="7" height="7" rx="1" />
+                  <rect x="3" y="14" width="7" height="7" rx="1" />
+                  <rect x="14" y="14" width="7" height="7" rx="1" />
+                </svg>
               </div>
               <div>
                 <div
@@ -330,12 +339,18 @@ export default function HomeScreen() {
                   justifyContent: 'center',
                 }}
               >
-                <span
-                  className="material-symbols-outlined"
-                  style={{ color: '#A78BFA', fontSize: 22 }}
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#A78BFA"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 >
-                  smart_toy
-                </span>
+                  <path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z" />
+                </svg>
               </div>
               <div>
                 <div
@@ -663,55 +678,28 @@ export default function HomeScreen() {
       <div className="landing-page">
         {/* Top Header */}
         <header className="top-nav">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <img
-              src="/icon_logo.svg"
-              alt="logo"
-              style={{ width: 36, height: 36, borderRadius: 10 }}
-            />
-            <div
-              style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.02em' }}
-              className="font-headline"
-            >
-              Körset
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <img src="/logo.png" alt="Körset" style={{ height: 36, objectFit: 'contain' }} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {/* Logos on the right */}
-            <img
-              src="/logo.png"
-              alt="logo full"
-              style={{ height: 28, objectFit: 'contain', marginRight: 8 }}
-            />
-            <img
-              src="/icon_logo.svg"
-              alt="logo icon"
-              style={{ height: 28, width: 28, borderRadius: 6, marginRight: 8 }}
-            />
-
             <button
               onClick={() => navigate('/retail')}
               style={{
-                padding: '9px 16px',
-                borderRadius: 10,
-                background: 'rgba(56,189,248,0.1)',
-                border: '1px solid rgba(56,189,248,0.25)',
-                color: '#38BDF8',
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: 'pointer',
+                width: 44,
+                height: 44,
+                borderRadius: '50%',
+                background: 'rgba(53, 52, 57, 0.4)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 6,
-                fontFamily: 'var(--font-display, Manrope, sans-serif)',
-                letterSpacing: '0.01em',
-                whiteSpace: 'nowrap',
+                justifyContent: 'center',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#d2bbff',
               }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
                 storefront
               </span>
-              Кабинет
             </button>
             <button
               onClick={() =>
@@ -1380,84 +1368,289 @@ export default function HomeScreen() {
         {/* Footer */}
         <footer
           style={{
-            padding: '60px 24px',
-            background: '#0e0e12',
-            borderTop: '1px solid rgba(255,255,255,0.05)',
+            padding: '60px 24px 30px',
+            background: 'linear-gradient(180deg, #0a0a0f 0%, #050508 100%)',
+            borderTop: '1px solid rgba(124,58,237,0.15)',
           }}
         >
-          <div
-            style={{
-              maxWidth: 1200,
-              margin: '0 auto',
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 40,
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <img src="/logo.png" alt="Körset" style={{ height: 32, objectFit: 'contain' }} />
-            </div>
-            <div style={{ display: 'flex', gap: 48 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <span
-                  className="font-label"
+          <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+            {/* Main Footer Content */}
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                justifyContent: 'space-between',
+                gap: '48px 32px',
+                marginBottom: 48,
+              }}
+            >
+              {/* Brand Column */}
+              <div style={{ flex: '1 1 100%', minWidth: 280 }}>
+                <div style={{ marginBottom: 16, width: '100%', maxWidth: 600 }}>
+                  <img
+                    src="/logo.png"
+                    alt="Körset"
+                    style={{ width: '100%', height: 'auto', objectFit: 'contain', maxHeight: 70 }}
+                  />
+                </div>
+                <p
                   style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    letterSpacing: '0.1em',
-                    color: 'rgba(255,255,255,0.4)',
-                    textTransform: 'uppercase',
+                    fontSize: 14,
+                    lineHeight: 1.6,
+                    color: 'rgba(255,255,255,0.5)',
+                    marginBottom: 16,
+                    maxWidth: 400,
                   }}
                 >
-                  Продукт
-                </span>
-                <a
-                  href="#"
-                  className="font-label"
-                  style={{ color: '#fff', textDecoration: 'none', fontSize: 14 }}
-                >
-                  Каталог
-                </a>
-                <a
-                  href="#"
-                  className="font-label"
-                  style={{ color: '#fff', textDecoration: 'none', fontSize: 14 }}
-                >
-                  О нас
-                </a>
+                  Умная платформа для проверки продуктов. Состав, аллергены, КБЖУ и халал-статус —
+                  всё в одном скане.
+                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      background: '#22c55e',
+                      animation: 'pulse 2s infinite',
+                    }}
+                  />
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>
+                    Система работает нормально
+                  </span>
+                </div>
+              </div>
+
+              {/* Links Row */}
+              <div
+                style={{ display: 'flex', flexWrap: 'wrap', gap: '32px 64px', flex: '2 1 600px' }}
+              >
+                {/* Product Column */}
+                <div style={{ flex: '1 1 140px', minWidth: 140 }}>
+                  <h4
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      letterSpacing: '0.1em',
+                      textTransform: 'uppercase',
+                      color: 'rgba(255,255,255,0.4)',
+                      marginBottom: 16,
+                    }}
+                  >
+                    Продукт
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <button
+                      onClick={() => navigate('/catalog')}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        color: 'rgba(255,255,255,0.7)',
+                        fontSize: 14,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        transition: 'color 0.2s',
+                      }}
+                      onMouseEnter={(e) => (e.target.style.color = '#a78bfa')}
+                      onMouseLeave={(e) => (e.target.style.color = 'rgba(255,255,255,0.7)')}
+                    >
+                      Каталог
+                    </button>
+                    <button
+                      onClick={() => navigate('/scan')}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        color: 'rgba(255,255,255,0.7)',
+                        fontSize: 14,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                      }}
+                      onMouseEnter={(e) => (e.target.style.color = '#a78bfa')}
+                      onMouseLeave={(e) => (e.target.style.color = 'rgba(255,255,255,0.7)')}
+                    >
+                      Сканер
+                    </button>
+                    <button
+                      onClick={() => navigate('/ai')}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        color: 'rgba(255,255,255,0.7)',
+                        fontSize: 14,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                      }}
+                      onMouseEnter={(e) => (e.target.style.color = '#a78bfa')}
+                      onMouseLeave={(e) => (e.target.style.color = 'rgba(255,255,255,0.7)')}
+                    >
+                      AI Анализ
+                    </button>
+                  </div>
+                </div>
+
+                {/* Company Column */}
+                <div>
+                  <h4
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      letterSpacing: '0.1em',
+                      textTransform: 'uppercase',
+                      color: 'rgba(255,255,255,0.4)',
+                      marginBottom: 16,
+                    }}
+                  >
+                    Компания
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <button
+                      onClick={() => navigate('/about')}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        color: 'rgba(255,255,255,0.7)',
+                        fontSize: 14,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                      }}
+                      onMouseEnter={(e) => (e.target.style.color = '#a78bfa')}
+                      onMouseLeave={(e) => (e.target.style.color = 'rgba(255,255,255,0.7)')}
+                    >
+                      О нас
+                    </button>
+                    <button
+                      onClick={() => navigate('/contacts')}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        color: 'rgba(255,255,255,0.7)',
+                        fontSize: 14,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                      }}
+                      onMouseEnter={(e) => (e.target.style.color = '#a78bfa')}
+                      onMouseLeave={(e) => (e.target.style.color = 'rgba(255,255,255,0.7)')}
+                    >
+                      Контакты
+                    </button>
+                    <button
+                      onClick={() => navigate('/business')}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        color: 'rgba(255,255,255,0.7)',
+                        fontSize: 14,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                      }}
+                      onMouseEnter={(e) => (e.target.style.color = '#a78bfa')}
+                      onMouseLeave={(e) => (e.target.style.color = 'rgba(255,255,255,0.7)')}
+                    >
+                      Для бизнеса
+                    </button>
+                  </div>
+                </div>
+
+                {/* Support & Legal Column */}
+                <div>
+                  <h4
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      letterSpacing: '0.1em',
+                      textTransform: 'uppercase',
+                      color: 'rgba(255,255,255,0.4)',
+                      marginBottom: 16,
+                    }}
+                  >
+                    Поддержка
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <button
+                      onClick={() => navigate('/profile/help')}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        color: 'rgba(255,255,255,0.7)',
+                        fontSize: 14,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                      }}
+                      onMouseEnter={(e) => (e.target.style.color = '#a78bfa')}
+                      onMouseLeave={(e) => (e.target.style.color = 'rgba(255,255,255,0.7)')}
+                    >
+                      Справка
+                    </button>
+                    <button
+                      onClick={() => navigate('/profile/privacy')}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        color: 'rgba(255,255,255,0.7)',
+                        fontSize: 14,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                      }}
+                      onMouseEnter={(e) => (e.target.style.color = '#a78bfa')}
+                      onMouseLeave={(e) => (e.target.style.color = 'rgba(255,255,255,0.7)')}
+                    >
+                      Приватность
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-            <div style={{ textAlign: 'right' }}>
+
+            {/* Bottom Bar */}
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                paddingTop: 24,
+                borderTop: '1px solid rgba(255,255,255,0.05)',
+                gap: 16,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>
+                  © 2024 Körset. Все права защищены.
+                </span>
+              </div>
+
               <div
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 8,
-                  padding: '8px 16px',
-                  background: 'var(--surface-variant)',
+                  padding: '6px 14px',
+                  background: 'rgba(124,58,237,0.1)',
+                  border: '1px solid rgba(124,58,237,0.2)',
                   borderRadius: 99,
-                  marginBottom: 8,
                 }}
               >
-                <div
-                  style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)' }}
-                ></div>
+                <span style={{ fontSize: 14 }}>🇰🇿</span>
                 <span
-                  className="font-label"
                   style={{
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: 700,
-                    letterSpacing: '0.1em',
+                    letterSpacing: '0.05em',
                     textTransform: 'uppercase',
+                    color: 'rgba(167,139,250,0.8)',
                   }}
                 >
-                  Made in KZ 🇰🇿
+                  Made in Kazakhstan
                 </span>
-              </div>
-              <div className="font-label" style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>
-                © 2024 Körset. All rights reserved.
               </div>
             </div>
           </div>

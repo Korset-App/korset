@@ -242,7 +242,11 @@ export default function CatalogScreen() {
             return (
               <div
                 key={product.ean}
-                onClick={() => navigate(buildProductPath(currentStore?.slug || null, product.ean))}
+                onClick={() =>
+                  navigate(buildProductPath(currentStore?.slug || null, product.ean), {
+                    state: { product },
+                  })
+                }
                 style={{
                   background: 'rgba(255,255,255,0.04)',
                   border: '1px solid rgba(255,255,255,0.08)',
@@ -320,7 +324,11 @@ export default function CatalogScreen() {
           return (
             <div
               key={product.ean}
-              onClick={() => navigate(buildProductPath(currentStore?.slug || null, product.ean))}
+              onClick={() =>
+                navigate(buildProductPath(currentStore?.slug || null, product.ean), {
+                  state: { product },
+                })
+              }
               style={{
                 background: 'rgba(255,255,255,0.04)',
                 border: '1px solid rgba(255,255,255,0.08)',
