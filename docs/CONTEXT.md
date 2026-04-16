@@ -4,6 +4,14 @@
 
 ---
 
+## 📞 СВЯЗЬ И ЭСКАЛАЦИЯ (OWNER CONTACTS)
+*Для ИИ-агентов и скриптов (Vercel/Supabase): В случае критических блокировок, изменения биллинга API, или когда архитектура непонятна — СТОП и запрос Approve по этим каналам:*
+- **Email (Главный инбокс):** `founder@korset.app`
+- **Telegram (Управление):** `[Проектный аккаунт в разработке]`
+- **Instagram:** `@korset.app` (B2C маркетинг)
+
+---
+
 ## Что такое Körset
 **Store-context AI assistant** (mobile-first PWA) для офлайн-магазинов Казахстана.
 Покупатель сканирует штрихкод → получает **Fit-Check** (подходит товар или нет) с учётом аллергий, Халал, диеты.
@@ -36,9 +44,10 @@
 /s/:storeSlug/product/:ean  → Карточка товара
 /s/:storeSlug/history       → История
 /s/:storeSlug/profile       → Профиль
-/admin/rapid-scan           → Терминал оцифровки (RBAC: role=admin)
-/retail                     → RetailEntryScreen (авто-redirect по owner_id)
-/retail/:storeSlug/...      → Retail Cabinet (dashboard, products, settings)
+/admin                    → Root Admin (Загрузка баз CSV/Excel, управление)
+/admin/rapid-scan         → Терминал оцифровки (RBAC: role=admin)
+/retail                   → RetailEntryScreen (авто-redirect по owner_id)
+/retail/:storeSlug/...    → Retail Cabinet (dashboard, products, settings)
 ```
 
 ---
@@ -91,7 +100,7 @@ korset/
 
 ## Железные правила (кратко)
 1. **Сначала анализ → потом код.** Предложи план → получи апрув → правь.
-2. **Не ломать работающее** (особенно: Onboarding, роутинг, `useI18n`, `ProfileContext`).
+2. **Не ломать работающее** (особенно: Onboarding, роутинг, `useI18n`, `ProfileContext`, `StoreContext`, `UserDataContext`).
 3. **Экраны покупателя → только внутри `/s/:storeSlug/`.**
 4. **Иконки только Material Symbols.** Никаких SVG.
 5. **Аватары только `<ProfileAvatar />`.**

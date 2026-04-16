@@ -27,6 +27,7 @@ import RetailEntryScreen from './screens/RetailEntryScreen.jsx'
 import RetailProductsScreen from './screens/RetailProductsScreen.jsx'
 import RetailImportScreen from './screens/RetailImportScreen.jsx'
 import RetailSettingsScreen from './screens/RetailSettingsScreen.jsx'
+import CompareScreen from './screens/CompareScreen.jsx'
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx'
 import { ProfileProvider } from './contexts/ProfileContext.jsx'
 import { StoreProvider, useStore } from './contexts/StoreContext.jsx'
@@ -36,8 +37,14 @@ function AppInner() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { isStoreApp } = useStore()
-  
-  const hideNav = pathname === '/' || pathname === '/stores' || pathname === '/qr-print' || pathname === '/auth' || pathname === '/setup-profile' || pathname.startsWith('/retail')
+
+  const hideNav =
+    pathname === '/' ||
+    pathname === '/stores' ||
+    pathname === '/qr-print' ||
+    pathname === '/auth' ||
+    pathname === '/setup-profile' ||
+    pathname.startsWith('/retail')
   const [showOnboarding, setShowOnboarding] = useState(
     !localStorage.getItem('korset_onboarding_done') || !localStorage.getItem('korset_lang')
   )
@@ -51,39 +58,41 @@ function AppInner() {
     }
   }, [user, pathname, navigate])
 
-  const shouldShowOnboarding = showOnboarding && isStoreApp && pathname !== '/auth' && pathname !== '/setup-profile'
+  const shouldShowOnboarding =
+    showOnboarding && isStoreApp && pathname !== '/auth' && pathname !== '/setup-profile'
 
   return (
     <div className="app-frame">
       {shouldShowOnboarding && <OnboardingScreen onDone={() => setShowOnboarding(false)} />}
       <Routes>
-        <Route path="/"                         element={<HomeScreen />} />
-        <Route path="/stores"                   element={<StoresScreen />} />
-        <Route path="/stores/:storeSlug"        element={<StorePublicScreen />} />
-        <Route path="/s/:storeSlug"             element={<HomeScreen />} />
-        <Route path="/s/:storeSlug/catalog"     element={<CatalogScreen />} />
-        <Route path="/s/:storeSlug/scan"        element={<ScanScreen />} />
-        <Route path="/s/:storeSlug/ai"          element={<AIAssistantScreen />} />
-        <Route path="/s/:storeSlug/history"     element={<HistoryScreen />} />
-        <Route path="/s/:storeSlug/profile"     element={<ProfileScreen />} />
+        <Route path="/" element={<HomeScreen />} />
+        <Route path="/stores" element={<StoresScreen />} />
+        <Route path="/stores/:storeSlug" element={<StorePublicScreen />} />
+        <Route path="/s/:storeSlug" element={<HomeScreen />} />
+        <Route path="/s/:storeSlug/catalog" element={<CatalogScreen />} />
+        <Route path="/s/:storeSlug/scan" element={<ScanScreen />} />
+        <Route path="/s/:storeSlug/ai" element={<AIAssistantScreen />} />
+        <Route path="/s/:storeSlug/history" element={<HistoryScreen />} />
+        <Route path="/s/:storeSlug/profile" element={<ProfileScreen />} />
         <Route path="/s/:storeSlug/notifications" element={<NotificationSettingsScreen />} />
-        <Route path="/s/:storeSlug/privacy"    element={<PrivacySettingsScreen />} />
+        <Route path="/s/:storeSlug/privacy" element={<PrivacySettingsScreen />} />
         <Route path="/s/:storeSlug/product/ext/:ean" element={<ExternalProductScreen />} />
         <Route path="/s/:storeSlug/product/ext/:ean/ai" element={<AIScreen />} />
         <Route path="/s/:storeSlug/product/:ean" element={<ProductScreen />} />
         <Route path="/s/:storeSlug/product/:ean/alternatives" element={<AlternativesScreen />} />
         <Route path="/s/:storeSlug/product/:ean/ai" element={<AIScreen />} />
+        <Route path="/s/:storeSlug/product/:ean/compare/:ean2" element={<CompareScreen />} />
 
-        <Route path="/auth"                     element={<AuthScreen />} />
-        <Route path="/setup-profile"            element={<SetupProfileScreen />} />
-        <Route path="/qr-print"                 element={<QRPrintScreen />} />
-        <Route path="/privacy-policy"           element={<PrivacyPolicyScreen />} />
+        <Route path="/auth" element={<AuthScreen />} />
+        <Route path="/setup-profile" element={<SetupProfileScreen />} />
+        <Route path="/qr-print" element={<QRPrintScreen />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicyScreen />} />
 
         {/* Retail Cabinet Entry — finds store by owner_id */}
-        <Route path="/retail"                  element={<RetailEntryScreen />} />
+        <Route path="/retail" element={<RetailEntryScreen />} />
 
         {/* Retail Cabinet B2B Routes */}
-        <Route path="/retail/:storeSlug"        element={<RetailLayout />}>
+        <Route path="/retail/:storeSlug" element={<RetailLayout />}>
           <Route path="dashboard" element={<RetailDashboardScreen />} />
           <Route path="products" element={<RetailProductsScreen />} />
           <Route path="import" element={<RetailImportScreen />} />
@@ -92,16 +101,16 @@ function AppInner() {
         </Route>
 
         {/* Legacy Global Routes -> Redirect to Store Selection */}
-        <Route path="/profile"                  element={<Navigate to="/stores" replace />} />
-        <Route path="/catalog"                  element={<Navigate to="/stores" replace />} />
-        <Route path="/scan"                     element={<Navigate to="/stores" replace />} />
-        <Route path="/ai"                       element={<Navigate to="/stores" replace />} />
-        <Route path="/history"                  element={<Navigate to="/stores" replace />} />
-        <Route path="/notifications"            element={<Navigate to="/stores" replace />} />
-        <Route path="/privacy"                  element={<Navigate to="/stores" replace />} />
-        <Route path="/product/*"                element={<Navigate to="/stores" replace />} />
+        <Route path="/profile" element={<Navigate to="/stores" replace />} />
+        <Route path="/catalog" element={<Navigate to="/stores" replace />} />
+        <Route path="/scan" element={<Navigate to="/stores" replace />} />
+        <Route path="/ai" element={<Navigate to="/stores" replace />} />
+        <Route path="/history" element={<Navigate to="/stores" replace />} />
+        <Route path="/notifications" element={<Navigate to="/stores" replace />} />
+        <Route path="/privacy" element={<Navigate to="/stores" replace />} />
+        <Route path="/product/*" element={<Navigate to="/stores" replace />} />
 
-        <Route path="*"                         element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       {!hideNav && <BottomNav />}
     </div>

@@ -9,7 +9,13 @@ import { useUserData } from '../contexts/UserDataContext.jsx'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { getAnyKnownProductByRef } from '../utils/storeCatalog.js'
 import { coerceProductEntity } from '../domain/product/normalizers.js'
-import { buildCatalogPath, buildProductAIPath, buildProductAlternativesPath, buildProductPath } from '../utils/routes.js'
+import {
+  buildCatalogPath,
+  buildProductAIPath,
+  buildProductAlternativesPath,
+  buildProductPath,
+  buildScanPath,
+} from '../utils/routes.js'
 import { buildAuthNavigateState } from '../utils/authFlow.js'
 
 function clamp(n, a, b) {
@@ -42,7 +48,9 @@ function StarIcon({ variant = 'empty' }) {
       </defs>
       <path
         d="M12 2.5l2.9 6.1 6.7.9-4.9 4.7 1.2 6.7L12 18.8 6.1 20.9 7.3 14.2 2.4 9.5l6.7-.9L12 2.5z"
-        fill={variant === 'full' ? 'currentColor' : variant === 'half' ? 'url(#half)' : 'transparent'}
+        fill={
+          variant === 'full' ? 'currentColor' : variant === 'half' ? 'url(#half)' : 'transparent'
+        }
         stroke="currentColor"
         strokeWidth="1.6"
         strokeLinejoin="round"
@@ -86,7 +94,11 @@ function getManufacturerText(product) {
 
 function formatShelfLine(product, lang, t) {
   const cat = CATEGORY_LABELS[product.category] || (lang === 'kz' ? 'Тауарлар' : 'Товары')
-  const shelf = product.shelf ? String(product.shelf).replace(/^Полка\s*/i, '').trim() : ''
+  const shelf = product.shelf
+    ? String(product.shelf)
+        .replace(/^Полка\s*/i, '')
+        .trim()
+    : ''
   return shelf ? `${cat} · ${lang === 'kz' ? 'Сөре' : 'Полка'} ${shelf}` : cat
 }
 
@@ -114,19 +126,45 @@ export default function ProductScreen() {
 
   const handleToggleFavorite = async () => {
     if (!user) {
-      navigate('/auth', { state: buildAuthNavigateState(location, { reason: 'favorites_requires_auth', message: lang === 'kz' ? 'Таңдаулыларға қосу үшін аккаунтқа кіріңіз.' : 'Войдите, чтобы добавлять товары в избранное.' }) })
+      navigate('/auth', {
+        state: buildAuthNavigateState(location, {
+          reason: 'favorites_requires_auth',
+          message:
+            lang === 'kz'
+              ? 'Таңдаулыларға қосу үшін аккаунтқа кіріңіз.'
+              : 'Войдите, чтобы добавлять товары в избранное.',
+        }),
+      })
       return
     }
     await toggleFavorite(product)
   }
 
+  const keySpecs = useMemo(() => {
+    const entries = Object.entries(product?.specs || {})
+    // Keep stable ordering: most important first for MVP
+    return entries.slice(0, 6)
+  }, [product])
+
   if (!product) {
     return (
-      <div className="screen" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
+      <div
+        className="screen"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '80vh',
+        }}
+      >
         <div style={{ textAlign: 'center', color: 'var(--text-dim)' }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>🔍</div>
           <p>{t.common.notFound}</p>
-          <button className="btn btn-secondary" style={{ marginTop: 16 }} onClick={() => navigate(buildCatalogPath(activeStoreSlug))}>
+          <button
+            className="btn btn-secondary"
+            style={{ marginTop: 16 }}
+            onClick={() => navigate(buildCatalogPath(activeStoreSlug))}
+          >
             {t.product.backToList}
           </button>
         </div>
@@ -140,50 +178,86 @@ export default function ProductScreen() {
   const manufacturerText = getManufacturerText(product)
   const nutrition = product.nutritionPer100
   const isFood = product.category === 'grocery'
-  const hasStoreOverlay = Boolean(product.isStoreProduct || activeStoreSlug) && (product.priceKzt != null || product.shelf || product.stockStatus)
-
-  const keySpecs = useMemo(() => {
-    const entries = Object.entries(product.specs || {})
-    // Keep stable ordering: most important first for MVP
-    return entries.slice(0, 6)
-  }, [product])
+  const hasStoreOverlay =
+    Boolean(product.isStoreProduct || activeStoreSlug) &&
+    (product.priceKzt != null || product.shelf || product.stockStatus)
 
   const showMoreAvailable = Boolean(
     product.ingredients ||
-      product.storage ||
-      product.expiry ||
-      manufacturerText ||
-      (product.images && product.images.length > 1) ||
-      (product.fullSpecs && Object.keys(product.fullSpecs).length > 0)
+    product.storage ||
+    product.expiry ||
+    manufacturerText ||
+    (product.images && product.images.length > 1) ||
+    (product.fullSpecs && Object.keys(product.fullSpecs).length > 0)
   )
 
   return (
     <div className="screen">
       {/* Header */}
-      <div className="header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+      <div
+        className="header"
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button onClick={() => navigate(-1)} style={{
-            width: 38, height: 38, borderRadius: 12,
-            border: '1px solid rgba(255,255,255,0.1)',
-            background: 'rgba(255,255,255,0.05)', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-          }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="2" strokeLinecap="round">
-              <path d="M19 12H5M12 5l-7 7 7 7"/>
+          <button
+            onClick={() => navigate(-1)}
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 12,
+              border: '1px solid rgba(255,255,255,0.1)',
+              background: 'rgba(255,255,255,0.05)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="rgba(255,255,255,0.8)"
+              strokeWidth="2"
+              strokeLinecap="round"
+            >
+              <path d="M19 12H5M12 5l-7 7 7 7" />
             </svg>
           </button>
-          <div className="screen-title" style={{ margin: 0 }}>{t.product.title}</div>
+          <div className="screen-title" style={{ margin: 0 }}>
+            {t.product.title}
+          </div>
         </div>
-        <button onClick={handleToggleFavorite} style={{
-            width: 38, height: 38, borderRadius: 12,
+        <button
+          onClick={handleToggleFavorite}
+          style={{
+            width: 38,
+            height: 38,
+            borderRadius: 12,
             border: '1px solid rgba(255,255,255,0.1)',
-            background: isFavorite ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.05)', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            background: isFavorite ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.05)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
             transition: 'all 0.2s ease',
-          }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill={isFavorite ? '#EF4444' : 'none'} stroke={isFavorite ? '#EF4444' : 'rgba(255,255,255,0.8)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-            </svg>
+          }}
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill={isFavorite ? '#EF4444' : 'none'}
+            stroke={isFavorite ? '#EF4444' : 'rgba(255,255,255,0.8)'}
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
         </button>
       </div>
 
@@ -191,7 +265,15 @@ export default function ProductScreen() {
       <div className="section">
         <div className="card" style={{ marginBottom: 0 }}>
           {/* Category + shelf */}
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: 8,
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 10,
+            }}
+          >
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
               <span
                 style={{
@@ -221,7 +303,9 @@ export default function ProductScreen() {
             </div>
 
             {/* Rating */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+            <div
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}
+            >
               <Stars value={rating} />
               <div style={{ fontSize: 12, color: 'var(--text-dim)' }}>{rating.toFixed(1)} / 5</div>
             </div>
@@ -247,7 +331,15 @@ export default function ProductScreen() {
           </h2>
 
           {/* Price + Manufacturer */}
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              gap: 12,
+              flexWrap: 'wrap',
+              marginBottom: 10,
+            }}
+          >
             <span
               style={{
                 fontFamily: 'var(--font-display)',
@@ -261,12 +353,25 @@ export default function ProductScreen() {
             {manufacturerText ? (
               <span style={{ fontSize: 13, color: 'var(--text-sub)' }}>{manufacturerText}</span>
             ) : (
-              <span style={{ fontSize: 13, color: 'var(--text-dim)' }}>{t.product.noManufacturer}</span>
+              <span style={{ fontSize: 13, color: 'var(--text-dim)' }}>
+                {t.product.noManufacturer}
+              </span>
             )}
           </div>
 
           {!hasStoreOverlay ? (
-            <div style={{ marginBottom: 12, padding: '10px 12px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--text-sub)', fontSize: 12, lineHeight: 1.5 }}>
+            <div
+              style={{
+                marginBottom: 12,
+                padding: '10px 12px',
+                borderRadius: 12,
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                color: 'var(--text-sub)',
+                fontSize: 12,
+                lineHeight: 1.5,
+              }}
+            >
               Глобальная карточка товара. Цена и полка магазина пока недоступны.
             </div>
           ) : null}
@@ -275,8 +380,12 @@ export default function ProductScreen() {
           <div style={{ marginTop: 8 }}>
             <div className="section-title" style={{ marginBottom: 8 }}>
               {t.product.characteristics}
-              <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--text-dim)', fontWeight: 500 }}>
-                {isFood ? `${t.product.nutrition} (${product.nutritionBase || t.product.nutritionPer100})` : t.product.mainParams}
+              <span
+                style={{ marginLeft: 8, fontSize: 12, color: 'var(--text-dim)', fontWeight: 500 }}
+              >
+                {isFood
+                  ? `${t.product.nutrition} (${product.nutritionBase || t.product.nutritionPer100})`
+                  : t.product.mainParams}
               </span>
             </div>
 
@@ -306,7 +415,9 @@ export default function ProductScreen() {
             ) : (
               <div className="spec-list" style={{ marginBottom: 10 }}>
                 {keySpecs.length === 0 ? (
-                  <div style={{ fontSize: 13, color: 'var(--text-dim)' }}>{t.product.specsLater}</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-dim)' }}>
+                    {t.product.specsLater}
+                  </div>
                 ) : (
                   keySpecs.map(([k, v]) => (
                     <div key={k} className="info-row">
@@ -319,11 +430,7 @@ export default function ProductScreen() {
             )}
 
             {showMoreAvailable && (
-              <button
-                onClick={() => setMoreOpen((s) => !s)}
-                className="more-btn"
-                type="button"
-              >
+              <button onClick={() => setMoreOpen((s) => !s)} className="more-btn" type="button">
                 {moreOpen ? t.product.hide : t.product.more}
                 <span style={{ marginLeft: 8, opacity: 0.9 }} aria-hidden="true">
                   {moreOpen ? '▴' : '▾'}
@@ -335,28 +442,40 @@ export default function ProductScreen() {
               <div style={{ marginTop: 10 }}>
                 {product.ingredients ? (
                   <div style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 6 }}>{t.product.ingredients}</div>
-                    <div style={{ fontSize: 13, color: 'var(--text-sub)', lineHeight: 1.55 }}>{product.ingredients}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 6 }}>
+                      {t.product.ingredients}
+                    </div>
+                    <div style={{ fontSize: 13, color: 'var(--text-sub)', lineHeight: 1.55 }}>
+                      {product.ingredients}
+                    </div>
                   </div>
                 ) : null}
 
                 {product.storage ? (
                   <div style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 6 }}>{t.product.storage}</div>
-                    <div style={{ fontSize: 13, color: 'var(--text-sub)', lineHeight: 1.55 }}>{product.storage}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 6 }}>
+                      {t.product.storage}
+                    </div>
+                    <div style={{ fontSize: 13, color: 'var(--text-sub)', lineHeight: 1.55 }}>
+                      {product.storage}
+                    </div>
                   </div>
                 ) : null}
 
                 {product.expiry ? (
                   <div style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 6 }}>{t.product.expiry}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 6 }}>
+                      {t.product.expiry}
+                    </div>
                     <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>{product.expiry}</div>
                   </div>
                 ) : null}
 
                 {product.fullSpecs && Object.keys(product.fullSpecs).length > 0 ? (
                   <div style={{ marginBottom: 0 }}>
-                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 6 }}>{t.product.additionalSpecs}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 6 }}>
+                      {t.product.additionalSpecs}
+                    </div>
                     {Object.entries(product.fullSpecs).map(([k, v]) => (
                       <div key={k} className="info-row">
                         <span className="info-label">{humanizeSpecKey(k, lang)}</span>
@@ -374,25 +493,64 @@ export default function ProductScreen() {
       {/* FIT / NOT FIT */}
       <div className="section" style={{ paddingTop: 0 }}>
         {/* Большой статус блок */}
-        <div style={{
-          borderRadius: 18,
-          padding: '18px 20px',
-          display: 'flex', alignItems: 'center', gap: 16,
-          background: fits ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
-          border: `1.5px solid ${fits ? 'rgba(16,185,129,0.35)' : 'rgba(239,68,68,0.35)'}`,
-        }}>
-          <div style={{
-            width: 44, height: 44, borderRadius: 14, flexShrink: 0,
-            background: fits ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            {fits
-              ? <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
-              : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-            }
+        <div
+          style={{
+            borderRadius: 18,
+            padding: '18px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 16,
+            background: fits ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+            border: `1.5px solid ${fits ? 'rgba(16,185,129,0.35)' : 'rgba(239,68,68,0.35)'}`,
+          }}
+        >
+          <div
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 14,
+              flexShrink: 0,
+              background: fits ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {fits ? (
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#10B981"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+              >
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+            ) : (
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#EF4444"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+              >
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            )}
           </div>
           <div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: fits ? '#10B981' : '#EF4444', fontFamily: 'var(--font-display)' }}>
+            <div
+              style={{
+                fontSize: 17,
+                fontWeight: 700,
+                color: fits ? '#10B981' : '#EF4444',
+                fontFamily: 'var(--font-display)',
+              }}
+            >
               {fits ? t.product.fits : t.product.notFits}
             </div>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>
@@ -405,17 +563,31 @@ export default function ProductScreen() {
         {reasons.length > 0 && (
           <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
             {reasons.map((r, i) => (
-              <div key={i} style={{
-                display: 'flex', alignItems: 'center', gap: 12,
-                padding: '11px 14px', borderRadius: 14,
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.07)',
-              }}>
-                <div style={{
-                  width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                  background: r.type === 'good' ? '#10B981' : r.type === 'warn' ? '#F59E0B' : '#EF4444',
-                }}/>
-                <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', lineHeight: 1.4 }}>{r.text}</span>
+              <div
+                key={i}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '11px 14px',
+                  borderRadius: 14,
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                }}
+              >
+                <div
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    flexShrink: 0,
+                    background:
+                      r.type === 'good' ? '#10B981' : r.type === 'warn' ? '#F59E0B' : '#EF4444',
+                  }}
+                />
+                <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', lineHeight: 1.4 }}>
+                  {r.text}
+                </span>
               </div>
             ))}
           </div>
@@ -423,27 +595,92 @@ export default function ProductScreen() {
       </div>
 
       {/* CTA Buttons */}
-      <div style={{ padding: '0 20px 28px', display: 'flex', gap: 10 }}>
-        <button onClick={() => navigate(buildProductAlternativesPath(activeStoreSlug, product.ean))} style={{
-          flex: 1, padding: '14px 10px', borderRadius: 16, cursor: 'pointer',
-          background: 'rgba(124,58,237,0.12)', border: '1.5px solid rgba(124,58,237,0.4)',
-          color: '#C4B5FD', fontSize: 14, fontWeight: 600, fontFamily: 'var(--font-display)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-        }}>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
+      <div style={{ padding: '0 20px 8px', display: 'flex', gap: 10 }}>
+        <button
+          onClick={() => navigate(buildProductAlternativesPath(activeStoreSlug, product.ean))}
+          style={{
+            flex: 1,
+            padding: '14px 10px',
+            borderRadius: 16,
+            cursor: 'pointer',
+            background: 'rgba(124,58,237,0.12)',
+            border: '1.5px solid rgba(124,58,237,0.4)',
+            color: '#C4B5FD',
+            fontSize: 14,
+            fontWeight: 600,
+            fontFamily: 'var(--font-display)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+          }}
+        >
+          <svg
+            width="17"
+            height="17"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          >
+            <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
           </svg>
           {t.common.alternatives}
         </button>
-        <button onClick={() => navigate(buildProductAIPath(activeStoreSlug, product.ean))} style={{
-          flex: 1, padding: '14px 10px', borderRadius: 16, cursor: 'pointer',
-          background: 'linear-gradient(135deg, #7C3AED, #6D28D9)',
-          border: 'none',
-          color: '#fff', fontSize: 14, fontWeight: 600, fontFamily: 'var(--font-display)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          boxShadow: '0 4px 16px rgba(124,58,237,0.4)',
-        }}>
-          ✦ {t.common.askAI}
+        <button
+          onClick={() => navigate(buildProductAIPath(activeStoreSlug, product.ean))}
+          style={{
+            flex: 1,
+            padding: '14px 10px',
+            borderRadius: 16,
+            cursor: 'pointer',
+            background: 'linear-gradient(135deg, #7C3AED, #6D28D9)',
+            border: 'none',
+            color: '#fff',
+            fontSize: 14,
+            fontWeight: 600,
+            fontFamily: 'var(--font-display)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            boxShadow: '0 4px 16px rgba(124,58,237,0.4)',
+          }}
+        >
+          ✶ {t.common.askAI}
+        </button>
+      </div>
+      {/* Compare Button */}
+      <div style={{ padding: '0 20px 28px' }}>
+        <button
+          onClick={() => {
+            sessionStorage.setItem('korset_compare_a', JSON.stringify(product))
+            navigate(buildScanPath(activeStoreSlug), {
+              state: { compareMode: true, eanA: product.ean, productA: product },
+            })
+          }}
+          style={{
+            width: '100%',
+            padding: '13px 16px',
+            borderRadius: 16,
+            cursor: 'pointer',
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            color: 'rgba(200,190,240,0.8)',
+            fontSize: 14,
+            fontWeight: 600,
+            fontFamily: 'var(--font-display)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+            compare_arrows
+          </span>
+          {t.compare?.btnLabel || 'Сравнить'}
         </button>
       </div>
     </div>

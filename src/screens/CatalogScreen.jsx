@@ -10,7 +10,7 @@ import {
   getStoreCatalogProducts,
   getStoreCatalogProductsFromDB,
 } from '../utils/storeCatalog.js'
-import { buildProductPath } from '../utils/routes.js'
+import { buildProductPath, buildScanPath } from '../utils/routes.js'
 
 function ProductThumb({ product }) {
   const [imgOk, setImgOk] = useState(true)
@@ -40,6 +40,14 @@ function ProductThumb({ product }) {
       {product.name?.[0] || '•'}
     </div>
   )
+}
+
+function handleCompare(product, storeSlug, navigate, e) {
+  e.stopPropagation()
+  sessionStorage.setItem('korset_compare_a', JSON.stringify(product))
+  navigate(buildScanPath(storeSlug), {
+    state: { compareMode: true, eanA: product.ean, productA: product },
+  })
 }
 
 export default function CatalogScreen() {
@@ -316,6 +324,27 @@ export default function CatalogScreen() {
                   >
                     {formatPrice(product.priceKzt)}
                   </div>
+                  <button
+                    onClick={(e) => handleCompare(product, currentStore?.slug || null, navigate, e)}
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 8,
+                      cursor: 'pointer',
+                      background: 'rgba(124,58,237,0.15)',
+                      border: '1px solid rgba(139,92,246,0.3)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 14, color: '#A78BFA' }}
+                    >
+                      compare_arrows
+                    </span>
+                  </button>
                 </div>
               </div>
             )
@@ -411,8 +440,40 @@ export default function CatalogScreen() {
                       {product.shelf || 'Полка уточняется'}
                     </div>
                   </div>
-                  <div style={{ fontSize: 11, color: 'rgba(220,220,240,0.65)' }}>
-                    Score {product.qualityScore || 0}/100
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'flex-end',
+                      gap: 6,
+                    }}
+                  >
+                    <div style={{ fontSize: 11, color: 'rgba(220,220,240,0.65)' }}>
+                      Score {product.qualityScore || 0}/100
+                    </div>
+                    <button
+                      onClick={(e) =>
+                        handleCompare(product, currentStore?.slug || null, navigate, e)
+                      }
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        padding: '4px 8px',
+                        borderRadius: 8,
+                        cursor: 'pointer',
+                        background: 'rgba(124,58,237,0.12)',
+                        border: '1px solid rgba(139,92,246,0.25)',
+                        color: '#A78BFA',
+                        fontSize: 10,
+                        fontWeight: 700,
+                      }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 12 }}>
+                        compare_arrows
+                      </span>
+                      {t.compare?.compareMode || 'Сравнить'}
+                    </button>
                   </div>
                 </div>
               </div>

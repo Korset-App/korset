@@ -28,6 +28,8 @@ export default async function handler(req, res) {
       systemPrompt = buildProductPrompt(product, profile, lang)
     } else if (mode === 'enrich' && product) {
       systemPrompt = buildEnrichPrompt(product)
+    } else if (mode === 'compare' && req.body.productA && req.body.productB) {
+      systemPrompt = buildComparePrompt(req.body.productA, req.body.productB, profile, req.body.winner, lang)
     } else {
       systemPrompt = buildGeneralPrompt(lang)
     }
@@ -41,7 +43,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'gpt-4.1-nano',
-        max_tokens: mode === 'enrich' ? 300 : 400,
+        max_tokens: mode === 'enrich' ? 300 : mode === 'compare' ? 200 : 400,
         temperature: mode === 'enrich' ? 0.3 : 0.7,
         messages: [
           { role: 'system', content: systemPrompt },
@@ -99,6 +101,32 @@ function buildGeneralPrompt(lang) {
     return 'Сен — Қазақстан супермаркетіндегі Körset AI көмекшісісің. Тауар табуға, рецепт ұсынуға және құрамын түсіндіруге көмектес. Қысқа, түсінікті қазақша жауап бер. Максимум 3-4 сөйлем.'
   }
   return 'Ты — Körset AI, помощник покупателя в супермаркете Казахстана. Помогаешь найти товары, советуешь рецепты, отвечаешь про состав и аллергены. Кратко, по-русски, как дружелюбный консультант. Максимум 3-4 предложения.'
+}
+
+
+function buildComparePrompt(productA, productB, profile, winner, lang) {
+  const profileParts = []
+  if (profile?.halal || profile?.halalOnly) profileParts.push('нужен халал')
+  if (profile?.allergens?.length) profileParts.push(`аллергии: ${profile.allergens.join(', ')}`)
+  if (profile?.dietGoals?.length) profileParts.push(`диета: ${profile.dietGoals.join(', ')}`)
+
+  const langNote = lang === 'kz' ? 'Отвечай на казахском языке.' : 'Отвечай на русском языке.'
+  const profileStr = profileParts.length ? profileParts.join('; ') : 'не задан'
+
+  const nutrA = formatNutrition(productA)
+  const nutrB = formatNutrition(productB)
+
+  const isDraw = winner === 'draw'
+  const winnerLine = isDraw
+    ? 'Эти товары по безопасности и составу одинаковы.'
+    : `По расчёту Körset, ${winner === 'A' ? productA.name : productB.name} лучше для данного пользователя.`
+
+  return `Ты — Körset AI. Ты только что сравнил два товара для покупателя. Напиши 1-2 предложения объяснения — почему именно этот товар лучше (или почему ничья). Без markdown, живым текстом.
+${langNote}
+ПРОФИЛЬ: ${profileStr}
+ТОВАР A: ${productA.name} | Халал: ${productA.halalStatus || '?'} | КБЖУ: ${nutrA} | Аллергены: ${productA.allergens?.join(', ') || 'нет'}
+ТОВАР B: ${productB.name} | Халал: ${productB.halalStatus || '?'} | КБЖУ: ${nutrB} | Аллергены: ${productB.allergens?.join(', ') || 'нет'}
+${winnerLine}`
 }
 
 
