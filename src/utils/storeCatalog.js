@@ -136,6 +136,8 @@ export async function getStoreCatalogProductsFromDB(storeId) {
     ingredientsKz: sp.global_products?.ingredients_kz || null,
     allergens: sp.global_products?.allergens_json || [],
     dietTags: sp.global_products?.diet_tags_json || [],
+    nutritionPer100: sp.global_products?.nutriments_json || null,
+    images: sp.global_products?.images || [],
     halalStatus: sp.global_products?.halal_status || 'unknown',
     nutriscore: sp.global_products?.nutriscore || null,
     dataQualityScore: sp.global_products?.data_quality_score || 0,
