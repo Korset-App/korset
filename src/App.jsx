@@ -5,6 +5,7 @@ import ProfileScreen from './screens/ProfileScreen.jsx'
 import CatalogScreen from './screens/CatalogScreen.jsx'
 import ScanScreen from './screens/ScanScreen.jsx'
 import ProductScreen from './screens/ProductScreen.jsx'
+import ProductDetailsScreen from './screens/ProductDetailsScreen.jsx'
 import ExternalProductScreen from './screens/ExternalProductScreen.jsx'
 import AlternativesScreen from './screens/AlternativesScreen.jsx'
 import AIScreen from './screens/AIScreen.jsx'
@@ -65,7 +66,9 @@ function AppInner() {
     <div className="app-frame">
       {shouldShowOnboarding && <OnboardingScreen onDone={() => setShowOnboarding(false)} />}
       <Routes>
-        <Route path="/" element={<HomeScreen />} />
+        {/* Premium Product Details Screen — standalone showcase */}
+        <Route path="/product-details-demo" element={<ProductDetailsScreen />} />
+        <Route path="/" element={<ProductDetailsScreen />} />
         <Route path="/stores" element={<StoresScreen />} />
         <Route path="/stores/:storeSlug" element={<StorePublicScreen />} />
         <Route path="/s/:storeSlug" element={<HomeScreen />} />
