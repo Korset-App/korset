@@ -11,11 +11,21 @@ import {
 const AuthContext = createContext({ user: null, session: null, loading: true })
 
 function buildFallbackName(authUser) {
-  return authUser?.user_metadata?.full_name || authUser?.user_metadata?.name || authUser?.email?.split('@')?.[0] || 'Körset User'
+  return (
+    authUser?.user_metadata?.full_name ||
+    authUser?.user_metadata?.name ||
+    authUser?.email?.split('@')?.[0] ||
+    'Körset User'
+  )
 }
 
 function extractMetadataAvatar(authUser) {
-  return authUser?.user_metadata?.avatar_id || authUser?.user_metadata?.avatar_url || authUser?.user_metadata?.picture || null
+  return (
+    authUser?.user_metadata?.avatar_id ||
+    authUser?.user_metadata?.avatar_url ||
+    authUser?.user_metadata?.picture ||
+    null
+  )
 }
 
 async function loadOrCreateUserRow(authUser, preferredName) {
@@ -31,11 +41,14 @@ async function loadOrCreateUserRow(authUser, preferredName) {
   const deviceId = getOrCreateDeviceId()
   const { data: inserted, error: upsertError } = await supabase
     .from('users')
-    .upsert({
-      auth_id: authUser.id,
-      device_id: deviceId,
-      name: preferredName,
-    }, { onConflict: 'auth_id' })
+    .upsert(
+      {
+        auth_id: authUser.id,
+        device_id: deviceId,
+        name: preferredName,
+      },
+      { onConflict: 'auth_id' }
+    )
     .select('id, name')
     .maybeSingle()
 
@@ -156,36 +169,52 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     mountedRef.current = true
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mountedRef.current) return
-      syncSessionState(session)
-      Promise.resolve().then(() => refreshAccountProfile(session?.user ?? null))
-    })
+    let cancelled = false
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      if (!mountedRef.current) return
+    Promise.race([
+      supabase.auth.getSession(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('getSession_timeout')), 8000)),
+    ])
+      .then(({ data: { session } }) => {
+        if (!mountedRef.current || cancelled) return
+        syncSessionState(session)
+        Promise.resolve().then(() => refreshAccountProfile(session?.user ?? null))
+      })
+      .catch((err) => {
+        if (!mountedRef.current || cancelled) return
+        console.warn('[AuthContext] getSession failed or timed out:', err?.message)
+        syncSessionState(null)
+      })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (!mountedRef.current || cancelled) return
       syncSessionState(nextSession)
       Promise.resolve().then(() => refreshAccountProfile(nextSession?.user ?? null))
     })
 
     return () => {
       mountedRef.current = false
+      cancelled = true
       subscription.unsubscribe()
     }
   }, [refreshAccountProfile, syncSessionState])
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      internalUserId,
-      session,
-      loading,
-      displayName,
-      avatarId,
-      refreshAccountProfile,
-      applyProfileSnapshot,
-      logout,
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        internalUserId,
+        session,
+        loading,
+        displayName,
+        avatarId,
+        refreshAccountProfile,
+        applyProfileSnapshot,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )

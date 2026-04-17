@@ -72,6 +72,11 @@ export const dictionaries = {
       tapToFocus: 'Нажмите, чтобы сфокусировать',
       notFoundToast: 'Товар не найден в базе',
       notFoundSub: 'Штрихкод',
+      offlineNotFound: 'Офлайн. Данных нет',
+      offlineBanner: 'Офлайн-режим. Данные из кэша',
+      offlineBannerStale: 'Кэш устарел. Данные от',
+      offlineCacheLabel: 'Данные из кэша',
+      aiOffline: 'ИИ-ассистент недоступен без интернета',
     },
     product: {
       title: 'Карточка товара',
@@ -453,6 +458,11 @@ export const dictionaries = {
       tapToFocus: 'Фокустау үшін басыңыз',
       notFoundToast: 'Тауар базадан табылмады',
       notFoundSub: 'Штрихкод',
+      offlineNotFound: 'Желі жоқ. Деректер қол жеткізбейді',
+      offlineBanner: 'Желі жоқ. Деректер кэштен',
+      offlineBannerStale: 'Кэш ескірді. Деректер',
+      offlineCacheLabel: 'Деректер кэштен',
+      aiOffline: 'Желі қосылуынсыз ИИ көмекші қол жеткізбейді',
     },
     product: {
       title: 'Тауар картасы',

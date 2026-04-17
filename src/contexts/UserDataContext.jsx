@@ -1,7 +1,12 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { supabase } from '../utils/supabase.js'
 import { useAuth } from './AuthContext.jsx'
-import { buildHistoryOwnerKey, getLocalScanHistoryCount, SCAN_HISTORY_STORAGE_KEY, syncScanHistoryWithCloud } from '../utils/localHistory.js'
+import {
+  buildHistoryOwnerKey,
+  getLocalScanHistoryCount,
+  SCAN_HISTORY_STORAGE_KEY,
+  syncScanHistoryWithCloud,
+} from '../utils/localHistory.js'
 import { PRIVACY_EVENT } from '../utils/privacySettings.js'
 
 const UserDataContext = createContext()
@@ -41,19 +46,28 @@ export function UserDataProvider({ children }) {
       setUserDataLoaded(false)
 
       const [favRes, scanRes] = await Promise.allSettled([
-        withTimeout(supabase.from('user_favorites').select('ean').eq('user_id', internalUserId), 5000),
-        withTimeout(supabase.from('scan_events').select('id', { count: 'exact', head: true }).eq('user_id', internalUserId), 5000),
+        withTimeout(
+          supabase.from('user_favorites').select('ean').eq('user_id', internalUserId),
+          5000
+        ),
+        withTimeout(
+          supabase
+            .from('scan_events')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', internalUserId),
+          5000
+        ),
       ])
 
       if (cancelled) return
 
-      const favoriteList = favRes.status === 'fulfilled' && !favRes.value?.error
-        ? new Set((favRes.value?.data || []).map((item) => item.ean).filter(Boolean))
-        : new Set()
+      const favoriteList =
+        favRes.status === 'fulfilled' && !favRes.value?.error
+          ? new Set((favRes.value?.data || []).map((item) => item.ean).filter(Boolean))
+          : new Set()
 
-      const remoteCount = scanRes.status === 'fulfilled' && !scanRes.value?.error
-        ? (scanRes.value?.count || 0)
-        : 0
+      const remoteCount =
+        scanRes.status === 'fulfilled' && !scanRes.value?.error ? scanRes.value?.count || 0 : 0
 
       setFavoriteEans(favoriteList)
       setScanCount(Math.max(remoteCount, localCount))
@@ -84,52 +98,65 @@ export function UserDataProvider({ children }) {
     return favoriteEans.has(ean)
   }
 
-  const toggleFavorite = async (product) => {
-    if (!internalUserId) {
-      alert('Не удалось загрузить ваш профиль. Попробуйте перезайти в аккаунт.')
-      return
-    }
-    if (!product || !product.ean) return
+  const togglingRef = useRef(new Set())
 
-    const ean = product.ean
-    const isFav = favoriteEans.has(ean)
+  const toggleFavorite = useCallback(
+    async (product) => {
+      if (!internalUserId) return
+      if (!product || !product.ean) return
 
-    setFavoriteEans((prev) => {
-      const next = new Set(prev)
-      if (isFav) next.delete(ean)
-      else next.add(ean)
-      return next
-    })
+      const ean = product.ean
+      if (togglingRef.current.has(ean)) return
+      togglingRef.current.add(ean)
 
-    try {
-      if (!isFav) {
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-        const candidateGlobalId = product?.sourceMeta?.globalProductId || product?.id || null
-        const validGlobalId = candidateGlobalId && uuidRegex.test(candidateGlobalId) ? candidateGlobalId : null
+      const isFav = favoriteEans.has(ean)
 
-        const { error } = await supabase.from('user_favorites').upsert({
-          user_id: internalUserId,
-          global_product_id: validGlobalId,
-          ean,
-        }, { onConflict: 'user_id, ean' })
-
-        if (error) throw error
-      } else {
-        const { error } = await supabase.from('user_favorites').delete().eq('user_id', internalUserId).eq('ean', ean)
-        if (error) throw error
-      }
-    } catch (err) {
-      console.error('Toggle favorite failed', err)
-      alert('Ошибка базы данных: ' + err.message)
       setFavoriteEans((prev) => {
         const next = new Set(prev)
-        if (isFav) next.add(ean)
-        else next.delete(ean)
+        if (isFav) next.delete(ean)
+        else next.add(ean)
         return next
       })
-      throw err
-    }
-  }
+
+      try {
+        if (!isFav) {
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+          const candidateGlobalId = product?.sourceMeta?.globalProductId || product?.id || null
+          const validGlobalId =
+            candidateGlobalId && uuidRegex.test(candidateGlobalId) ? candidateGlobalId : null
+
+          const { error } = await supabase.from('user_favorites').upsert(
+            {
+              user_id: internalUserId,
+              global_product_id: validGlobalId,
+              ean,
+            },
+            { onConflict: 'user_id, ean' }
+          )
+
+          if (error) throw error
+        } else {
+          const { error } = await supabase
+            .from('user_favorites')
+            .delete()
+            .eq('user_id', internalUserId)
+            .eq('ean', ean)
+          if (error) throw error
+        }
+      } catch (err) {
+        console.error('Toggle favorite failed', err)
+        setFavoriteEans((prev) => {
+          const next = new Set(prev)
+          if (isFav) next.add(ean)
+          else next.delete(ean)
+          return next
+        })
+      } finally {
+        togglingRef.current.delete(ean)
+      }
+    },
+    [internalUserId, favoriteEans]
+  )
 
   const syncScanCount = () => {
     setScanCount((prev) => Math.max(prev, getScopedLocalScanCount(user)))
@@ -166,15 +193,17 @@ export function UserDataProvider({ children }) {
   }, [user])
 
   return (
-    <UserDataContext.Provider value={{
-      favoriteEans,
-      checkIsFavorite,
-      toggleFavorite,
-      favoritesCount: favoriteEans.size,
-      scanCount,
-      incrementScanCount: syncScanCount,
-      userDataLoaded,
-    }}>
+    <UserDataContext.Provider
+      value={{
+        favoriteEans,
+        checkIsFavorite,
+        toggleFavorite,
+        favoritesCount: favoriteEans.size,
+        scanCount,
+        incrementScanCount: syncScanCount,
+        userDataLoaded,
+      }}
+    >
       {children}
     </UserDataContext.Provider>
   )

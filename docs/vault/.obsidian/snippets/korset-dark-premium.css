@@ -1,0 +1,167 @@
+/* Körset Dark Premium — Obsidian Vault Theme Override */
+
+body {
+  --background-primary: #0c0c0e;
+  --background-primary-alt: #12121a;
+  --background-secondary: #0e0e16;
+  --background-secondary-alt: #14141e;
+  --background-modifier-border: rgba(255, 255, 255, 0.06);
+  --background-modifier-form-field: rgba(255, 255, 255, 0.04);
+  --background-modifier-hover: rgba(255, 255, 255, 0.06);
+  --text-normal: rgba(255, 255, 255, 0.88);
+  --text-muted: rgba(255, 255, 255, 0.5);
+  --text-faint: rgba(255, 255, 255, 0.3);
+  --text-accent: #7c3aed;
+  --text-accent-hover: #a78bfa;
+  --text-on-accent: #fff;
+  --interactive-normal: rgba(255, 255, 255, 0.06);
+  --interactive-hover: rgba(124, 58, 237, 0.15);
+  --interactive-accent: rgba(124, 58, 237, 0.2);
+  --interactive-accent-hover: rgba(124, 58, 237, 0.35);
+  --highlight-mix-blend-mode: screen;
+  --bold-weight: 600;
+}
+
+/* Glassmorphism panels */
+.workspace-split.mod-vertical .workspace-tabs,
+.workspace-split.mod-horizontal .workspace-tabs {
+  background: rgba(12, 12, 14, 0.8);
+  backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.workspace-ribbon.mod-left {
+  background: rgba(12, 12, 14, 0.95);
+  backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.workspace-tab-header-container {
+  background: rgba(12, 12, 14, 0.6);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* Headings */
+.markdown-source-view .cm-header-1,
+.markdown-preview-view h1 {
+  font-family: 'Advent Pro', sans-serif;
+  color: #a78bfa;
+  font-weight: 700;
+  font-size: 1.8em;
+  letter-spacing: -0.02em;
+}
+
+.markdown-source-view .cm-header-2,
+.markdown-preview-view h2 {
+  font-family: 'Advent Pro', sans-serif;
+  color: #c4b5fd;
+  font-weight: 600;
+  font-size: 1.4em;
+  letter-spacing: -0.01em;
+}
+
+.markdown-source-view .cm-header-3,
+.markdown-preview-view h3 {
+  font-family: 'Advent Pro', sans-serif;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 600;
+  font-size: 1.15em;
+}
+
+/* Tables */
+.markdown-preview-view table {
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.markdown-preview-view th {
+  background: rgba(124, 58, 237, 0.12);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.85em;
+  letter-spacing: 0.04em;
+  color: #c4b5fd;
+  border-bottom: 1px solid rgba(124, 58, 237, 0.2);
+}
+
+.markdown-preview-view td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.markdown-preview-view tr:hover td {
+  background: rgba(124, 58, 237, 0.06);
+}
+
+/* Code blocks */
+.markdown-preview-view code {
+  background: rgba(124, 58, 237, 0.1);
+  color: #c4b5fd;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.9em;
+}
+
+pre code {
+  background: rgba(12, 12, 14, 0.9) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+}
+
+/* Tags */
+.tag {
+  background: rgba(124, 58, 237, 0.15);
+  color: #c4b5fd;
+  border-radius: 12px;
+  padding: 2px 10px;
+  font-size: 0.85em;
+}
+
+/* Blockquotes — для примечаний */
+.markdown-preview-view blockquote {
+  border-left: 3px solid #7c3aed;
+  background: rgba(124, 58, 237, 0.06);
+  border-radius: 0 8px 8px 0;
+  padding: 12px 16px;
+}
+
+/* Bold text — для ключевых полей */
+strong {
+  color: #e0d4fc;
+}
+
+/* File explorer */
+.nav-file-title:hover {
+  background: rgba(124, 58, 237, 0.1);
+}
+
+.nav-file-title.is-active {
+  background: rgba(124, 58, 237, 0.15);
+  color: #a78bfa;
+}
+
+/* Graph view */
+.graph-view.color-fill {
+  color: #7c3aed;
+}
+.graph-view.color-line {
+  color: rgba(124, 58, 237, 0.4);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.3);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 58, 237, 0.5);
+}

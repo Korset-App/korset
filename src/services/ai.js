@@ -24,14 +24,18 @@ export async function askProductAI(messages, product, profile, lang) {
       ingredients: product.ingredients,
       allergens: product.allergens,
       nutrition: product.nutrition || product.nutritionPer100,
-      halalStatus: product.halalStatus ?? (product.halal === true ? 'yes' : product.halal === 'yes' ? 'yes' : 'unknown'),
+      halalStatus:
+        product.halalStatus ??
+        (product.halal === true ? 'yes' : product.halal === false ? 'no' : 'unknown'),
       priceKzt: product.priceKzt,
     },
-    profile: profile ? {
-      halal: profile.halal || profile.halalOnly,
-      allergens: profile.allergens,
-      dietGoals: profile.dietGoals,
-    } : null,
+    profile: profile
+      ? {
+          halal: profile.halal || profile.halalOnly,
+          allergens: profile.allergens,
+          dietGoals: profile.dietGoals,
+        }
+      : null,
     lang,
   })
 }
@@ -65,7 +69,6 @@ export async function enrichProductAI(product) {
     return null
   }
 }
-
 
 // ── Internal ──
 

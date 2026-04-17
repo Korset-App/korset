@@ -103,8 +103,13 @@ export async function getStoreCatalogProductsFromDB(storeId) {
       global_products (
         id, ean, name, name_kz, brand, category, subcategory,
         quantity, image_url, images, ingredients_raw, ingredients_kz,
-        allergens_json, diet_tags_json, halal_status,
-        nutriscore, data_quality_score
+        description, allergens_json, diet_tags_json, halal_status,
+        additives_tags_json, traces_json, categories_tags_json, tags_json,
+        nutriments_json, alcohol_100g, saturated_fat_100g, nova_group,
+        image_ingredients_url, image_nutrition_url,
+        manufacturer, country_of_origin, specs_json,
+        nutriscore, data_quality_score, source_primary, source_confidence,
+        is_verified, needs_review, group
       )
     `
     )
@@ -130,17 +135,36 @@ export async function getStoreCatalogProductsFromDB(storeId) {
     category: sp.global_products?.category || null,
     subcategory: sp.global_products?.subcategory || null,
     quantity: sp.global_products?.quantity || null,
+    group: sp.global_products?.group || null,
     image: sp.global_products?.image_url || sp.global_products?.images?.[0] || null,
     imageUrl: sp.global_products?.image_url || null,
+    images: sp.global_products?.images || [],
+    description: sp.global_products?.description || null,
     ingredients: sp.global_products?.ingredients_raw || null,
     ingredientsKz: sp.global_products?.ingredients_kz || null,
     allergens: sp.global_products?.allergens_json || [],
     dietTags: sp.global_products?.diet_tags_json || [],
+    tags: sp.global_products?.tags_json || [],
+    additivesTags: sp.global_products?.additives_tags_json || [],
+    traces: sp.global_products?.traces_json || [],
+    categoriesTags: sp.global_products?.categories_tags_json || [],
     nutritionPer100: sp.global_products?.nutriments_json || null,
-    images: sp.global_products?.images || [],
+    alcohol100g: sp.global_products?.alcohol_100g ?? null,
+    saturatedFat100g: sp.global_products?.saturated_fat_100g ?? null,
+    novaGroup: sp.global_products?.nova_group ?? null,
+    imageIngredientsUrl: sp.global_products?.image_ingredients_url || null,
+    imageNutritionUrl: sp.global_products?.image_nutrition_url || null,
+    manufacturer: sp.global_products?.manufacturer
+      ? { name: sp.global_products.manufacturer, country: sp.global_products.country_of_origin }
+      : null,
+    specs: sp.global_products?.specs_json || null,
     halalStatus: sp.global_products?.halal_status || 'unknown',
     nutriscore: sp.global_products?.nutriscore || null,
-    dataQualityScore: sp.global_products?.data_quality_score || 0,
+    qualityScore: sp.global_products?.data_quality_score ?? 0,
+    sourceConfidence: sp.global_products?.source_confidence ?? null,
+    sourcePrimary: sp.global_products?.source_primary || null,
+    isVerified: sp.global_products?.is_verified || false,
+    needsReview: sp.global_products?.needs_review || false,
     isStoreProduct: true,
     canonicalId: sp.ean,
   }))

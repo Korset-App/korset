@@ -42,7 +42,9 @@ export function markSyncComplete(authUid) {
   if (!authUid) return
   try {
     localStorage.setItem(SENTINEL_KEY, authUid)
-  } catch {}
+  } catch {
+    /* quota exceeded */
+  }
 }
 
 /**
@@ -51,7 +53,9 @@ export function markSyncComplete(authUid) {
 export function clearSyncSentinel() {
   try {
     localStorage.removeItem(SENTINEL_KEY)
-  } catch {}
+  } catch {
+    /* unavailable */
+  }
 }
 
 // ─── Internal helpers ────────────────────────────────────────────────────────
@@ -91,10 +95,8 @@ export function detectProfileConflict(local, cloud) {
   // Conflict only if BOTH sides are non-empty AND they differ
   const allergensConflict =
     lAllergens.length > 0 && cAllergens.length > 0 && !setEqual(lAllergens, cAllergens)
-  const dietConflict =
-    lDiet.length > 0 && cDiet.length > 0 && !setEqual(lDiet, cDiet)
-  const customConflict =
-    lCustom.length > 0 && cCustom.length > 0 && !setEqual(lCustom, cCustom)
+  const dietConflict = lDiet.length > 0 && cDiet.length > 0 && !setEqual(lDiet, cDiet)
+  const customConflict = lCustom.length > 0 && cCustom.length > 0 && !setEqual(lCustom, cCustom)
   // Halal conflicts only if one is true and the other is false (and at least one is set)
   const halalConflict = (lHalal || cHalal) && lHalal !== cHalal
 
@@ -132,7 +134,9 @@ export function mergeProfiles(local, cloud) {
     // Preference arrays: union
     allergens: [...new Set([...(local.allergens ?? []), ...(cloud.allergens ?? [])])],
     dietGoals: [...new Set([...(local.dietGoals ?? []), ...(cloud.dietGoals ?? [])])],
-    customAllergens: [...new Set([...(local.customAllergens ?? []), ...(cloud.customAllergens ?? [])])],
+    customAllergens: [
+      ...new Set([...(local.customAllergens ?? []), ...(cloud.customAllergens ?? [])]),
+    ],
     // Boolean flags: take more restrictive value
     halal: Boolean(local.halal) || Boolean(cloud.halal),
     // Config objects: local wins but fill gaps from cloud

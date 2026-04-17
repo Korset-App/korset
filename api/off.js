@@ -1,8 +1,17 @@
+const CORS_ORIGINS = [
+  'https://korset.app',
+  'https://www.korset.app',
+  'http://localhost:5173',
+  'http://localhost:4173',
+]
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
+  const origin = req.headers.origin || ''
+  const allowOrigin = CORS_ORIGINS.includes(origin) ? origin : CORS_ORIGINS[0]
+  res.setHeader('Access-Control-Allow-Origin', allowOrigin)
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  res.setHeader('Vary', 'Origin')
 
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
@@ -15,7 +24,7 @@ export default async function handler(req, res) {
     const response = await fetch(url, {
       headers: {
         'User-Agent': 'Korset/1.0 (https://korset.app)',
-        'From': 'hello@korset.app',
+        From: 'hello@korset.app',
       },
     })
 

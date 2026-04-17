@@ -106,3 +106,14 @@ export async function updateProductShelf(productId, storeId, shelfZone) {
   if (error) throw new Error(error.message ?? error)
   if (!data || data.length === 0) throw new Error('Update blocked: RLS or row not found')
 }
+
+export async function clearStoreCatalog(storeId) {
+  const { data, error } = await supabase
+    .from('store_products')
+    .update({ is_active: false, updated_at: new Date().toISOString() })
+    .eq('store_id', storeId)
+    .eq('is_active', true)
+    .select('id')
+  if (error) throw new Error(error.message ?? error)
+  return data
+}

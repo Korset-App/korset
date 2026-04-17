@@ -1,15 +1,17 @@
-import { useMemo, useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { useI18n } from '../utils/i18n.js'
-import { checkProductFit, formatPrice } from '../utils/fitCheck.js'
+import { checkProductFit, CATEGORY_LABELS } from '../utils/fitCheck.js'
 import { useProfile } from '../contexts/ProfileContext.jsx'
 import { useStore } from '../contexts/StoreContext.jsx'
+import { useOffline } from '../contexts/OfflineContext.jsx'
+import { useI18n } from '../utils/i18n.js'
 import {
   getGlobalDemoProducts,
   getStoreCatalogProducts,
   getStoreCatalogProductsFromDB,
 } from '../utils/storeCatalog.js'
+import { getCatalogFromIndexedDB } from '../utils/offlineDB.js'
 import { buildProductPath, buildComparePath } from '../utils/routes.js'
 
 function ProductThumb({ product }) {
@@ -47,6 +49,7 @@ export default function CatalogScreen() {
   const { t } = useI18n()
   const { profile } = useProfile()
   const { storeId, currentStore } = useStore()
+  const { isOnline } = useOffline()
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState('all')
   const [sort, setSort] = useState('fit')
@@ -58,8 +61,21 @@ export default function CatalogScreen() {
     enabled: Boolean(storeId),
   })
 
+  const [offlineCatalog, setOfflineCatalog] = useState([])
+
+  useEffect(() => {
+    if (!isOnline && (!dbProducts || dbProducts.length === 0)) {
+      getCatalogFromIndexedDB()
+        .then((data) => {
+          if (data && data.length > 0) setOfflineCatalog(data)
+        })
+        .catch(() => {})
+    }
+  }, [isOnline, dbProducts])
+
   const baseProducts = useMemo(() => {
     if (storeId && dbProducts.length > 0) return dbProducts
+    if (!isOnline && offlineCatalog.length > 0) return offlineCatalog
     if (currentStore?.slug) return getStoreCatalogProducts(currentStore.slug)
     return getGlobalDemoProducts()
   }, [storeId, dbProducts, currentStore])

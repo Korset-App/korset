@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useI18n } from '../utils/i18n.js'
 import { useStore } from '../contexts/StoreContext.jsx'
 import QRCode from 'react-qr-code'
+import { clearStoreCatalog } from '../utils/retailAnalytics.js'
 
 export default function RetailSettingsScreen() {
   const { lang } = useI18n()
@@ -20,6 +21,7 @@ export default function RetailSettingsScreen() {
   // Track which toggle is currently saving ('missing' | 'daily' | null)
   const [savingToggle, setSavingToggle] = useState(null)
   const qrRef = useRef(null)
+  const [isClearing, setIsClearing] = useState(false)
 
   // Sync ALL fields (including toggles) when store data arrives from Supabase
   useEffect(() => {
@@ -105,6 +107,20 @@ export default function RetailSettingsScreen() {
     img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)))
   }
 
+  const handleClearCatalog = async () => {
+    if (!currentStore?.id) return
+    const msg = isKz ? 'Барлық тауарларды жоюды растаңыз?' : 'Подтвердите удаление всех товаров?'
+    if (!window.confirm(msg)) return
+    try {
+      setIsClearing(true)
+      await clearStoreCatalog(currentStore.id)
+      setIsClearing(false)
+      alert(isKz ? 'Каталог сәтті тазартылды' : 'Каталог очищен')
+    } catch (e) {
+      setIsClearing(false)
+      alert(isKz ? 'Қателік орын алды: ' + e.message : 'Ошибка при удалении: ' + e.message)
+    }
+  }
   return (
     <div style={{ padding: '20px 16px 80px', display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* Header */}
@@ -654,10 +670,12 @@ export default function RetailSettingsScreen() {
                 borderRadius: 10,
                 fontSize: 13,
                 fontWeight: 600,
-                cursor: 'pointer',
+                cursor: isClearing ? 'wait' : 'pointer',
+                onClick: handleClearCatalog,
+                disabled: isClearing,
               }}
             >
-              {isKz ? 'Тазарту' : 'Сброс'}
+              {isClearing ? (isKz ? 'Тазартулуда...' : 'Очищается...') : isKz ? 'Тазарту' : 'Сброс'}
             </button>
           </div>
         </div>

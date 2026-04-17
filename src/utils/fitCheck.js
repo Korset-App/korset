@@ -47,7 +47,9 @@ export function checkProductFit(product, profile) {
   ).toLowerCase()
   const prodAllergens = product.allergens || []
   const dietTags = product.dietTags || []
-  const nutriments = product.nutriments || product.nutriments_json || {}
+  const nutrition = product.nutritionPer100 || product.nutriments || product.nutriments_json || {}
+  const sugar100g = nutrition.sugar ?? nutrition.sugars ?? nutrition.sugars_100g
+  const protein100g = nutrition.protein ?? nutrition.proteins ?? nutrition.proteins_100g
 
   // 1. Structured Allergens
   if (userAllergens.length > 0) {
@@ -108,11 +110,34 @@ export function checkProductFit(product, profile) {
     })
   }
 
+  // 3.5 Trace Allergens (from structured traces data)
+  const productTraces = product.traces || []
+  if (userAllergens.length > 0 && productTraces.length > 0) {
+    const foundTraces = productTraces.filter((t) => {
+      const normalized = t.replace('en:', '')
+      return userAllergens.includes(normalized) || userAllergens.includes(t)
+    })
+    foundTraces.forEach((t) => {
+      const id = t.replace('en:', '')
+      const alreadyReported = reasons.some(
+        (r) => r.category === 'allergen' && r.details?.allergenId === id
+      )
+      if (!alreadyReported) {
+        addReason({
+          severity: 'warning',
+          category: 'allergen',
+          text: `Может содержать следы: ${getAllergenName(id, 'ru')}`,
+          textKz: `Құрамында ізі болуы мүмкін: ${getAllergenName(id, 'kz')}`,
+          source: 'structured_traces',
+          details: { allergenId: id },
+        })
+      }
+    })
+  }
+
   // 4. Health Conditions
   if (healthConditions.includes('diabetes')) {
-    const sugarsBase =
-      nutriments.sugars_100g !== undefined ? nutriments.sugars_100g : nutriments.sugars
-    const sugars100g = parseFloat(sugarsBase)
+    const sugars100g = parseFloat(sugar100g)
     const hasSugarKeywords =
       ingredientsRaw.includes('сахар') ||
       ingredientsRaw.includes('сироп') ||
@@ -185,9 +210,7 @@ export function checkProductFit(product, profile) {
         source: 'ingredient_parse',
       })
     }
-    const proteinsBase =
-      nutriments.proteins_100g !== undefined ? nutriments.proteins_100g : nutriments.proteins
-    const proteins100g = parseFloat(proteinsBase)
+    const proteins100g = parseFloat(protein100g)
     if (!isNaN(proteins100g) && proteins100g > 20) {
       addReason({
         severity: 'warning',
@@ -228,6 +251,12 @@ export function checkProductFit(product, profile) {
   const halalOn = profile.halal || profile.halalOnly || profile.religion?.includes('halal')
   const halalStrict = profile.halalStrict
   const halalStatus = getHalalStatus(product)
+  const alcoholInProduct =
+    nutrition.alcohol != null && nutrition.alcohol > 0
+      ? nutrition.alcohol
+      : product.alcohol100g != null && product.alcohol100g > 0
+        ? product.alcohol100g
+        : null
 
   if (halalOn && halalStatus === 'no') {
     addReason({
@@ -237,6 +266,41 @@ export function checkProductFit(product, profile) {
       textKz: 'Халал емес',
       source: 'structured',
     })
+  }
+
+  if (halalOn && alcoholInProduct) {
+    addReason({
+      severity: 'danger',
+      category: 'halal',
+      text: `Содержит алкоголь (${alcoholInProduct}%) — запрещено для халал`,
+      textKz: `Құрамында алкоголь бар (${alcoholInProduct}%) — халал үшін тыйым салынған`,
+      source: 'nutriment',
+    })
+  }
+
+  if (halalOn && halalStatus === 'unknown' && !alcoholInProduct) {
+    const haramKeywords = [
+      'винов',
+      'коньяк',
+      'ром',
+      'ликёр',
+      'пив',
+      'этиловый спирт',
+      'wine',
+      'beer',
+      'rum',
+      'vodka',
+    ]
+    const foundHaram = haramKeywords.find((kw) => ingredientsRaw.includes(kw))
+    if (foundHaram) {
+      addReason({
+        severity: 'danger',
+        category: 'halal',
+        text: `Возможно содержит алкоголь/харам («${foundHaram}»)`,
+        textKz: `Алкоголь/харам болуы мүмкін («${foundHaram}»)`,
+        source: 'ingredient_parse',
+      })
+    }
   }
 
   // 7. Diet Goals

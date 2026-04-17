@@ -1,0 +1,11 @@
+{
+  "renderNullAs": "—",
+  "folderIndex": "README",
+  "newFileLocation": "current",
+  "attachmentFolderPath": "attachments",
+  "showUnsupportedFiles": false,
+  "showInlineTitle": true,
+  "strictLineBreaks": true,
+  "readableLineLength": true,
+  "defaultEditingMode": "live-preview"
+}

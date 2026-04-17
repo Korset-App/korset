@@ -3,7 +3,9 @@ export function normalizeReturnTo(raw, fallback = '/') {
   let value = raw.trim()
   try {
     value = decodeURIComponent(value)
-  } catch {}
+  } catch {
+    /* malformed URI */
+  }
   if (!value.startsWith('/') || value.startsWith('//')) return fallback
   return value
 }

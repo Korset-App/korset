@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { lookupProduct } from '../utils/productLookup.js'
 import { useStore } from '../contexts/StoreContext.jsx'
+import { useOffline } from '../contexts/OfflineContext.jsx'
 import { buildProductPath, buildComparePath } from '../utils/routes.js'
 import { useI18n } from '../utils/i18n.js'
 
@@ -77,6 +78,7 @@ export default function ScanScreen() {
   const location = useLocation()
   const { t } = useI18n()
   const { currentStore } = useStore()
+  const { isOnline } = useOffline()
   const storeSlug = currentStore?.slug || null
 
   const [status, setStatus] = useState('starting')
@@ -96,6 +98,8 @@ export default function ScanScreen() {
   const [pinnedProduct, setPinnedProduct] = useState(initProductA)
   const compareModeRef = useRef(initCompare)
   const pinnedProductRef = useRef(initProductA)
+  const storeRef = useRef(currentStore)
+  const slugRef = useRef(storeSlug)
 
   useEffect(() => {
     compareModeRef.current = compareModeActive
@@ -104,6 +108,14 @@ export default function ScanScreen() {
   useEffect(() => {
     pinnedProductRef.current = pinnedProduct
   }, [pinnedProduct])
+
+  useEffect(() => {
+    storeRef.current = currentStore
+  }, [currentStore])
+
+  useEffect(() => {
+    slugRef.current = storeSlug
+  }, [storeSlug])
 
   const fileInputRef = useRef(null)
   const scannerRef = useRef(null)
@@ -175,7 +187,7 @@ export default function ScanScreen() {
             }
             setSearching(true)
             await stopScanner()
-            const result = await lookupProduct(ean, currentStore?.id || storeSlug)
+            const result = await lookupProduct(ean, storeRef.current?.id || slugRef.current)
             if (!mountedRef.current) return
 
             if (result.type === 'local' || result.type === 'external') {
@@ -192,12 +204,12 @@ export default function ScanScreen() {
                   startScanner(cameraList, idx)
                 } else {
                   // Second scan — navigate to CompareScreen
-                  navigate(buildComparePath(storeSlug, pinned.ean, scannedProduct.ean), {
+                  navigate(buildComparePath(slugRef.current, pinned.ean, scannedProduct.ean), {
                     state: { productA: pinned, productB: scannedProduct },
                   })
                 }
               } else {
-                navigate(buildProductPath(storeSlug, scannedProduct?.ean || ean), {
+                navigate(buildProductPath(slugRef.current, scannedProduct?.ean || ean), {
                   state: { product: scannedProduct },
                 })
               }
@@ -243,7 +255,7 @@ export default function ScanScreen() {
         setStatus(/permission|not allowed|denied/i.test(msg) ? 'error_permission' : 'error')
       }
     },
-    [currentStore, storeSlug, navigate, stopScanner]
+    [navigate, stopScanner]
   )
 
   useEffect(() => {
@@ -375,7 +387,7 @@ export default function ScanScreen() {
         playSuccessBeep()
         setSearching(true)
         await stopScanner()
-        const result = await lookupProduct(ean, currentStore?.id || storeSlug)
+        const result = await lookupProduct(ean, storeRef.current?.id || slugRef.current)
         if (result.type === 'local' || result.type === 'external') {
           const scannedProduct = result.product
           if (compareModeRef.current) {
@@ -386,12 +398,12 @@ export default function ScanScreen() {
               setSearching(false)
               startScanner(cameras, camIdx)
             } else {
-              navigate(buildComparePath(storeSlug, pinned.ean, scannedProduct.ean), {
+              navigate(buildComparePath(slugRef.current, pinned.ean, scannedProduct.ean), {
                 state: { productA: pinned, productB: scannedProduct },
               })
             }
           } else {
-            navigate(buildProductPath(storeSlug, scannedProduct?.ean || ean), {
+            navigate(buildProductPath(slugRef.current, scannedProduct?.ean || ean), {
               state: { product: scannedProduct },
             })
           }
@@ -421,7 +433,7 @@ export default function ScanScreen() {
         }, 3200)
       }
     },
-    [cameras, camIdx, currentStore, storeSlug, navigate, stopScanner, startScanner]
+    [cameras, camIdx, navigate, stopScanner, startScanner]
   )
 
   return (
@@ -699,7 +711,11 @@ export default function ScanScreen() {
             }}
           >
             <p style={{ color: '#F87171', fontSize: 14, fontWeight: 700, marginBottom: 3 }}>
-              {t.scan.notFoundToast}
+              {!isOnline
+                ? lang === 'kz'
+                  ? 'Желі жоқ, деректер қол жеткізбейді'
+                  : 'Офлайн. Данных нет'
+                : t.scan.notFoundToast}
             </p>
             <p style={{ color: 'rgba(180,100,100,0.7)', fontSize: 11, fontFamily: 'monospace' }}>
               {notFoundEan}

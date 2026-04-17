@@ -1,0 +1,13 @@
+{
+  "theme": "obsidian",
+  "cssTheme": "Minimal",
+  "accentColor": "#7c3aed",
+  "textFontFamily": "Manrope",
+  "monospaceFontFamily": "Fira Code",
+  "baseFontSize": 16,
+  "enabledCssSnippets": [
+    "korset-dark-premium"
+  ],
+  "showRibbon": false,
+  "showViewHeader": true
+}

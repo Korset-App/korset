@@ -32,14 +32,6 @@ if (typeof window !== 'undefined') {
   document.documentElement.classList.toggle('fine-pointer-ui', !touchCapable)
 }
 
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch((error) => {
-      console.warn('Service worker registration failed', error)
-    })
-  })
-}
-
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>

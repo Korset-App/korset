@@ -21,6 +21,7 @@ import NotificationSettingsScreen from './screens/NotificationSettingsScreen.jsx
 import PrivacySettingsScreen from './screens/PrivacySettingsScreen.jsx'
 import PrivacyPolicyScreen from './screens/PrivacyPolicyScreen.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
+import OfflineBanner from './components/OfflineBanner.jsx'
 import RetailLayout from './layouts/RetailLayout.jsx'
 import RetailDashboardScreen from './screens/RetailDashboardScreen.jsx'
 import RetailEntryScreen from './screens/RetailEntryScreen.jsx'
@@ -31,12 +32,14 @@ import CompareScreen from './screens/CompareScreen.jsx'
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx'
 import { ProfileProvider } from './contexts/ProfileContext.jsx'
 import { StoreProvider, useStore } from './contexts/StoreContext.jsx'
+import { OfflineProvider, useOffline } from './contexts/OfflineContext.jsx'
 
 function AppInner() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const { user } = useAuth()
   const { isStoreApp } = useStore()
+  const { refreshPendingCount } = useOffline()
 
   const hideNav =
     pathname === '/' ||
@@ -50,7 +53,6 @@ function AppInner() {
   )
 
   useEffect(() => {
-    // Если пользователь авторизован, но ещё не завершил настройку профиля
     if (user && user.user_metadata?.profile_setup_done !== true) {
       if (pathname !== '/setup-profile' && !pathname.startsWith('/retail')) {
         navigate('/setup-profile', { replace: true })
@@ -58,11 +60,28 @@ function AppInner() {
     }
   }, [user, pathname, navigate])
 
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      const handleMessage = (event) => {
+        if (event.data?.type === 'FLUSH_PENDING_SCANS') {
+          import('./utils/offlineDB.js').then(({ flushPendingScans }) => {
+            import('./utils/supabase.js').then(({ supabase }) => {
+              flushPendingScans(supabase).then(() => refreshPendingCount())
+            })
+          })
+        }
+      }
+      navigator.serviceWorker.addEventListener('message', handleMessage)
+      return () => navigator.serviceWorker.removeEventListener('message', handleMessage)
+    }
+  }, [refreshPendingCount])
+
   const shouldShowOnboarding =
     showOnboarding && isStoreApp && pathname !== '/auth' && pathname !== '/setup-profile'
 
   return (
     <div className="app-frame">
+      <OfflineBanner />
       {shouldShowOnboarding && <OnboardingScreen onDone={() => setShowOnboarding(false)} />}
       <Routes>
         <Route path="/" element={<HomeScreen />} />
@@ -124,11 +143,13 @@ export default function App() {
     <ErrorBoundary>
       <AuthProvider>
         <UserDataProvider>
-          <StoreProvider>
-            <ProfileProvider>
-              <AppInner />
-            </ProfileProvider>
-          </StoreProvider>
+          <OfflineProvider>
+            <StoreProvider>
+              <ProfileProvider>
+                <AppInner />
+              </ProfileProvider>
+            </StoreProvider>
+          </OfflineProvider>
         </UserDataProvider>
       </AuthProvider>
     </ErrorBoundary>

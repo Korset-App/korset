@@ -45,10 +45,7 @@ export async function resolveInternalUserIdForAuthUser(authUser, { ensureRow = f
 
     const deviceId = getOrCreateDeviceId()
     const fallbackName =
-      authUser.user_metadata?.full_name ||
-      authUser.user_metadata?.name ||
-      authUser.email ||
-      'User'
+      authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email || 'User'
 
     const { data: inserted, error } = await supabase
       .from('users')
@@ -106,7 +103,9 @@ export function writeCachedProfileName(authId, name) {
     } else {
       localStorage.removeItem(key)
     }
-  } catch {}
+  } catch {
+    /* quota exceeded */
+  }
 }
 
 export function readCachedProfileAvatar(authId) {
@@ -127,5 +126,7 @@ export function writeCachedProfileAvatar(authId, avatarId) {
     } else {
       localStorage.removeItem(key)
     }
-  } catch {}
+  } catch {
+    /* quota exceeded */
+  }
 }

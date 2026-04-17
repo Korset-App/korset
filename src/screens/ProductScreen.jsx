@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext.jsx'
 import { useI18n } from '../utils/i18n.js'
 import { useUserData } from '../contexts/UserDataContext.jsx'
 import { useStore } from '../contexts/StoreContext.jsx'
+import { useOffline } from '../contexts/OfflineContext.jsx'
 import { getAnyKnownProductByRef } from '../utils/storeCatalog.js'
 import { coerceProductEntity } from '../domain/product/normalizers.js'
 import {
@@ -347,6 +348,7 @@ export default function ProductScreen() {
   const { lang, t } = useI18n()
   const { currentStore } = useStore()
   const { checkIsFavorite, toggleFavorite } = useUserData()
+  const { isOnline, formatCacheAge } = useOffline()
 
   const [ingredientsExpanded, setIngredientsExpanded] = useState(false)
 
@@ -567,6 +569,11 @@ export default function ProductScreen() {
               </div>
             )}
           </div>
+          {!isOnline && formatCacheAge() && (
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>
+              {t.scan.offlineCacheLabel} ({formatCacheAge()})
+            </div>
+          )}
         </div>
 
         {/* Info */}

@@ -13,6 +13,7 @@ import {
   getOrCreateSessionId,
   resolveCurrentInternalUserId,
 } from '../../utils/userIdentity.js'
+import { getProductFromIndexedDB, addPendingScan } from '../../utils/offlineDB.js'
 import {
   normalizeDemoProduct,
   normalizeGlobalProduct,
@@ -179,17 +180,24 @@ async function saveToCache(product, rawPayload = {}) {
     await supabase.from('external_product_cache').upsert(
       {
         ean: product.ean,
-        source: 'openfoodfacts',
+        source: product.sourceMeta?.externalSource || 'openfoodfacts',
         raw_payload: rawPayload,
         normalized_name: product.name,
         normalized_brand: product.brand || null,
+        normalized_description: product.description || null,
+        normalized_category: product.category || null,
+        normalized_quantity: product.quantity || null,
         normalized_ingredients: product.ingredients || null,
         normalized_allergens_json: product.allergens || [],
         normalized_diet_tags_json: product.dietTags || [],
+        normalized_additives_tags_json: product.additivesTags || [],
+        normalized_traces_json: product.traces || [],
         normalized_nutriments_json: product.nutritionPer100 || {},
         image_url: product.image || null,
         nutriscore: product.nutriscore || null,
+        nova_group: product.novaGroup || null,
         scan_count: 1,
+        ttl_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         updated_at: new Date().toISOString(),
       },
       { onConflict: 'ean' }
@@ -231,11 +239,35 @@ async function logScan({ ean, foundStatus, product, storeId, fitResult }) {
   const privacy = loadPrivacySettings()
   if (!privacy.analyticsEnabled) return
 
+  const globalProductId =
+    product?.sourceMeta?.globalProductId || (isUuid(product?.id) ? product.id : null)
+  const storeProductId = product?.sourceMeta?.storeProductId || null
+
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    try {
+      const internalUserId = await resolveCurrentInternalUserId({ ensureRow: false })
+      await addPendingScan({
+        ean,
+        found_status: foundStatus,
+        global_product_id: globalProductId,
+        store_product_id: storeProductId,
+        store_id: storeId || null,
+        user_id: internalUserId,
+        device_id: getOrCreateDeviceId(),
+        session_id: getOrCreateSessionId(),
+        fit_result: fitResult ?? null,
+        fit_reasons_json: [],
+        app_version: '1.0',
+        scanned_at: new Date().toISOString(),
+      })
+    } catch {
+      /* IndexedDB unavailable, scan logged to localHistory only */
+    }
+    return
+  }
+
   try {
     const internalUserId = await resolveCurrentInternalUserId({ ensureRow: true })
-    const globalProductId =
-      product?.sourceMeta?.globalProductId || (isUuid(product?.id) ? product.id : null)
-    const storeProductId = product?.sourceMeta?.storeProductId || null
     const { error } = await supabase.from('scan_events').insert({
       ean,
       found_status: foundStatus,
@@ -271,6 +303,33 @@ async function finalizeResolvedProduct(
 export async function resolveProductByEan(ean, storeId = null, options = {}) {
   const normalizedEan = String(ean || '').trim()
   if (!normalizedEan) return null
+
+  const isOffline = typeof navigator !== 'undefined' && !navigator.onLine
+
+  try {
+    const cachedProduct = await getProductFromIndexedDB(normalizedEan)
+    if (cachedProduct) {
+      const coerced = coerceProductEntity({
+        ...cachedProduct,
+        source: cachedProduct.source || 'offline_cache',
+        sourceMeta: {
+          ...(cachedProduct.sourceMeta || {}),
+          fromCache: true,
+        },
+      })
+      if (isOffline) {
+        return finalizeResolvedProduct(coerced, {
+          ean: normalizedEan,
+          foundStatus: cachedProduct.storeProductId ? 'found_store' : 'found_global',
+          storeId: cachedProduct.store_id || storeId,
+          fitResult: options.fitResult,
+          logScan: options.logScan,
+        })
+      }
+    }
+  } catch {
+    /* IndexedDB unavailable, proceed with network cascade */
+  }
 
   if (storeId) {
     const localStoreProduct = coerceProductEntity(
@@ -320,6 +379,22 @@ export async function resolveProductByEan(ean, storeId = null, options = {}) {
       fitResult: options.fitResult,
       logScan: options.logScan,
     })
+  }
+
+  if (isOffline) {
+    if (options.logScan) {
+      await Promise.allSettled([
+        logScan({
+          ean: normalizedEan,
+          foundStatus: 'not_found',
+          product: null,
+          storeId,
+          fitResult: options.fitResult,
+        }),
+        logMissingProduct(normalizedEan, storeId),
+      ])
+    }
+    return null
   }
 
   const cachedProduct = await findCacheProduct(normalizedEan)

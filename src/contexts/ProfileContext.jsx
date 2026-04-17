@@ -1,8 +1,16 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { useAuth } from './AuthContext.jsx'
 import { supabase } from '../utils/supabase.js'
-import { DEFAULT_NOTIFICATION_SETTINGS, loadNotificationSettings, saveNotificationSettings } from '../utils/notificationSettings.js'
-import { DEFAULT_PRIVACY_SETTINGS, notifyPrivacyChanged, writePrivacySettings } from '../utils/privacySettings.js'
+import {
+  DEFAULT_NOTIFICATION_SETTINGS,
+  loadNotificationSettings,
+  saveNotificationSettings,
+} from '../utils/notificationSettings.js'
+import {
+  DEFAULT_PRIVACY_SETTINGS,
+  notifyPrivacyChanged,
+  writePrivacySettings,
+} from '../utils/privacySettings.js'
 import {
   detectProfileConflict,
   isAlreadySynced,
@@ -26,7 +34,11 @@ const DEFAULT_PROFILE = {
 
 function normalizeProfile(raw) {
   const profile = { ...DEFAULT_PROFILE, ...(raw || {}) }
-  profile.notifications = { ...DEFAULT_NOTIFICATION_SETTINGS, ...(raw?.notifications || {}), ...loadNotificationSettings() }
+  profile.notifications = {
+    ...DEFAULT_NOTIFICATION_SETTINGS,
+    ...(raw?.notifications || {}),
+    ...loadNotificationSettings(),
+  }
   profile.privacy = { ...DEFAULT_PRIVACY_SETTINGS, ...(raw?.privacy || {}) }
   return profile
 }
@@ -73,7 +85,10 @@ export function ProfileProvider({ children }) {
         if (cancelled) return
 
         if (error) {
-          console.warn('[ProfileContext] Failed to fetch from Supabase. Keeping local cache.', error.message)
+          console.warn(
+            '[ProfileContext] Failed to fetch from Supabase. Keeping local cache.',
+            error.message
+          )
           return
         }
 
@@ -125,46 +140,54 @@ export function ProfileProvider({ children }) {
       })
       .catch((err) => {
         if (!cancelled) {
-          console.warn('[ProfileContext] Unhandled fetch error (offline?). Keeping local cache.', err)
+          console.warn(
+            '[ProfileContext] Unhandled fetch error (offline?). Keeping local cache.',
+            err
+          )
         }
       })
 
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [user])
 
   // ─── Conflict resolution ─────────────────────────────────────────────────
 
-  const resolveSyncConflict = useCallback(async (resolution) => {
-    if (!syncConflict || !user) return
-    setSyncLoading(true)
+  const resolveSyncConflict = useCallback(
+    async (resolution) => {
+      if (!syncConflict || !user) return
+      setSyncLoading(true)
 
-    let finalProfile
-    if (resolution === 'merge') {
-      finalProfile = normalizeProfile(mergeProfiles(syncConflict.local, syncConflict.cloud))
-    } else if (resolution === 'cloud') {
-      finalProfile = normalizeProfile(syncConflict.cloud)
-    } else {
-      // 'local'
-      finalProfile = normalizeProfile(syncConflict.local)
-    }
+      let finalProfile
+      if (resolution === 'merge') {
+        finalProfile = normalizeProfile(mergeProfiles(syncConflict.local, syncConflict.cloud))
+      } else if (resolution === 'cloud') {
+        finalProfile = normalizeProfile(syncConflict.cloud)
+      } else {
+        // 'local'
+        finalProfile = normalizeProfile(syncConflict.local)
+      }
 
-    // Apply locally first (instant feedback)
-    setProfileState(finalProfile)
-    persistProfileToLocal(finalProfile)
-    notifyPrivacyChanged()
-    markSyncComplete(user.id)
-    setSyncConflict(null)
+      // Apply locally first (instant feedback)
+      setProfileState(finalProfile)
+      persistProfileToLocal(finalProfile)
+      notifyPrivacyChanged()
+      markSyncComplete(user.id)
+      setSyncConflict(null)
 
-    // Persist to cloud in background
-    try {
-      await supabase.from('users').update({ preferences: finalProfile }).eq('auth_id', user.id)
-    } catch (err) {
-      console.warn('[ProfileContext] Failed to persist resolved profile to cloud:', err)
-      // Non-critical: local is already updated correctly
-    } finally {
-      setSyncLoading(false)
-    }
-  }, [syncConflict, user])
+      // Persist to cloud in background
+      try {
+        await supabase.from('users').update({ preferences: finalProfile }).eq('auth_id', user.id)
+      } catch (err) {
+        console.warn('[ProfileContext] Failed to persist resolved profile to cloud:', err)
+        // Non-critical: local is already updated correctly
+      } finally {
+        setSyncLoading(false)
+      }
+    },
+    [syncConflict, user]
+  )
 
   /**
    * Dismiss without resolving: keeps local state for this session.
@@ -176,27 +199,34 @@ export function ProfileProvider({ children }) {
 
   // ─── Standard profile update ─────────────────────────────────────────────
 
-  const updateProfile = async (nextValue) => {
-    let merged
-    setProfileState((prev) => {
-      const resolved = typeof nextValue === 'function' ? nextValue(prev) : nextValue
-      merged = normalizeProfile({
-        ...prev,
-        ...resolved,
-        notifications: { ...prev.notifications, ...(resolved?.notifications || {}) },
-        privacy: { ...prev.privacy, ...(resolved?.privacy || {}) },
+  const updateProfile = useCallback(
+    async (nextValue) => {
+      let merged
+      setProfileState((prev) => {
+        const resolved = typeof nextValue === 'function' ? nextValue(prev) : nextValue
+        merged = normalizeProfile({
+          ...prev,
+          ...resolved,
+          notifications: { ...prev.notifications, ...(resolved?.notifications || {}) },
+          privacy: { ...prev.privacy, ...(resolved?.privacy || {}) },
+        })
+        localStorage.setItem('korset_profile', JSON.stringify(merged))
+        saveNotificationSettings(merged.notifications)
+        writePrivacySettings(merged.privacy)
+        notifyPrivacyChanged()
+        return merged
       })
-      localStorage.setItem('korset_profile', JSON.stringify(merged))
-      saveNotificationSettings(merged.notifications)
-      writePrivacySettings(merged.privacy)
-      notifyPrivacyChanged()
-      return merged
-    })
 
-    if (user && merged) {
-      await supabase.from('users').update({ preferences: merged }).eq('auth_id', user.id)
-    }
-  }
+      if (user && merged) {
+        try {
+          await supabase.from('users').update({ preferences: merged }).eq('auth_id', user.id)
+        } catch (err) {
+          console.warn('[ProfileContext] Cloud write failed (local still saved):', err?.message)
+        }
+      }
+    },
+    [user]
+  )
 
   // ─── Cross-tab storage sync ──────────────────────────────────────────────
 
@@ -204,7 +234,9 @@ export function ProfileProvider({ children }) {
     const onStorage = (e) => {
       if (e.key === 'korset_profile') setProfileState(loadProfileLocal())
       if (e.key === 'korset_notification_settings') {
-        setProfileState((prev) => normalizeProfile({ ...prev, notifications: loadNotificationSettings() }))
+        setProfileState((prev) =>
+          normalizeProfile({ ...prev, notifications: loadNotificationSettings() })
+        )
       }
     }
     window.addEventListener('storage', onStorage)
@@ -226,7 +258,6 @@ export function ProfileProvider({ children }) {
   )
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export function useProfile() {
   return useContext(ProfileContext)
 }

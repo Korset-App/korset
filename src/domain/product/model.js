@@ -1,4 +1,3 @@
-
 export function buildCanonicalId({ id, ean, demoId } = {}) {
   if (id && isUuid(id)) return `gp:${id}`
   if (ean) return `ean:${String(ean)}`
@@ -33,6 +32,7 @@ export function createEmptyProduct(overrides = {}) {
     demoId,
     ean,
     name: overrides.name || '',
+    nameKz: overrides.nameKz || overrides.name_kz || null,
     brand: overrides.brand || null,
     category: overrides.category || 'grocery',
     subcategory: overrides.subcategory || null,
@@ -44,14 +44,24 @@ export function createEmptyProduct(overrides = {}) {
 
     description: overrides.description || null,
     ingredients: overrides.ingredients || null,
+    ingredientsKz: overrides.ingredientsKz || overrides.ingredients_kz || null,
 
     allergens: normalizeStringArray(overrides.allergens),
     dietTags: normalizeStringArray(overrides.dietTags),
     tags: normalizeStringArray(overrides.tags),
+    additivesTags: normalizeStringArray(overrides.additivesTags ?? overrides.additives_tags),
+    traces: normalizeStringArray(overrides.traces),
+    categoriesTags: normalizeStringArray(overrides.categoriesTags ?? overrides.categories_tags),
     halalStatus: normalizeHalalStatus(overrides.halalStatus ?? overrides.halal),
     halal: normalizeHalalStatus(overrides.halalStatus ?? overrides.halal),
 
     nutritionPer100: normalizeNutrition(overrides.nutritionPer100 || overrides.nutrition),
+    alcohol100g: normalizeNumber(overrides.alcohol100g ?? overrides.alcohol_100g),
+    saturatedFat100g: normalizeNumber(overrides.saturatedFat100g ?? overrides.saturated_fat_100g),
+    novaGroup: normalizeNumber(overrides.novaGroup ?? overrides.nova_group),
+
+    imageIngredientsUrl: overrides.imageIngredientsUrl ?? overrides.image_ingredients_url ?? null,
+    imageNutritionUrl: overrides.imageNutritionUrl ?? overrides.image_nutrition_url ?? null,
 
     manufacturer: normalizeManufacturer(overrides.manufacturer, overrides.country),
 
@@ -63,6 +73,7 @@ export function createEmptyProduct(overrides = {}) {
 
     nutriscore: normalizeNutriscore(overrides.nutriscore),
     qualityScore: normalizeNumber(overrides.qualityScore ?? overrides.sourceMeta?.qualityScore),
+    sourceConfidence: normalizeNumber(overrides.sourceConfidence ?? overrides.source_confidence),
   }
 }
 
@@ -77,7 +88,10 @@ export function withProductImage(product) {
 }
 
 export function isUuid(value) {
-  return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+  return (
+    typeof value === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+  )
 }
 
 export function parseRouteProductRef(raw) {
@@ -94,7 +108,7 @@ export function parseRouteProductRef(raw) {
 export function normalizeStringArray(input) {
   if (!input) return []
   if (Array.isArray(input)) {
-    return [...new Set(input.map(v => String(v).trim()).filter(Boolean))]
+    return [...new Set(input.map((v) => String(v).trim()).filter(Boolean))]
   }
   if (typeof input === 'string') {
     const trimmed = input.trim()
@@ -103,7 +117,14 @@ export function normalizeStringArray(input) {
       const parsed = JSON.parse(trimmed)
       return normalizeStringArray(parsed)
     } catch {
-      return [...new Set(trimmed.split(',').map(v => v.trim()).filter(Boolean))]
+      return [
+        ...new Set(
+          trimmed
+            .split(',')
+            .map((v) => v.trim())
+            .filter(Boolean)
+        ),
+      ]
     }
   }
   return []
@@ -129,6 +150,8 @@ export function normalizeNutrition(input) {
     sugar: normalizeNumber(raw.sugar ?? raw.sugars ?? raw.sugars_100g),
     fiber: normalizeNumber(raw.fiber ?? raw.fibre ?? raw.fiber_100g),
     salt: normalizeNumber(raw.salt ?? raw.salt_100g),
+    saturatedFat: normalizeNumber(raw.saturatedFat ?? raw['saturated-fat_100g']),
+    alcohol: normalizeNumber(raw.alcohol ?? raw.alcohol_100g),
   }
 }
 

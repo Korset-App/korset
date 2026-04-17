@@ -509,3 +509,76 @@ useMutation → updateProductStock(id, status)  // optimistic + rollback onError
 ---
 
 *Конец мастер-документа Körset v4.0. Обновлён: апрель 2026.*
+
+---
+
+## 19. ОФЛАЙН-АРХИТЕКТУРА (Offline-First Resilience)
+
+### Принцип: "Онлайн-первый, офлайн-устойчивый"
+Приложение всегда работает онлайн. Офлайн — graceful degradation, не отдельный режим. Пользователь не выбирает "офлайн" — приложение само адаптируется.
+
+### 6 слоёв офлайн-устойчивости
+
+| Слой | Технология | Назначение |
+|---|---|---|
+| 0. App Shell | Workbox Precache (vite-plugin-pwa) | HTML/JS/CSS доступны офлайн |
+| 1. Каталог | IndexedDB (idb) | Все товары текущего магазина (~3000, ~9MB, без картинок) |
+| 2. Резолвер | resolver.js модификация | IndexedDB-лукуп + ранний выход при offline |
+| 3. Очередь сканов | IndexedDB pending_scans | 100 FIFO, Background Sync + fallback |
+| 4. Картинки | НЕТ в V1 (placeholder) | Серый placeholder, фото = будущее |
+| 5. UI/SWR | OfflineContext + OfflineBanner | Индикация, SWR при возврате сети |
+
+### Кэширование каталога
+- **Триггер:** авто при входе в `/s/:storeSlug` (параллельно с Supabase fetch)
+- **Объём:** все товары текущего магазина (~3000), без картинок, ~9MB
+- **Свежесть:** 7 дней, потом пометка "устарел" (оранжевый, не стирается)
+- **Инвалидация:** смена магазина → стереть старый каталог, записать новый
+- **Влияние на онлайн:** нулевое — IndexedDB write параллелен, +0мс
+
+### Офлайн-каскад resolver'а
+
+```
+1. IndexedDB store_catalog (приоритет офлайн)
+2. IF online: Supabase store_products → global_products → external_cache → OFF
+   IF offline: SKIP все сетевые уровни
+3. Demo products (local JSON fallback)
+4. НЕ НАЙДЕН офлайн → жёлтый "Офлайн, данных нет"
+```
+
+### Очередь scan_events
+- При offline: scan_event → IndexedDB `pending_scans` (100 FIFO)
+- **Синхронизация:**
+  - Background Sync API (`sync` event в SW) — Android Chrome
+  - `online` event listener — iOS Safari + fallback
+  - Периодический flush каждые 30 сек при наличии pending-записей
+  - При запуске приложения — проверка очереди
+- **Логика flush:** batch INSERT до 50 записей → удалить из очереди. При ошибке: retry до 3 раз, потом discard.
+
+### UI при офлайн
+- **Жёлтая полоса** вверху: "Офлайн-режим. Данные из кэша (Xч назад)."
+- **Fit-Check:** работает + метка "Данные из кэша (Xч назад)" под вердиктом
+- **Каталог:** из IndexedDB, серый placeholder вместо фото
+- **AI-чат:** заблокирован "ИИ-ассистент недоступен без интернета"
+- **Кэш устарел (>7д):** оранжевая полоса "Кэш устарел. Данные от Xд назад."
+
+### Ключевые файлы офлайн-модуля
+
+| Файл | Назначение |
+|---|---|
+| `src/utils/offlineDB.js` | IndexedDB: catalog, pending_scans, store_meta |
+| `src/contexts/OfflineContext.jsx` | React Context: isOnline, cacheAge, pendingCount |
+| `src/sw.js` | Workbox precache + Background Sync + push + fetch handler |
+| `src/components/OfflineBanner.jsx` | Жёлтая/оранжевая полоса офлайн-индикации |
+| `vite.config.js` | vite-plugin-pwa конфигурация (injectManifest) |
+
+### Решения
+- **Сценарий:** онлайн → потом офлайн (кэшируем при входе в магазин)
+- **Картинки:** НЕ кэшируются в V1 (Supabase Storage 500MB лимит — обсудить отдельно)
+- **products.json:** НЕ участвует в офлайн (удаляется Фаза 8)
+- **V1 scope:** только продуктовые магазины
+- **Сжатие фото:** Агрессивное WebP 80% (~80KB) — будущее, после Nano Banana 2 пайплайна
+
+### Напоминания (обсудить после офлайн)
+1. Supabase Storage 500MB лимит — при 3000 товаров × фото → порог. Нужен план: обновить тариф / внешний S3 / агрессивное сжатие.
+2. Nano Banana 2 пайплайн — обработка фото, водяные знаки, ретушь, сжатие (Фаза 7).
+3. Электроника/строительные магазины — V2+, не проектировать сейчас.

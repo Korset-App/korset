@@ -202,8 +202,14 @@ export default function HomeScreen() {
               marginBottom: 16,
               transition: 'transform 0.2s, box-shadow 0.2s',
             }}
-            onActive={(e) => {
+            onPointerDown={(e) => {
               e.currentTarget.style.transform = 'scale(0.98)'
+            }}
+            onPointerUp={(e) => {
+              e.currentTarget.style.transform = ''
+            }}
+            onPointerLeave={(e) => {
+              e.currentTarget.style.transform = ''
             }}
           >
             <div
@@ -1493,8 +1499,14 @@ export default function HomeScreen() {
                 boxShadow: '0 12px 30px rgba(56,189,248,0.3)',
                 transition: 'transform 0.2s, box-shadow 0.2s',
               }}
-              onActive={(e) => {
+              onPointerDown={(e) => {
                 e.currentTarget.style.transform = 'scale(0.98)'
+              }}
+              onPointerUp={(e) => {
+                e.currentTarget.style.transform = ''
+              }}
+              onPointerLeave={(e) => {
+                e.currentTarget.style.transform = ''
               }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: 24 }}>

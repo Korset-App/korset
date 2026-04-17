@@ -1,11 +1,13 @@
 import { supabase } from './supabase.js'
 import { loadPrivacySettings } from './privacySettings.js'
+import { addPendingScan } from './offlineDB.js'
 
 export const SCAN_HISTORY_STORAGE_KEY = 'korset_scan_history_cache_v2'
 
 function toIsoDate(value) {
   if (!value) return new Date().toISOString()
-  if (value instanceof Date) return Number.isNaN(value.getTime()) ? new Date().toISOString() : value.toISOString()
+  if (value instanceof Date)
+    return Number.isNaN(value.getTime()) ? new Date().toISOString() : value.toISOString()
   const parsed = new Date(value)
   return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString()
 }
@@ -18,7 +20,11 @@ function normalizeHistoryEntry(entry) {
     name: entry.name || `Товар ${entry.ean}`,
     brand: entry.brand || null,
     image: entry.image || entry.images?.[0] || null,
-    images: Array.isArray(entry.images) ? entry.images.filter(Boolean) : (entry.image ? [entry.image] : []),
+    images: Array.isArray(entry.images)
+      ? entry.images.filter(Boolean)
+      : entry.image
+        ? [entry.image]
+        : [],
     canonicalId: entry.canonicalId || entry.id || `ean:${entry.ean}`,
     source: entry.source || 'scan',
     scanDate: toIsoDate(entry.scanDate),
@@ -39,7 +45,9 @@ function readRawHistory() {
 function writeRawHistory(items) {
   try {
     localStorage.setItem(SCAN_HISTORY_STORAGE_KEY, JSON.stringify(items))
-  } catch {}
+  } catch {
+    /* localStorage quota exceeded */
+  }
 }
 
 function getHistoryItemKey(item) {
@@ -70,7 +78,9 @@ export function getLocalScanHistoryCount(ownerKey = 'guest') {
 }
 
 export function writeLocalScanHistory(ownerKey, nextList) {
-  const normalized = (nextList || []).map((item) => normalizeHistoryEntry({ ...item, ownerKey })).filter(Boolean)
+  const normalized = (nextList || [])
+    .map((item) => normalizeHistoryEntry({ ...item, ownerKey }))
+    .filter(Boolean)
   const list = readRawHistory()
   const foreign = list.filter((item) => item?.ownerKey !== ownerKey)
   writeRawHistory([...foreign, ...normalized])
@@ -78,12 +88,14 @@ export function writeLocalScanHistory(ownerKey, nextList) {
 
 export function emitLocalHistoryChanged(ownerKey = 'guest') {
   if (typeof window === 'undefined') return
-  window.dispatchEvent(new CustomEvent('korset:scan_added', {
-    detail: {
-      ownerKey,
-      count: getLocalScanHistoryCount(ownerKey),
-    },
-  }))
+  window.dispatchEvent(
+    new CustomEvent('korset:scan_added', {
+      detail: {
+        ownerKey,
+        count: getLocalScanHistoryCount(ownerKey),
+      },
+    })
+  )
 }
 
 export function buildLocalScanHistoryEntry(product, foundStatus = 'scan', storeId = null) {
@@ -93,7 +105,7 @@ export function buildLocalScanHistoryEntry(product, foundStatus = 'scan', storeI
     name: product.name || `Товар ${product.ean}`,
     brand: product.brand || null,
     image: product.image || product.images?.[0] || null,
-    images: Array.isArray(product.images) ? product.images : (product.image ? [product.image] : []),
+    images: Array.isArray(product.images) ? product.images : product.image ? [product.image] : [],
     canonicalId: product.canonicalId || product.id || `ean:${product.ean}`,
     source: product.source || foundStatus || 'scan',
     scanDate: new Date().toISOString(),
@@ -104,10 +116,21 @@ export function buildLocalScanHistoryEntry(product, foundStatus = 'scan', storeI
 export function appendLocalScanHistory(ownerKey, entry, limit = 50) {
   const normalized = normalizeHistoryEntry({ ...entry, ownerKey })
   if (!normalized) return
-  const scoped = readLocalScanHistory(ownerKey).filter((item) => getHistoryItemKey(item) !== getHistoryItemKey(normalized))
+  const scoped = readLocalScanHistory(ownerKey).filter(
+    (item) => getHistoryItemKey(item) !== getHistoryItemKey(normalized)
+  )
   const next = [normalized, ...scoped].slice(0, limit)
   writeLocalScanHistory(ownerKey, next)
   emitLocalHistoryChanged(ownerKey)
+
+  if (!navigator.onLine && normalized.ean) {
+    addPendingScan({
+      ean: normalized.ean,
+      found_status: normalized.source || 'scan',
+      store_id: normalized.storeId || null,
+      scanned_at: normalized.scanDate || new Date().toISOString(),
+    }).catch(() => {})
+  }
 }
 
 export function clearLocalScanHistory(ownerKey = 'guest') {
@@ -188,11 +211,7 @@ export async function syncScanHistoryWithCloud(internalUserId, user) {
   if (privacy.analyticsEnabled && localHistory.length > 0) {
     try {
       const { data: existingRows } = await withSyncTimeout(
-        supabase
-          .from('scan_events')
-          .select('ean')
-          .eq('user_id', internalUserId)
-          .limit(200)
+        supabase.from('scan_events').select('ean').eq('user_id', internalUserId).limit(200)
       )
       const existingEans = new Set((existingRows || []).map((r) => String(r.ean)))
       const toUpload = localHistory.filter((item) => !existingEans.has(String(item.ean)))
@@ -252,5 +271,9 @@ export async function syncScanHistoryWithCloud(internalUserId, user) {
   }
 
   // Mark session as synced
-  try { sessionStorage.setItem(SYNC_SESSION_KEY, internalUserId) } catch {}
+  try {
+    sessionStorage.setItem(SYNC_SESSION_KEY, internalUserId)
+  } catch {
+    /* quota */
+  }
 }
