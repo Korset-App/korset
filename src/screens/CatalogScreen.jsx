@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { checkProductFit, CATEGORY_LABELS } from '../utils/fitCheck.js'
+import { checkProductFit, formatPrice, CATEGORY_LABELS } from '../utils/fitCheck.js'
 import { useProfile } from '../contexts/ProfileContext.jsx'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { useOffline } from '../contexts/OfflineContext.jsx'
