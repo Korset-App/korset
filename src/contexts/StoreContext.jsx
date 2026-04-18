@@ -5,6 +5,7 @@ import { parseJson } from '../domain/product/model.js'
 import { loadPrivacySettings, PRIVACY_EVENT } from '../utils/privacySettings.js'
 import { getStoreBySlug } from '../data/stores.js'
 import { saveCatalogToIndexedDB } from '../utils/offlineDB.js'
+import { getImageUrl } from '../utils/imageUrl.js'
 import {
   buildAIHomePath,
   buildCatalogPath,
@@ -190,7 +191,7 @@ export function StoreProvider({ children }) {
               novaGroup: gp.nova_group ?? null,
               imageIngredientsUrl: gp.image_ingredients_url || null,
               imageNutritionUrl: gp.image_nutrition_url || null,
-              image: gp.image_url,
+              image: getImageUrl(gp.image_url),
               images: parseJson(gp.images, []),
               manufacturer: gp.manufacturer
                 ? { name: gp.manufacturer, country: gp.country_of_origin }

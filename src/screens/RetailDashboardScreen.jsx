@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useI18n } from '../utils/i18n.js'
 import { useStore } from '../contexts/StoreContext.jsx'
+import { getImageUrl } from '../utils/imageUrl.js'
 import {
   getScansCount,
   getUniqueProductsScanned,
@@ -535,7 +536,7 @@ export default function RetailDashboardScreen() {
               rank={i + 1}
               name={p.name}
               scanCount={Number(p.scan_count)}
-              imageUrl={p.image_url}
+              imageUrl={getImageUrl(p.image_url)}
               scanLabel={d.scans}
               loading={false}
             />
@@ -588,7 +589,7 @@ export default function RetailDashboardScreen() {
               ean={item.ean}
               name={item.name}
               scanCount={Number(item.scan_count)}
-              imageUrl={item.image_url}
+              imageUrl={getImageUrl(item.image_url)}
               reason={item.reason}
               scanLabel={d.scans}
               labelNotInCatalog={d.notInCatalog}

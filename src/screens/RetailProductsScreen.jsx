@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useI18n } from '../utils/i18n.js'
 import { useStore } from '../contexts/StoreContext.jsx'
+import { getImageUrl } from '../utils/imageUrl.js'
 import {
   getStoreCatalogProducts,
   updateProductPrice,
@@ -18,7 +19,7 @@ function displayBrand(p) {
   return p.global_products?.brand ?? null
 }
 function displayImage(p) {
-  return p.global_products?.image_url ?? null
+  return getImageUrl(p.global_products?.image_url) ?? null
 }
 function isInStock(p) {
   return p.stock_status !== 'out_of_stock'
@@ -426,7 +427,7 @@ function ReadonlyBlock({ product, p, lang }) {
         >
           {gp.image_url ? (
             <img
-              src={gp.image_url}
+              src={getImageUrl(gp.image_url)}
               alt=""
               style={{ width: '100%', height: '100%', objectFit: 'contain' }}
             />

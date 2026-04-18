@@ -1,3 +1,4 @@
+import { getImageUrl } from '../../utils/imageUrl.js'
 import {
   createEmptyProduct,
   normalizeStringArray,
@@ -69,7 +70,7 @@ export function normalizeGlobalProduct(row, storeOverlay = null) {
     quantity: row.quantity || null,
     group: row.group || null,
     images: Array.isArray(row.images) ? row.images : parseJson(row.images, []),
-    image: row.image_url || null,
+    image: getImageUrl(row.image_url) || null,
     description: row.description || null,
     ingredients: row.ingredients_raw || null,
     ingredientsKz: row.ingredients_kz || null,
@@ -117,7 +118,7 @@ export function normalizeCacheProduct(row) {
     brand: row.normalized_brand || null,
     category: row.normalized_category || null,
     quantity: row.normalized_quantity || null,
-    images: row.image_url ? [row.image_url] : [],
+    images: row.image_url ? [getImageUrl(row.image_url)] : [],
     description: row.normalized_description || null,
     ingredients: row.normalized_ingredients || null,
     allergens: normalizeStringArray(parseJson(row.normalized_allergens_json, [])),
