@@ -50,7 +50,7 @@ Store-context AI assistant (mobile-first PWA) для офлайн-магазин
 1. Сначала анализ → потом код. Предложи план → получи апрув.
 2. Не ломать работающее.
 3. Экраны покупателя → только внутри `/s/:storeSlug/`.
-4. Иконки только Material Symbols. Никаких SVG.
+4. Иконки: Качественные SVG для премиального вида. Material Symbols — опционально.
 5. Аватары только `<ProfileAvatar />`.
 6. Не переписывать стили на светлые.
 7. Новый текст → через `useI18n` (RU/KZ обязательно).
@@ -62,17 +62,71 @@ Store-context AI assistant (mobile-first PWA) для офлайн-магазин
 
 | Фокус | Статус |
 |-------|--------|
-| **Data Moat** (data_quality_score, TTL, каскад источников, КЗ-базы) | 🔬 ИССЛЕДОВАНО → `docs/vault/knowledge/kz-product-databases.md` |
-| **Импорт продуктов** (OFF JSONL + EAN-DB + Kaspi) | 🔄 Этапы 1-2 в процессе |
-| **Импорт прайс-листа** (RetailImportScreen пустой — P0 блокер) | 🔜 |
+| **Data Moat Pipeline** | 🔧 РЕАЛИЗАЦИЯ — NPC ✅, Arbuz ✅, USDA ⏳ |
+| **Kaspi Import Pipeline** | ✅ РАБОТАЕТ — Chocolate bars загружены |
+| **Импорт прайс-листа** (RetailImportScreen) | 🔜 |
 | **БД-фиксы** (UNIQUE, CASCADE, триггеры, GIN) | 🔜 |
 | **Метрики в тенге** | 🔜 |
 
-**Каталог баг FIX:** `StoreContext.jsx` + `storeCatalog.js` — jsonb поля (allergens_json и др.) приходят как строки из Supabase, нужен `parseJson()`. Без этого `u.filter is not a function`.
+**Data Moat Pipeline — УТВЕРЖДЁННАЯ СТРАТЕГИЯ:**
 
-**Продукты в БД:** ~1943. Из них: ~1485 из OFF JSONL (скрипт `import-off-jsonl.cjs`), ~458 предыдущие (OFF API + manual + EAN-DB).
+```
+Шаг 0: EAN-13 валидация (контрольная сумма) ✅
+Шаг 1: NPC Search API → GTIN + NTIN + nameRu/KK + ОКТРУ ✅ (288/289, 164 GTIN)
+Шаг 2: Arbuz.kz API v1 → СОСТАВ (RU) + КБЖУ + Халал + цена ✅ (190/190, 75% found)
+Шаг 3: USDA FoodData → состав (EN) + КБЖУ — ⏳ (API unreachable from KZ, needs Vercel proxy)
+Шаг 4: Kaspi HTML → состав (RU) + цена — fallback 🔜
+Шаг 5: OFF → аллергены + NutriScore 🔜
+```
 
-**OFF JSONL скрипт:** `scripts/import-off-jsonl.cjs` — полная валидация (nutriscore A-E, nova 1-4, halal yes/no/unknown, EAN digits only, URL http only, sanitize text 1000 chars). Построчная вставка (5 concurrent). 0 ошибок при 1500 импорте.
+**⚠️ ARBUZ API v1 — ГЛАВНОЕ ОТКРЫТИЕ:**
+
+- **API `/api/v1/`** полностью открыт (v2=401, v3=404)
+- **Auth:** `POST /api/v1/auth/token` с consumer `arbuz-kz.web.mobile` → JWT (10мин TTL)
+- **Search:** `GET /api/v1/shop/search/products?where[name][c]=QUERY&limit=20`
+- **Detail:** `GET /api/v1/shop/product/{id}` → nutrition, ingredients, characteristics (халал!), price
+- **Халал:** characteristics содержит `{name: "Халал"}` → товар халяльный
+- **Поиск по штрихкоду НЕ работает** — только по названию/бренду
+
+**⚠️ DB CONSTRAINTS — НУЖНЫ ФИКСЫ:**
+
+1. `source_primary_check` — `'npc'`/`'arbuz'`/`'usda'` не в списке. Скрипты используют `'kz_verified'`
+   - **Миграция 007 написана** (`007_add_pipeline_sources.sql`) — **нужно применить через Supabase Dashboard**
+2. `halal_status_check` — допустимые: `'unknown'`, `'yes'`, `'no'`. `'certified'` — НЕ проходит (исправлено в скрипте)
+3. `global_products_ean_key` — UNIQUE на EAN. Duplicate conflict при одинаковых GTIN для разных вариантов товаров
+
+**API ключи (в .env.local):**
+- NPC_API_KEY ✅
+- USDA_API_KEY ✅ (но API unreachable напрямую из KZ)
+
+**СКРИПТЫ PIPELINE:**
+1. `scripts/validate-ean.cjs` — ✅ РАБОТАЕТ
+2. `scripts/npc-enrich.cjs` — ✅ ПРОД ЗАПУСК: 288/289 matched, 164 GTIN, 288 NTIN, 130+ DB updates
+3. `scripts/arbuz-enrich.cjs` — ✅ ПРОД ЗАПУСК: 190 processed, 143 found (75%), 127 comp, 124 КБЖУ, 23 халал
+4. `scripts/usda-enrich.cjs` — ✅ написан, ⏳ API unreachable (нужен Vercel proxy)
+5. `api/usda.js` — ✅ написан, ⏳ НЕ задеплоен (нет VERCEL_TOKEN)
+6. `api/ean-search.js` — ✅ написан
+
+**ТЕКУЩИЕ СТАТИСТИКИ БД:**
+- 685 active global_products
+- Без состава: 81 (было ~190)
+- Без КБЖУ: 110
+- С халал=yes: 35
+- С source kz_verified (NPC): 115
+- С kaspi_ EAN (ещё нужно): 155
+- С реальным GTIN EAN: ~530
+
+**МИГРАЦИИ:**
+- 006 (`alternate_eans`): ✅ ВЫПОЛНЕНА
+- 007 (`add_pipeline_sources`): ⚠️ НАПИСАНА, НУЖНО ПРИМЕНИТЬ ЧЕРЕЗ DASHBOARD
+
+**ПОРЯДОК ЗАДАЧ (следующий чат):**
+1. Применить миграцию 007 через Supabase Dashboard (добавить 'npc','arbuz','usda' в source_primary)
+2. Задеплоить api/usda.js на Vercel (нужен VERCEL_TOKEN)
+3. Запустить usda-enrich.cjs через Vercel proxy
+4. Обработать duplicate EAN conflict (same GTIN для вариантов → alternate_eans)
+5. Миграция БД: колонки ntin, oktru_code, halal_certified, kbju
+6. Объединить pipeline: NPC → Arbuz → USDA → Kaspi → OFF
 
 Офлайн-режим: ✅ ГОТОВО (6 слоёв, 85/100)
 

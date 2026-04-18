@@ -56,3 +56,30 @@
 - Custom Tools созданы: vault-query.ts, vault-embed.ts
 - opencode.json создан (MCP конфиг)
 - CONTEXT.md упрощён — убраны дубли с audit
+
+---
+
+## 2026-04-18/19 — Сессия 4-5: Data Moat Pipeline — NPC + Arbuz + USDA
+
+**Выполнено:**
+- Arbuz API v1 обнаружен и документирован — полностью открытый API (auth + search + detail)
+- `scripts/arbuz-enrich.cjs` — полностью переписан с HTML scraper на API v1
+  - Прод запуск: 190/190 processed, 143 found (75%), 127 comp, 124 КБЖУ, 23 халал
+- `scripts/npc-enrich.cjs` — прод запуск: 288/289 matched (99.7%), 164 GTIN, 288 NTIN
+  - ~130 DB updates (rest blocked by source_primary_check constraint)
+- `scripts/usda-enrich.cjs` — написан, но USDA API unreachable из KZ (нужен Vercel proxy)
+- `api/usda.js` — написан, не задеплоен (нет VERCEL_TOKEN)
+- halal_status fix: `'certified'` → `'yes'` (valid values: unknown/yes/no)
+- Миграция 007 написана (add 'npc','arbuz','usda' to source_primary) — НЕ применена (нет psql/MCP)
+
+**Проблемы:**
+- `source_primary_check` — 'npc' не в списке. Скрипт использует 'kz_verified' как обход
+- `global_products_ean_key` — UNIQUE конфликт при одинаковых GTIN для вариантов товаров
+- USDA API unreachable напрямую из KZ (ETIMEDOUT) — нужен Vercel proxy
+- 155 товаров ещё с kaspi_ EAN (NPC не смог матчить — дубли EAN)
+
+**Статистика БД:**
+- 685 active products
+- Без состава: 81 (было ~190), Без КБЖУ: 110
+- С халал=yes: 35, С kz_verified: 115
+- С kaspi_ EAN: 155
