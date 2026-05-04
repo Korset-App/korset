@@ -1,5 +1,5 @@
 // Медицинские состояния для Fit-Check Engine
-// Используется в: fitCheck.js, ProfileScreen, OnboardingScreen
+// Используется в: fitCheck.js, ProfileScreen
 
 // Пороги сахара по UK Traffic Light System (Food Standards Agency)
 // https://www.food.gov.uk/safety-hygiene/check-the-label
@@ -59,6 +59,3 @@ export function getHealthConditionName(id, lang = 'ru') {
   const hc = HEALTH_CONDITIONS_MAP[id]
   return hc ? hc.label[lang] || hc.label.ru : id
 }
-
-// Layout rows для UI (Onboarding / Profile)
-export const HEALTH_CONDITION_ROWS = [['diabetes', 'celiac', 'pku']]

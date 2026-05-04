@@ -1,5 +1,5 @@
 // Единый источник данных о диетических целях и предпочтениях
-// Используется в: ProfileScreen, OnboardingScreen
+// Используется в: ProfileScreen, DietBadges
 
 export const DIET_GOALS = [
   { id: 'sugar_free', label: { ru: 'Без сахара', kz: 'Қантсыз' }, icon: 'nosugar' },
@@ -34,8 +34,8 @@ export const PRIORITIES = [
   },
 ]
 
-// Preferences для Onboarding (включает halal)
-export const ONBOARDING_PREFERENCES = [
+// Предпочтения с халалом — используется в ProfileScreen и DietBadges
+export const DIET_PREFERENCES = [
   { id: 'halal', icon: 'halal', label: { ru: 'Халал', kz: 'Халал' } },
   { id: 'sugar_free', icon: 'nosugar', label: { ru: 'Без сахара', kz: 'Қантсыз' } },
   { id: 'dairy_free', icon: 'nodairy', label: { ru: 'Без лактозы', kz: 'Лактозасыз' } },
@@ -45,11 +45,4 @@ export const ONBOARDING_PREFERENCES = [
   { id: 'keto', icon: 'keto', label: { ru: 'Кето', kz: 'Кето' } },
   { id: 'low_fat', icon: 'lowfat', label: { ru: 'Низкожирная', kz: 'Аз майлы' } },
   { id: 'kid_friendly', icon: 'kids', label: { ru: 'Для детей', kz: 'Балаларға' } },
-]
-
-// Layout rows для Onboarding
-export const PREFERENCE_ROWS = [
-  ['halal', 'sugar_free', 'dairy_free'],
-  ['gluten_free', 'vegan', 'vegetarian'],
-  ['keto', 'low_fat', 'kid_friendly'],
 ]

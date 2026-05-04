@@ -1386,27 +1386,6 @@ export default function ProfileScreen() {
                     </div>
                   ),
                 },
-                {
-                  icon: (
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="#A78BFA"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    >
-                      <polyline points="23 4 23 10 17 10" />
-                      <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
-                    </svg>
-                  ),
-                  label: t('profile.restartOnboarding'),
-                  onClick: () => {
-                    localStorage.removeItem('korset_onboarding_done')
-                    window.location.reload()
-                  },
-                },
               ],
             },
             {

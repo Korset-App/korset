@@ -5,7 +5,6 @@ import ruProduct from '../locales/ru/product.json'
 import ruCompare from '../locales/ru/compare.json'
 import ruAlternatives from '../locales/ru/alternatives.json'
 import ruAi from '../locales/ru/ai.json'
-import ruOnboarding from '../locales/ru/onboarding.json'
 import ruSettings from '../locales/ru/settings.json'
 import ruRetail from '../locales/ru/retail.json'
 import ruQr from '../locales/ru/qr.json'
@@ -21,7 +20,6 @@ import kzProduct from '../locales/kz/product.json'
 import kzCompare from '../locales/kz/compare.json'
 import kzAlternatives from '../locales/kz/alternatives.json'
 import kzAi from '../locales/kz/ai.json'
-import kzOnboarding from '../locales/kz/onboarding.json'
 import kzSettings from '../locales/kz/settings.json'
 import kzRetail from '../locales/kz/retail.json'
 import kzQr from '../locales/kz/qr.json'
@@ -40,7 +38,6 @@ const dicts = {
     ruCompare,
     ruAlternatives,
     ruAi,
-    ruOnboarding,
     ruSettings,
     ruRetail,
     ruQr,
@@ -58,7 +55,6 @@ const dicts = {
     kzCompare,
     kzAlternatives,
     kzAi,
-    kzOnboarding,
     kzSettings,
     kzRetail,
     kzQr,

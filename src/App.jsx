@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useEffect, lazy, Suspense } from 'react'
 import { Routes, Route, useLocation, Navigate, useNavigate } from 'react-router-dom'
 import BottomNav from './components/BottomNav.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
@@ -7,7 +7,7 @@ import RouteLoader from './components/RouteLoader.jsx'
 import { SpeedInsights } from '@vercel/speed-insights/react'
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx'
 import { ProfileProvider } from './contexts/ProfileContext.jsx'
-import { StoreProvider, useStore } from './contexts/StoreContext.jsx'
+import { StoreProvider } from './contexts/StoreContext.jsx'
 import { OfflineProvider, useOffline } from './contexts/OfflineContext.jsx'
 
 const HomeScreen = lazy(() => import('./screens/HomeScreen.jsx'))
@@ -23,7 +23,6 @@ const AIAssistantScreen = lazy(() => import('./screens/AIAssistantScreen.jsx'))
 const QRPrintScreen = lazy(() => import('./screens/QRPrintScreen.jsx'))
 const StoresScreen = lazy(() => import('./screens/StoresScreen.jsx'))
 const StorePublicScreen = lazy(() => import('./screens/StorePublicScreen.jsx'))
-const OnboardingScreen = lazy(() => import('./screens/OnboardingScreen.jsx'))
 const AuthScreen = lazy(() => import('./screens/AuthScreen.jsx'))
 const SetupProfileScreen = lazy(() => import('./screens/SetupProfileScreen.jsx'))
 const HistoryScreen = lazy(() => import('./screens/HistoryScreen.jsx'))
@@ -48,7 +47,6 @@ function AppInner() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { isStoreApp } = useStore()
   const { refreshPendingCount } = useOffline()
 
   const hideNav =
@@ -59,10 +57,6 @@ function AppInner() {
     pathname === '/setup-profile' ||
     pathname.startsWith('/retail') ||
     pathname.startsWith('/_mock')
-  const [showOnboarding, setShowOnboarding] = useState(
-    !localStorage.getItem('korset_onboarding_done') || !localStorage.getItem('korset_lang')
-  )
-
   useEffect(() => {
     if (user && user.user_metadata?.profile_setup_done !== true) {
       if (pathname !== '/setup-profile' && !pathname.startsWith('/retail')) {
@@ -87,14 +81,10 @@ function AppInner() {
     }
   }, [refreshPendingCount])
 
-  const shouldShowOnboarding =
-    showOnboarding && isStoreApp && pathname !== '/auth' && pathname !== '/setup-profile'
-
   return (
     <div className="app-frame">
       <OfflineBanner />
       <Suspense fallback={<RouteLoader />}>
-        {shouldShowOnboarding && <OnboardingScreen onDone={() => setShowOnboarding(false)} />}
         <Routes>
           <Route path="/" element={<HomeScreen />} />
           <Route path="/stores" element={<StoresScreen />} />

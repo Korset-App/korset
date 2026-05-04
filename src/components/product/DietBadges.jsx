@@ -1,5 +1,5 @@
 import { DietIcon } from '../../screens/ProfileScreen.jsx'
-import { ONBOARDING_PREFERENCES } from '../../constants/dietGoals.js'
+import { DIET_PREFERENCES } from '../../constants/dietGoals.js'
 
 const DIET_BADGE_COLORS = {
   halal: '#10B981',
@@ -22,7 +22,7 @@ function matchBadge(key, product) {
 
 export default function DietBadges({ product, lang }) {
   const badges = BADGE_KEYS.map((id) => {
-    const pref = ONBOARDING_PREFERENCES.find((p) => p.id === id)
+    const pref = DIET_PREFERENCES.find((p) => p.id === id)
     if (!pref) return null
     return {
       id,

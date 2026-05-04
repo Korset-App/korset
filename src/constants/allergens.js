@@ -1,6 +1,6 @@
 // Единый источник данных об аллергенах (ТР ТС 022/2011)
 // 14 обязательных аллергенов по Техническому Регламенту Таможенного Союза
-// Используется в: ProfileScreen, OnboardingScreen, fitCheck, ExternalProductScreen
+// Используется в: ProfileScreen, fitCheck
 
 export const ALLERGENS = [
   // ★★★★★ Самые распространённые (показываются первыми)
@@ -65,22 +65,6 @@ export function getAllergenName(id, lang = 'ru') {
   const a = ALLERGENS.find((x) => x.id === id)
   return a ? a.label[lang] || a.label.ru : id
 }
-
-// Группировка для Onboarding layout (топ-9 самых частых)
-export const ALLERGEN_ROWS = [
-  ['milk', 'eggs', 'gluten'],
-  ['peanuts', 'tree_nuts', 'soy'],
-  ['fish', 'crustaceans', 'sesame'],
-]
-
-// Полная группировка (включая редкие, для ProfileScreen "Показать все")
-export const ALLERGEN_ROWS_FULL = [
-  ['milk', 'eggs', 'gluten'],
-  ['peanuts', 'tree_nuts', 'soy'],
-  ['fish', 'crustaceans', 'sesame'],
-  ['celery', 'mustard', 'sulfites'],
-  ['mollusks', 'lupin'],
-]
 
 // Маппинг Open Food Facts тегов → наш id
 export const OFF_ALLERGEN_MAP = {

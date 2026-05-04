@@ -35,7 +35,7 @@ Store-context AI assistant (mobile-first PWA) для офлайн-магазин
 
 ## Что работает
 
-- Supabase Auth (Google OAuth), онбординг 2-шаговый
+- Supabase Auth (Google OAuth)
 - Сканер штрихкодов, AIScreen (чат с ИИ + RAG)
 - Fit-Check (Red/Orange — детерминированный, Yellow — AI)
 - Push-уведомления, История + Избранное, Smart Merge
@@ -263,7 +263,7 @@ Pipeline: arbuz-import, arbuz-catalog-parser, korzinavdom-parser — все ис
 1. **Прочитай `docs/CONTEXT.md`** — этот файл, текущий фокус.
 2. **Прочитай `AGENTS.md`** — железные правила проекта.
 3. **Сделай Vault RAG-запрос** для специфичной задачи: `vault-query("запрос")`
-4. **Следующий приоритет — OnboardingScreen удаление** (будет убран по плану владельца)
+4. **OnboardingScreen удалён** — полностью убран (экран, локали, i18n, ProfileScreen-пункт)
    - Далее по приоритету: AuthScreen consentNotice i18n, BottomSheet компонент
    - Data Moat Confidence бейджи, RetailScannerModal i18n
    - БД-фиксы (UNIQUE, CASCADE, GIN), партицирование scan_events
