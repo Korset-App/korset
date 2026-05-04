@@ -549,9 +549,7 @@ export default function ProfileScreen() {
         ref={scrollRef}
         style={{
           paddingTop: 0,
-          paddingBottom: 'calc(88px + env(safe-area-inset-bottom, 0px))',
           overflowX: 'hidden',
-          minHeight: '100vh',
           background: 'transparent',
           position: 'relative',
         }}
@@ -1629,6 +1627,9 @@ export default function ProfileScreen() {
                             color: item.labelStyle?.color || 'var(--text)',
                             flex: 1,
                             minWidth: 0,
+                            overflow: 'hidden',
+                            whiteSpace: 'nowrap',
+                            textOverflow: 'ellipsis',
                           }}
                         >
                           {item.label}

@@ -203,7 +203,27 @@ Pipeline: arbuz-import, arbuz-catalog-parser, korzinavdom-parser — все ис
 
 ---
 
-## ТЕКУЩИЙ ФОКУС (2026-05-03)
+## ТЕКУЩИЙ ФОКУС (2026-05-05)
+
+### Сессия 6 — Landing Page Redesign — ВЫПОЛНЕНО ✅
+
+**LandingScreen.css — полный редизайн (1409→~1100 строк):**
+- Бренд: градиентный текст `primary-bright → accent-sky` вместо монохрома
+- Hero h1: градиентный текст `text → primary-bright → accent-sky`
+- Кнопки: `--primary` градиент вместо `--accent-sky`, hover с glow-тенью и translateY(-1px)
+- Карты: hover-эффекты `translateY(-2px)` + primary glow на бордере
+- Step номер: градиентный текст вместо серого
+- Stats: градиентный текст значений, hover с sky glow
+- Compare: тонкие цветные фоны (красный/зелёный) вместо нейтральных
+- FAQ: `+` индикатор с поворотом на 45° при открытии, `details[open]` подсветка бордера
+- Footer: hover-ссылки → primary-bright, backdrop-filter с saturate
+- Connect pills: backdrop-blur + hover → primary
+- Fit-Check карты: цветные градиентные фоны (good/warn/bad)
+- Disclaimer: backdrop-blur glass вместо plain bg
+- Header: saturate(1.4) в backdrop, hover → primary glow на кнопках
+- Общее: увеличены padding/margin для простора, tighter letter-spacing, CSS-переменные `--landing-radius`
+
+**Проверка:** build OK, lint 0 errors, check-i18n OK
 
 ### Сессия 5 — Code Quality & i18n Gaps — ВЫПОЛНЕНО ✅
 
