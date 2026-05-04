@@ -549,7 +549,7 @@ export default function ProfileScreen() {
         ref={scrollRef}
         style={{
           paddingTop: 0,
-          paddingBottom: 100,
+          paddingBottom: 'calc(88px + env(safe-area-inset-bottom, 0px))',
           overflowX: 'hidden',
           minHeight: '100vh',
           background: 'transparent',
@@ -1599,7 +1599,15 @@ export default function ProfileScreen() {
                         cursor: item.onClick ? 'pointer' : 'default',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 14,
+                          flex: 1,
+                          minWidth: 0,
+                        }}
+                      >
                         <div
                           style={{
                             width: 34,
@@ -1619,6 +1627,8 @@ export default function ProfileScreen() {
                             fontSize: 15,
                             fontWeight: item.labelStyle?.fontWeight || 500,
                             color: item.labelStyle?.color || 'var(--text)',
+                            flex: 1,
+                            minWidth: 0,
                           }}
                         >
                           {item.label}
@@ -1656,7 +1666,12 @@ export default function ProfileScreen() {
           ))}
 
           {/* ── FOOTER ── */}
-          <div style={{ textAlign: 'center', padding: '16px 22px 30px' }}>
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '16px 22px calc(24px + env(safe-area-inset-bottom, 0px))',
+            }}
+          >
             <div
               style={{
                 fontFamily: 'var(--font-display)',

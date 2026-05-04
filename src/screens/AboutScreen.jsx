@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../i18n/index.js'
+import { useTheme } from '../utils/theme.js'
 
 const APP_VERSION = '1.0.0'
 const APP_YEAR = new Date().getFullYear()
@@ -119,6 +120,7 @@ const getFeatures = (t) => [
 export default function AboutScreen() {
   const navigate = useNavigate()
   const { t } = useI18n()
+  const { isLight } = useTheme()
   const features = getFeatures(t)
 
   return (
@@ -188,25 +190,25 @@ export default function AboutScreen() {
         <div
           className="glass-card"
           style={{
-            padding: '40px 24px 32px',
+            padding: '24px 24px 20px',
             textAlign: 'center',
           }}
         >
           {/* Logo container */}
           <div
             style={{
-              width: 84,
-              height: 84,
-              borderRadius: 24,
+              width: 64,
+              height: 64,
+              borderRadius: 20,
               background: 'var(--bg-app)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              margin: '0 auto 20px',
-              boxShadow: '0 12px 32px rgba(0,0,0,0.2)',
+              margin: '0 auto 14px',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
               border: '1px solid var(--glass-soft-border)',
               overflow: 'hidden',
-              padding: 10,
+              padding: 8,
             }}
           >
             <img
@@ -216,27 +218,19 @@ export default function AboutScreen() {
             />
           </div>
 
-          <div
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 34,
-              fontWeight: 800,
-              letterSpacing: 1.5,
-              background: 'linear-gradient(135deg, #a78bfa 0%, #7c3aed 60%, #c4b5fd 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              marginBottom: 4,
-            }}
-          >
-            KÖRSET
+          <div style={{ marginBottom: 6 }}>
+            <img
+              src={isLight ? '/logo-light.png' : '/logo-wordmark-white.png'}
+              alt="Körset"
+              style={{ height: 34, objectFit: 'contain', display: 'block', margin: '0 auto' }}
+            />
           </div>
           <div
             style={{
               fontFamily: 'var(--font-body)',
               fontSize: 14,
               color: 'var(--text-sub)',
-              marginBottom: 20,
+              marginBottom: 16,
             }}
           >
             {t('about.subtitle')}
