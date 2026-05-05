@@ -63,6 +63,27 @@ function CheckMicroIcon() {
   )
 }
 
+function ChevronIcon({ className }) {
+  return (
+    <svg
+      className={className}
+      width="20"
+      height="20"
+      viewBox="0 0 20 20"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M5 7.5L10 12.5L15 7.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 function CheckIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -742,6 +763,8 @@ export default function LandingScreen() {
     }
   }, [menuOpen])
 
+  const [activeFaq, setActiveFaq] = useState(null)
+
   const d = useMemo(
     () => ({
       nav: {
@@ -829,6 +852,45 @@ export default function LandingScreen() {
         text: t('landing.retail.text'),
         cta: t('landing.retail.cta'),
         cards: collectObjArr(t, exists, 'landing.retail.cards', ['icon', 'title', 'text']),
+      },
+      pricing: {
+        eyebrow: t('landing.pricing.eyebrow'),
+        title: t('landing.pricing.title'),
+        text: t('landing.pricing.text'),
+        plans: ['basic', 'pro', 'enterprise'].map((plan) => ({
+          id: plan,
+          badge: exists(`landing.pricing.${plan}.badge`)
+            ? t(`landing.pricing.${plan}.badge`)
+            : null,
+          title: t(`landing.pricing.${plan}.title`),
+          price: exists(`landing.pricing.${plan}.price`)
+            ? t(`landing.pricing.${plan}.price`)
+            : null,
+          features: collectStrArr(t, exists, `landing.pricing.${plan}.feat`),
+          note: exists(`landing.pricing.${plan}.note`) ? t(`landing.pricing.${plan}.note`) : null,
+          cta: t(`landing.pricing.${plan}.cta`),
+        })),
+      },
+      faq: {
+        eyebrow: t('landing.faq.eyebrow'),
+        title: t('landing.faq.title'),
+        items: collectObjArr(t, exists, 'landing.faq.items', ['q', 'a']),
+      },
+      cta: {
+        title: exists('landing.cta.title') ? t('landing.cta.title') : '',
+        text: exists('landing.cta.text') ? t('landing.cta.text') : '',
+        primary: exists('landing.cta.primary') ? t('landing.cta.primary') : '',
+        secondary: exists('landing.cta.secondary') ? t('landing.cta.secondary') : '',
+      },
+      footer: {
+        title: t('landing.footer.title'),
+        text: t('landing.footer.text'),
+        made: t('landing.footer.made'),
+        copyright: t('landing.footer.copyright'),
+        groups: [0, 1].map((g) => ({
+          title: t(`landing.footer.groups.${g}.title`),
+          links: collectObjArr(t, exists, `landing.footer.groups.${g}.links`, ['label', 'href']),
+        })),
       },
     }),
     [t, exists]
@@ -1363,13 +1425,170 @@ export default function LandingScreen() {
         </div>
       </section>
 
-      {/* Placeholder этапы 6-7 */}
-      <section className="lp-section lp-stage-placeholder" id="pricing">
-        <div className="lp-stage-placeholder__inner">
-          <span className="lp-stage-placeholder__chip">Этапы 6-7 · в разработке</span>
-          <h2>Pricing · FAQ · Testimonials · CTA · Footer</h2>
+      {/* ═══ ЭТАП 6а — Pricing ═══ */}
+      <section className="lp-section lp-pricing" id="pricing" aria-labelledby="lp-pricing-title">
+        <div className="lp-pricing__bg-glow" aria-hidden="true" />
+        <div className="lp-pricing__inner">
+          <div className="lp-pricing__header lp-reveal">
+            <span className="lp-section-badge">{d.pricing.eyebrow}</span>
+            <h2 className="lp-section-title" id="lp-pricing-title">
+              {d.pricing.title}
+            </h2>
+            <p className="lp-section-desc">{d.pricing.text}</p>
+          </div>
+          <div className="lp-pricing__grid">
+            {d.pricing.plans.map((plan, i) => (
+              <article
+                key={plan.id}
+                className={`lp-pricing__card lp-pricing__card--${plan.id} lp-reveal lp-reveal--delay-${i + 1}`}
+              >
+                {plan.badge && <div className="lp-pricing__badge">{plan.badge}</div>}
+                <div className="lp-pricing__card-head">
+                  <h3 className="lp-pricing__card-title">{plan.title}</h3>
+                  {plan.price && <div className="lp-pricing__card-price">{plan.price}</div>}
+                </div>
+                <ul className="lp-pricing__card-feats">
+                  {plan.features.map((feat, j) => (
+                    <li key={j}>
+                      <CheckMicroIcon />
+                      <span>{feat}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="lp-pricing__card-foot">
+                  {plan.note && <div className="lp-pricing__card-note">{plan.note}</div>}
+                  <a
+                    href="/retail"
+                    className={`lp-btn lp-btn--full ${plan.id === 'pro' ? 'lp-btn--primary' : 'lp-btn--ghost'}`}
+                  >
+                    {plan.cta}
+                  </a>
+                </div>
+              </article>
+            ))}
+          </div>
         </div>
       </section>
+
+      {/* ═══ ЭТАП 6б — FAQ ═══ */}
+      <section className="lp-section lp-faq" id="faq" aria-labelledby="lp-faq-title">
+        <div className="lp-faq__inner">
+          <div className="lp-faq__layout">
+            <div className="lp-faq__sidebar lp-reveal">
+              <span className="lp-section-badge">{d.faq.eyebrow}</span>
+              <h2 className="lp-section-title" id="lp-faq-title">
+                {d.faq.title}
+              </h2>
+              <p className="lp-faq__sidebar-text">
+                Остались вопросы? Напишите нам в Telegram, и мы поможем.
+              </p>
+              <a
+                href="https://t.me/korset_app"
+                target="_blank"
+                rel="noreferrer"
+                className="lp-btn lp-btn--ghost"
+              >
+                Написать в поддержку
+              </a>
+            </div>
+            <div className="lp-faq__list lp-reveal lp-reveal--delay-1">
+              {d.faq.items.map((item, i) => {
+                const isOpen = activeFaq === i
+                return (
+                  <div key={i} className={`lp-faq__item ${isOpen ? 'lp-faq__item--active' : ''}`}>
+                    <button
+                      className="lp-faq__question"
+                      aria-expanded={isOpen}
+                      onClick={() => setActiveFaq(isOpen ? null : i)}
+                    >
+                      <span>{item.q}</span>
+                      <ChevronIcon className="lp-faq__chevron" />
+                    </button>
+                    <div className="lp-faq__answer" aria-hidden={!isOpen}>
+                      <div className="lp-faq__answer-inner">{item.a}</div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ ЭТАП 7а — Финальный CTA ═══ */}
+      <section className="lp-section lp-cta" aria-labelledby="lp-cta-title">
+        <div className="lp-cta__inner lp-reveal">
+          <div className="lp-cta__content">
+            <h2 className="lp-section-title lp-cta__title" id="lp-cta-title">
+              {d.cta.title}
+            </h2>
+            <p className="lp-cta__text">{d.cta.text}</p>
+            <div className="lp-cta__actions">
+              <a href="/retail" className="lp-btn lp-btn--primary lp-btn--lg">
+                {d.cta.primary}
+              </a>
+              <a href="#demo-video" className="lp-btn lp-btn--ghost lp-btn--lg">
+                <PlayIcon />
+                {d.cta.secondary}
+              </a>
+            </div>
+          </div>
+          <div className="lp-cta__bg" aria-hidden="true">
+            <div className="lp-cta__glow" />
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ ЭТАП 7б — Footer ═══ */}
+      <footer className="lp-footer" id="footer">
+        <div className="lp-footer__inner">
+          <div className="lp-footer__top">
+            <div className="lp-footer__brand-col">
+              <div className="lp-footer__brand-wrap">
+                <a className="lp-brand lp-footer__brand" href="/" aria-label="Körset">
+                  <img src="/icon_logo.svg" alt="" className="lp-brand__mark" />
+                  <span className="lp-brand__name">Körset</span>
+                </a>
+              </div>
+              <h3 className="lp-footer__title">{d.footer.title}</h3>
+              <p className="lp-footer__text">{d.footer.text}</p>
+            </div>
+            <div className="lp-footer__links">
+              {d.footer.groups.map((group, i) => (
+                <div key={i} className="lp-footer__group">
+                  <h4 className="lp-footer__group-title">{group.title}</h4>
+                  <ul>
+                    {group.links.map((link, j) => (
+                      <li key={j}>
+                        <a href={link.href}>{link.label}</a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="lp-footer__bottom">
+            <div className="lp-footer__copy">{d.footer.copyright}</div>
+            <div className="lp-footer__made">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+                style={{ color: 'var(--lp-brand)', marginRight: 6, verticalAlign: 'text-bottom' }}
+              >
+                <path
+                  d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+                  fill="currentColor"
+                />
+              </svg>
+              {d.footer.made}
+            </div>
+          </div>
+        </div>
+      </footer>
     </main>
   )
 }

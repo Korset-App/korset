@@ -205,6 +205,26 @@ Pipeline: arbuz-import, arbuz-catalog-parser, korzinavdom-parser — все ис
 
 ## ТЕКУЩИЙ ФОКУС (2026-05-05)
 
+### Сессия 9 — CatalogScreen Bento Showcase Redesign — ВЫПОЛНЕНО ✅
+
+**Технические детали:** `docs/vault/changelog/2026-05-05-catalog-showcase-redesign.md`
+
+**Что сделано:**
+- Верхний уровень `/s/:storeSlug/catalog` заменён с простой 2-колоночной сетки на адаптивную bento-витрину 18 категорий.
+- Реальные category cutout-изображения из `public/catalog-raw/` сконвертированы в WebP и сохранены в `public/catalog-categories/` (`30–129 KB` на файл).
+- Добавлен контракт витрины: `src/domain/product/catalogShowcase.js` хранит image/variant/tone/textTone для всех 18 нормализованных категорий.
+- `CatalogScreen` теперь показывает все 18 категорий даже до завершения загрузки каталога; счётчики появляются только когда есть данные.
+- Сохранена старая внутренняя логика: клик по категории переводит в список товаров этой категории, поиск/сортировка/подкатегории/Virtuoso не переписаны.
+- Адаптивность: 6-column dense CSS Grid, `clamp()`, `grid-row/span`, hover только на hover-устройствах, `prefers-reduced-motion`, max-width остаётся в app-frame.
+- Light/Dark: добавлен semantic token `--text-on-accent-dark`, карточки читаются в обеих темах.
+
+**Проверка:**
+- `node --test tests/unit/catalogShowcase.test.mjs` — PASS (2/2)
+- `node scripts/check-i18n.mjs` — PASS (0 missing KZ)
+- `npm run lint` — 0 errors, 50 existing warnings
+- `npm run build` — PASS
+- Playwright визуальная проверка: 360/393/430px, 18 карточек, 0 overlaps; проверены dark/light и клик внутрь категории.
+
 ### Сессия 8 — Landing Page V3 ПОЛНЫЙ РЕБИЛД — ЭТАПЫ 1-2 ВЫПОЛНЕНЫ ✅
 
 **Полный план V3:** `docs/vault/plans/landing-v3-full-rebuild.md` (14 секций, Shopify-style)
@@ -219,8 +239,9 @@ Pipeline: arbuz-import, arbuz-catalog-parser, korzinavdom-parser — все ис
 | 3 | How (3 шага с фото) + Fit-Check (3 мокапа) | ✅ ГОТОВО |
 | 4 | Audience (4 карточки с фото) + Features (6 табов с мокапами) | ✅ ГОТОВО |
 | 5 | Stats (большие цифры с bg-фото) + Video-demo + Retail | ✅ ГОТОВО |
-| 6 | Pricing + FAQ (2 колонки) + Testimonials | 🔲 |
-| 7 | CTA (финал) + Footer + polish pass | 🔲 |
+| 6 | Pricing + FAQ (2 колонки/аккордеон) | ✅ ГОТОВО |
+| 7 | Footer (лого+нав+локальный CTA) + polish pass (баг скролла) | ✅ ГОТОВО |
+
 
 ### КРИТИЧЕСКИ ВАЖНЫЕ АРХИТЕКТУРНЫЕ РЕШЕНИЯ V3:
 
@@ -290,14 +311,14 @@ Poster (fallback): Unsplash `photo-1567449303183` (продуктовый маг
 1. **Прочитай** `docs/CONTEXT.md` (этот файл) + `AGENTS.md`
 2. **Vault RAG:** `node scripts/query-vault.mjs "landing v3 plan stages" --domain plans`
 3. **Файлы:** `src/screens/LandingScreen.jsx` + `src/screens/LandingScreen.css` + `src/screens/landing/landing-tokens.css`
-4. **СЛЕДУЮЩИЙ: Этап 6** — Pricing (3 тарифа) + FAQ (аккордеон) + Footer (лого+нав+локальный CTA)
-5. i18n ключи `landing.pricing.*`, `landing.faq.*`, `landing.footer.*` уже есть в ru/kz
-6. **Placeholder id="pricing"** — цель: заменить его
+4. **СЛЕДУЮЩИЙ ШАГ:** Лендинг V3 полностью собран. Необходимо провести финальное тестирование на реальном устройстве, подготовить 3D Spline модели для замены CSS мокапов (если требуется) и собрать метрики производительности.
 
-### ЧТО СДЕЛАНО В ЭТАПЕ 5 (2026-05-05):
-**Stats:** 4 больших цифры (gradient-text), bg-фото супермаркета, blur+overlay
-**Video:** 16/9 thumbnail, centered play-btn (hover становится фиолетовым с glow), caption «60 сек»
-**Retail:** 5 карточек с SVG иконками, border-left фиолетовый акцент, CTA кнопка `/retail`
+### ЧТО СДЕЛАНО В ЭТАПАХ 6 и 7 (2026-05-05):
+**Bugfix:** Исправлен баг со скроллом на мобильных/десктопе. С `body` снимался `overflow: hidden` только по X, теперь для `.lp-html-active` применяется `overflow-y: auto !important`, возвращая нативный скролл.
+**Pricing:** 3 тарифа (Basic, PRO, Enterprise) с выделением PRO (scale, box-shadow, z-index).
+**FAQ:** Аккордеон с плавной CSS-анимацией через `grid-template-rows: 0fr -> 1fr` и вращением шеврона.
+**Footer:** Премиальный черный футер (`#05050A`), две колонки ссылок, копирайт и логотип.
+Плейсхолдер Этапов 6-7 успешно удален.
 
 ### ЧТО СДЕЛАНО В ЭТАПЕ 4 (2026-05-05):
 **ЭТАП 4а — Audience:** 4 photo card grid, Unsplash, hover lift, `border-radius` + overlay gradient

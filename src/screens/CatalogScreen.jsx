@@ -8,7 +8,6 @@ import {
   getSubcategoryLabel,
   getAllCategoryKeys,
   getSubcategoryKeys,
-  CATEGORY_ICONS,
 } from '../utils/fitCheck.js'
 import { useProfile } from '../contexts/ProfileContext.jsx'
 import { useStore } from '../contexts/StoreContext.jsx'
@@ -21,6 +20,7 @@ import { buildProductPath, buildComparePath } from '../utils/routes.js'
 import { supabase } from '../utils/supabase.js'
 import { getImageUrl } from '../utils/imageUrl.js'
 import { enrichQuantity, getDisplayQuantity } from '../utils/parseQuantity.js'
+import { getCategoryShowcase } from '../domain/product/catalogShowcase.js'
 
 function ProductThumb({ product }) {
   const [imgOk, setImgOk] = useState(true)
@@ -90,6 +90,34 @@ const ListFooter = forwardRef(({ style, ...props }, ref) => (
   <div ref={ref} style={{ ...style, height: 100 }} {...props} />
 ))
 
+function CategoryShowcaseCard({ categoryKey, count, label, onSelect, index, productsLabel }) {
+  const showcase = getCategoryShowcase(categoryKey)
+  const countText = count > 0 ? `${count} ${productsLabel}` : ''
+
+  return (
+    <button
+      type="button"
+      className="catalog-category-card"
+      data-category={categoryKey}
+      data-variant={showcase.variant}
+      data-tone={showcase.tone}
+      data-text={showcase.textTone}
+      style={{ '--catalog-card-index': index }}
+      onClick={() => onSelect(categoryKey)}
+      aria-label={countText ? `${label}, ${countText}` : label}
+    >
+      <span className="catalog-category-sheen" aria-hidden="true" />
+      <span className="catalog-category-media" aria-hidden="true">
+        <img src={showcase.image} alt="" loading="lazy" decoding="async" />
+      </span>
+      <span className="catalog-category-copy">
+        <span className="catalog-category-title">{label}</span>
+        {countText && <span className="catalog-category-count">{countText}</span>}
+      </span>
+    </button>
+  )
+}
+
 export default function CatalogScreen() {
   const navigate = useNavigate()
   const { t, lang } = useI18n()
@@ -141,10 +169,12 @@ export default function CatalogScreen() {
     return map
   }, [baseProducts])
 
-  const activeCategoryKeys = useMemo(
-    () => getAllCategoryKeys().filter((k) => categoryCountMap[k]),
-    [categoryCountMap]
-  )
+  const categoryKeys = useMemo(() => getAllCategoryKeys(), [])
+
+  const activeCategoryKeys = useMemo(() => {
+    const keysWithProducts = categoryKeys.filter((k) => categoryCountMap[k])
+    return keysWithProducts.length > 0 ? keysWithProducts : categoryKeys
+  }, [categoryKeys, categoryCountMap])
 
   const subcategoryCountMap = useMemo(() => {
     if (!selectedCategory) return {}
@@ -475,7 +505,7 @@ export default function CatalogScreen() {
         </div>
       )
     },
-    [profile, comparePin, handleCompare, handleNavigate, lang]
+    [profile, comparePin, handleCompare, handleNavigate, t, lang]
   )
 
   const renderListItem = useCallback(
@@ -917,83 +947,21 @@ export default function CatalogScreen() {
       )}
 
       {showCategories && (
-        <div
-          style={{
-            flex: 1,
-            overflowY: 'auto',
-            WebkitOverflowScrolling: 'touch',
-            padding: '0 20px 100px',
-          }}
-        >
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-            {activeCategoryKeys.map((catKey) => {
+        <div className="catalog-showcase-scroll">
+          <div className="catalog-showcase-grid">
+            {activeCategoryKeys.map((catKey, index) => {
               const count = categoryCountMap[catKey] || 0
-              const icon = CATEGORY_ICONS[catKey] || 'category'
               const label = getCategoryLabel(catKey, lang)
               return (
-                <div
+                <CategoryShowcaseCard
                   key={catKey}
-                  onClick={() => handleCategoryClick(catKey)}
-                  style={{
-                    width: 'calc(50% - 6px)',
-                    aspectRatio: '4/3',
-                    borderRadius: 20,
-                    background: 'var(--glass-bg)',
-                    border: '1px solid var(--glass-border)',
-                    overflow: 'hidden',
-                    cursor: 'pointer',
-                    position: 'relative',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'flex-end',
-                  }}
-                >
-                  <div
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      background:
-                        'radial-gradient(ellipse at 50% 30%, var(--primary-dim) 0%, transparent 70%)',
-                    }}
-                  >
-                    <span
-                      className="material-symbols-outlined"
-                      style={{
-                        fontSize: 52,
-                        color: 'var(--primary-bright)',
-                        opacity: 0.5,
-                      }}
-                    >
-                      {icon}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      position: 'relative',
-                      padding: '12px 14px',
-                      background: 'linear-gradient(transparent, var(--glass-bg) 30%)',
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontFamily: 'var(--font-display)',
-                        fontSize: 14,
-                        fontWeight: 800,
-                        color: 'var(--text)',
-                        lineHeight: 1.25,
-                        marginBottom: 2,
-                      }}
-                    >
-                      {label}
-                    </div>
-                    <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>
-                      {count} {t('catalog.productsIn')}
-                    </div>
-                  </div>
-                </div>
+                  categoryKey={catKey}
+                  count={count}
+                  label={label}
+                  onSelect={handleCategoryClick}
+                  index={index}
+                  productsLabel={t('catalog.productsIn')}
+                />
               )
             })}
           </div>
