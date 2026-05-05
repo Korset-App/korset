@@ -523,7 +523,7 @@
   margin: 0;
   font-family: var(--font-display, 'Advent Pro', sans-serif);
   font-weight: 600;
-  font-size: clamp(40px, 7vw, 96px);
+  font-size: clamp(48px, 12vw, 96px);
   line-height: 1.0;
   letter-spacing: -0.025em;
   color: var(--lp-fg);
@@ -556,11 +556,24 @@
 .lp-rotating {
   display: inline-flex;
   position: relative;
-  min-height: 1em;
+  vertical-align: top;
+}
+
+.lp-rotating__placeholder {
+  visibility: hidden;
+  height: 0;
+  line-height: 0;
+  pointer-events: none;
+  user-select: none;
+  display: block;
 }
 
 .lp-rotating__word {
+  position: absolute;
+  left: 0;
+  top: 0;
   display: inline-block;
+  white-space: nowrap;
   transition:
     transform 380ms var(--lp-ease),
     opacity 380ms var(--lp-ease),
@@ -603,10 +616,25 @@
 /* Actions */
 .lp-hero__actions {
   display: flex;
+  flex-direction: row;
   flex-wrap: wrap;
   gap: 14px;
   align-items: center;
   margin-top: 4px;
+}
+
+@media (max-width: 640px) {
+  .lp-hero__actions {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+  .lp-hero__actions .lp-btn {
+    width: 100%;
+    justify-content: center;
+    height: 56px;
+    font-size: 16px;
+  }
 }
 
 /* Tagline */

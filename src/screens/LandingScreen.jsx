@@ -724,8 +724,16 @@ function HeroRotatingWord({ words }) {
 
   if (!words.length) return null
 
+  // Find the longest word to reserve space
+  const longestWord = [...words].sort((a, b) => b.length - a.length)[0]
+
   return (
     <span className={`lp-rotating lp-rotating--${phase}`} aria-live="polite">
+      {/* Invisible placeholder word to keep container width stable */}
+      <span className="lp-rotating__placeholder" aria-hidden="true">
+        {longestWord}
+      </span>
+      {/* Actual animated word */}
       <span className="lp-rotating__word">{words[index]}</span>
     </span>
   )
