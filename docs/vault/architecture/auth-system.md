@@ -32,14 +32,21 @@ Körset uses Supabase Auth with multiple sign-in methods for maximum coverage in
 1. User enters email + password
 2. `supabase.auth.signInWithPassword()` or `signUp()`
 3. SignUp → OTP email verification → `verifyOtp({ type: 'signup' })`
-4. First login → `profile_setup_done !== true` → redirect to `/setup-profile`
+4. After signup verify → navigate directly to `/setup-profile` (not double redirect)
+5. First login → `profile_setup_done !== true` → redirect to `/setup-profile`
 
 ### Email OTP (Passwordless)
 1. User enters email
 2. `supabase.auth.signInWithOtp({ email, shouldCreateUser: true })`
 3. 6-digit code sent to email
-4. User enters code → `verifyOtp({ type: 'email' })`
+4. User enters code (or pastes full 6-digit code) → `verifyOtp({ type: 'email' })`
 5. Auto-creates account if new user
+
+### Resend OTP
+- For signup type: `supabase.auth.resend({ type: 'signup', email })` — NOT signInWithOtp
+- For email type: `handleEmailOtp()` — re-sends via signInWithOtp
+- For sms type: `handlePhoneOtp()` — re-sends via signInWithOtp
+- 60-second cooldown between resends
 
 ### WhatsApp OTP
 1. User enters KZ phone number (+7XXXXXXXXXX)

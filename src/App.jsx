@@ -59,10 +59,18 @@ function AppInner() {
     pathname.startsWith('/retail') ||
     pathname.startsWith('/_mock')
   useEffect(() => {
-    if (user && user.user_metadata?.profile_setup_done !== true) {
-      if (pathname !== '/setup-profile' && !pathname.startsWith('/retail')) {
-        navigate('/setup-profile', { replace: true })
-      }
+    if (!user) return
+    const meta = user.user_metadata || {}
+    const hasSetup = meta.profile_setup_done === true
+    const hasGoogleProfile = meta.full_name && meta.picture && !hasSetup
+    if (hasGoogleProfile) {
+      import('./utils/supabase.js').then(({ supabase }) => {
+        supabase.auth.updateUser({ data: { profile_setup_done: true } }).catch(() => {})
+      })
+      return
+    }
+    if (!hasSetup && pathname !== '/setup-profile' && !pathname.startsWith('/retail')) {
+      navigate('/setup-profile', { replace: true })
     }
   }, [user, pathname, navigate])
 

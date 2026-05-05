@@ -206,6 +206,24 @@ Pipeline: arbuz-import, arbuz-catalog-parser, korzinavdom-parser — все ис
 
 ## ТЕКУЩИЙ ФОКУС (2026-05-05)
 
+### Сессия 10 — Auth Этап 1: Критические фиксы — ВЫПОЛНЕНО ✅
+
+**9 критических фиксов AuthScreen:**
+
+1. **1.1** OTP форма исчезала при 6 цифрах — `otp.join('').length < 6` → `Boolean(otpTarget)` (строка 380)
+2. **1.3** i18n `{phone}` без `{` — исправлено в ru/auth.json + kz/auth.json
+3. **2.1** Двойной редирект после регистрации — verifyOtp с signup → напрямую `/setup-profile`
+4. **3.1** Autocomplete атрибуты — `email`, `current-password`/`new-password`, `one-time-code`, `tel` на все input
+5. **3.3** OTP paste — onPaste handler на первый input, распределяет 6 цифр
+6. **5.1** Resend OTP API — `supabase.auth.resend({ type: 'signup', email })` для signup, вместо signInWithOtp
+7. **9.1** Flash формы при loading — spinner пока `authLoading === true`
+8. **9.12** Loading spinner на AuthScreen — CSS animation spinner
+9. **9.15** Google юзеры → skip setup-profile — App.jsx: auto `profile_setup_done: true` если есть `full_name + picture`
+
+**Следующие этапы:** Этап 2 (14 UX фиксов), Этап 3 (13 polish фиксов)
+
+**Верификация:** build OK, lint 0 errors, i18n OK
+
 ### Сессия 9 — CatalogScreen Bento Showcase Redesign — ВЫПОЛНЕНО ✅
 
 **Технические детали:** `docs/vault/changelog/2026-05-05-catalog-showcase-redesign.md`

@@ -101,7 +101,7 @@ export default function AuthScreen() {
   const navigate = useNavigate()
   const location = useLocation()
   const { lang, t } = useI18n()
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
 
   const [tab, setTab] = useState('password')
   const [mode, setMode] = useState('login')
@@ -256,9 +256,34 @@ export default function AuthScreen() {
       }
       const { error } = await supabase.auth.verifyOtp(payload)
       if (error) throw error
-      navigate(returnTo, { replace: true })
+      const isSignup = otpType === 'signup'
+      navigate(isSignup ? '/setup-profile' : returnTo, { replace: true })
     } catch {
       setError(t('auth.otpError'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleResendOtp = async () => {
+    if (loading || cooldown > 0) return
+    setLoading(true)
+    setError(null)
+    try {
+      if (otpType === 'signup') {
+        const { error } = await supabase.auth.resend({ type: 'signup', email: otpTarget })
+        if (error) throw error
+      } else if (otpType === 'sms') {
+        await handlePhoneOtp()
+        return
+      } else {
+        await handleEmailOtp()
+        return
+      }
+      setCooldown(60)
+      setSuccess(t('auth.emailOtpSent', { email: otpTarget }))
+    } catch (err) {
+      setError(localizeError(err.message, t))
     } finally {
       setLoading(false)
     }
@@ -292,6 +317,15 @@ export default function AuthScreen() {
     if (e.key === 'Backspace' && !otp[index] && index > 0) {
       otpRefs.current[index - 1]?.focus()
     }
+  }
+
+  const handleOtpPaste = (e) => {
+    const pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '')
+    if (!pasted || pasted.length < 6) return
+    e.preventDefault()
+    const digits = pasted.slice(0, 6).split('')
+    setOtp(digits)
+    otpRefs.current[5]?.focus()
   }
 
   const switchMode = (newMode) => {
@@ -377,7 +411,36 @@ export default function AuthScreen() {
   const currentTitle =
     mode === 'verify' && otpType ? otpTitles[otpType] || titles.verify : titles[mode]
 
-  const isOtpVerifyMode = mode === 'verify' || (otpTarget && otp.join('').length < 6)
+  const isOtpVerifyMode = mode === 'verify' || Boolean(otpTarget)
+
+  if (authLoading) {
+    return (
+      <div
+        className="screen auth-screen"
+        style={{
+          background: 'var(--bg-app)',
+          minHeight: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              border: '3px solid var(--glass-border)',
+              borderTopColor: 'var(--primary)',
+              borderRadius: '50%',
+              animation: 'authSpin 0.8s linear infinite',
+            }}
+          />
+          <style>{`@keyframes authSpin { to { transform: rotate(360deg) } }`}</style>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <>
@@ -652,10 +715,12 @@ export default function AuthScreen() {
                       ref={(el) => (otpRefs.current[i] = el)}
                       type="text"
                       inputMode="numeric"
+                      autoComplete="one-time-code"
                       maxLength={1}
                       value={digit}
                       onChange={(e) => handleOtpChange(i, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                      onPaste={i === 0 ? handleOtpPaste : undefined}
                       className="auth-input"
                       style={{
                         width: 44,
@@ -707,8 +772,8 @@ export default function AuthScreen() {
                 ) : (
                   <button
                     type="button"
-                    onClick={otpType === 'sms' ? handlePhoneOtp : handleEmailOtp}
-                    disabled={loading}
+                    onClick={handleResendOtp}
+                    disabled={loading || cooldown > 0}
                     style={{
                       background: 'none',
                       border: 'none',
@@ -733,6 +798,7 @@ export default function AuthScreen() {
                   <input
                     type="email"
                     className="auth-input"
+                    autoComplete="email"
                     placeholder="Email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -825,6 +891,7 @@ export default function AuthScreen() {
                       <input
                         type="email"
                         className="auth-input"
+                        autoComplete="email"
                         placeholder="Email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
@@ -839,6 +906,7 @@ export default function AuthScreen() {
                       <input
                         type={showPassword ? 'text' : 'password'}
                         className="auth-input"
+                        autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
                         placeholder={t('auth.pwPlaceholder')}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
@@ -914,6 +982,7 @@ export default function AuthScreen() {
                         <input
                           type={showConfirmPassword ? 'text' : 'password'}
                           className="auth-input"
+                          autoComplete="new-password"
                           placeholder={t('auth.pwConfirmPlaceholder')}
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
@@ -1001,6 +1070,7 @@ export default function AuthScreen() {
                       <input
                         type="email"
                         className="auth-input"
+                        autoComplete="email"
                         placeholder="Email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
@@ -1050,6 +1120,7 @@ export default function AuthScreen() {
                       <input
                         type="tel"
                         className="auth-input"
+                        autoComplete="tel"
                         placeholder={t('auth.phonePlaceholder')}
                         value={formatKzPhone(phoneRaw)}
                         onChange={(e) => {
