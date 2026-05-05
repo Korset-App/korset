@@ -95,7 +95,7 @@ function EyeBtn({ show, onToggle }) {
   )
 }
 
-const TABS = ['password', 'code', 'phone']
+const TABS = ['password', 'code']
 
 export default function AuthScreen() {
   const navigate = useNavigate()

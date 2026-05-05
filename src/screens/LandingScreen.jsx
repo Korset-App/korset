@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import './LandingScreen.css'
 import { useI18n } from '../i18n/index.js'
 import useReveal from '../hooks/useReveal.js'
+import Phone3D from '../components/landing/Phone3D.jsx'
 
 function collectStrArr(t, exists, prefix) {
   const arr = []
@@ -1067,9 +1068,9 @@ export default function LandingScreen() {
             </div>
           </div>
 
-          {/* Right: CSS phone mockup */}
+          {/* Right: 3D phone model */}
           <div className="lp-demo__device lp-reveal lp-reveal--scale lp-reveal--delay-2">
-            <DemoPhone texts={d.demo.phone} />
+            <Phone3D />
           </div>
         </div>
       </section>

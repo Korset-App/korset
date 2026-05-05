@@ -31,10 +31,10 @@
   --lp-bad-soft: rgba(248, 113, 113, 0.2);
 
   /* Neutral darks with a violet tint (not flat grey) */
-  --lp-bg: #0a0a12;
-  --lp-bg-elevated: #13131f;
-  --lp-bg-card: #1a1a28;
-  --lp-bg-card-strong: #20203a;
+  --lp-bg: #02090a;
+  --lp-bg-elevated: #040e0f;
+  --lp-bg-card: rgba(10, 18, 19, 0.7);
+  --lp-bg-card-strong: rgba(12, 22, 23, 0.8);
 
   /* Foregrounds */
   --lp-fg: #f4f4ff;
