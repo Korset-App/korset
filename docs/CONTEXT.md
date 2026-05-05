@@ -435,3 +435,18 @@ Poster (fallback): Unsplash `photo-1567449303183` (продуктовый маг
 - Light theme strengthened with more visible borders/shadows for pale cards; dark theme remains the primary premium look.
 - Category click now has a short exit animation before opening the product list.
 - Verification after refinement: unit showcase test passed, i18n check passed, lint passed with existing warnings only, production build passed, Playwright visual smoke on 360/393/430 widths found 18 cards and 0 overlaps.
+
+### CATALOGSCREEN GEOMETRY POLISH 2026-05-05
+
+- Restored the showcase proportions closer to the Figma reference after user review: tea/coffee is no longer an oversized tower, dairy/fish stay one-line where possible, and lower catalog rows are varied without invalid/non-rectangular grid areas.
+- Fixed image scaling so category images are not scaled twice; sweets is less zoomed, meat is slightly closer, and grocery/tea keep controlled scale.
+- Tightened title line-height and compact-card font sizing so two-line labels take less vertical space and long labels no longer visually stretch cards.
+- Light theme got stronger separation for mint/leaf/pale cards and a clearer text backing so sweets/healthy/pale cards do not blend into the page.
+- Category click transition was simplified for performance: shorter delay, no expensive filter animation, smaller transform.
+- Verification: unit showcase test, i18n check, lint (0 errors, existing warnings), production build, and Chromium smoke passed; 393px viewport renders 18 cards, 0 overlaps, text widths fit.
+
+### AUTH STRATEGY DISCOVERY 2026-05-05
+
+- User wants a professional auth audit before implementation, especially password reset and removing Apple/SMS options.
+- Direction under discussion: keep auth lean for V1, explore WhatsApp phone OTP for Kazakhstan users, avoid Telegram for now, and treat WebAuthn/Passkeys as likely post-V1.
+- Open decisions before code: Supabase phone OTP provider, WhatsApp via Twilio/Twilio Verify or Send SMS Hook, account linking/duplicate identities, recovery UX, rate limits/CAPTCHA, no account enumeration, RU/KZ copy, buyer vs retailer auth differences.

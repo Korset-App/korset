@@ -219,7 +219,7 @@
 }
 
 .lp-brand__logo {
-  height: 32px;
+  height: 42px;
   width: auto;
   display: block;
   filter: drop-shadow(0 0 12px rgba(124, 92, 255, 0.3));
@@ -414,9 +414,7 @@
   height: 100%;
   object-fit: cover;
   object-position: center 40%;
-  transform: scale(1.04);
-  animation: lp-hero-bg-drift 20s ease-in-out infinite alternate;
-  /* Applies to both <img> and <video> */
+  /* Removed animation to prevent video rendering glitches in some browsers */
 }
 
 @keyframes lp-hero-bg-drift {

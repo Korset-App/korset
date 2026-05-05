@@ -72,3 +72,14 @@ CatalogScreen получил новый верхний уровень: вмес�
 - Strengthened light-theme card borders/shadows, especially for pale cards such as water, frozen, and household.
 - Added a short premium click transition before opening a category: selected card lifts while the rest fade/settle, then the product list opens.
 - Visual smoke after refinement: `360x740`, `393x851`, and `430x932` all render 18 cards with 0 detected overlaps; first 8 cards keep the expected order.
+
+## Geometry Polish After Second Review
+
+- Restored proportions closer to the Figma reference instead of overfitting to a regular grid: tea/coffee is back to a controlled portrait block, dairy/fish are one-line, and the lower half keeps varied bento rhythm.
+- Replaced invalid/non-rectangular area attempts with a valid explicit `grid-template-areas` layout: bread/frozen/snacks and ready/sauces/healthy/care/household now form clean rectangles with no single-card tail.
+- Removed double image scaling in CSS (`width/height` now stay at 100%, only `transform: scale(...)` controls optical zoom).
+- Tuned per-category image scale: sweets less zoomed, meat closer, tea/grocery controlled, household still slightly backed off.
+- Reduced compact-card typography and tightened title line-height so two-line labels read cleaner and use less vertical space.
+- Light theme separation strengthened for mint/leaf/pale cards; text backing is clearer without turning every title into a heavy label.
+- Click transition simplified for performance: shorter 120ms delay, no `filter`, smaller transform and opacity movement.
+- Verification after polish: showcase unit test passed, i18n check passed, lint passed with 0 errors and existing warnings, build passed, Chromium smoke at 393px found 18 cards, 0 overlaps, and fitting title widths.

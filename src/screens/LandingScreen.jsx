@@ -964,12 +964,8 @@ export default function LandingScreen() {
             playsInline
             poster={d.heroVideo.poster}
             preload="auto"
-          >
-            <source
-              src="https://player.vimeo.com/external/403661156.sd.mp4?s=d1cc098e6fb1c49bd1237e1742debf7ec9ccdc7c&profile_id=164&oauth2_token_id=57447761"
-              type="video/mp4"
-            />
-          </video>
+            src="https://cdn.coverr.co/videos/coverr-walking-through-a-supermarket-aisle-2747/1080p.mp4"
+          />
           <div className="lp-hero__bg-overlay" />
         </div>
 
