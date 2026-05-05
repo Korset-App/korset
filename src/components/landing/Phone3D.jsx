@@ -5,15 +5,14 @@ import * as THREE from 'three'
 
 // iPhone Model Component
 function Model({ ...props }) {
-  // Using a high-quality iPhone 13 model from a reliable CDN
+  // HOOKS MUST BE AT THE TOP LEVEL
   const { nodes, materials } = useGLTF(
     'https://vazxmixjsiawhamofees.supabase.co/storage/v1/object/public/models/iphone-x/model.gltf'
   )
-
   const group = useRef()
 
-  // Subtle rotation animation
   useFrame((state) => {
+    if (!group.current) return
     const t = state.clock.getElapsedTime()
     group.current.rotation.x = THREE.MathUtils.lerp(
       group.current.rotation.x,
@@ -32,40 +31,46 @@ function Model({ ...props }) {
     )
   })
 
+  // Safe checks AFTER hooks
+  if (!nodes || !materials) return null
+
   return (
     <group ref={group} {...props} dispose={null}>
-      <mesh geometry={nodes.body.geometry} material={materials.body} />
-      <mesh geometry={nodes.screen.geometry}>
-        <meshStandardMaterial roughness={0.1} metalness={0.8} />
-        {/* We can put a real texture here or an Html component for the screen */}
-        <Html
-          transform
-          occlude
-          position={[0, 0, 0.05]}
-          style={{
-            width: '185px',
-            height: '400px',
-            background: '#000',
-            overflow: 'hidden',
-            borderRadius: '24px',
-            pointerEvents: 'none',
-            userSelect: 'none',
-          }}
-        >
-          <iframe
-            src="/stores"
-            title="Körset Preview"
+      {nodes.body && <mesh geometry={nodes.body.geometry} material={materials.body} />}
+      {nodes.screen && (
+        <mesh geometry={nodes.screen.geometry}>
+          <meshStandardMaterial roughness={0.1} metalness={0.8} color="#050505" />
+          <Html
+            transform
+            occlude
+            position={[0, 0, 0.06]}
             style={{
-              width: '100%',
-              height: '100%',
-              border: 'none',
-              transform: 'scale(1)',
-              transformOrigin: 'top left',
+              width: '185px',
+              height: '400px',
+              background: '#02090a',
+              overflow: 'hidden',
+              borderRadius: '24px',
+              pointerEvents: 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+              fontSize: '24px',
+              fontWeight: '700',
+              fontFamily: 'sans-serif',
             }}
-          />
-        </Html>
-      </mesh>
-      <mesh geometry={nodes.button.geometry} material={materials.body} />
+          >
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '12px', opacity: 0.5, marginBottom: '8px', fontWeight: 400 }}>
+                KÖRSET PWA
+              </div>
+              KÖRSET
+            </div>
+          </Html>
+        </mesh>
+      )}
+      {nodes.button && <mesh geometry={nodes.button.geometry} material={materials.body} />}
     </group>
   )
 }
@@ -77,6 +82,9 @@ export default function Phone3D() {
         camera={{ position: [0, 0, 5], fov: 35 }}
         gl={{ antialias: true, alpha: true }}
         dpr={[1, 2]}
+        onCreated={({ gl }) => {
+          gl.toneMapping = THREE.ACESFilmicToneMapping
+        }}
       >
         <ambientLight intensity={0.5} />
         <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} />
