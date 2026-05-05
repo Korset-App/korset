@@ -463,6 +463,91 @@ function FeatureMockup({ index, phone, fit }) {
   }
 }
 
+function RetailIcon({ name }) {
+  const icons = {
+    qr_code_2: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="2" y="2" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+        <rect x="4" y="4" width="4" height="4" fill="currentColor" opacity=".7" />
+        <rect x="14" y="2" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+        <rect x="16" y="4" width="4" height="4" fill="currentColor" opacity=".7" />
+        <rect x="2" y="14" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+        <rect x="4" y="16" width="4" height="4" fill="currentColor" opacity=".7" />
+        <rect x="14" y="14" width="3" height="3" fill="currentColor" opacity=".7" />
+        <rect x="19" y="14" width="3" height="3" fill="currentColor" opacity=".7" />
+        <rect x="14" y="19" width="3" height="3" fill="currentColor" opacity=".7" />
+        <rect x="19" y="19" width="3" height="3" fill="currentColor" opacity=".7" />
+      </svg>
+    ),
+    inventory_2: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M12 3 3 7v10l9 4 9-4V7L12 3z"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M3 7l9 4 9-4M12 11v10"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
+    query_stats: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="3" y="13" width="4" height="8" rx="1" fill="currentColor" opacity=".5" />
+        <rect x="10" y="8" width="4" height="13" rx="1" fill="currentColor" opacity=".75" />
+        <rect x="17" y="3" width="4" height="18" rx="1" fill="currentColor" />
+        <path
+          d="M3 6l5 4 5-3 6-3"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+    dashboard: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="2" y="2" width="9" height="9" rx="2" stroke="currentColor" strokeWidth="1.5" />
+        <rect x="13" y="2" width="9" height="9" rx="2" stroke="currentColor" strokeWidth="1.5" />
+        <rect x="2" y="13" width="9" height="9" rx="2" stroke="currentColor" strokeWidth="1.5" />
+        <rect
+          x="13"
+          y="13"
+          width="9"
+          height="9"
+          rx="2"
+          fill="currentColor"
+          opacity=".25"
+          stroke="currentColor"
+          strokeWidth="1.5"
+        />
+      </svg>
+    ),
+    campaign: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M3 9h2l5 4V5L5 9H3a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h2"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+        />
+        <path d="M6 14l2 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <path
+          d="M10 9c2 0 6-2 8-6v14c-2-4-6-6-8-6"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+  }
+  return icons[name] ?? null
+}
+
 function DemoPhone({ texts }) {
   return (
     <figure className="lp-phone-wrap" aria-label={texts.aria}>
@@ -732,6 +817,18 @@ export default function LandingScreen() {
           'text',
           'group',
         ]),
+      },
+      stats: collectObjArr(t, exists, 'landing.stats', ['value', 'label']),
+      video: {
+        title: exists('landing.video.title') ? t('landing.video.title') : '',
+        play: exists('landing.video.play') ? t('landing.video.play') : '',
+      },
+      retail: {
+        eyebrow: t('landing.retail.eyebrow'),
+        title: t('landing.retail.title'),
+        text: t('landing.retail.text'),
+        cta: t('landing.retail.cta'),
+        cards: collectObjArr(t, exists, 'landing.retail.cards', ['icon', 'title', 'text']),
       },
     }),
     [t, exists]
@@ -1167,11 +1264,110 @@ export default function LandingScreen() {
         </div>
       </section>
 
-      {/* Placeholder этапы 5-7 */}
-      <section className="lp-section lp-stage-placeholder" id="stats">
+      {/* ═══ ЭТАП 5а — Stats ═══ */}
+      <section className="lp-stats" id="stats" aria-label="Körset — статистика">
+        <div className="lp-stats__bg" aria-hidden="true">
+          <img
+            src="https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&w=1800&q=55"
+            alt=""
+            className="lp-stats__bg-img"
+            loading="lazy"
+            decoding="async"
+          />
+          <div className="lp-stats__bg-overlay" />
+        </div>
+        <div className="lp-stats__inner">
+          <div className="lp-stats__grid">
+            {d.stats.map((stat, i) => (
+              <div key={i} className={`lp-stats__item lp-reveal lp-reveal--delay-${i + 1}`}>
+                <span className="lp-stats__value">{stat.value}</span>
+                <span className="lp-stats__label">{stat.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ ЭТАП 5б — Video ═══ */}
+      <section className="lp-section lp-video" id="demo-video" aria-labelledby="lp-video-title">
+        <div className="lp-video__inner">
+          <div className="lp-video__header lp-reveal">
+            <h2 className="lp-section-title" id="lp-video-title">
+              {d.video.title}
+            </h2>
+          </div>
+          <div className="lp-video__player lp-reveal lp-reveal--delay-1">
+            <figure className="lp-video__thumb">
+              <img
+                src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1400&q=70"
+                alt=""
+                className="lp-video__thumb-img"
+                loading="lazy"
+                decoding="async"
+              />
+              <div className="lp-video__thumb-overlay" aria-hidden="true" />
+              <button className="lp-video__play-btn" aria-label={d.video.play}>
+                <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true">
+                  <path d="M9 7l13 6.5L9 20V7z" fill="currentColor" />
+                </svg>
+              </button>
+              <div className="lp-video__caption" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.2" />
+                  <path
+                    d="M7 4v3l2 1.5"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                60 сек
+              </div>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ ЭТАП 5в — Retail ═══ */}
+      <section className="lp-section lp-retail" id="retail" aria-labelledby="lp-retail-title">
+        <div className="lp-retail__inner">
+          <div className="lp-retail__header lp-reveal">
+            <span className="lp-section-badge">{d.retail.eyebrow}</span>
+            <h2 className="lp-section-title" id="lp-retail-title">
+              {d.retail.title}
+            </h2>
+            <p className="lp-section-desc">{d.retail.text}</p>
+          </div>
+          <div className="lp-retail__cards">
+            {d.retail.cards.map((card, i) => (
+              <article
+                key={i}
+                className={`lp-retail__card lp-reveal lp-reveal--delay-${(i % 3) + 1}`}
+              >
+                <div className="lp-retail__card-icon">
+                  <RetailIcon name={card.icon} />
+                </div>
+                <div>
+                  <h3 className="lp-retail__card-title">{card.title}</h3>
+                  <p className="lp-retail__card-text">{card.text}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+          <div className="lp-retail__cta lp-reveal lp-reveal--delay-2">
+            <a href="/retail" className="lp-btn lp-btn--primary lp-btn--lg">
+              {d.retail.cta}
+              <ArrowIcon />
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* Placeholder этапы 6-7 */}
+      <section className="lp-section lp-stage-placeholder" id="pricing">
         <div className="lp-stage-placeholder__inner">
-          <span className="lp-stage-placeholder__chip">Этапы 5-7 · в разработке</span>
-          <h2>Stats · Video · Retail · Pricing · FAQ · CTA · Footer</h2>
+          <span className="lp-stage-placeholder__chip">Этапы 6-7 · в разработке</span>
+          <h2>Pricing · FAQ · Testimonials · CTA · Footer</h2>
         </div>
       </section>
     </main>

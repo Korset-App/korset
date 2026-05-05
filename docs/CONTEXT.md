@@ -218,7 +218,7 @@ Pipeline: arbuz-import, arbuz-catalog-parser, korzinavdom-parser — все ис
 | 2 | Demo-секция + CSS 3D phone mockup | ✅ ГОТОВО |
 | 3 | How (3 шага с фото) + Fit-Check (3 мокапа) | ✅ ГОТОВО |
 | 4 | Audience (4 карточки с фото) + Features (6 табов с мокапами) | ✅ ГОТОВО |
-| 5 | Stats (bg фото) + Video-demo + Retail | 🔲 |
+| 5 | Stats (большие цифры с bg-фото) + Video-demo + Retail | ✅ ГОТОВО |
 | 6 | Pricing + FAQ (2 колонки) + Testimonials | 🔲 |
 | 7 | CTA (финал) + Footer + polish pass | 🔲 |
 
@@ -290,8 +290,14 @@ Poster (fallback): Unsplash `photo-1567449303183` (продуктовый маг
 1. **Прочитай** `docs/CONTEXT.md` (этот файл) + `AGENTS.md`
 2. **Vault RAG:** `node scripts/query-vault.mjs "landing v3 plan stages" --domain plans`
 3. **Файлы:** `src/screens/LandingScreen.jsx` + `src/screens/LandingScreen.css` + `src/screens/landing/landing-tokens.css`
-4. **СЛЕДУЮЩИЙ: Этап 5** — Stats (большие цифры с bg-фото) + Video-demo секция + Retail секция
-5. i18n ключи уже в `ru/home.json` и `kz/home.json` (`landing.stats.*`, `landing.video.*`, `landing.retail.*`)
+4. **СЛЕДУЮЩИЙ: Этап 6** — Pricing (3 тарифа) + FAQ (аккордеон) + Footer (лого+нав+локальный CTA)
+5. i18n ключи `landing.pricing.*`, `landing.faq.*`, `landing.footer.*` уже есть в ru/kz
+6. **Placeholder id="pricing"** — цель: заменить его
+
+### ЧТО СДЕЛАНО В ЭТАПЕ 5 (2026-05-05):
+**Stats:** 4 больших цифры (gradient-text), bg-фото супермаркета, blur+overlay
+**Video:** 16/9 thumbnail, centered play-btn (hover становится фиолетовым с glow), caption «60 сек»
+**Retail:** 5 карточек с SVG иконками, border-left фиолетовый акцент, CTA кнопка `/retail`
 
 ### ЧТО СДЕЛАНО В ЭТАПЕ 4 (2026-05-05):
 **ЭТАП 4а — Audience:** 4 photo card grid, Unsplash, hover lift, `border-radius` + overlay gradient
