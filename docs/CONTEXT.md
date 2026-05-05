@@ -205,52 +205,122 @@ Pipeline: arbuz-import, arbuz-catalog-parser, korzinavdom-parser — все ис
 
 ## ТЕКУЩИЙ ФОКУС (2026-05-05)
 
-### Сессия 7 — Landing Page V2 Redesign — ЭТАПЫ 1-5 ЗАВЕРШЕНЫ ✅
+### Сессия 8 — Landing Page V3 ПОЛНЫЙ РЕБИЛД — ЭТАПЫ 1-2 ВЫПОЛНЕНЫ ✅
 
-**Полный план:** `docs/vault/plans/landing-redesign-v2.md` (5 этапов, 56 чанков в Vault)
+**Полный план V3:** `docs/vault/plans/landing-v3-full-rebuild.md` (14 секций, Shopify-style)
+**Технические детали этой сессии:** `docs/vault/changelog/2026-05-05-landing-v3-stages1-2.md`
 
-**Этап 1 (Header+Hero+Proof) — ВЫПОЛНЕН с профессиональной адаптивностью:**
-- **LandingScreen.jsx** — sticky header + nav + гамбургер, hero с ротирующимся словом, CSS 3D phone mockup, social proof bar
-- **LandingScreen.css** — полностью переписан с адаптивностью уровня Stripe/Shopify:
-  - 6 breakpoints: 360/480/768/1024/1280/1440
-  - clamp() для всех размеров, aspect-ratio на phone mockup
-  - `@media (hover: hover)` — hover только на мышке
-  - Height queries (≤680px, ≤500px landscape), safe-area env(), touch optimization
-  - Accessibility: prefers-contrast, forced-colors, focus-visible, container queries
-  - Reduced motion — отключает transform transitions + scroll-behavior: auto
+**СТАТУС ЭТАПОВ ЛЕНДИНГА V3:**
+| # | Секция | Статус |
+|---|--------|--------|
+| 0 | Дизайн-токены (`landing-tokens.css`) + animation framework | ✅ ГОТОВО |
+| 1 | Header (fixed) + Hero (fullscreen video bg) | ✅ ГОТОВО |
+| 2 | Demo-секция + CSS 3D phone mockup | ✅ ГОТОВО |
+| 3 | How (3 шага с фото) + Fit-Check (3 мокапа) | ✅ ГОТОВО |
+| 4 | Audience (4 карточки с фото) + Features (6 табов с мокапами) | ✅ ГОТОВО |
+| 5 | Stats (bg фото) + Video-demo + Retail | 🔲 |
+| 6 | Pricing + FAQ (2 колонки) + Testimonials | 🔲 |
+| 7 | CTA (финал) + Footer + polish pass | 🔲 |
 
-**Этап 2 (How+Fit+Для кого) — ВЫПОЛНЕН:**
-- i18n: «Fit-Check» → «Подходит ли?» / «Сай келе ме?» (RU+KZ)
-- How: «Три шага — и ты знаешь всё», шаг 3 → «Узнай, подходит ли»
-- Fit-cards: 3px цветной left-border, 32px иконки, 20px заголовки, hover glow по тону
-- Audience: описания расширены, article без mini-card
+### КРИТИЧЕСКИ ВАЖНЫЕ АРХИТЕКТУРНЫЕ РЕШЕНИЯ V3:
 
-**Этап 3 (Features+Stats+Video+удаление compare) — ВЫПОЛНЕН:**
-- Features: 6 карточек с группами, icon gradient container 52px, group pill
-- Stats: обновлены значения, gradient mesh bg, accent-sky hover glow
-- Video: полноширинный placeholder (16/9, animated gradient, play button)
-- Compare секция полностью удалена
+#### 1. ESCAPE-МЕХАНИЗМ APP-FRAME (КЛЮЧЕВОЕ!)
+`LandingScreen` рендерится внутри `HomeScreen → <div className="app-frame">` (App.jsx:85).
+`.app-frame` в `index.css` имеет `max-width: 430px` и `overflow: hidden` — это УБИВАЕТ лендинг.
 
-**Этап 4 (Retail+Pricing+FAQ+Footer+удаление connect) — ВЫПОЛНЕН:**
-- Retail: 5 compact карточек (QR, Каталог, Аналитика, Кабинет, Продвижение) + CTA
-- Pricing: Basic (7 фич + note + CTA), PRO/Enterprise (locked, «Скоро»)
-- FAQ: 6 вопросов, Advent Pro 800 summary, primary glow на [open]
-- Connect + RetailDashboard полностью удалены (~200 строк CSS + i18n ключи)
+**Решение:** `useEffect` в `LandingScreen.jsx` на mount добавляет классы:
+```js
+document.querySelector('.app-frame').classList.add('app-frame--landing')
+document.documentElement.classList.add('lp-html-active')
+```
+В `LandingScreen.css` класс `.app-frame--landing` отменяет все ограничения:
+```css
+.app-frame--landing {
+  max-width: 100% !important;
+  height: auto !important;
+  overflow: visible !important;
+  overflow-x: hidden !important;
+  background: transparent !important;
+  border: none !important;
+  display: block !important;
+}
+```
+На unmount — классы убираются. **НЕ трогать App.jsx или HomeScreen.jsx!**
 
-**Этап 5 (Polish+Verify) — ВЫПОЛНЕН:**
-- CSS audit: 0 dead selectors, 0 deleted-section remnants
-- Fixed: `#fff` → `var(--text)` (btn-primary, video play icon)
-- Fixed: dead `border-left-color` properties в fit-card variants
-- Fixed: duplicate `.landing-retail-grid` display/gap
-- Added: `scroll-behavior: smooth` + `scroll-padding-top` для навигации
-- Added: `scroll-behavior: auto` в reduced-motion
-- Verified: check-i18n PASS (0 missing, 0 orphan), build OK, lint 0 errors
+#### 2. HEADER: position:fixed (НЕ sticky!)
+`position: sticky` ломается внутри `overflow: hidden/clip` родителей.
+Используем `position: fixed; top:0; left:0; right:0; z-index:60`.
+Hero content имеет `padding-top: calc(var(--lp-header-h) + ...)`.
 
-**Ключевые решения:**
-- Только тёмная тема — как у Shopify/Framer/Slack
-- «Подходит ли?» вместо «Fit-Check»
-- CSS 3D phone mockup → потом GLB через Spline
-- Термин «Fit-Check» в текстах заменяется на «Подходит ли?» / «Сай келе ме?»
+#### 3. ВИДЕО В HERO
+`<video autoPlay muted loop playsInline poster={unsplashUrl}>` — тег video, не img.
+Источник: `https://assets.mixkit.co/videos/preview/mixkit-shopping-at-the-supermarket-19406-large.mp4`
+Poster (fallback): Unsplash `photo-1567449303183` (продуктовый магазин).
+
+#### 4. CSS-ПЕРЕМЕННЫЕ
+Все токены в `src/screens/landing/landing-tokens.css`.
+`--lp-*` namespace изолирован от глобальных `--bg-app`, `--text` и пр.
+НЕ хардкодить цвета кроме semitransparent rgba() для статус-цветов (ok/warn/bad).
+
+### ЧТО СДЕЛАНО В ЭТОЙ СЕССИИ (Этапы 1-2):
+
+**ЭТАП 1 — Header + Hero:**
+- Fullscreen video hero (Shopify-style) — video абсолютно positioned как bg
+- Header `position: fixed`, blur backdrop на scroll (`lp-header--scrolled`)
+- Mobile hamburger + overlay menu
+- Ротирующееся слово в заголовке (`HeroRotatingWord`)
+- Pills, subtitle, 2 CTA кнопки, tagline с checkmarks
+- Кнопки: `lp-btn--primary` = solid `var(--lp-brand)` БЕЗ gradient, `lp-btn--ghost` = white glass
+- Заголовок: `font-weight: 600` (не 800 — тоньше, премиально)
+- Scroll-cue анимация внизу hero
+
+**ЭТАП 2 — Demo секция + Phone Mockup:**
+- 2-колоночная секция (copy left, phone right на desktop)
+- `DemoPhone` компонент — CSS 3D phone mockup:
+  - `perspective(1100px) rotateY(-16deg) rotateX(5deg)` → hover de-tilts
+  - Notch, status bar (9:41), app header с логотипом
+  - Product card (🥛 + name + meta), зелёный status badge
+  - 3 fit-check rows (аллергены/халал/КБЖУ), home indicator
+  - Scan beam animation (violet→cyan линия, loop 2.4s)
+  - Glow под телефоном, 2 floating orbit chips
+- Все тексты через i18n (check-i18n PASS, 0 missing KZ)
+
+### КАК ПРОДОЛЖИТЬ (следующий агент):
+
+1. **Прочитай** `docs/CONTEXT.md` (этот файл) + `AGENTS.md`
+2. **Vault RAG:** `node scripts/query-vault.mjs "landing v3 plan stages" --domain plans`
+3. **Файлы:** `src/screens/LandingScreen.jsx` + `src/screens/LandingScreen.css` + `src/screens/landing/landing-tokens.css`
+4. **СЛЕДУЮЩИЙ: Этап 5** — Stats (большие цифры с bg-фото) + Video-demo секция + Retail секция
+5. i18n ключи уже в `ru/home.json` и `kz/home.json` (`landing.stats.*`, `landing.video.*`, `landing.retail.*`)
+
+### ЧТО СДЕЛАНО В ЭТАПЕ 4 (2026-05-05):
+**ЭТАП 4а — Audience:** 4 photo card grid, Unsplash, hover lift, `border-radius` + overlay gradient
+**ЭТАП 4б — Features:** 6 табов (ARIA tablist/tabpanel/role=tab), переключаемый панель, 6 CSS мокапов: FitCheck/КБЖУ/Альтернативы/Сравнение/AI/QR
+**Верификация:** build OK, check-i18n PASS, lint 0 errors
+
+### ЧТО СДЕЛАНО В ЭТАПЕ 3 (2026-05-05):
+
+**ЭТАП 3а — How (Как работает):**
+- Убран `lp-stage-placeholder`, добавлена секция `#how` с 3 шагами Linear/Shopify-style
+- Чередование layout: шаг 1 (фото слева), шаг 2 (фото справа), шаг 3 (CSS FitCheck mockup слева)
+- Unsplash фото: person с телефоном у полки, barcode крупный план
+- Numbered badges `01` `02` `03` — фиолетовый circular badge (Linear style)
+- Step 3: CSS mini-mockup результата Körset (header, зелёная карточка «Подходит», 3 row аллерген/халал/КБЖУ)
+- Reveal анимации: `lp-reveal--right` / `lp-reveal--left` с задержками
+- Mobile-first: stack на мобильном, grid 46/54 на tablet+
+- Чередование через `direction: rtl` на `lp-how__step--photo-right` (без лишних grid-переопределений)
+
+**ЭТАП 3б — Fit-Check (Результат скана):**
+- 3 glassmorphism карточки: `lp-fit__card--good` (зелёный), `--warn` (жёлтый), `--bad` (красный)
+- Фоновое фото полки супермаркета (Unsplash) — blur + overlay
+- Каждая карточка: ambient glow слева, SVG иконка, заголовок цвета тона, текст из i18n, пример продукта (молоко/шоколад/хлеб)
+- `border-left: 3px` акцент цвета тона
+- Hover: translateY(-4px) + цветной box-shadow glow
+- Footer: «Не подошёл? Альтернативы» + disclaimer ⚠
+- Grid: 1 col mobile → 2 col tablet → 3 col desktop
+
+**Новые компоненты в JSX:** `collectObjArr`, `FitIcon`, `FitExampleProduct`, `AlternativesIcon`
+**Верификация:** build OK, check-i18n PASS, lint 0 errors
 
 ### Сессия 6 — Landing Page Redesign V1 — ВЫПОЛНЕНО ✅
 
