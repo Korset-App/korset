@@ -33,6 +33,7 @@ export const CATEGORY_SHOWCASE = {
     variant: 'compact',
     tone: 'green',
     textTone: 'dark',
+    imageScale: 1.12,
   },
   deli: {
     image: `${IMAGE_BASE}/category-deli.webp`,
@@ -58,13 +59,14 @@ export const CATEGORY_SHOWCASE = {
     variant: 'portrait',
     tone: 'plum',
     textTone: 'light',
-    imageScale: 1.18,
+    imageScale: 1.12,
   },
   sweets: {
     image: `${IMAGE_BASE}/category-sweets.webp`,
     variant: 'hero',
     tone: 'mint',
     textTone: 'light',
+    imageScale: 0.96,
   },
   snacks: {
     image: `${IMAGE_BASE}/category-snacks.webp`,
@@ -77,7 +79,7 @@ export const CATEGORY_SHOWCASE = {
     variant: 'portrait',
     tone: 'teal',
     textTone: 'light',
-    imageScale: 1.14,
+    imageScale: 1.08,
   },
   sauces_spices: {
     image: `${IMAGE_BASE}/category-sauces-spices.webp`,
@@ -87,14 +89,14 @@ export const CATEGORY_SHOWCASE = {
   },
   bread: {
     image: `${IMAGE_BASE}/category-bread.webp`,
-    variant: 'wide',
+    variant: 'compact',
     tone: 'wheat',
     textTone: 'dark',
     imageY: '48%',
   },
   frozen: {
     image: `${IMAGE_BASE}/category-frozen.webp`,
-    variant: 'wide',
+    variant: 'compact',
     tone: 'ice',
     textTone: 'dark',
     imageY: '49%',

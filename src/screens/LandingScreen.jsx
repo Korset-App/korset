@@ -902,8 +902,7 @@ export default function LandingScreen() {
       <header className={`lp-header ${scrolled ? 'lp-header--scrolled' : ''}`}>
         <div className="lp-header__inner">
           <a className="lp-brand" href="/" aria-label="Körset">
-            <img src="/icon_logo.svg" alt="" className="lp-brand__mark" />
-            <span className="lp-brand__name">Körset</span>
+            <img src="/korset_logo.svg" alt="Körset" className="lp-brand__logo" />
           </a>
 
           <nav className="lp-header__nav" aria-label="Primary">
@@ -967,7 +966,7 @@ export default function LandingScreen() {
             preload="auto"
           >
             <source
-              src="https://assets.mixkit.co/videos/preview/mixkit-shopping-at-the-supermarket-19406-large.mp4"
+              src="https://player.vimeo.com/external/403661156.sd.mp4?s=d1cc098e6fb1c49bd1237e1742debf7ec9ccdc7c&profile_id=164&oauth2_token_id=57447761"
               type="video/mp4"
             />
           </video>
@@ -1545,8 +1544,7 @@ export default function LandingScreen() {
             <div className="lp-footer__brand-col">
               <div className="lp-footer__brand-wrap">
                 <a className="lp-brand lp-footer__brand" href="/" aria-label="Körset">
-                  <img src="/icon_logo.svg" alt="" className="lp-brand__mark" />
-                  <span className="lp-brand__name">Körset</span>
+                  <img src="/korset_logo.svg" alt="Körset" className="lp-brand__logo" />
                 </a>
               </div>
               <h3 className="lp-footer__title">{d.footer.title}</h3>

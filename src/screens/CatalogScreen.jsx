@@ -370,7 +370,7 @@ export default function CatalogScreen() {
       setSelectedSubcategory(null)
       setPendingCategory(null)
       categoryExitTimerRef.current = null
-    }, 210)
+    }, 120)
   }, [])
 
   const handleBackToCategories = useCallback(() => {

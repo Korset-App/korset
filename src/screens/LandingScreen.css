@@ -1,4 +1,4 @@
-﻿@import './landing/landing-tokens.css';
+@import './landing/landing-tokens.css';
 
 /* в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ
    LANDING V3 вЂ” Premium Dark
@@ -215,26 +215,19 @@
 .lp-brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
   text-decoration: none;
-  color: inherit;
-  font-family: var(--font-display, 'Advent Pro', sans-serif);
-  font-weight: 800;
-  font-size: 22px;
-  letter-spacing: -0.01em;
 }
 
-.lp-brand__mark {
-  width: 30px;
-  height: 30px;
-  filter: drop-shadow(0 0 16px rgba(124, 92, 255, 0.5));
+.lp-brand__logo {
+  height: 32px;
+  width: auto;
+  display: block;
+  filter: drop-shadow(0 0 12px rgba(124, 92, 255, 0.3));
+  transition: transform 0.3s var(--lp-ease);
 }
 
-.lp-brand__name {
-  background: var(--lp-gradient-text-brand);
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
+.lp-brand:hover .lp-brand__logo {
+  transform: scale(1.03);
 }
 
 .lp-header__nav {
@@ -775,8 +768,14 @@
    в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ */
 
 .lp-demo {
-  background: var(--lp-bg-elevated);
-  border-top: 1px solid var(--lp-border);
+  position: relative;
+  z-index: 10;
+  margin-top: -60px;
+  background: var(--lp-bg);
+  border-top: 1px solid var(--lp-border-bright);
+  border-top-left-radius: clamp(32px, 5vw, 60px);
+  border-top-right-radius: clamp(32px, 5vw, 60px);
+  box-shadow: 0 -30px 100px rgba(0, 0, 0, 0.6);
 }
 
 .lp-demo__inner {
@@ -2043,8 +2042,8 @@
 @media (min-width: 1024px) { .lp-footer__top { grid-template-columns: 1.5fr 2fr; } }
 .lp-footer__brand-col { display: flex; flex-direction: column; gap: 24px; max-width: 400px; }
 .lp-footer__brand-wrap { margin-bottom: 4px; }
-.lp-footer__brand { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; font: 800 28px/1 var(--font-display,'Advent Pro',sans-serif); }
-.lp-footer__brand-mark { width: 36px; height: 36px; filter: drop-shadow(0 0 16px rgba(124, 92, 255, 0.5)); }
+.lp-footer__brand { display: inline-flex; align-items: center; text-decoration: none; }
+.lp-footer__brand .lp-brand__logo { height: 38px; }
 .lp-footer__title { font: 600 20px/1.3 var(--font-display,'Advent Pro',sans-serif); color: var(--lp-fg); margin: 0; }
 .lp-footer__text { font: 400 15px/1.6 var(--font-body,'Inter',sans-serif); color: var(--lp-fg-mute); margin: 0; }
 .lp-footer__links { display: grid; grid-template-columns: repeat(2,1fr); gap: 40px; }
