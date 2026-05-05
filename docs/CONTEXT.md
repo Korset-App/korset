@@ -205,25 +205,56 @@ Pipeline: arbuz-import, arbuz-catalog-parser, korzinavdom-parser — все ис
 
 ## ТЕКУЩИЙ ФОКУС (2026-05-05)
 
-### Сессия 6 — Landing Page Redesign — ВЫПОЛНЕНО ✅
+### Сессия 7 — Landing Page V2 Redesign — ЭТАПЫ 1-5 ЗАВЕРШЕНЫ ✅
 
-**LandingScreen.css — полный редизайн (1409→~1100 строк):**
-- Бренд: градиентный текст `primary-bright → accent-sky` вместо монохрома
-- Hero h1: градиентный текст `text → primary-bright → accent-sky`
-- Кнопки: `--primary` градиент вместо `--accent-sky`, hover с glow-тенью и translateY(-1px)
-- Карты: hover-эффекты `translateY(-2px)` + primary glow на бордере
-- Step номер: градиентный текст вместо серого
-- Stats: градиентный текст значений, hover с sky glow
-- Compare: тонкие цветные фоны (красный/зелёный) вместо нейтральных
-- FAQ: `+` индикатор с поворотом на 45° при открытии, `details[open]` подсветка бордера
-- Footer: hover-ссылки → primary-bright, backdrop-filter с saturate
-- Connect pills: backdrop-blur + hover → primary
-- Fit-Check карты: цветные градиентные фоны (good/warn/bad)
-- Disclaimer: backdrop-blur glass вместо plain bg
-- Header: saturate(1.4) в backdrop, hover → primary glow на кнопках
-- Общее: увеличены padding/margin для простора, tighter letter-spacing, CSS-переменные `--landing-radius`
+**Полный план:** `docs/vault/plans/landing-redesign-v2.md` (5 этапов, 56 чанков в Vault)
 
-**Проверка:** build OK, lint 0 errors, check-i18n OK
+**Этап 1 (Header+Hero+Proof) — ВЫПОЛНЕН с профессиональной адаптивностью:**
+- **LandingScreen.jsx** — sticky header + nav + гамбургер, hero с ротирующимся словом, CSS 3D phone mockup, social proof bar
+- **LandingScreen.css** — полностью переписан с адаптивностью уровня Stripe/Shopify:
+  - 6 breakpoints: 360/480/768/1024/1280/1440
+  - clamp() для всех размеров, aspect-ratio на phone mockup
+  - `@media (hover: hover)` — hover только на мышке
+  - Height queries (≤680px, ≤500px landscape), safe-area env(), touch optimization
+  - Accessibility: prefers-contrast, forced-colors, focus-visible, container queries
+  - Reduced motion — отключает transform transitions + scroll-behavior: auto
+
+**Этап 2 (How+Fit+Для кого) — ВЫПОЛНЕН:**
+- i18n: «Fit-Check» → «Подходит ли?» / «Сай келе ме?» (RU+KZ)
+- How: «Три шага — и ты знаешь всё», шаг 3 → «Узнай, подходит ли»
+- Fit-cards: 3px цветной left-border, 32px иконки, 20px заголовки, hover glow по тону
+- Audience: описания расширены, article без mini-card
+
+**Этап 3 (Features+Stats+Video+удаление compare) — ВЫПОЛНЕН:**
+- Features: 6 карточек с группами, icon gradient container 52px, group pill
+- Stats: обновлены значения, gradient mesh bg, accent-sky hover glow
+- Video: полноширинный placeholder (16/9, animated gradient, play button)
+- Compare секция полностью удалена
+
+**Этап 4 (Retail+Pricing+FAQ+Footer+удаление connect) — ВЫПОЛНЕН:**
+- Retail: 5 compact карточек (QR, Каталог, Аналитика, Кабинет, Продвижение) + CTA
+- Pricing: Basic (7 фич + note + CTA), PRO/Enterprise (locked, «Скоро»)
+- FAQ: 6 вопросов, Advent Pro 800 summary, primary glow на [open]
+- Connect + RetailDashboard полностью удалены (~200 строк CSS + i18n ключи)
+
+**Этап 5 (Polish+Verify) — ВЫПОЛНЕН:**
+- CSS audit: 0 dead selectors, 0 deleted-section remnants
+- Fixed: `#fff` → `var(--text)` (btn-primary, video play icon)
+- Fixed: dead `border-left-color` properties в fit-card variants
+- Fixed: duplicate `.landing-retail-grid` display/gap
+- Added: `scroll-behavior: smooth` + `scroll-padding-top` для навигации
+- Added: `scroll-behavior: auto` в reduced-motion
+- Verified: check-i18n PASS (0 missing, 0 orphan), build OK, lint 0 errors
+
+**Ключевые решения:**
+- Только тёмная тема — как у Shopify/Framer/Slack
+- «Подходит ли?» вместо «Fit-Check»
+- CSS 3D phone mockup → потом GLB через Spline
+- Термин «Fit-Check» в текстах заменяется на «Подходит ли?» / «Сай келе ме?»
+
+### Сессия 6 — Landing Page Redesign V1 — ВЫПОЛНЕНО ✅
+
+(Сессия 6 CSS-редизайн заменён сессией 7 — полный v2 overhaul)
 
 ### Сессия 5 — Code Quality & i18n Gaps — ВЫПОЛНЕНО ✅
 

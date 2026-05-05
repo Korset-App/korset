@@ -1,7 +1,6 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect, useCallback, useRef } from 'react'
 import './LandingScreen.css'
 import { useI18n } from '../i18n/index.js'
-import { useTheme } from '../utils/theme.js'
 
 function collectStrArr(t, exists, prefix) {
   const arr = []
@@ -25,14 +24,6 @@ function collectObjArr(t, exists, prefix, fields) {
   return arr
 }
 
-function Icon({ name }) {
-  return (
-    <span className="material-symbols-outlined landing-icon" aria-hidden="true">
-      {name}
-    </span>
-  )
-}
-
 function SectionTitle({ eyebrow, title, text }) {
   return (
     <div className="landing-section-title">
@@ -43,94 +34,98 @@ function SectionTitle({ eyebrow, title, text }) {
   )
 }
 
-function RetailDashboardPreview({ dashboard }) {
+function Icon({ name }) {
   return (
-    <aside
-      className="landing-retail-dashboard"
-      data-testid="landing-retail-dashboard"
-      aria-label={dashboard.aria}
+    <span className="material-symbols-outlined landing-icon" aria-hidden="true">
+      {name}
+    </span>
+  )
+}
+
+function HeroRotatingWord({ words }) {
+  const [index, setIndex] = useState(0)
+  const [transitioning, setTransitioning] = useState(false)
+
+  useEffect(() => {
+    if (!words.length) return
+    const id = setInterval(() => {
+      setTransitioning(true)
+      setTimeout(() => {
+        setIndex((i) => (i + 1) % words.length)
+        setTransitioning(false)
+      }, 400)
+    }, 2500)
+    return () => clearInterval(id)
+  }, [words.length])
+
+  if (!words.length) return null
+
+  return (
+    <span
+      className={`landing-hero__rotating-word ${transitioning ? 'landing-hero__rotating-word--out' : 'landing-hero__rotating-word--in'}`}
     >
-      <div className="landing-retail-dashboard__top">
-        <div>
-          <span>{dashboard.kicker}</span>
-          <h3>{dashboard.title}</h3>
-        </div>
-        <div className="landing-retail-dashboard__status">
-          <span />
-          {dashboard.status}
-        </div>
-      </div>
-
-      <div className="landing-retail-dashboard__metrics">
-        {dashboard.metrics.map((metric) => (
-          <div key={metric.label}>
-            <strong>{metric.value}</strong>
-            <span>{metric.label}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="landing-retail-dashboard__middle">
-        <div className="landing-retail-dashboard__chart">
-          <div className="landing-retail-dashboard__chart-head">
-            <span>{dashboard.chartTitle}</span>
-            <strong>{dashboard.chartValue}</strong>
-          </div>
-          <div className="landing-retail-dashboard__bars" aria-hidden="true">
-            {dashboard.bars.map((bar, index) => (
-              <i key={`${bar}-${index}`} style={{ '--bar-height': `${bar}%` }} />
-            ))}
-          </div>
-        </div>
-
-        <div className="landing-retail-dashboard__qr">
-          <div aria-hidden="true">
-            {Array.from({ length: 16 }).map((_, index) => (
-              <i key={index} />
-            ))}
-          </div>
-          <span>{dashboard.qr}</span>
-        </div>
-      </div>
-
-      <div className="landing-retail-dashboard__feed">
-        {dashboard.feed.map((item) => (
-          <div key={item.title}>
-            <Icon name={item.icon} />
-            <span>{item.title}</span>
-            <strong>{item.value}</strong>
-          </div>
-        ))}
-      </div>
-    </aside>
+      {words[index]}
+    </span>
   )
 }
 
 export default function LandingScreen() {
   const { t, exists } = useI18n()
-  const { theme, toggleTheme } = useTheme()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const phoneRef = useRef(null)
+  const [scrollY, setScrollY] = useState(0)
+
+  const handleScroll = useCallback(() => {
+    setScrollY(window.scrollY)
+  }, [])
+
+  useEffect(() => {
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [handleScroll])
+
+  useEffect(() => {
+    if (menuOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [menuOpen])
+
+  const phoneRotateY = useMemo(() => {
+    const deg = Math.min(scrollY * 0.015, 15)
+    return -8 + deg
+  }, [scrollY])
+
   const d = useMemo(
     () => ({
-      nav: { retail: t('landing.nav.retail'), themeToggle: t('landing.nav.themeToggle') },
+      nav: {
+        how: t('landing.nav.how'),
+        features: t('landing.nav.features'),
+        retail: t('landing.nav.retail'),
+        pricing: t('landing.nav.pricing'),
+      },
       hero: {
-        chipsLabel: t('landing.hero.chipsLabel'),
         chips: collectStrArr(t, exists, 'landing.hero.chips'),
-        title: t('landing.hero.title'),
-        text: t('landing.hero.text'),
+        titlePrefix: t('landing.hero.titlePrefix'),
+        rotating: collectStrArr(t, exists, 'landing.hero.rotating'),
+        subtitle: t('landing.hero.subtitle'),
         primary: t('landing.hero.primary'),
         secondary: t('landing.hero.secondary'),
-      },
-      demo: {
-        aria: t('landing.demo.aria'),
-        phoneTitle: t('landing.demo.phoneTitle'),
-        productBrand: t('landing.demo.productBrand'),
-        productName: t('landing.demo.productName'),
-        productMeta: t('landing.demo.productMeta'),
-        status: t('landing.demo.status'),
-        result: t('landing.demo.result'),
-        chips: collectStrArr(t, exists, 'landing.demo.chips'),
-        orbitTop: t('landing.demo.orbitTop'),
-        orbitBottom: t('landing.demo.orbitBottom'),
+        proof: t('landing.hero.proof'),
+        demo: {
+          aria: t('landing.demo.aria'),
+          phoneTitle: t('landing.demo.phoneTitle'),
+          productBrand: t('landing.demo.productBrand'),
+          productName: t('landing.demo.productName'),
+          productMeta: t('landing.demo.productMeta'),
+          status: t('landing.demo.status'),
+          result: t('landing.demo.result'),
+          chips: collectStrArr(t, exists, 'landing.demo.chips'),
+        },
       },
       how: {
         eyebrow: t('landing.how.eyebrow'),
@@ -143,6 +138,7 @@ export default function LandingScreen() {
         title: t('landing.fit.title'),
         text: t('landing.fit.text'),
         cards: collectObjArr(t, exists, 'landing.fit.cards', ['tone', 'icon', 'title', 'text']),
+        alternatives: exists('landing.fit.alternatives') ? t('landing.fit.alternatives') : '',
         disclaimer: t('landing.fit.disclaimer'),
       },
       audience: {
@@ -151,61 +147,53 @@ export default function LandingScreen() {
         text: t('landing.audience.text'),
         cards: collectObjArr(t, exists, 'landing.audience.cards', ['icon', 'title', 'text']),
       },
-      compare: {
-        beforeLabel: t('landing.compare.beforeLabel'),
-        beforeTitle: t('landing.compare.beforeTitle'),
-        beforeText: t('landing.compare.beforeText'),
-        afterLabel: t('landing.compare.afterLabel'),
-        afterTitle: t('landing.compare.afterTitle'),
-        afterText: t('landing.compare.afterText'),
-      },
       features: {
         eyebrow: t('landing.features.eyebrow'),
         title: t('landing.features.title'),
         text: t('landing.features.text'),
-        cards: collectObjArr(t, exists, 'landing.features.cards', ['icon', 'title', 'text']),
+        cards: collectObjArr(t, exists, 'landing.features.cards', [
+          'icon',
+          'title',
+          'text',
+          'group',
+        ]),
       },
       stats: collectObjArr(t, exists, 'landing.stats', ['value', 'label']),
+      video: {
+        title: t('landing.video.title'),
+        play: t('landing.video.play'),
+      },
       retail: {
         eyebrow: t('landing.retail.eyebrow'),
         title: t('landing.retail.title'),
         text: t('landing.retail.text'),
         cta: t('landing.retail.cta'),
-        dashboard: {
-          aria: t('landing.retail.dashboard.aria'),
-          kicker: t('landing.retail.dashboard.kicker'),
-          title: t('landing.retail.dashboard.title'),
-          status: t('landing.retail.dashboard.status'),
-          chartTitle: t('landing.retail.dashboard.chartTitle'),
-          chartValue: t('landing.retail.dashboard.chartValue'),
-          qr: t('landing.retail.dashboard.qr'),
-          metrics: collectObjArr(t, exists, 'landing.retail.dashboard.metrics', ['value', 'label']),
-          bars: [38, 54, 46, 72, 63, 88, 78],
-          feed: collectObjArr(t, exists, 'landing.retail.dashboard.feed', [
-            'icon',
-            'title',
-            'value',
-          ]),
-        },
-        scenario: collectObjArr(t, exists, 'landing.retail.scenario', ['icon', 'title', 'text']),
+        cards: collectObjArr(t, exists, 'landing.retail.cards', ['icon', 'title', 'text']),
       },
       pricing: {
         eyebrow: t('landing.pricing.eyebrow'),
         title: t('landing.pricing.title'),
         text: t('landing.pricing.text'),
-        early: {
-          badge: t('landing.pricing.early.badge'),
-          title: t('landing.pricing.early.title'),
-          price: t('landing.pricing.early.price'),
-          text: t('landing.pricing.early.text'),
+        basic: {
+          badge: t('landing.pricing.basic.badge'),
+          title: t('landing.pricing.basic.title'),
+          price: t('landing.pricing.basic.price'),
+          features: collectStrArr(t, exists, 'landing.pricing.basic.feat'),
+          note: exists('landing.pricing.basic.note') ? t('landing.pricing.basic.note') : '',
+          cta: t('landing.pricing.basic.cta'),
         },
-        soon: collectObjArr(t, exists, 'landing.pricing.soon', ['badge', 'title', 'text']),
-      },
-      connect: {
-        eyebrow: t('landing.connect.eyebrow'),
-        title: t('landing.connect.title'),
-        text: t('landing.connect.text'),
-        steps: collectStrArr(t, exists, 'landing.connect.steps'),
+        pro: {
+          badge: t('landing.pricing.pro.badge'),
+          title: t('landing.pricing.pro.title'),
+          features: collectStrArr(t, exists, 'landing.pricing.pro.feat'),
+          cta: t('landing.pricing.pro.cta'),
+        },
+        enterprise: {
+          badge: t('landing.pricing.enterprise.badge'),
+          title: t('landing.pricing.enterprise.title'),
+          features: collectStrArr(t, exists, 'landing.pricing.enterprise.feat'),
+          cta: t('landing.pricing.enterprise.cta'),
+        },
       },
       faq: {
         eyebrow: t('landing.faq.eyebrow'),
@@ -236,31 +224,65 @@ export default function LandingScreen() {
           <img src="/icon_logo.svg" alt="" />
           <span>Körset</span>
         </a>
+        <nav className="landing-header__nav">
+          <a href="#how">{d.nav.how}</a>
+          <a href="#features">{d.nav.features}</a>
+          <a href="#retail">{d.nav.retail}</a>
+          <a href="#pricing">{d.nav.pricing}</a>
+        </nav>
         <div className="landing-header__actions">
-          <a className="landing-header__retail" href="#retail">
-            {d.nav.retail}
+          <a className="landing-btn landing-btn--primary landing-btn--sm" href="/stores">
+            {d.hero.primary}
           </a>
           <button
-            className="landing-theme-toggle"
+            className="landing-header__burger"
             type="button"
-            onClick={toggleTheme}
-            aria-label={d.nav.themeToggle}
-            title={d.nav.themeToggle}
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-label="Menu"
+            aria-expanded={menuOpen}
           >
-            <span>{theme === 'dark' ? 'dark_mode' : 'light_mode'}</span>
+            <span
+              className={`landing-header__burger-icon ${menuOpen ? 'landing-header__burger-icon--open' : ''}`}
+            />
           </button>
         </div>
       </header>
 
+      <div className={`landing-mobile-menu ${menuOpen ? 'landing-mobile-menu--open' : ''}`}>
+        <nav>
+          <a href="#how" onClick={() => setMenuOpen(false)}>
+            {d.nav.how}
+          </a>
+          <a href="#features" onClick={() => setMenuOpen(false)}>
+            {d.nav.features}
+          </a>
+          <a href="#retail" onClick={() => setMenuOpen(false)}>
+            {d.nav.retail}
+          </a>
+          <a href="#pricing" onClick={() => setMenuOpen(false)}>
+            {d.nav.pricing}
+          </a>
+          <a
+            className="landing-btn landing-btn--primary"
+            href="/stores"
+            onClick={() => setMenuOpen(false)}
+          >
+            {d.hero.primary}
+          </a>
+        </nav>
+      </div>
+
       <section className="landing-hero" data-testid="landing-consumer">
         <div className="landing-hero__copy">
-          <div className="landing-pills" aria-label={d.hero.chipsLabel}>
+          <div className="landing-pills" aria-label={t('landing.hero.chipsLabel')}>
             {d.hero.chips.map((chip) => (
               <span key={chip}>{chip}</span>
             ))}
           </div>
-          <h1>{d.hero.title}</h1>
-          <p>{d.hero.text}</p>
+          <h1>
+            {d.hero.titlePrefix} <HeroRotatingWord words={d.hero.rotating} />
+          </h1>
+          <p>{d.hero.subtitle}</p>
           <div className="landing-hero__actions">
             <a className="landing-btn landing-btn--primary" href="/stores">
               {d.hero.primary}
@@ -272,70 +294,57 @@ export default function LandingScreen() {
           </div>
         </div>
 
-        <div className="landing-hero__visual" aria-label={d.demo.aria}>
-          <div className="landing-kinetic-glass" aria-hidden="true">
-            <span />
-          </div>
-          <div className="landing-orbit-card landing-orbit-card--top">
-            <Icon name="verified" />
-            <span>{d.demo.orbitTop}</span>
-          </div>
-          <div className="landing-scan-stage">
-            <div className="landing-shelf-product" aria-hidden="true">
-              <span className="landing-product-pack__brand">{d.demo.productBrand}</span>
-              <span className="landing-product-pack__name">{d.demo.productName}</span>
-              <span className="landing-product-pack__meta">{d.demo.productMeta}</span>
-              <div className="landing-shelf-product__barcode">
-                {Array.from({ length: 14 }).map((_, index) => (
-                  <i key={index} />
+        <div className="landing-hero__visual" aria-label={d.hero.demo.aria}>
+          <div
+            className="landing-phone-mockup"
+            ref={phoneRef}
+            style={{ transform: `rotateY(${phoneRotateY}deg) rotateX(2deg)` }}
+          >
+            <div className="landing-phone-mockup__notch" />
+            <div className="landing-phone-mockup__screen">
+              <div className="landing-phone-mockup__statusbar">
+                <span>9:41</span>
+                <div className="landing-phone-mockup__statusbar-icons">
+                  <i />
+                  <i />
+                  <i />
+                </div>
+              </div>
+              <div className="landing-phone-mockup__scan-label">
+                <span>{d.hero.demo.phoneTitle}</span>
+                <Icon name="qr_code_scanner" />
+              </div>
+              <div className="landing-phone-mockup__fit-result">
+                <div className="landing-phone-mockup__fit-dot" />
+                <strong>{d.hero.demo.status}</strong>
+              </div>
+              <div className="landing-phone-mockup__product-info">
+                <span className="landing-phone-mockup__product-name">
+                  {d.hero.demo.productName}
+                </span>
+                <span className="landing-phone-mockup__product-meta">
+                  {d.hero.demo.productMeta}
+                </span>
+              </div>
+              <div className="landing-phone-mockup__result-chips">
+                {d.hero.demo.chips.map((chip) => (
+                  <span key={chip}>{chip}</span>
                 ))}
               </div>
             </div>
-            <div className="landing-hand" aria-hidden="true">
-              <span className="landing-hand__finger landing-hand__finger--one" />
-              <span className="landing-hand__finger landing-hand__finger--two" />
-              <span className="landing-hand__finger landing-hand__finger--three" />
-              <span className="landing-hand__thumb" />
-              <span className="landing-hand__palm" />
-            </div>
-            <div className="landing-phone">
-              <div className="landing-phone__top">
-                <span>{d.demo.phoneTitle}</span>
-                <Icon name="qr_code_scanner" />
-              </div>
-              <div className="landing-scan-window">
-                <div className="landing-product-pack">
-                  <span className="landing-product-pack__brand">{d.demo.productBrand}</span>
-                  <span className="landing-product-pack__name">{d.demo.productName}</span>
-                  <span className="landing-product-pack__meta">{d.demo.productMeta}</span>
-                </div>
-                <div className="landing-barcode" aria-hidden="true">
-                  {Array.from({ length: 18 }).map((_, index) => (
-                    <i key={index} />
-                  ))}
-                </div>
-                <div className="landing-scan-line" />
-              </div>
-              <div className="landing-result-card">
-                <div>
-                  <span className="landing-status-dot" />
-                  <strong>{d.demo.status}</strong>
-                </div>
-                <p>{d.demo.result}</p>
-                <div className="landing-result-card__chips">
-                  {d.demo.chips.map((chip) => (
-                    <span key={chip}>{chip}</span>
-                  ))}
-                </div>
-              </div>
-            </div>
           </div>
-          <div className="landing-orbit-card landing-orbit-card--bottom">
-            <Icon name="auto_awesome" />
-            <span>{d.demo.orbitBottom}</span>
-          </div>
+          <div className="landing-hero__glow" aria-hidden="true" />
         </div>
       </section>
+
+      <div className="landing-proof">
+        <span>{d.hero.proof}</span>
+        <div className="landing-proof__logos">
+          <div className="landing-proof__logo" />
+          <div className="landing-proof__logo" />
+          <div className="landing-proof__logo" />
+        </div>
+      </div>
 
       <section className="landing-section" id="how">
         <SectionTitle eyebrow={d.how.eyebrow} title={d.how.title} text={d.how.text} />
@@ -364,6 +373,12 @@ export default function LandingScreen() {
             </article>
           ))}
         </div>
+        {d.fit.alternatives && (
+          <div className="landing-fit-alternatives">
+            <Icon name="compare_arrows" />
+            <span>{d.fit.alternatives}</span>
+          </div>
+        )}
         <div className="landing-disclaimer">{d.fit.disclaimer}</div>
       </section>
 
@@ -375,7 +390,7 @@ export default function LandingScreen() {
         />
         <div className="landing-audience-grid">
           {d.audience.cards.map((card) => (
-            <article className="landing-mini-card" key={card.title}>
+            <article key={card.title}>
               <Icon name={card.icon} />
               <h3>{card.title}</h3>
               <p>{card.text}</p>
@@ -384,22 +399,7 @@ export default function LandingScreen() {
         </div>
       </section>
 
-      <section className="landing-section landing-compare-section">
-        <div className="landing-compare">
-          <div>
-            <span>{d.compare.beforeLabel}</span>
-            <h3>{d.compare.beforeTitle}</h3>
-            <p>{d.compare.beforeText}</p>
-          </div>
-          <div>
-            <span>{d.compare.afterLabel}</span>
-            <h3>{d.compare.afterTitle}</h3>
-            <p>{d.compare.afterText}</p>
-          </div>
-        </div>
-      </section>
-
-      <section className="landing-section">
+      <section className="landing-section" id="features">
         <SectionTitle
           eyebrow={d.features.eyebrow}
           title={d.features.title}
@@ -407,78 +407,131 @@ export default function LandingScreen() {
         />
         <div className="landing-feature-grid">
           {d.features.cards.map((card) => (
-            <article className="landing-mini-card" key={card.title}>
-              <Icon name={card.icon} />
+            <article className="landing-feature-card" key={card.title}>
+              <div className="landing-feature-card__icon">
+                <Icon name={card.icon} />
+              </div>
+              <div className="landing-feature-card__body">
+                <h3>{card.title}</h3>
+                <p>{card.text}</p>
+              </div>
+              {card.group && <span className="landing-feature-card__group">{card.group}</span>}
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="landing-section landing-stats-section">
+        <div className="landing-stats">
+          {d.stats.map((stat) => (
+            <div className="landing-stat" key={stat.label}>
+              <strong>{stat.value}</strong>
+              <span>{stat.label}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="landing-section landing-video-section" aria-label={d.video.title}>
+        <div className="landing-video">
+          <div className="landing-video__bg" aria-hidden="true" />
+          <button className="landing-video__play" type="button" aria-label={d.video.play}>
+            <span className="landing-video__play-icon">▶</span>
+          </button>
+          <p className="landing-video__title">{d.video.title}</p>
+        </div>
+      </section>
+
+      <section className="landing-section" id="retail" data-testid="landing-retail">
+        <SectionTitle eyebrow={d.retail.eyebrow} title={d.retail.title} text={d.retail.text} />
+        <div className="landing-retail-grid">
+          {d.retail.cards.map((card) => (
+            <article className="landing-retail-card" key={card.title}>
+              <div className="landing-retail-card__icon">
+                <Icon name={card.icon} />
+              </div>
               <h3>{card.title}</h3>
               <p>{card.text}</p>
             </article>
           ))}
         </div>
-      </section>
-
-      <section className="landing-section landing-stats">
-        {d.stats.map((stat) => (
-          <div className="landing-stat" key={stat.label}>
-            <strong>{stat.value}</strong>
-            <span>{stat.label}</span>
-          </div>
-        ))}
-      </section>
-
-      <section className="landing-retail" id="retail" data-testid="landing-retail">
-        <div className="landing-retail__intro">
-          <div className="landing-eyebrow">{d.retail.eyebrow}</div>
-          <h2>{d.retail.title}</h2>
-          <p>{d.retail.text}</p>
-          <a className="landing-btn landing-btn--ghost landing-retail__cta" href="/retail">
+        <div className="landing-retail-cta">
+          <a className="landing-btn landing-btn--primary" href="/retail">
             {d.retail.cta}
             <Icon name="arrow_forward" />
           </a>
         </div>
-        <RetailDashboardPreview dashboard={d.retail.dashboard} />
-        <div className="landing-retail__scenario">
-          {d.retail.scenario.map((item) => (
-            <article key={item.title}>
-              <Icon name={item.icon} />
-              <h3>{item.title}</h3>
-              <p>{item.text}</p>
-            </article>
-          ))}
-        </div>
       </section>
 
-      <section className="landing-section landing-pricing" data-testid="landing-pricing">
+      <section
+        className="landing-section landing-pricing"
+        id="pricing"
+        data-testid="landing-pricing"
+      >
         <SectionTitle eyebrow={d.pricing.eyebrow} title={d.pricing.title} text={d.pricing.text} />
         <div className="landing-pricing-grid">
           <article className="landing-price-card landing-price-card--active">
-            <span>{d.pricing.early.badge}</span>
-            <h3>{d.pricing.early.title}</h3>
-            <strong>{d.pricing.early.price}</strong>
-            <p>{d.pricing.early.text}</p>
+            <span className="landing-price-card__badge landing-price-card__badge--active">
+              {d.pricing.basic.badge}
+            </span>
+            <h3>{d.pricing.basic.title}</h3>
+            <strong className="landing-price-card__price">{d.pricing.basic.price}</strong>
+            <ul className="landing-price-card__features">
+              {d.pricing.basic.features.map((feat) => (
+                <li key={feat}>
+                  <span className="landing-price-card__check" aria-hidden="true">
+                    ✓
+                  </span>
+                  {feat}
+                </li>
+              ))}
+            </ul>
+            {d.pricing.basic.note && (
+              <p className="landing-price-card__note">{d.pricing.basic.note}</p>
+            )}
             <a className="landing-btn landing-btn--primary" href="/retail">
-              {d.retail.cta}
+              {d.pricing.basic.cta}
             </a>
           </article>
-          {d.pricing.soon.map((plan) => (
-            <article className="landing-price-card landing-price-card--locked" key={plan.title}>
-              <span>{plan.badge}</span>
-              <h3>{plan.title}</h3>
-              <p>{plan.text}</p>
-            </article>
-          ))}
+          <article className="landing-price-card landing-price-card--locked">
+            <span className="landing-price-card__badge">{d.pricing.pro.badge}</span>
+            <h3>{d.pricing.pro.title}</h3>
+            <ul className="landing-price-card__features">
+              {d.pricing.pro.features.map((feat) => (
+                <li key={feat}>
+                  <span className="landing-price-card__check" aria-hidden="true">
+                    ✓
+                  </span>
+                  {feat}
+                </li>
+              ))}
+            </ul>
+            <button
+              className="landing-btn landing-btn--ghost landing-btn--disabled"
+              type="button"
+              disabled
+            >
+              {d.pricing.pro.cta}
+            </button>
+          </article>
+          <article className="landing-price-card landing-price-card--locked">
+            <span className="landing-price-card__badge">{d.pricing.enterprise.badge}</span>
+            <h3>{d.pricing.enterprise.title}</h3>
+            <ul className="landing-price-card__features">
+              {d.pricing.enterprise.features.map((feat) => (
+                <li key={feat}>
+                  <span className="landing-price-card__check" aria-hidden="true">
+                    ✓
+                  </span>
+                  {feat}
+                </li>
+              ))}
+            </ul>
+            <a className="landing-btn landing-btn--ghost" href="mailto:founder@korset.app">
+              {d.pricing.enterprise.cta}
+            </a>
+          </article>
         </div>
-      </section>
-
-      <section className="landing-section landing-connect">
-        <SectionTitle eyebrow={d.connect.eyebrow} title={d.connect.title} text={d.connect.text} />
-        <div className="landing-connect__steps">
-          {d.connect.steps.map((step) => (
-            <span key={step}>{step}</span>
-          ))}
-        </div>
-        <a className="landing-btn landing-btn--primary" href="/retail">
-          {d.retail.cta}
-        </a>
       </section>
 
       <section className="landing-section landing-faq">
