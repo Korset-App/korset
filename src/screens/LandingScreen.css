@@ -220,6 +220,12 @@
   transition: transform 0.3s var(--lp-ease);
 }
 
+@media (max-width: 640px) {
+  .lp-brand__logo {
+    height: 32px;
+  }
+}
+
 .lp-brand:hover .lp-brand__logo {
   transform: scale(1.03);
 }
@@ -266,6 +272,12 @@
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+@media (max-width: 1023px) {
+  .lp-header__actions .lp-btn {
+    display: none;
+  }
 }
 
 .lp-burger {
@@ -384,11 +396,16 @@
 
 .lp-hero {
   position: relative;
-  min-height: 100svh;
   min-height: 100vh;
   display: flex;
   align-items: center;
   overflow: hidden;
+}
+
+@media (max-width: 640px) {
+  .lp-hero {
+    min-height: 85vh;
+  }
 }
 
 /* Background image layer */
@@ -441,12 +458,17 @@
   width: 100%;
   max-width: var(--lp-content-wide);
   margin: 0 auto;
-  padding:
-    calc(var(--lp-header-h) + clamp(40px, 7vw, 96px))
-    var(--lp-page-x)
+  padding: 
+    calc(var(--lp-header-h) + 20px) 
+    var(--lp-page-x) 
     clamp(64px, 8vw, 120px);
-  padding-top: calc(var(--lp-header-h) + clamp(48px, 7vw, 96px));
-  padding-bottom: clamp(80px, 10vw, 140px);
+}
+
+@media (min-width: 641px) {
+  .lp-hero__wrap {
+    padding-top: calc(var(--lp-header-h) + 60px);
+    padding-bottom: clamp(80px, 10vw, 140px);
+  }
 }
 
 .lp-hero__copy {
@@ -454,6 +476,12 @@
   display: flex;
   flex-direction: column;
   gap: clamp(18px, 2.4vw, 28px);
+}
+
+@media (max-width: 640px) {
+  .lp-hero__copy {
+    max-width: 100%;
+  }
 }
 
 /* Pills */
