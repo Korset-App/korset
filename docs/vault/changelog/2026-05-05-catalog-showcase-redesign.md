@@ -62,3 +62,13 @@ CatalogScreen получил новый верхний уровень: вмес�
 - After real-device review, tune individual category image positions (`--cat-image-y`, scale) for exact optical balance.
 - If production category counts load slowly, consider a subtle skeleton/count shimmer instead of hiding counts.
 - If category subcategory landing screens become a priority, reuse the same showcase contract pattern for subcategory groups.
+
+## Refinement After Visual Review
+
+- Reworked the top-level showcase from auto-dense placement to explicit `grid-template-areas`, so the order follows the Figma-inspired merchandising priority and the bottom of the catalog no longer degrades into single-card rows.
+- Removed visible category/product counts from the showcase header/cards; the screen now emphasizes discovery rather than database volume.
+- Matched the catalog title treatment closer to ProfileScreen and kept the store name on the right (`Mars` fallback from `/s/mars/...`).
+- Tuned individual image crop/scale for `water_beverages`, `tea_coffee`, `grocery`, `bread`, `frozen`, and `household`.
+- Strengthened light-theme card borders/shadows, especially for pale cards such as water, frozen, and household.
+- Added a short premium click transition before opening a category: selected card lifts while the rest fade/settle, then the product list opens.
+- Visual smoke after refinement: `360x740`, `393x851`, and `430x932` all render 18 cards with 0 detected overlaps; first 8 cards keep the expected order.

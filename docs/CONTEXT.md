@@ -425,3 +425,13 @@ Poster (fallback): Unsplash `photo-1567449303183` (продуктовый маг
 - Лучшее применение Codex в Körset — не косметические UI-правки, а системные зоны с большим мультипликатором: Data Moat, pipeline обогащения, DB/RLS, внимательный рефакторинг монолитов.
 - Самая сильная точка пользы: превращать разрозненную логику в надёжные потоки, инварианты, проверяемые скрипты и точечные архитектурные улучшения.
 - Если нужен максимум ROI от следующей сессии с Codex: 1) Data Moat / retail import / unknown EAN cascade, 2) ProductScreen refactoring, 3) DB integrity/perf hardening после аудита.
+
+### CATALOGSCREEN REFINEMENT 2026-05-05
+
+- Catalog top-level bento showcase refined after visual review: explicit `grid-template-areas` replaced auto-dense placement, so the card order follows the Figma-inspired merchandising priority and no longer ends with lonely single-card rows.
+- Product/category counts are removed from the top-level showcase UI; category cards now focus on image + readable title.
+- Header treatment is closer to ProfileScreen: `Каталог` on the left, store name on the right (`Mars` from `/s/mars/...` fallback).
+- Image crop/scale tuned for water, tea/coffee, grocery, bread, frozen, and household categories.
+- Light theme strengthened with more visible borders/shadows for pale cards; dark theme remains the primary premium look.
+- Category click now has a short exit animation before opening the product list.
+- Verification after refinement: unit showcase test passed, i18n check passed, lint passed with existing warnings only, production build passed, Playwright visual smoke on 360/393/430 widths found 18 cards and 0 overlaps.

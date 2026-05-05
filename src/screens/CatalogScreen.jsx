@@ -384,6 +384,7 @@ export default function CatalogScreen() {
     currentStore?.name || (storeSlug ? `${storeSlug[0].toUpperCase()}${storeSlug.slice(1)}` : '')
 
   const searchHint = !isCatalogReady && q.trim() ? t('catalog.loadingSearch') : null
+  const showCatalogMeta = false
   const showCategories = !isSearching && !selectedCategory
   const showSubcategories = !isSearching && selectedCategory
 
