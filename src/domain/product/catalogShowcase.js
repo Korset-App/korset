@@ -1,5 +1,26 @@
 const IMAGE_BASE = '/catalog-categories'
 
+export const CATEGORY_SHOWCASE_ORDER = [
+  'dairy_eggs',
+  'water_beverages',
+  'sweets',
+  'meat',
+  'tea_coffee',
+  'fish',
+  'deli',
+  'grocery',
+  'snacks',
+  'bread',
+  'fruits_veg',
+  'ready_meals',
+  'frozen',
+  'baby_food',
+  'sauces_spices',
+  'healthy',
+  'personal_care',
+  'household',
+]
+
 export const CATEGORY_SHOWCASE = {
   dairy_eggs: {
     image: `${IMAGE_BASE}/category-dairy-eggs.webp`,
@@ -30,12 +51,14 @@ export const CATEGORY_SHOWCASE = {
     variant: 'portrait',
     tone: 'paper',
     textTone: 'dark',
+    imageY: '48%',
   },
   tea_coffee: {
     image: `${IMAGE_BASE}/category-tea-coffee.webp`,
     variant: 'portrait',
     tone: 'plum',
     textTone: 'light',
+    imageScale: 1.18,
   },
   sweets: {
     image: `${IMAGE_BASE}/category-sweets.webp`,
@@ -54,10 +77,11 @@ export const CATEGORY_SHOWCASE = {
     variant: 'portrait',
     tone: 'teal',
     textTone: 'light',
+    imageScale: 1.14,
   },
   sauces_spices: {
     image: `${IMAGE_BASE}/category-sauces-spices.webp`,
-    variant: 'hero',
+    variant: 'wide',
     tone: 'tomato',
     textTone: 'light',
   },
@@ -66,12 +90,14 @@ export const CATEGORY_SHOWCASE = {
     variant: 'wide',
     tone: 'wheat',
     textTone: 'dark',
+    imageY: '48%',
   },
   frozen: {
     image: `${IMAGE_BASE}/category-frozen.webp`,
-    variant: 'hero',
+    variant: 'wide',
     tone: 'ice',
     textTone: 'dark',
+    imageY: '49%',
   },
   fruits_veg: {
     image: `${IMAGE_BASE}/category-fruits-veg.webp`,
@@ -95,7 +121,7 @@ export const CATEGORY_SHOWCASE = {
     image: `${IMAGE_BASE}/category-healthy.webp`,
     variant: 'compact',
     tone: 'leaf',
-    textTone: 'dark',
+    textTone: 'light',
   },
   personal_care: {
     image: `${IMAGE_BASE}/category-personal-care.webp`,
@@ -108,6 +134,7 @@ export const CATEGORY_SHOWCASE = {
     variant: 'hero',
     tone: 'violet',
     textTone: 'light',
+    imageScale: 0.92,
   },
 }
 

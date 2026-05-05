@@ -1618,8 +1618,29 @@ body {
 .catalog-showcase-grid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  grid-auto-flow: dense;
   grid-auto-rows: clamp(58px, 17vw, 74px);
+  grid-template-areas:
+    'dairy dairy dairy dairy water water'
+    'dairy dairy dairy dairy water water'
+    'sweets sweets sweets sweets water water'
+    'sweets sweets sweets sweets meat meat'
+    'sweets sweets sweets sweets meat meat'
+    'tea tea fish fish fish fish'
+    'tea tea fish fish fish fish'
+    'tea tea deli deli grocery grocery'
+    'tea tea deli deli grocery grocery'
+    'snacks snacks snacks snacks grocery grocery'
+    'snacks snacks snacks snacks bread bread'
+    'snacks snacks snacks snacks bread bread'
+    'fruits fruits fruits fruits ready ready'
+    'fruits fruits fruits fruits ready ready'
+    'frozen frozen frozen frozen baby baby'
+    'frozen frozen frozen frozen baby baby'
+    'sauces sauces sauces sauces healthy healthy'
+    'sauces sauces sauces sauces healthy healthy'
+    'care care household household household household'
+    'care care household household household household'
+    'care care household household household household';
   gap: clamp(10px, 2.7vw, 14px);
   max-width: 100%;
   margin: 0 auto;
@@ -1694,6 +1715,78 @@ body {
   grid-column: span 3;
   grid-row: span 2;
   --cat-title-size: clamp(18px, 5.2vw, 24px);
+}
+
+.catalog-category-card[data-category='dairy_eggs'] {
+  grid-area: dairy;
+}
+
+.catalog-category-card[data-category='water_beverages'] {
+  grid-area: water;
+}
+
+.catalog-category-card[data-category='sweets'] {
+  grid-area: sweets;
+}
+
+.catalog-category-card[data-category='meat'] {
+  grid-area: meat;
+}
+
+.catalog-category-card[data-category='tea_coffee'] {
+  grid-area: tea;
+}
+
+.catalog-category-card[data-category='fish'] {
+  grid-area: fish;
+}
+
+.catalog-category-card[data-category='deli'] {
+  grid-area: deli;
+}
+
+.catalog-category-card[data-category='grocery'] {
+  grid-area: grocery;
+}
+
+.catalog-category-card[data-category='snacks'] {
+  grid-area: snacks;
+}
+
+.catalog-category-card[data-category='bread'] {
+  grid-area: bread;
+}
+
+.catalog-category-card[data-category='fruits_veg'] {
+  grid-area: fruits;
+}
+
+.catalog-category-card[data-category='ready_meals'] {
+  grid-area: ready;
+}
+
+.catalog-category-card[data-category='frozen'] {
+  grid-area: frozen;
+}
+
+.catalog-category-card[data-category='baby_food'] {
+  grid-area: baby;
+}
+
+.catalog-category-card[data-category='sauces_spices'] {
+  grid-area: sauces;
+}
+
+.catalog-category-card[data-category='healthy'] {
+  grid-area: healthy;
+}
+
+.catalog-category-card[data-category='personal_care'] {
+  grid-area: care;
+}
+
+.catalog-category-card[data-category='household'] {
+  grid-area: household;
 }
 
 .catalog-category-card[data-text='light'] {
@@ -1836,6 +1929,54 @@ body {
   outline-offset: 3px;
 }
 
+.catalog-category-card::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  height: 42%;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--text-inverse) 20%, transparent) 100%
+  );
+  content: '';
+  pointer-events: none;
+}
+
+.catalog-category-card[data-text='light']::after {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--bg-app) 58%, transparent) 100%
+  );
+}
+
+.catalog-showcase-scroll.is-exiting {
+  pointer-events: none;
+}
+
+.catalog-showcase-scroll.is-exiting .catalog-category-card {
+  animation: none;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s cubic-bezier(0.22, 0.9, 0.28, 1),
+    filter 0.2s ease;
+}
+
+.catalog-showcase-scroll.is-exiting .catalog-category-card[data-active='false'] {
+  opacity: 0.28;
+  filter: saturate(0.82);
+  transform: translateY(8px) scale(0.97);
+}
+
+.catalog-showcase-scroll.is-exiting .catalog-category-card[data-active='true'] {
+  opacity: 1;
+  transform: translateY(-4px) scale(1.035);
+  filter: saturate(1.08);
+}
+
 @media (hover: hover) {
   .catalog-category-card:hover {
     transform: translateY(-3px) scale(1.012);
@@ -1886,13 +2027,31 @@ body {
   position: absolute;
   left: clamp(11px, 3.5vw, 16px);
   right: clamp(10px, 3vw, 15px);
-  bottom: clamp(9px, 2.8vw, 14px);
+  bottom: clamp(7px, 2.4vw, 12px);
   z-index: 3;
   display: grid;
   gap: 2px;
   justify-items: start;
   text-align: left;
   pointer-events: none;
+  width: fit-content;
+  max-width: calc(100% - 20px);
+  padding: 6px 8px 7px;
+  border-radius: 12px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--text-inverse) 16%, transparent) 0%,
+    transparent 100%
+  );
+  backdrop-filter: blur(0.5px);
+}
+
+.catalog-category-card[data-text='light'] .catalog-category-copy {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--bg-app) 42%, transparent) 0%,
+    transparent 100%
+  );
 }
 
 .catalog-category-title {
@@ -1925,8 +2084,19 @@ body {
 }
 
 :root[data-theme='light'] .catalog-category-card {
-  border-color: color-mix(in srgb, var(--tone-b) 24%, var(--glass-border));
-  box-shadow: 0 18px 34px color-mix(in srgb, var(--tone-b) 18%, transparent);
+  border-color: color-mix(in srgb, var(--tone-b) 34%, var(--glass-border));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--text) 8%, transparent),
+    0 18px 34px color-mix(in srgb, var(--tone-b) 18%, transparent);
+}
+
+:root[data-theme='light'] .catalog-category-card[data-tone='paper'],
+:root[data-theme='light'] .catalog-category-card[data-tone='ice'],
+:root[data-theme='light'] .catalog-category-card[data-tone='clean'] {
+  border-color: color-mix(in srgb, var(--primary-bright) 22%, var(--border-bright));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--text) 11%, transparent),
+    0 18px 34px color-mix(in srgb, var(--text-dim) 16%, transparent);
 }
 
 :root[data-theme='light'] .catalog-category-media img {

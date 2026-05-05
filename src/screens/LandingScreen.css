@@ -12,31 +12,38 @@
   and overflow:hidden. We must escape those constraints so the landing
   page fills the full viewport and allows normal page scrolling.
 */
-.lp-html-active {
-  overflow-y: auto !important;
+.lp-html-active,
+.lp-html-active body,
+.lp-html-active #root {
+  overflow: visible !important;
   overflow-x: hidden !important;
   height: auto !important;
+  min-height: 100vh !important;
+  position: static !important;
+  overscroll-behavior: auto !important;
+  touch-action: auto !important;
+  display: block !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
 }
 
 .lp-html-active body {
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  height: auto !important;
+  background: var(--lp-bg) !important;
 }
 
-.app-frame--landing {
+.lp-html-active .app-frame {
   max-width: 100% !important;
   width: 100% !important;
   height: auto !important;
-  min-height: 100svh !important;
-  min-height: 100dvh !important;
+  min-height: 100vh !important;
   overflow: visible !important;
   overflow-x: hidden !important;
   background: transparent !important;
   border: none !important;
   border-radius: 0 !important;
   display: block !important;
-  align-self: stretch;
+  position: static !important;
+  transform: none !important;
 }
 
 .lp-page {
@@ -2050,3 +2057,7 @@
 @media (min-width: 640px) { .lp-footer__bottom { flex-direction: row; justify-content: space-between; } }
 .lp-footer__made { display: flex; align-items: center; font-weight: 500; }
 .lp-btn--full { width: 100%; justify-content: center; }
+
+
+
+

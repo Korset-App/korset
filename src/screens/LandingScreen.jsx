@@ -740,12 +740,11 @@ export default function LandingScreen() {
   useReveal(rootRef)
 
   useEffect(() => {
-    const frame = document.querySelector('.app-frame')
-    if (frame) frame.classList.add('app-frame--landing')
     document.documentElement.classList.add('lp-html-active')
+    document.body.classList.add('lp-html-active-body')
     return () => {
-      if (frame) frame.classList.remove('app-frame--landing')
       document.documentElement.classList.remove('lp-html-active')
+      document.body.classList.remove('lp-html-active-body')
     }
   }, [])
 

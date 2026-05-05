@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef, forwardRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { Virtuoso, VirtuosoGrid } from 'react-virtuoso'
 import {
   checkProductFit,
@@ -20,7 +20,7 @@ import { buildProductPath, buildComparePath } from '../utils/routes.js'
 import { supabase } from '../utils/supabase.js'
 import { getImageUrl } from '../utils/imageUrl.js'
 import { enrichQuantity, getDisplayQuantity } from '../utils/parseQuantity.js'
-import { getCategoryShowcase } from '../domain/product/catalogShowcase.js'
+import { CATEGORY_SHOWCASE_ORDER, getCategoryShowcase } from '../domain/product/catalogShowcase.js'
 
 function ProductThumb({ product }) {
   const [imgOk, setImgOk] = useState(true)
@@ -90,9 +90,8 @@ const ListFooter = forwardRef(({ style, ...props }, ref) => (
   <div ref={ref} style={{ ...style, height: 100 }} {...props} />
 ))
 
-function CategoryShowcaseCard({ categoryKey, count, label, onSelect, index, productsLabel }) {
+function CategoryShowcaseCard({ categoryKey, label, onSelect, index, isActive }) {
   const showcase = getCategoryShowcase(categoryKey)
-  const countText = count > 0 ? `${count} ${productsLabel}` : ''
 
   return (
     <button
@@ -102,9 +101,15 @@ function CategoryShowcaseCard({ categoryKey, count, label, onSelect, index, prod
       data-variant={showcase.variant}
       data-tone={showcase.tone}
       data-text={showcase.textTone}
-      style={{ '--catalog-card-index': index }}
+      data-active={isActive ? 'true' : 'false'}
+      style={{
+        '--catalog-card-index': index,
+        '--cat-image-scale': showcase.imageScale || undefined,
+        '--cat-image-x': showcase.imageX || undefined,
+        '--cat-image-y': showcase.imageY || undefined,
+      }}
       onClick={() => onSelect(categoryKey)}
-      aria-label={countText ? `${label}, ${countText}` : label}
+      aria-label={label}
     >
       <span className="catalog-category-sheen" aria-hidden="true" />
       <span className="catalog-category-media" aria-hidden="true">
@@ -112,7 +117,6 @@ function CategoryShowcaseCard({ categoryKey, count, label, onSelect, index, prod
       </span>
       <span className="catalog-category-copy">
         <span className="catalog-category-title">{label}</span>
-        {countText && <span className="catalog-category-count">{countText}</span>}
       </span>
     </button>
   )
@@ -120,6 +124,7 @@ function CategoryShowcaseCard({ categoryKey, count, label, onSelect, index, prod
 
 export default function CatalogScreen() {
   const navigate = useNavigate()
+  const { storeSlug } = useParams()
   const { t, lang } = useI18n()
   const { profile } = useProfile()
   const { storeId, currentStore, catalogProducts, isCatalogReady } = useStore()
@@ -140,6 +145,8 @@ export default function CatalogScreen() {
 
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [selectedSubcategory, setSelectedSubcategory] = useState(null)
+  const [pendingCategory, setPendingCategory] = useState(null)
+  const categoryExitTimerRef = useRef(null)
 
   const isSearching = q.trim().length > 0
 
@@ -169,12 +176,16 @@ export default function CatalogScreen() {
     return map
   }, [baseProducts])
 
-  const categoryKeys = useMemo(() => getAllCategoryKeys(), [])
+  const categoryKeys = useMemo(() => {
+    const allKeys = getAllCategoryKeys()
+    const knownKeys = new Set(allKeys)
+    return [
+      ...CATEGORY_SHOWCASE_ORDER.filter((key) => knownKeys.has(key)),
+      ...allKeys.filter((key) => !CATEGORY_SHOWCASE_ORDER.includes(key)),
+    ]
+  }, [])
 
-  const activeCategoryKeys = useMemo(() => {
-    const keysWithProducts = categoryKeys.filter((k) => categoryCountMap[k])
-    return keysWithProducts.length > 0 ? keysWithProducts : categoryKeys
-  }, [categoryKeys, categoryCountMap])
+  const activeCategoryKeys = categoryKeys
 
   const subcategoryCountMap = useMemo(() => {
     if (!selectedCategory) return {}
@@ -345,20 +356,34 @@ export default function CatalogScreen() {
     [currentStore, navigate]
   )
 
+  useEffect(() => {
+    return () => {
+      if (categoryExitTimerRef.current) clearTimeout(categoryExitTimerRef.current)
+    }
+  }, [])
+
   const handleCategoryClick = useCallback((catKey) => {
-    setSelectedCategory(catKey)
-    setSelectedSubcategory(null)
+    if (categoryExitTimerRef.current) clearTimeout(categoryExitTimerRef.current)
+    setPendingCategory(catKey)
+    categoryExitTimerRef.current = setTimeout(() => {
+      setSelectedCategory(catKey)
+      setSelectedSubcategory(null)
+      setPendingCategory(null)
+      categoryExitTimerRef.current = null
+    }, 210)
   }, [])
 
   const handleBackToCategories = useCallback(() => {
+    if (categoryExitTimerRef.current) clearTimeout(categoryExitTimerRef.current)
+    setPendingCategory(null)
     setSelectedCategory(null)
     setSelectedSubcategory(null)
   }, [])
 
-  const storeTitle = currentStore ? currentStore.name : t('catalog.globalTitle')
+  const storeTitle =
+    currentStore?.name || (storeSlug ? `${storeSlug[0].toUpperCase()}${storeSlug.slice(1)}` : '')
 
   const searchHint = !isCatalogReady && q.trim() ? t('catalog.loadingSearch') : null
-
   const showCategories = !isSearching && !selectedCategory
   const showSubcategories = !isSearching && selectedCategory
 
@@ -657,7 +682,7 @@ export default function CatalogScreen() {
 
   return (
     <div className="screen" style={{ display: 'flex', flexDirection: 'column', height: '100dvh' }}>
-      <div style={{ padding: '16px 20px 0', flexShrink: 0 }}>
+      <div style={{ padding: '14px 20px 0', flexShrink: 0 }}>
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {showSubcategories && (
@@ -682,34 +707,57 @@ export default function CatalogScreen() {
                 </span>
               </button>
             )}
-            <div style={{ flex: 1 }}>
+            <div
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'baseline',
+                justifyContent: 'space-between',
+                gap: 14,
+                minWidth: 0,
+              }}
+            >
               <div
                 style={{
                   fontFamily: 'var(--font-display)',
-                  fontSize: 28,
-                  fontWeight: 900,
+                  fontSize: 30,
+                  fontWeight: 500,
                   color: 'var(--text)',
+                  margin: 0,
                   lineHeight: 1,
+                  letterSpacing: 0.2,
+                  minWidth: 0,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {showSubcategories ? getCategoryLabel(selectedCategory, lang) : t('catalog.title')}
               </div>
               <div
                 style={{
-                  fontSize: 12,
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 30,
+                  fontWeight: 500,
                   color: 'rgba(167,139,250,0.7)',
-                  marginTop: 6,
-                  fontWeight: 600,
+                  lineHeight: 1,
+                  letterSpacing: 0.2,
+                  textAlign: 'right',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxWidth: '44%',
+                  flexShrink: 0,
                 }}
               >
                 {storeTitle}
-                {!isSearching && showSubcategories && (
+                {showCatalogMeta && !isSearching && showSubcategories && (
                   <>
                     {' '}
                     · {categoryCountMap[selectedCategory] || 0} {t('catalog.productsIn')}
                   </>
                 )}
-                {!isSearching && showCategories && (
+                {showCatalogMeta && !isSearching && showCategories && (
                   <>
                     {' '}
                     ·{' '}
@@ -718,7 +766,7 @@ export default function CatalogScreen() {
                       : `${baseProducts.length} ${t('catalog.productsCount')}${!isCatalogReady ? ' · ' + t('catalog.loadingMore') : ''}`}
                   </>
                 )}
-                {isSearching && (
+                {showCatalogMeta && isSearching && (
                   <>
                     {' '}
                     ·{' '}
@@ -947,20 +995,18 @@ export default function CatalogScreen() {
       )}
 
       {showCategories && (
-        <div className="catalog-showcase-scroll">
+        <div className={`catalog-showcase-scroll${pendingCategory ? ' is-exiting' : ''}`}>
           <div className="catalog-showcase-grid">
             {activeCategoryKeys.map((catKey, index) => {
-              const count = categoryCountMap[catKey] || 0
               const label = getCategoryLabel(catKey, lang)
               return (
                 <CategoryShowcaseCard
                   key={catKey}
                   categoryKey={catKey}
-                  count={count}
                   label={label}
                   onSelect={handleCategoryClick}
                   index={index}
-                  productsLabel={t('catalog.productsIn')}
+                  isActive={pendingCategory === catKey}
                 />
               )
             })}
