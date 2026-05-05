@@ -389,14 +389,13 @@
   display: flex;
   align-items: center;
   overflow: hidden;
-  isolation: isolate;
 }
 
 /* Background image layer */
 .lp-hero__bg {
   position: absolute;
   inset: 0;
-  z-index: -1;
+  z-index: 0;
   background: #0a0a14;
 }
 
@@ -438,7 +437,7 @@
 /* Content wrapper on top of background */
 .lp-hero__wrap {
   position: relative;
-  z-index: 2;
+  z-index: 1;
   width: 100%;
   max-width: var(--lp-content-wide);
   margin: 0 auto;

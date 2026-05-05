@@ -959,24 +959,20 @@ export default function LandingScreen() {
         {/* Full-screen background video */}
         <div className="lp-hero__bg" aria-hidden="true">
           <video
-            ref={videoRef}
+            key="hero-video-local"
             className="lp-hero__bg-img"
             autoPlay
             muted
             loop
             playsInline
             poster="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1920&q=80"
-            preload="metadata"
-            src="https://cdn.pixabay.com/video/2022/10/24/136262-763442686_large.mp4"
-            onLoadedData={() => {
-              if (videoRef.current) videoRef.current.style.opacity = '1'
-            }}
+            src="/here_video.mp4"
             style={{
-              opacity: 0,
-              transition: 'opacity 1.2s ease-out',
+              opacity: 1,
               visibility: 'visible',
               display: 'block',
               filter: 'none',
+              objectFit: 'cover',
             }}
           />
           <div className="lp-hero__bg-overlay" />
