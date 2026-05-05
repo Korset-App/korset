@@ -731,10 +731,12 @@ function HeroRotatingWord({ words }) {
 }
 
 export default function LandingScreen() {
+  const navigate = useNavigate()
   const { t, exists } = useI18n()
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [activeFeatureTab, setActiveFeatureTab] = useState(0)
+  const videoRef = useRef(null)
   const rootRef = useRef(null)
 
   useReveal(rootRef)
@@ -957,6 +959,7 @@ export default function LandingScreen() {
         {/* Full-screen background video */}
         <div className="lp-hero__bg" aria-hidden="true">
           <video
+            ref={videoRef}
             className="lp-hero__bg-img"
             autoPlay
             muted
@@ -964,7 +967,14 @@ export default function LandingScreen() {
             playsInline
             poster={d.heroVideo.poster}
             preload="auto"
-            src="https://cdn.coverr.co/videos/coverr-walking-through-a-supermarket-aisle-2747/1080p.mp4"
+            src="https://v1.bg.oceanwide-expeditions.com/video/hero/antarctica.mp4"
+            onLoadedData={() => console.log('Video data loaded successfully')}
+            style={{
+              opacity: 1,
+              visibility: 'visible',
+              display: 'block',
+              filter: 'none',
+            }}
           />
           <div className="lp-hero__bg-overlay" />
         </div>

@@ -44,6 +44,9 @@
   display: block !important;
   position: static !important;
   transform: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
 }
 
 .lp-page {
@@ -219,7 +222,7 @@
 }
 
 .lp-brand__logo {
-  height: 42px;
+  height: 56px;
   width: auto;
   display: block;
   filter: drop-shadow(0 0 12px rgba(124, 92, 255, 0.3));
@@ -391,20 +394,18 @@
 .lp-hero {
   position: relative;
   min-height: 100svh;
-  min-height: 100vh; /* fallback */
+  min-height: 100vh;
   display: flex;
   align-items: center;
   overflow: hidden;
-  isolation: isolate;
 }
 
 /* Background image layer */
 .lp-hero__bg {
   position: absolute;
   inset: 0;
-  z-index: 0;
-  /* Fallback gradient when image fails to load */
-  background: linear-gradient(160deg, #1a1227 0%, #0e0e1d 50%, #07070f 100%);
+  z-index: -1;
+  background: #07070f;
 }
 
 .lp-hero__bg-img {
@@ -413,8 +414,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 40%;
-  /* Removed animation to prevent video rendering glitches in some browsers */
+  pointer-events: none;
 }
 
 @keyframes lp-hero-bg-drift {
@@ -429,18 +429,9 @@
   }
 }
 
-/* Layered overlay вЂ” intentionally lighter so the image shows through */
+/* Layered overlay — intentionally lighter so the image shows through */
 .lp-hero__bg-overlay {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(
-      to bottom,
-      rgba(7, 7, 15, 0.72) 0%,
-      rgba(7, 7, 15, 0.28) 38%,
-      rgba(7, 7, 15, 0.38) 62%,
-      rgba(7, 7, 15, 0.82) 100%
-    );
+  display: none; /* Temporarily disabled to see if video is underneath */
 }
 
 /* Content wrapper on top of background */
