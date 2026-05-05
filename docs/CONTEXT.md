@@ -446,6 +446,14 @@ Poster (fallback): Unsplash `photo-1567449303183` (продуктовый маг
 - Category click transition was simplified for performance: shorter delay, no expensive filter animation, smaller transform.
 - Verification: unit showcase test, i18n check, lint (0 errors, existing warnings), production build, and Chromium smoke passed; 393px viewport renders 18 cards, 0 overlaps, text widths fit.
 
+### CATALOGSCREEN FIGMA MULTI-FRAME FIX 2026-05-05
+
+- Found the real cause of the lower-layout mismatch: the Figma file has three separate frames. The first frame covers only the first 8 categories; the second/third frames define the lower bento rhythm.
+- Updated lower category geometry semantics: `bread` is `wide`, `frozen` and `sauces_spices` are `hero`, matching the Figma frame proportions instead of treating them like small cards.
+- `sauces_spices` title is now smaller and single-line so it no longer consumes a heavy text zone.
+- Fresh Playwright smoke on 360/393/768 widths: 18 cards, 0 overlaps; category tap opens the product list/back state.
+- Fresh verification: catalog unit test, i18n check, lint (0 errors, existing warnings), and build passed.
+
 ### AUTH OVERHAUL — ВЫПОЛНЕНО ✅ (2026-05-05)
 
 **Полная профессиональная доработка авторизации.**

@@ -1937,6 +1937,16 @@ body {
   --cat-title-size: clamp(28px, 8.4vw, 36px);
 }
 
+.catalog-category-card[data-category='sauces_spices'] {
+  --cat-title-size: clamp(23px, 6.9vw, 29px);
+}
+
+.catalog-category-card[data-category='sauces_spices'] .catalog-category-title {
+  display: block;
+  white-space: nowrap;
+  text-wrap: nowrap;
+}
+
 .catalog-category-card[data-category='tea_coffee'],
 .catalog-category-card[data-category='water_beverages'],
 .catalog-category-card[data-category='personal_care'] {

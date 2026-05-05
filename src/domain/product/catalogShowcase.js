@@ -83,20 +83,20 @@ export const CATEGORY_SHOWCASE = {
   },
   sauces_spices: {
     image: `${IMAGE_BASE}/category-sauces-spices.webp`,
-    variant: 'wide',
+    variant: 'hero',
     tone: 'tomato',
     textTone: 'light',
   },
   bread: {
     image: `${IMAGE_BASE}/category-bread.webp`,
-    variant: 'compact',
+    variant: 'wide',
     tone: 'wheat',
     textTone: 'dark',
     imageY: '48%',
   },
   frozen: {
     image: `${IMAGE_BASE}/category-frozen.webp`,
-    variant: 'compact',
+    variant: 'hero',
     tone: 'ice',
     textTone: 'dark',
     imageY: '49%',

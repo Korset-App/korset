@@ -83,3 +83,12 @@ CatalogScreen получил новый верхний уровень: вмес�
 - Light theme separation strengthened for mint/leaf/pale cards; text backing is clearer without turning every title into a heavy label.
 - Click transition simplified for performance: shorter 120ms delay, no `filter`, smaller transform and opacity movement.
 - Verification after polish: showcase unit test passed, i18n check passed, lint passed with 0 errors and existing warnings, build passed, Chromium smoke at 393px found 18 cards, 0 overlaps, and fitting title widths.
+
+## Figma Multi-Frame Correction After Third Review
+
+- Root cause found: the design file had three separate Figma frames, not one continuous screen. The first frame covered only the first 8 categories; the second and third frames defined the lower layout for fruits/grocery/frozen/baby/ready/bread/healthy/sauces/household/personal care.
+- Updated category variants to match the lower Figma frames: `bread` is `wide`, `frozen` and `sauces_spices` are `hero`, so their internal image/title behavior matches their actual card geometry.
+- Tightened `sauces_spices` title sizing and forced it to one line to avoid a heavy text block at the bottom of the hero card.
+- Current geometry smoke: 360px, 393px, and 768px viewports render 18 cards, 0 overlaps. Key ratios on 393px: wide ≈ 2.23, portrait ≈ 0.51, hero ≈ 1.06, compact ≈ 1.07.
+- Category click smoke: after tapping a category, the showcase disappears and the category back control appears; transition stays lightweight.
+- Fresh verification: `node --test tests/unit/catalogShowcase.test.mjs`, `node scripts/check-i18n.mjs`, `npm run lint`, and `npm run build` passed. Lint still has existing warnings unrelated to this catalog pass.
