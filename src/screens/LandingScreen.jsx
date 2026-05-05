@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import './LandingScreen.css'
 import { useI18n } from '../i18n/index.js'
 import useReveal from '../hooks/useReveal.js'
@@ -731,7 +732,6 @@ function HeroRotatingWord({ words }) {
 }
 
 export default function LandingScreen() {
-  const navigate = useNavigate()
   const { t, exists } = useI18n()
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)

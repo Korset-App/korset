@@ -1,3 +1,4 @@
+/* global FileReader, Image */
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../utils/supabase.js'
@@ -80,7 +81,7 @@ function AvatarChoice({ selected, onClick, children }) {
           borderRadius: 20,
           background: 'var(--image-bg)',
           border: selected ? '2px solid var(--primary-mid)' : '1px solid var(--glass-soft-border)',
-          boxShadow: selected ? '0 12px 28px rgba(124,58,237,0.22)' : 'none',
+          boxShadow: selected ? '0 12px 28px var(--primary-glow)' : 'none',
           overflow: 'hidden',
         }}
       >
@@ -95,7 +96,7 @@ function AvatarChoice({ selected, onClick, children }) {
             width: 28,
             height: 28,
             borderRadius: '50%',
-            background: '#10B981',
+            background: 'var(--success-bright)',
             border: '3px solid var(--bg-surface)',
             display: 'flex',
             alignItems: 'center',
@@ -267,14 +268,15 @@ export default function SetupProfileScreen() {
       user.user_metadata?.avatar_url ||
       user.user_metadata?.picture ||
       AVATAR_PRESETS[0].id
-    setName(currentName)
+    if (currentName !== name) setName(currentName)
     if (typeof currentAvatar === 'string' && /^https?:/i.test(currentAvatar)) {
       setCustomAvatarUrl(currentAvatar)
-      setSelectedAvatarId('custom')
+      if (selectedAvatarId !== 'custom') setSelectedAvatarId('custom')
     } else {
-      setSelectedAvatarId(currentAvatar || AVATAR_PRESETS[0].id)
+      const targetId = currentAvatar || AVATAR_PRESETS[0].id
+      if (selectedAvatarId !== targetId) setSelectedAvatarId(targetId)
     }
-  }, [user, displayName, avatarId])
+  }, [user, displayName, avatarId, name, selectedAvatarId])
 
   const backTarget = currentStore ? `/s/${currentStore.slug}/profile` : '/profile'
   const canContinueName = name.trim().length >= 3 && !nameError
@@ -445,7 +447,7 @@ export default function SetupProfileScreen() {
               style={{
                 fontSize: 13,
                 fontWeight: 700,
-                color: '#A78BFA',
+                color: 'var(--primary-bright)',
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',
                 marginBottom: 12,
@@ -495,7 +497,7 @@ export default function SetupProfileScreen() {
               style={{
                 fontSize: 13,
                 fontWeight: 700,
-                color: '#A78BFA',
+                color: 'var(--primary-bright)',
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',
                 marginBottom: 12,
@@ -535,11 +537,11 @@ export default function SetupProfileScreen() {
               border: 'none',
               cursor: loading ? 'default' : 'pointer',
               background:
-                loading || !canContinueName || !hasAvatar ? 'rgba(139,92,246,0.35)' : '#7C3AED',
+                loading || !canContinueName || !hasAvatar ? 'var(--primary-dim)' : 'var(--primary)',
               color: 'var(--text-inverse)',
               fontSize: 16,
               fontWeight: 700,
-              boxShadow: loading ? 'none' : '0 18px 36px rgba(124,58,237,0.24)',
+              boxShadow: loading ? 'none' : '0 18px 36px var(--primary-glow)',
             }}
           >
             {loading ? '...' : t('profileSetup.save')}
@@ -618,7 +620,7 @@ export default function SetupProfileScreen() {
             style={{
               width: `${progress}%`,
               height: '100%',
-              background: '#8B5CF6',
+              background: 'var(--primary-mid)',
               transition: 'width 0.25s ease',
             }}
           />
@@ -630,7 +632,7 @@ export default function SetupProfileScreen() {
               style={{
                 fontSize: 13,
                 fontWeight: 700,
-                color: '#A78BFA',
+                color: 'var(--primary-bright)',
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',
                 marginBottom: 14,
@@ -701,7 +703,7 @@ export default function SetupProfileScreen() {
               style={{
                 fontSize: 13,
                 fontWeight: 700,
-                color: '#A78BFA',
+                color: 'var(--primary-bright)',
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',
                 marginBottom: 14,
@@ -754,8 +756,8 @@ export default function SetupProfileScreen() {
             cursor: loading ? 'default' : 'pointer',
             background:
               loading || (step === 1 ? !canContinueName : !hasAvatar)
-                ? 'rgba(139,92,246,0.35)'
-                : '#7C3AED',
+                ? 'var(--primary-dim)'
+                : 'var(--primary)',
             color: 'var(--text-inverse)',
             fontSize: 16,
             fontWeight: 700,

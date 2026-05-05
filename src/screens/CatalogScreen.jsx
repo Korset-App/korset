@@ -1,4 +1,12 @@
-import { useState, useMemo, useEffect, useCallback, useRef, forwardRef } from 'react'
+import {
+  useState,
+  useMemo,
+  useEffect,
+  useCallback,
+  useRef,
+  forwardRef,
+  startTransition,
+} from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Virtuoso, VirtuosoGrid } from 'react-virtuoso'
 import {
@@ -366,11 +374,13 @@ export default function CatalogScreen() {
     if (categoryExitTimerRef.current) clearTimeout(categoryExitTimerRef.current)
     setPendingCategory(catKey)
     categoryExitTimerRef.current = setTimeout(() => {
-      setSelectedCategory(catKey)
-      setSelectedSubcategory(null)
-      setPendingCategory(null)
+      startTransition(() => {
+        setSelectedCategory(catKey)
+        setSelectedSubcategory(null)
+        setPendingCategory(null)
+      })
       categoryExitTimerRef.current = null
-    }, 120)
+    }, 80)
   }, [])
 
   const handleBackToCategories = useCallback(() => {

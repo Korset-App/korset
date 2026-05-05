@@ -1618,26 +1618,20 @@ body {
 .catalog-showcase-grid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  grid-auto-rows: clamp(54px, 15.9vw, 66px);
+  grid-auto-rows: clamp(92px, 26.5vw, 104px);
   grid-template-areas:
-    'dairy dairy dairy dairy water water'
     'dairy dairy dairy dairy water water'
     'sweets sweets sweets sweets water water'
     'sweets sweets sweets sweets meat meat'
-    'sweets sweets sweets sweets meat meat'
     'tea tea fish fish fish fish'
-    'tea tea fish fish fish fish'
-    'tea tea deli deli grocery grocery'
-    'bread bread deli deli grocery grocery'
-    'bread bread snacks snacks snacks snacks'
-    'frozen frozen snacks snacks snacks snacks'
-    'frozen frozen snacks snacks snacks snacks'
-    'fruits fruits fruits fruits baby baby'
-    'fruits fruits fruits fruits baby baby'
+    'tea tea snacks snacks snacks snacks'
+    'deli deli snacks snacks snacks snacks'
+    'fruits fruits fruits fruits grocery grocery'
+    'frozen frozen frozen frozen grocery grocery'
+    'frozen frozen frozen frozen baby baby'
+    'ready ready bread bread bread bread'
     'ready ready sauces sauces sauces sauces'
-    'ready ready sauces sauces sauces sauces'
-    'ready ready healthy healthy healthy healthy'
-    'care care healthy healthy healthy healthy'
+    'healthy healthy sauces sauces sauces sauces'
     'care care household household household household'
     'care care household household household household';
   gap: clamp(10px, 2.7vw, 14px);
@@ -1673,27 +1667,28 @@ body {
       transparent 34%
     ),
     linear-gradient(135deg, var(--tone-a) 0%, var(--tone-b) 100%);
-  box-shadow: 0 16px 36px color-mix(in srgb, var(--tone-b) 22%, transparent);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--tone-b) 16%, transparent);
   cursor: pointer;
   isolation: isolate;
   touch-action: manipulation;
   transform-origin: 50% 68%;
-  animation: catalogCardIn 0.54s cubic-bezier(0.18, 0.86, 0.24, 1.12) both;
-  animation-delay: calc(var(--catalog-card-index, 0) * 42ms);
+  animation: catalogCardIn 0.24s ease-out both;
+  animation-delay: calc(var(--catalog-card-index, 0) * 12ms);
+  contain: layout paint;
 }
 
 .catalog-category-card[data-variant='hero'] {
   grid-column: span 4;
   grid-row: span 3;
   --cat-title-size: clamp(26px, 9.5vw, 42px);
-  --cat-image-scale: 1.08;
+  --cat-image-scale: 1.03;
 }
 
 .catalog-category-card[data-variant='wide'] {
   grid-column: span 4;
   grid-row: span 2;
   --cat-title-size: clamp(18px, 5.9vw, 25px);
-  --cat-image-scale: 1.04;
+  --cat-image-scale: 1;
 }
 
 .catalog-category-card[data-variant='portrait'] {
@@ -1706,7 +1701,7 @@ body {
 .catalog-category-card[data-variant='compact'] {
   grid-column: span 2;
   grid-row: span 2;
-  --cat-title-size: clamp(13px, 3.75vw, 16px);
+  --cat-title-size: clamp(14px, 4.1vw, 18px);
   --cat-image-scale: 0.98;
 }
 
@@ -1907,7 +1902,7 @@ body {
 }
 
 .catalog-category-card[data-category='snacks'] {
-  --cat-title-size: clamp(18px, 5.5vw, 24px);
+  --cat-title-size: clamp(17px, 5.1vw, 22px);
 }
 
 .catalog-category-card[data-category='dairy_eggs'] {
@@ -1926,11 +1921,7 @@ body {
 }
 
 .catalog-category-card[data-category='dairy_eggs'] .catalog-category-copy {
-  left: 8px;
-  right: 8px;
   max-width: calc(100% - 12px);
-  padding-right: 6px;
-  padding-left: 6px;
 }
 
 .catalog-category-card[data-category='dairy_eggs'],
@@ -1938,6 +1929,12 @@ body {
 .catalog-category-card[data-category='fruits_veg'],
 .catalog-category-card[data-category='bread'] {
   --cat-image-y: 34%;
+}
+
+.catalog-category-card[data-category='sauces_spices'],
+.catalog-category-card[data-category='frozen'],
+.catalog-category-card[data-category='household'] {
+  --cat-title-size: clamp(28px, 8.4vw, 36px);
 }
 
 .catalog-category-card[data-category='tea_coffee'],
@@ -1957,7 +1954,7 @@ body {
   bottom: 0;
   left: 0;
   z-index: 2;
-  height: 42%;
+  height: 34%;
   background: linear-gradient(
     180deg,
     transparent 0%,
@@ -1971,7 +1968,7 @@ body {
   background: linear-gradient(
     180deg,
     transparent 0%,
-    color-mix(in srgb, var(--bg-app) 58%, transparent) 100%
+    color-mix(in srgb, var(--bg-app) 42%, transparent) 100%
   );
 }
 
@@ -2038,37 +2035,36 @@ body {
   height: 100%;
   object-fit: contain;
   transform: translate(-50%, -50%) scale(var(--cat-image-scale));
-  transition: transform 0.28s ease;
-  filter: drop-shadow(0 10px 18px color-mix(in srgb, var(--bg-app) 42%, transparent));
+  transition: transform 0.18s ease;
+  filter: drop-shadow(0 7px 12px color-mix(in srgb, var(--bg-app) 34%, transparent));
 }
 
 .catalog-category-copy {
   position: absolute;
-  left: clamp(11px, 3.5vw, 16px);
-  right: clamp(10px, 3vw, 15px);
-  bottom: clamp(7px, 2.4vw, 12px);
+  left: clamp(9px, 2.8vw, 12px);
+  right: clamp(8px, 2.4vw, 12px);
+  bottom: clamp(5px, 1.8vw, 8px);
   z-index: 3;
   display: grid;
-  gap: 2px;
+  gap: 0;
   justify-items: start;
   text-align: left;
   pointer-events: none;
   width: fit-content;
-  max-width: calc(100% - 20px);
-  padding: 6px 8px 7px;
-  border-radius: 12px;
+  max-width: calc(100% - 14px);
+  padding: 1px 4px 2px;
+  border-radius: 7px;
   background: linear-gradient(
     90deg,
-    color-mix(in srgb, var(--text-inverse) 30%, transparent) 0%,
+    color-mix(in srgb, var(--text-inverse) 18%, transparent) 0%,
     transparent 100%
   );
-  backdrop-filter: blur(0.5px);
 }
 
 .catalog-category-card[data-text='light'] .catalog-category-copy {
   background: linear-gradient(
     90deg,
-    color-mix(in srgb, var(--bg-app) 42%, transparent) 0%,
+    color-mix(in srgb, var(--bg-app) 32%, transparent) 0%,
     transparent 100%
   );
 }
@@ -2082,12 +2078,12 @@ body {
   font-size: var(--cat-title-size);
   font-weight: 600;
   letter-spacing: 0;
-  line-height: 0.86;
+  line-height: 0.84;
   overflow-wrap: anywhere;
   text-wrap: balance;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
-  text-shadow: 0 1px 12px color-mix(in srgb, var(--bg-app) 22%, transparent);
+  text-shadow: 0 1px 8px color-mix(in srgb, var(--bg-app) 20%, transparent);
 }
 
 .catalog-category-count {
@@ -2106,7 +2102,7 @@ body {
   border-color: color-mix(in srgb, var(--tone-b) 52%, var(--glass-border));
   box-shadow:
     inset 0 0 0 1px color-mix(in srgb, var(--text) 12%, transparent),
-    0 16px 30px color-mix(in srgb, var(--tone-b) 22%, transparent);
+    0 10px 24px color-mix(in srgb, var(--tone-b) 16%, transparent);
 }
 
 :root[data-theme='light'] .catalog-category-card[data-tone='mint'] {
@@ -2131,7 +2127,7 @@ body {
 }
 
 :root[data-theme='light'] .catalog-category-media img {
-  filter: drop-shadow(0 10px 16px color-mix(in srgb, var(--text-dim) 26%, transparent));
+  filter: drop-shadow(0 7px 12px color-mix(in srgb, var(--text-dim) 22%, transparent));
 }
 
 @media (min-width: 431px) {
@@ -2142,7 +2138,7 @@ body {
 
 @media (max-width: 370px) {
   .catalog-showcase-grid {
-    grid-auto-rows: clamp(54px, 16.5vw, 62px);
+    grid-auto-rows: clamp(88px, 26vw, 96px);
     gap: 9px;
   }
 
@@ -2173,11 +2169,7 @@ body {
 @keyframes catalogCardIn {
   0% {
     opacity: 0;
-    transform: translateY(18px) scale(0.94);
-  }
-  62% {
-    opacity: 1;
-    transform: translateY(-2px) scale(1.012);
+    transform: translateY(8px) scale(0.985);
   }
   100% {
     opacity: 1;

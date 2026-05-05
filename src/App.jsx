@@ -24,6 +24,7 @@ const QRPrintScreen = lazy(() => import('./screens/QRPrintScreen.jsx'))
 const StoresScreen = lazy(() => import('./screens/StoresScreen.jsx'))
 const StorePublicScreen = lazy(() => import('./screens/StorePublicScreen.jsx'))
 const AuthScreen = lazy(() => import('./screens/AuthScreen.jsx'))
+const UpdatePasswordScreen = lazy(() => import('./screens/UpdatePasswordScreen.jsx'))
 const SetupProfileScreen = lazy(() => import('./screens/SetupProfileScreen.jsx'))
 const HistoryScreen = lazy(() => import('./screens/HistoryScreen.jsx'))
 const NotificationSettingsScreen = lazy(() => import('./screens/NotificationSettingsScreen.jsx'))
@@ -109,6 +110,7 @@ function AppInner() {
           <Route path="/s/:storeSlug/product/:ean/compare/:ean2" element={<CompareScreen />} />
 
           <Route path="/auth" element={<AuthScreen />} />
+          <Route path="/update-password" element={<UpdatePasswordScreen />} />
           <Route path="/setup-profile" element={<SetupProfileScreen />} />
           <Route path="/qr-print" element={<QRPrintScreen />} />
           <Route path="/privacy-policy" element={<PrivacyPolicyScreen />} />

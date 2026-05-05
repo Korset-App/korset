@@ -35,7 +35,8 @@ Store-context AI assistant (mobile-first PWA) для офлайн-магазин
 
 ## Что работает
 
-- Supabase Auth (Google OAuth)
+- Supabase Auth (Google OAuth + Email+Пароль + Email OTP + WhatsApp OTP)
+- Сканер штрихкодов, AIScreen (чат с ИИ + RAG)
 - Сканер штрихкодов, AIScreen (чат с ИИ + RAG)
 - Fit-Check (Red/Orange — детерминированный, Yellow — AI)
 - Push-уведомления, История + Избранное, Smart Merge
@@ -444,6 +445,60 @@ Poster (fallback): Unsplash `photo-1567449303183` (продуктовый маг
 - Light theme got stronger separation for mint/leaf/pale cards and a clearer text backing so sweets/healthy/pale cards do not blend into the page.
 - Category click transition was simplified for performance: shorter delay, no expensive filter animation, smaller transform.
 - Verification: unit showcase test, i18n check, lint (0 errors, existing warnings), production build, and Chromium smoke passed; 393px viewport renders 18 cards, 0 overlaps, text widths fit.
+
+### AUTH OVERHAUL — ВЫПОЛНЕНО ✅ (2026-05-05)
+
+**Полная профессиональная доработка авторизации.**
+
+**Что сделано:**
+
+1. **UpdatePasswordScreen** (`src/screens/UpdatePasswordScreen.jsx`) — НОВЫЙ экран
+   - Форма ввода нового пароля после клика по ссылке сброса
+   - Авто-вход после смены + редирект
+   - Обработка истёкшего/неверного токена
+   - Маршрут `/update-password` добавлен в App.jsx
+
+2. **AuthScreen — полный рефакторинг** (`src/screens/AuthScreen.jsx`)
+   - 3 таба: **Пароль** | **Код** (Email OTP) | **Телефон** (WhatsApp OTP)
+   - Email OTP: `signInWithOtp({ email })` — бесплатный, безпарольный вход
+   - WhatsApp OTP: `signInWithOtp({ phone, channel: 'whatsapp' })` — через Twilio
+   - KZ формат номера +7XXXXXXXXXX с визуальной маской
+   - Cooldown таймер 60 сек для resend OTP
+   - Google OAuth loading state (больше не «зависает»)
+   - Детект дублей email: «Этот email привязан к Google. Войдите через Google»
+   - Все хардкод-цвета заменены на CSS-переменные
+   - 68 i18n ключей (RU + KZ) — все новые экраны покрыты
+
+3. **AccountScreen — секция «Способы входа»** (`src/screens/AccountScreen.jsx`)
+   - Показывает привязанные методы: Email, WhatsApp, Google
+   - Кнопка «Привязать Google» (linkIdentity)
+   - redirectTo для resetPassword → `/update-password` (было `/auth?type=recovery` — БАГ)
+
+4. **SetupProfileScreen + AccountScreen — CSS-переменные**
+   - `#7C3AED` → `var(--primary)`
+   - `#A78BFA` → `var(--primary-bright)`
+   - `#10B981` → `var(--success-bright)`
+   - `#DC2626` → `var(--error)`
+   - `#8B5CF6` → `var(--primary-mid)`
+
+5. **i18n** — 31 новый ключ (RU + KZ):
+   - auth.updatePw*, auth.tab*, auth.emailOtp*, auth.phoneOtp*, auth.resend*
+   - auth.errPhoneInvalid, auth.errOtpRateLimit, auth.errEmailDuplicate
+   - auth.linkedMethods, auth.linkGoogle, auth.phoneNoWhatsApp
+
+**Что требует настройки в Supabase Dashboard:**
+- Phone provider: включить Twilio (пользователь зарегистрирует аккаунт)
+- WhatsApp Business верификация (1-3 дня)
+- Redirect URLs: добавить `/update-password`
+- Проверить Resend SMTP / DNS (SPF, DKIM, DMARC для korset.app)
+
+**Apple Sign-In:** Отложено до Apple Developer ($99/год) — не нужно для PWA
+**WebAuthn/Passkeys:** Отложено до V2 — вход по отпечатку/face ID
+
+**Верификация:**
+- `npm run build` — PASS
+- `npm run lint` — 0 errors (52 warnings, все pre-existing)
+- `node scripts/check-i18n.mjs` — PASS (0 missing KZ)
 
 ### AUTH STRATEGY DISCOVERY 2026-05-05
 

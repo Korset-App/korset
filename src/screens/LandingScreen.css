@@ -5,7 +5,7 @@
    Stage 1: Header + Hero (with video stage)
    Local namespace: .lp-* + var(--lp-*)
    Mobile-first, 6 breakpoints (360/480/768/1024/1280/1440)
-   в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ */
+   ╚═════════════════════════════════════════════════════════════════════════════ */
 
 /*
   CRITICAL: landing renders inside .app-frame which has max-width:430px
@@ -36,17 +36,8 @@
   width: 100% !important;
   height: auto !important;
   min-height: 100vh !important;
-  overflow: visible !important;
-  overflow-x: hidden !important;
-  background: transparent !important;
   border: none !important;
-  border-radius: 0 !important;
-  display: block !important;
-  position: static !important;
-  transform: none !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  box-shadow: none !important;
+  overflow: visible !important;
 }
 
 .lp-page {
@@ -398,6 +389,7 @@
   display: flex;
   align-items: center;
   overflow: hidden;
+  isolation: isolate;
 }
 
 /* Background image layer */
@@ -431,7 +423,16 @@
 
 /* Layered overlay — intentionally lighter so the image shows through */
 .lp-hero__bg-overlay {
-  display: none; /* Temporarily disabled to see if video is underneath */
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(7, 7, 15, 0.72) 0%,
+      rgba(7, 7, 15, 0) 40%,
+      rgba(7, 7, 15, 0) 70%,
+      var(--lp-bg) 100%
+    );
 }
 
 /* Content wrapper on top of background */

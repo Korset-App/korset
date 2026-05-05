@@ -109,7 +109,7 @@ export const CATEGORY_SHOWCASE = {
   },
   baby_food: {
     image: `${IMAGE_BASE}/category-baby-food.webp`,
-    variant: 'square',
+    variant: 'compact',
     tone: 'cream',
     textTone: 'dark',
   },
@@ -136,7 +136,7 @@ export const CATEGORY_SHOWCASE = {
     variant: 'hero',
     tone: 'violet',
     textTone: 'light',
-    imageScale: 0.92,
+    imageScale: 1.02,
   },
 }
 

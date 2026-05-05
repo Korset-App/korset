@@ -30,7 +30,7 @@ test('catalog showcase uses a controlled responsive variant set', () => {
 
   assert.deepEqual(
     [...variants].sort(),
-    ['compact', 'hero', 'portrait', 'square', 'wide'].sort()
+    ['compact', 'hero', 'portrait', 'wide'].sort()
   )
 })
 
