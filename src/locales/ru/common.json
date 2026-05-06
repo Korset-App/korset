@@ -39,5 +39,6 @@
   "common.langRu": "Русский",
   "common.langKzAria": "Қазақша",
   "common.on": "Вкл",
-  "common.off": "Выкл"
+  "common.off": "Выкл",
+  "common.loading": "Загрузка…"
 }

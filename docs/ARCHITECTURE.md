@@ -1,584 +1,328 @@
-# 🧠 KÖRSET: АБСОЛЮТНАЯ АРХИТЕКТУРА И ПРОДУКТОВЫЙ КОНТЕКСТ
-**Версия:** 4.0 (Мастер-документ, апрель 2026)
-**Статус:** ГЛАВНЫЙ ИСТОЧНИК ПРАВДЫ (MASTER TRUTH)
+# KORSET — ARCHITECTURE MAP
 
-> **⚠️ ПРАВИЛО ЧТЕНИЯ:** Информация в этом файле расположена от старой к новой. Если данные противоречат друг другу — более нижний раздел имеет приоритет. Для быстрого старта сессии используйте `CONTEXT.md` — этот файл нужен только для глубокого погружения.
-
----
-
-## 1. СУТЬ И ФИЛОСОФИЯ ПРОЕКТА (VISION)
-
-**Körset** — это высокотехнологичный store-context AI assistant (mobile-first PWA) для офлайн-магазинов в Казахстане (KZ). Его миссия — стать «цифровой памятью питания» и персональным «защитником диеты» для каждого покупателя, помогая выбирать еду осознанно.
-
-### Ментальная модель («Fit-Check»)
-Основа философии — помощь «здесь и сейчас» у полки конкретного магазина.
-1. Покупатель сканирует штрихкод товара.
-2. За секунду получает **Fit-Check** — строгий вердикт: подходит продукт или нет.
-3. ИИ расшифровывает «химический» состав на человеческий язык, выявляет скрытые Е-добавки, сахар, консерванты.
-4. Если товар не прошёл — предлагает здоровую альтернативу из этого же магазина.
-
-Проверка базируется на глобальном профиле пользователя:
-- **Религиозные фильтры:** строгий контроль Халал.
-- **Пищевые протоколы:** диеты Кето, Веган, «Без сахара».
-- **Медицинские ограничения:** аллергены (лактоза, глютен, орехи и др.), Диабет.
-
-### Бизнес-модель (B2B2C)
-Несмотря на B2C-интерфейс, **Körset — это B2B-продукт**. Основные клиенты — торговые сети (Magnum, ATB и др.), которые покупают SaaS-подписку (~15 000 тг/месяц). Приложение продаётся как инструмент для:
-- Увеличения конверсии в покупку (человек сомневался → просканировал → купил).
-- Повышения лояльности покупателей.
-- Сбора Big Data (гео-аналитика аллергий по районам).
-
-B2C-функционал первичен для создания аудитории, но все решения оцениваются через призму **B2B-ценности**.
+> Обновлено: 2026-05-06.
+> Роль файла: карта системы для глубокого входа. Это не changelog, не roadmap и не архив всех прошлых идей.
+> Быстрый старт: `docs/CONTEXT.md`. Текущие приоритеты: `docs/ROADMAP_PILOT_V1.md`. Детальная память: `docs/vault/`.
 
 ---
 
-## 2. ТЕХНИЧЕСКИЙ СТЕК И ИНФРАСТРУКТУРА
+## 1. Product Shape
 
-| Слой | Технология |
-|---|---|
-| **Frontend** | React 18, Vite, JavaScript (ESM). Архитектура — SPA. |
-| **Backend (BaaS)** | Supabase (PostgreSQL, Auth, Storage) |
-| **Стилизация** | Vanilla CSS + «Dark Premium Glassmorphism». Элементы Tailwind (CDN). |
-| **Шрифты** | `Advent Pro` (заголовки), `Manrope` (основной текст) — Google Fonts |
-| **Иконки** | **Строго** `Material Symbols Outlined` (Google Fonts) |
-| **Состояние** | React Context API (Profile, Auth, Store, UserData) |
-| **Роутинг** | `react-router-dom` v6 |
-| **Локализация** | Мультиязычность RU/KZ обязательна. UI — через `useI18n` (`src/utils/i18n.js`). Данные товаров в БД хранятся на обоих языках. |
-| **Инфраструктура** | Vercel + GitHub. PWA-конфиг в `vite.config.js` и `manifest.webmanifest`. Ключи в `.env.local`. |
+Korset — mobile-first PWA для продуктовых офлайн-магазинов Казахстана.
+Покупатель входит в контекст конкретного магазина, сканирует штрихкод и получает Fit-Check: подходит ли товар под аллергии, халал, диеты, состав и личные ограничения.
+
+Бизнес-модель B2B2C:
+- покупатель получает бесплатную утилиту у полки;
+- магазин платит за подписку, аналитику, цифровой слой ассортимента и меньше потерянных продаж;
+- V1 scope: только продуктовые магазины.
+
+Архитектурный принцип: сначала надежный store-context product resolver и Fit-Check, потом AI/RAG как объясняющий слой.
 
 ---
 
-## 3. ДВУХКОНТУРНАЯ ПРОДУКТОВАЯ АРХИТЕКТУРА
+## 2. Stack
 
-Проект разделён на **две равноправные части** для запуска v1.
+| Layer | Current choice |
+| --- | --- |
+| Frontend | React 18, Vite, SPA |
+| Language | JavaScript ESM, not TypeScript |
+| Styles | Vanilla CSS, semantic CSS variables, dark/light themes |
+| Routing | `react-router-dom` v6 |
+| Data/backend | Supabase PostgreSQL, Auth, Storage, RLS |
+| API | Vercel Serverless functions in `api/` |
+| AI | OpenAI + project Vault RAG |
+| Offline | Service worker, IndexedDB, pending scan queue |
+| Tests/checks | Vitest-like node tests, Playwright, ESLint, build |
 
-### Контур A: Consumer App (Зона Покупателя)
-Главная парадигма: **Store-home-first**. Пользователь не работает с абстрактной базой — он работает с ассортиментом конкретного магазина.
+---
 
-**Маршруты:**
+## 3. Runtime Map
+
+```text
+User / phone
+  -> Vite React SPA
+  -> React contexts: auth, profile, store, offline, user data
+  -> domain/utils: resolver, fit-check, catalog, retail, i18n
+  -> Supabase: auth + tables + storage + RLS
+  -> Vercel APIs: AI, EAN recovery, push, monitoring
+  -> OpenAI / RAG when explanation or chat is needed
 ```
-/                           # Лендинг (публичная зона)
-/stores                     # Список магазинов (публичная зона)
-/s/:storeSlug               # Главный экран магазина (store-home)
-/s/:storeSlug/scan          # Сканер штрихкодов
-/s/:storeSlug/catalog       # Каталог продуктов
-/s/:storeSlug/product/:ean  # Карточка товара
-/s/:storeSlug/history       # История сканирований
-/s/:storeSlug/profile       # Профиль (данные глобальны, но роутинг через storeSlug для сохранения Bottom Nav)
+
+Primary entry points:
+- `src/App.jsx` — top-level routing and providers.
+- `src/contexts/StoreContext.jsx` — active store loading and store context.
+- `src/domain/` and `src/utils/` — product resolution, Fit-Check, catalog and retail helpers.
+- `api/ai.js` — server-side AI endpoint with RAG context.
+- `scripts/embed-vault.mjs` and `scripts/query-vault.mjs` — project memory indexing/search.
+
+---
+
+## 4. Routing Boundaries
+
+Public/system:
+
+```text
+/                         landing
+/stores                   store list
+/stores/:storeSlug        public store page
+/auth                     authentication
+/update-password          password recovery completion
+/setup-profile            profile setup
+/qr-print                 QR print page
+/privacy-policy           privacy policy
 ```
 
-### Контур B: Retail Cabinet (Зона Магазина)
-Чтобы продукт можно было продавать, в v1 должен быть рабочий B2B-кабинет.
+Consumer store context:
 
-**Минимальный функционал Retail Cabinet v1:**
-1. Dashboard (сводная статистика)
-2. Products (управление ассортиментом: цены, полки, скрытие)
-3. Import (загрузка из Excel/CSV/1С)
-4. Analytics (базовая аналитика сканирований)
-5. Store settings / Branding
-
-**Роли на старте:** только `owner` (и, возможно, `manager` позже). Сложную систему прав — в v2.
-
-**Маршруты будущего Retail Cabinet:**
+```text
+/s/:storeSlug
+/s/:storeSlug/scan
+/s/:storeSlug/catalog
+/s/:storeSlug/ai
+/s/:storeSlug/history
+/s/:storeSlug/profile
+/s/:storeSlug/profile/edit
+/s/:storeSlug/account
+/s/:storeSlug/notifications
+/s/:storeSlug/privacy
+/s/:storeSlug/sound-settings
+/s/:storeSlug/faq
+/s/:storeSlug/about
+/s/:storeSlug/terms
+/s/:storeSlug/product/:ean
+/s/:storeSlug/product/:ean/alternatives
+/s/:storeSlug/product/:ean/ai
+/s/:storeSlug/product/:ean/compare/:ean2
 ```
-/retail/login
+
+Retail:
+
+```text
+/retail
 /retail/:storeSlug/dashboard
 /retail/:storeSlug/products
 /retail/:storeSlug/import
-/retail/:storeSlug/analytics
+/retail/:storeSlug/ean-recovery
 /retail/:storeSlug/settings
 ```
 
----
-
-## 4. ПОЛЬЗОВАТЕЛЬСКИЙ ОПЫТ: АВТОРИЗАЦИЯ, QR И ОНБОРДИНГ
-
-### Принцип Frictionless (Вход без барьеров)
-Регистрация на старте **НЕ обязательна**. Пользователь начинает как гость.
-
-### QR-Стратегия (физическое размещение в магазине)
-QR — это главный канал привлечения. Он должен быть заметным и многочисленным:
-
-1. **Главный большой QR** — баннер/постер у входа или в самом видном месте.
-2. **Наклейка у входа** — с логотипом Körset, создаёт ощущение подключённости к серьёзному сервису.
-3. **QR у кассы** — обязательно.
-4. **QR на полках** — в достаточном количестве, особенно там, где Körset наиболее полезен.
-5. **Мини-плакаты/карточки** с текстом: «Хочешь узнать состав?», «Проверь, подходит ли тебе этот товар».
-
-> **Важно:** Продавцы магазина **обязательно** должны предлагать Körset покупателям — доверие к живому человеку выше, чем к наклейке.
-
-**Итог:** один store entry QR как сущность, но несколько физических точек доступа.
-
-### Пользовательские Флоу
-
-**Через QR в магазине:**
-```
-QR → Онбординг (в контексте магазина) → Store-home → Scan / Catalog / AI
-```
-
-**Через поиск / сайт:**
-```
-Landing → Выбор магазина (/stores) → Store-home
-```
-_(Онбординг/preferences можно мягко предложить позже внутри store flow)_
-
-### Онбординг
-- Показывается **после** входа в контекст конкретного магазина.
-- **НЕ** показывается первым экраном при входе через поиск (сначала Landing).
-- Пользователь проходит его **один раз** — профиль глобален. При заходе в другой магазин — настройки применяются автоматически.
-
-### Регистрация как Upsell
-`Supabase Auth` (Google, в планах Apple) разблокирует **премиум-фичи**:
-- История сканирований
-- Избранные товары
-- Push-уведомления
-
-### Smart Merge (Умное Слияние)
-При переходе гостя в аккаунт: если облако пустое — локальные данные заливаются туда. Если в облаке есть данные — показывается **неблокирующее** модальное окно выбора.
+Invariant: shopping flows for buyers stay under `/s/:storeSlug/`.
 
 ---
 
-## 5. АРХИТЕКТУРА БАЗЫ ДАННЫХ (100% SUPABASE)
+## 5. Core Data Model
 
-> ‼️ **ВАЖНО:** Локальные моки **ПОЛНОСТЬЮ УДАЛЕНЫ** из архитектуры. Файл `data/products.json` сохранён только как справочный fallback. ИИ-ассистенты не должны на него полагаться.
+Conceptual model:
 
-### Двухуровневая модель данных
+| Entity | Purpose |
+| --- | --- |
+| `stores` | Store identity, owner, branding, address, settings |
+| `global_products` | Canonical product facts by EAN/UUID: names, composition, nutrition, allergens, halal, images |
+| `store_products` | Store overlay: price, stock, shelf, visibility, store-specific metadata |
+| `scan_events` | Product demand, behavior and analytics signals |
+| Unknown EAN staging | Data improvement queue for unresolved products |
+| Vault embeddings | RAG memory chunks for assistant/project knowledge |
 
-| Таблица | Содержимое |
-|---|---|
-| `global_products` | Эталонный справочник товаров (EAN/UUID, состав RU+KZ, фото, аллергены, Халал, КБЖУ, вердикт ИИ). Заполняется один раз — используется всеми магазинами. |
-| `store_products` | Витрина конкретного магазина: цена (KZT), наличие, номер полки, статус акции. Ссылается на `global_products`. |
+Rules:
+- Do not invent product facts when EAN data is missing.
+- Unknown EAN is a data pipeline event, not a reason for confident AI claims.
+- Store overlay must not mutate canonical facts unless the code explicitly handles that pipeline.
+- Database/RLS changes need migration-level care and verification.
 
-### Откуда берётся ассортимент
-- Магазин предоставляет файл (Excel / CSV / 1C / другие форматы).
-- Команда Körset обрабатывает его с помощью ИИ-пайплайна.
-- Сначала заполняются `global_products`, потом строятся `store_products`.
-- **На старте магазин ничего не вводит вручную.** Это делает команда Körset. Консьерж-сервис.
-
-### Что магазин реально может предоставить
-`EAN`, `Название`, `Цена`, `Полка`, `Наличие`, `Категория`, `Акция` (и иногда больше).
-
-### UX-оптимизация (UX Illusions)
-Запрос в Supabase занимает 150-300 мс (до 1 сек в подвалах магазинов). Чтобы пользователь воспринимал работу как мгновенную:
-- При сканировании сразу (0 мс) звучит системный «Пик!» и включается skeleton-анимация.
-- Жёсткое кэширование (SWR/React Query) — повторный скан того же товара берётся из памяти за 5 мс.
-
----
-
-## 6. ДИЗАЙН-КОД И UI/UX ПРАВИЛА
-
-У приложения сформирован дорогой, узнаваемый стиль — **менять его без явного запроса запрещено**.
-
-- **Стиль:** Dark Premium Glassmorphism (эффект стекла, глубокие тёмные тона). Никаких стандартных светлых SaaS-шаблонов.
-- **Mobile-first:** Интерфейс разрабатывается строго под мобильные устройства (PWA) — используется стоя с телефоном в руке в зале магазина.
-- **Шрифты:** `Advent Pro` (заголовки), `Manrope` (основной текст).
-- **Иконки:** Только `Material Symbols Outlined`. Использование кастомных SVG для иконок строго запрещено.
-- **Аватары:** Везде где нужен аватар — только компонент `<ProfileAvatar />`. Хардкод `<img>` для юзеров **запрещён**.
-- **Cross-sell обязателен:** Если ИИ бракует товар (аллергия/харам) — система **ОБЯЗАНА** предложить безопасный аналог из ассортимента этого же магазина.
+Detailed docs:
+- `docs/vault/architecture/product-resolution.md`
+- `docs/vault/architecture/ean-recovery-system.md`
+- `docs/vault/knowledge/data-moat-pipeline-strategy.md`
+- `supabase/`
 
 ---
 
-## 7. КЛЮЧЕВЫЕ ФАЙЛЫ ПРОЕКТА
+## 6. Product Resolution
 
-| Файл | Назначение |
-|---|---|
-| `src/App.jsx` | Корневая логика и роутинг |
-| `src/screens/HomeScreen.jsx` | Лендинг (`/`) |
-| `src/screens/ScanScreen.jsx` | Экран сканера |
-| `src/screens/ProductScreen.jsx` | Карточка товара |
-| `src/screens/AIScreen.jsx` | Чат с Körset AI (контекст привязан к продукту) |
-| `src/screens/ProfileScreen.jsx` | Профиль пользователя |
-| `src/screens/SetupProfileScreen.jsx` | Мастер настройки / Edit Mode (`?mode=edit`) |
-| `src/components/ProfileAvatar.jsx` | Универсальный компонент аватаров (AI-пресеты + фото из Storage) |
-| `src/utils/i18n.js` | Переводы RU/KZ |
-| `src/utils/routes.js` | Хелперы для построения маршрутов (всегда учитывать `storeSlug`) |
-| `supabase/KORSET_DB_SCHEMA_FULL.sql` | Контекстная схема БД (только для чтения) |
-| `docs/CONTEXT.md` | ⚡ Быстрый контекст для старта сессий |
-| `docs/TODO.md` | 🎯 Трекер задач V1 |
-
----
-
-## 8. ЧТО УЖЕ РЕАЛИЗОВАНО И РАБОТАЕТ
-
-### Интерфейс и Навигация
-- **Landing Page (`/`):** Glassmorphism-дизайн, вертикальный стек «особенностей», Bottom Nav скрыт, кнопки «Выбрать магазин» и «О проекте» (скролл к `b2b-section`) работают.
-
-### Аутентификация и Профиль
-- Supabase Auth (вход/регистрация).
-- **Онбординг:** 2-шаговый мастер (Шаг 1: Имя, Шаг 2: Аватар).
-- **Edit Mode:** Вызов по `?mode=edit` — компактное редактирование (имя + фото) без сброса аллергенов.
-- **ProfileAvatar:** Единый компонент, отображает AI-пресеты (CSS/SVG), загруженные фото (Supabase Storage), резервный вариант (буква на градиенте).
-
-### Сканирование и AI
-- Рабочий сканер штрихкодов (`html5-qrcode`).
-- **AIScreen:** Пользовательский чат с Körset AI. Контекст жёстко привязан к отсканированному продукту. Встроены чипы быстрых запросов.
-
-### Push-уведомления (Инфраструктура готова)
-- Service Worker, генерация VAPID, подписки через `/api/push/subscribe`, `/api/push/unsubscribe`.
-- Тестовая отправка: `/api/push/send-test`.
-- Боевые события: `/api/push/send-event`.
-- Настройки уведомлений сохраняются в `profile.preferences.notifications` и `localStorage`.
-- ⚠️ На iPhone работает только если PWA добавлено на экран «Домой».
-
-### Admin / Rapid-Scan
-- Скрытый маршрут `/admin/rapid-scan`.
-- Защита через RBAC в Supabase (`role: 'admin'`).
-- Терминал для быстрой оцифровки полок: скан штрихкода → ввод цены → сохранение в базу.
-
-### Social Proof (Фейковые магазины)
-- В БД Supabase заведены 2-3 гиперреалистичных тестовых магазина (реальные адреса, логотипы, 300-500 реальных товаров).
-- Используются для демонстрации WOW-эффекта при B2B-питчинге.
-
----
-
-## 9. ГИБРИДНАЯ ИИ-АРХИТЕКТУРА И FAIL-SAFE
-
-Система разделена на два контура во избежание галлюцинаций LLM в медицинских вопросах.
-
-### Контур А — Детерминированный код (Красный и Оранжевый уровни)
-Обрабатывает критические угрозы здоровью. Строгий IF/ELSE. **ИИ сюда не допускается.**
-- **Fail-Safe:** Если состав пустой или < 10 символов при включённом медицинском фильтре → жёсткий красный блок «Нет данных, гарантий безопасности нет».
-- **Traces (PAL):** Фраза «может содержать следы» → оранжевое предупреждение, не блокировка.
-
-### Контур Б — LLM / RAG (Жёлтый и Зелёный уровни)
-Активируется только если товар прошёл Контур А. Обрабатывает «мягкие» фильтры.
-
-### Absorption Engine
-Скрипт БД разрешает конфликты **до** отправки в ИИ. Пример: «Аллергия на молоко» (медицина) автоматически удаляет диету «Без лактозы» (лайфстайл) и оставляет жёсткий аллергический блок.
-
----
-
-## 10. ТАКСОНОМИЯ ПРЕДПОЧТЕНИЙ (4 уровня угрозы)
-
-### 🔴 Уровень 1: КРАСНЫЙ (CRITICAL / Медицина)
-**Обработка:** Строгий детерминированный код → Блокировка + поиск аналога.
-- Аллергии: Орехи, Яйца, Морепродукты, Глютен (Целиакия), Лактоза.
-- Диабет: Блокируется не только «сахар», но и скрытые угрозы: мальтодекстрин, фруктоза, декстроза, патока, сиропы.
-
-### 🟠 Уровень 2: ОРАНЖЕВЫЙ (TRACES / Следы)
-**Обработка:** Детерминированный код.
-- Если в составе «может содержать следы [аллергена]» → оранжевая плашка-предупреждение. Пользователь решает сам.
-
-### 🟡 Уровень 3: ЖЁЛТЫЙ (Strict Lifestyle & Religion)
-**Обработка:** ИИ-аналитика + проверка сертификатов в БД.
-- **Халал (Сложный парсинг):** ИИ ищет свинину, кармин (Е120), алкоголь, сычужный фермент, желатин без пометки «говяжий/халал». Если в БД есть официальный сертификат Халал → ИИ пропускает без парсинга.
-- **Веганство:** Блок на любые животные компоненты.
-
-### 🟢 Уровень 4: ЗЕЛЁНЫЙ (Flexible Lifestyle & Trust)
-**Обработка:** LLM-рекомендации (штрафы и баллы).
-- **Clean Label:** Жёсткий штраф за тартразин, глутамат натрия (Е621), консерванты (Е200-Е299).
-- **Кето / Высокий белок:** Анализ КБЖУ.
-- **Trust Bias (Паттерн СНГ):** Вывод страны-производителя по EAN. ИИ снижает баллы для стран с низким рейтингом пищевой безопасности.
-
----
-
-## 11. ЖЕЛЕЗНЫЕ ПРАВИЛА РАЗРАБОТКИ (ЧЕГО ДЕЛАТЬ НЕЛЬЗЯ)
-
-1. **Сначала анализ, потом код.** Не менять файлы вслепую. Предложить план из 2-4 шагов → дождаться апрува → менять.
-2. **Не трогать работающее ради красоты.** Особая аккуратность при работе с Onboarding, роутингом, `useI18n` и `ProfileContext`.
-3. **Изоляция роутов.** Если экран касается покупок → он обязан лежать внутри `/s/:storeSlug/`. Не выносить магазинную логику в глобальную область.
-4. **Не делать массовый редизайн.** Никогда не переписывать стили на светлые SaaS-шаблоны.
-5. **Иконки — только Material Symbols.** Никаких кастомных SVG.
-6. **Аватары — только `<ProfileAvatar />`.** Никаких хардкод `<img>` для юзеров.
-7. **Фокус на B2B.** Любое решение оценивается: «Поможет ли это продать подписку магазину?».
-
----
-
-## 12. ВЕРСИЯ 1 (V1) — ЧТО ВХОДИТ В ПРОДАКШЕН-РЕЛИЗ
-
-| Модуль | Статус |
-|---|---|
-| Юридический дисклеймер (Passive Consent) | ✅ Встроен в конец онбординга — мелкий текст над кнопкой «Начать» |
-| Гостевой режим (Frictionless) | ✅ Реализован |
-| Сканер штрихкодов | ✅ Работает |
-| AI Fit-Check | ✅ Работает |
-| Актуальные цены (Store Overlay) | ✅ Реализован |
-| Push-уведомления (инфраструктура) | ✅ Готова, только для авторизованных |
-| Rapid-Scan (Admin терминал) | ✅ Реализован (`/admin/rapid-scan`) |
-| Онбординг (гостевой) | ✅ 2-шаговый |
-| История сканирований | 🔄 Для авторизованных |
-| Избранное | 🔄 Для авторизованных |
-
----
-
-## 13. ДОРОЖНАЯ КАРТА ЗАПУСКА (ЭТАПЫ A → E)
-
-### Этап A. Consumer Side до production-grade
-- Auth, Onboarding, Store-home, Scan flow, Product page, Profile, History, Favorites, Cross-device стабильность.
-
-### Этап B. Store Data Pipeline
-- Импорт из Excel / 1С / CSV.
-- Разнесение в `global_products` / `store_products`.
-- Ручное обновление цены / полки / видимости.
-- Понятный процесс подключения нового магазина.
-
-### Этап C. Retail Cabinet v1
-- Dashboard, Products, Import, Analytics, Branding/Settings.
-
-### Этап D. Store Launch Toolkit
-- Дизайн главного QR-баннера.
-- Наклейки у входа.
-- QR у кассы и на полках.
-- Короткие скрипты для продавцов.
-- Инструкции по внедрению для менеджеров магазина.
-
-### Этап E. Продаваемая версия
-- Пробный период (со скидкой ~7 500 тг на первый месяц).
-- Выход в реальные магазины как с коммерческим продуктом.
-
----
-
-## 14. ROADMAP V2 — СТРОГО ОТЛОЖЕНО
-
-Следующие фичи **заморожены** до успешного релиза v1. ИИ **не должен** предлагать их разработку:
-
-- **Retail Cabinet (Self-Service B2B Portal):** Самостоятельная регистрация/управление магазином владельцами. В v1 это делает команда Körset (Консьерж-сервис).
-- **Körset Stories / Советы дня:** Информационные карточки на главном экране.
-- **Интерактивная карта магазинов.**
-- **Продвинутый дашборд здоровья:** Графики сахара, калорий, статистика E-добавок.
-- **Загрузка фото в сканер** (из галереи телефона).
-- **AR Computer Vision (V3+):** Распознавание товаров без штрихкода.
-
----
-
-## 15. КИЛЛЕР-ФИЧИ
-
-- **Режим Сравнения / Split-Screen (V1):** React держит в памяти первый товар, пока сканируется второй. ИИ сравнивает оба состава через призму профиля и выдаёт вердикт, какой товар безопаснее.
-- **Срок годности / Anti-Waste (V2):** Кнопка «Купил» → приложение запоминает срок годности и шлёт Push за 2 дня до истечения.
-
----
-
-## 16. ГЛОБАЛЬНОЕ ВИДЕНИЕ (LONG-TERM)
-
-Körset — это не просто сканер. Конечная цель (горизонт 10-30 лет) — глобальная платформа уровня Google/Meta, индексирующая физический мир.
-
-**Географическая экспансия:**
-- **Этап 0:** Пилот в г. Усть-Каменогорск.
-- **Этап 1:** Мегаполисы Казахстана (Астана, Алматы). Цель: 20% рынка офлайн-магазинов (~10 000 точек).
-- **Этап 2:** СНГ.
-- **Этап 3:** Глобальная экспансия.
-
-**Корпоративное управление:** Dual-Class Shares — основатель сохраняет 70-80% голосующих акций для защиты видения от давления VC.
-
-**Эволюция инфраструктуры:** V1 — Supabase (скорость). При глобальном масштабировании — миграция на Bare-Metal сервера (снижение затрат, устранение Vendor Lock-in).
-
----
-
-## 17. ТЕКУЩИЙ ФОКУС — RETAIL CABINET: ПОЛНЫЙ РЕФАКТОРИНГ
-
-> Roadmap согласован 2026-04-14. Текущий статус задач — в `TODO.md`.
-
-Retail Cabinet был создан как быстрый скелет. Цель текущего этапа — превратить его в **полноценный Enterprise B2B-продукт**, интегрированный с Supabase и StoreContext.
-
-### Принципы рефакторинга
-- **Без двойной работы:** Фаза 0 (фундамент данных) выполняется первой. Все последующие фазы строятся на реальных данных из Supabase.
-- **Одна фаза = одна сессия:** Не смешивать несколько фаз.
-- **Дизайн-код без изменений:** Dark Premium Glassmorphism, только Material Symbols, только `useI18n`.
-
----
-
-### Фаза 0: Фундамент данных *(1–2 часа)*
-> ⚠️ Обязательно первым — без этого остальное пишется дважды.
-
-- **[StoreContext]** Убрать `src/data/stores.js` — магазины грузятся из таблицы `stores` в Supabase.
-- **[storeCatalog.js]** `getStoreCatalogProducts(slug)` → реальный JOIN `store_products` + `global_products`. Убрать `storeInventories.js`.
-- **[RetailLayout]** RBAC: проверять `stores.owner_auth_id = user.id` OR `role = 'admin'`.
-- **Удалить мусор:** `src/data/products.json`, `src/scr.md`, `src/screens/screens.md`, `src/components/.venv/`.
-
----
-
-### Фаза 1: Retail Dashboard — Глубокая аналитика *(2–3 часа)*
-
-- **Реальные данные:** COUNT `scan_events` за 7/30 дней по `store_id`.
-- **Топ-5 товаров:** GROUP BY `ean` → JOIN `global_products` (название, фото).
-- **«Упущенная выгода» (killer-фича):** Товары, которые сканировали покупатели, но они отмечены `out_of_stock` или отсутствуют в `store_products`. LEFT JOIN `scan_events` + `store_products`. Главный B2B-аргумент при питче.
-- **Убрать Import из RetailBottomNav** — переезжает в `/admin/`.
-
----
-
-### Фаза 2: Retail Products — Управление + Встроенный сканер *(3–4 часа)*
-
-- **Данные из Supabase** через `getStoreCatalogProducts(currentStore.slug)`.
-- **Сканер в Sticky Header:** Кнопка камеры → `html5-qrcode` мини-режим → при скане EAN: автоскролл + автораскрытие аккордеона нужного товара.
-- **Умный поиск:** Единый инпут — по названию AND по штрихкоду.
-- **Accordion-редактор:** Цена (₸), Toggle наличие, Полка/стеллаж. Только `store_products` — `global_products` readonly.
-- **Оптимистичные обновления** + rollback при ошибке.
-
----
-
-### Фаза 3: Retail Settings — Премиальный кабинет *(1.5–2 часа)*
-
-- **Секция «Основное»:** Название, адрес, описание → UPDATE `stores`.
-- **Секция «Оформление»:** Upload-зоны логотипа и баннера → Supabase Storage (паттерн готов, используется для аватаров).
-- **Секция «Уведомления»:** Тумблеры daily report и push о ненайденных товарах.
-
----
-
-### Фаза 4: Финальная чистка *(1 час)*
-
-- `RetailLayout` SVG-иконка → Material Symbols.
-- Все Retail строки → `i18n.js` (RU/KZ).
-- `App.jsx`: `React.lazy()` + `Suspense` для всех экранов.
-- `App.jsx`: перенести `import UserDataProvider` на верх файла.
-- `UserDataContext.jsx`: переместить из `src/screens/` → `src/contexts/`.
-- `ErrorBoundary`: улучшить fallback-UI в стиле Dark Premium.
-
----
-
-### Фаза 5: Подготовка к пилоту
-
-- QR-баннеры: макеты для физических точек в магазине.
-- Данные первого магазина в `global_products` + `store_products` Supabase.
-- Инструкция для продавцов (1 страница).
-
----
-
-## 18. ТЕКУЩЕЕ СОСТОЯНИЕ КОДА (апрель 2026, после Фазы 2.3)
-
-> Обновлять этот раздел в начале каждой новой сессии.
-
-### Статус фаз
-
-| Фаза | Статус |
-|---|---|
-| Фаза 0 — Фундамент данных | ✅ Завершена |
-| Фаза 1 — Retail Dashboard (аналитика) | ✅ Завершена |
-| Фаза 2.1 — Data Layer + реальные данные | ✅ Завершена |
-| Фаза 2.2 — Поиск + UX шапки | ✅ Завершена |
-| Фаза 2.3 — Встроенный сканер | ✅ Завершена |
-| Фаза 2.4 — Accordion-редактор (polish) | 🔲 НЕ НАЧАТА |
-| Фаза 3 — Retail Settings | 🔲 Не начата |
-| Фаза 4 — Финальная чистка | 🔲 Не начата |
-| Фаза 5 — Подготовка к пилоту | 🔲 Не начата |
-
-### Ключевые файлы (все фазы)
-
-| Файл | Что сделано |
-|---|---|
-| `src/screens/RetailDashboardScreen.jsx` | Полный рефакторинг: 5 useQuery, MetricCard 2×2, ProductRow top-5, MissedRow + фильтр-табы, Period toggle 7/30д |
-| `src/utils/retailAnalytics.js` | Все функции: getScansCount, getUniqueProductsScanned, getTotalProducts, getTopScannedProducts, getMissedOpportunities, getStoreCatalogProducts, updateProductPrice, updateProductStock |
-| `supabase_retail_analytics.sql` | RPC: `get_top_scanned_products` + `get_missed_opportunities` (SECURITY DEFINER) |
-| `src/screens/RetailProductsScreen.jsx` | React Query, PriceField (save-on-blur), StockToggle (optimistic), Highlight, поиск по бренду+EAN, RetailScannerModal |
-| `src/components/RetailScannerModal.jsx` | **НОВЫЙ.** Полноэкранный сканер: html5-qrcode lazy import, viewfinder, фонарик, камеры, beep |
-| `src/components/RetailBottomNav.jsx` | 3 таба: Dashboard / Products / Settings (Import убран) |
-| `src/screens/CatalogScreen.jsx` | React Query + fallback Supabase → local JSON |
-| `src/contexts/StoreContext.jsx` | `fetchStoreBySlug`: fallback на `getStoreBySlug()` из `data/stores.js` |
-| `src/screens/StoresScreen.jsx` | Fallback на `getStores()` при пустом ответе Supabase |
-| `supabase_sync_test_products.sql` | ⚠️ **SQL для ручного запуска.** 16 товаров + store-one. Идемпотентен. |
-
-### Архитектура данных RetailProductsScreen
+Expected cascade:
 
 ```text
-useQuery(['retail-products', storeId])
-  → getStoreCatalogProducts(storeId)          // retailAnalytics.js
-  → supabase.from('store_products')
-      .select('*, global_products(*)')
-      .eq('store_id', storeId)
-
-useMutation → updateProductPrice(id, price)   // optimistic setQueryData
-useMutation → updateProductStock(id, status)  // optimistic + rollback onError
+EAN / product route
+  -> store-specific catalog overlay
+  -> global product facts
+  -> offline IndexedDB cache when needed
+  -> enrichment / unknown EAN flow
+  -> demo/local fallback only when explicitly supported
 ```
 
-### Поток сканера (2.3)
+Fit-Check should prefer deterministic logic for safety-critical constraints. AI may explain and enrich, but must not override hard medical blocks without trusted data.
+
+Known important screens:
+- `src/screens/ProductScreen.jsx`
+- `src/screens/ScanScreen.jsx`
+- `src/screens/CatalogScreen.jsx`
+- `src/screens/CompareScreen.jsx`
+- `src/screens/AlternativesScreen.jsx`
+
+Risk note: `AlternativesScreen.jsx` needs a targeted verification/fix before it is treated as production-polished.
+
+---
+
+## 7. Fit-Check Safety Model
+
+Safety levels:
+- Red: deterministic medical blocks such as allergens and diabetes-critical ingredients.
+- Orange: traces / may-contain warnings.
+- Yellow: lifestyle/religion signals such as halal and diet preferences, using trusted fields first and AI only as fallback/explanation.
+- Green: acceptable or no known conflict.
+
+Principles:
+- Missing composition under a medical filter is not “safe”.
+- AI explanations should cite known product/profile facts and avoid medical certainty beyond the data.
+- Cross-sell/alternatives are valuable only when they come from the same store context and are actually available enough to be useful.
+
+Detailed doc: `docs/vault/architecture/fit-check-engine.md`.
+
+---
+
+## 8. AI And RAG
+
+AI layer:
+- user-facing assistant and product explanation;
+- compare mode;
+- project memory search through Vault embeddings;
+- should not become the source of truth for product safety.
+
+RAG memory:
+- source markdown lives in `docs/vault/`;
+- embeddings live in Supabase `vault_embeddings`;
+- `scripts/embed-vault.mjs` indexes markdown chunks;
+- `scripts/query-vault.mjs` searches by semantic query and optional metadata filters.
+
+Memory source hierarchy for agents:
 
 ```text
-Кнопка barcode_scanner
-  → setScannerOpen(true)
-  → <RetailScannerModal onScan={handleScan} />
-      → html5-qrcode → onScan(ean)
-  → handleScan(ean):
-      found  → setExpandedId(id) + toast green "Товар найден"
-      !found → toast red "Нет в каталоге: [EAN]"
+AGENTS.md -> docs/CONTEXT.md -> targeted code search -> relevant architecture/roadmap/vault docs
 ```
 
-### Важные паттерны для следующих сессий
-
-- **i18n**: все строки через `t.retail.products.*` из `src/utils/i18n.js`
-- **Иконки**: только `material-symbols-outlined` (Material Symbols)
-- **Стиль**: Dark Premium Glassmorphism — `rgba(255,255,255,0.03–0.12)` фоны, cyan `#38BDF8` акцент
-- **Мутации**: всегда optimistic UI + `onError` rollback + `onSettled` invalidate
-- **Fallback данных**: если Supabase пуст → локальные `data/stores.js`, `data/products.json`
-
-### Следующий шаг — Фаза 2.4 (Accordion-редактор polish)
-
-1. Добавить `updateProductShelf(id, shelf)` в `retailAnalytics.js`
-2. Shelf-поле в аккордеоне (input + save-on-blur, как PriceField)
-3. Readonly блок: бренд, категория, состав из `global_products`
-4. Улучшить CSS transition аккордеона (сейчас maxHeight: 320 → нужно динамическое значение)
+Do not load the whole vault by default. Query it when deep memory is needed.
 
 ---
 
-*Конец мастер-документа Körset v4.0. Обновлён: апрель 2026.*
+## 9. Auth And Profile
+
+Current shape:
+- Supabase Auth.
+- Google OAuth, email/password, email OTP, password recovery.
+- Profile and account screens are separate from initial authentication.
+- Account screen can show linked methods and existing phone identity, but phone/WhatsApp UI is not the current AuthScreen path.
+- User avatars must use `<ProfileAvatar />`.
+
+Risk areas:
+- Redirect URLs and email templates are partly configured outside code in Supabase Dashboard.
+- Auth changes can easily break onboarding/profile/account recovery flows; verify the full route chain.
+
+Detailed docs:
+- `docs/vault/architecture/auth-system.md`
+- `docs/vault/architecture/auth-flow.md`
 
 ---
 
-## 19. ОФЛАЙН-АРХИТЕКТУРА (Offline-First Resilience)
+## 10. Retail Cabinet
 
-### Принцип: "Онлайн-первый, офлайн-устойчивый"
-Приложение всегда работает онлайн. Офлайн — graceful degradation, не отдельный режим. Пользователь не выбирает "офлайн" — приложение само адаптируется.
+Retail cabinet exists to make the B2B subscription sellable.
 
-### 6 слоёв офлайн-устойчивости
+Core modules:
+- Dashboard: scans, business metrics, opportunity signals.
+- Products: price/stock/shelf editing, barcode search, list/grid management.
+- Import: CSV/XLS/XLSX, template download, preview/mapping, bulk update, unknown EAN staging.
+- EAN Recovery: unresolved product workflow.
+- Settings: store data, logo/branding, QR, notifications, dangerous catalog actions.
 
-| Слой | Технология | Назначение |
-|---|---|---|
-| 0. App Shell | Workbox Precache (vite-plugin-pwa) | HTML/JS/CSS доступны офлайн |
-| 1. Каталог | IndexedDB (idb) | Все товары текущего магазина (~3000, ~9MB, без картинок) |
-| 2. Резолвер | resolver.js модификация | IndexedDB-лукуп + ранний выход при offline |
-| 3. Очередь сканов | IndexedDB pending_scans | 100 FIFO, Background Sync + fallback |
-| 4. Картинки | НЕТ в V1 (placeholder) | Серый placeholder, фото = будущее |
-| 5. UI/SWR | OfflineContext + OfflineBanner | Индикация, SWR при возврате сети |
+Key docs:
+- `docs/vault/architecture/retail-cabinet.md`
+- `docs/vault/changelog/retail-import-v1-2026-04-25.md`
+- `docs/vault/changelog/retail-import-v1-1-2026-04-25.md`
 
-### Кэширование каталога
-- **Триггер:** авто при входе в `/s/:storeSlug` (параллельно с Supabase fetch)
-- **Объём:** все товары текущего магазина (~3000), без картинок, ~9MB
-- **Свежесть:** 7 дней, потом пометка "устарел" (оранжевый, не стирается)
-- **Инвалидация:** смена магазина → стереть старый каталог, записать новый
-- **Влияние на онлайн:** нулевое — IndexedDB write параллелен, +0мс
+When changing retail code, verify both buyer-facing store context and owner-facing cabinet flows.
 
-### Офлайн-каскад resolver'а
+---
 
-```
-1. IndexedDB store_catalog (приоритет офлайн)
-2. IF online: Supabase store_products → global_products → external_cache → OFF
-   IF offline: SKIP все сетевые уровни
-3. Demo products (local JSON fallback)
-4. НЕ НАЙДЕН офлайн → жёлтый "Офлайн, данных нет"
-```
+## 11. Offline Resilience
 
-### Очередь scan_events
-- При offline: scan_event → IndexedDB `pending_scans` (100 FIFO)
-- **Синхронизация:**
-  - Background Sync API (`sync` event в SW) — Android Chrome
-  - `online` event listener — iOS Safari + fallback
-  - Периодический flush каждые 30 сек при наличии pending-записей
-  - При запуске приложения — проверка очереди
-- **Логика flush:** batch INSERT до 50 записей → удалить из очереди. При ошибке: retry до 3 раз, потом discard.
+Offline is graceful degradation, not a separate product mode.
 
-### UI при офлайн
-- **Жёлтая полоса** вверху: "Офлайн-режим. Данные из кэша (Xч назад)."
-- **Fit-Check:** работает + метка "Данные из кэша (Xч назад)" под вердиктом
-- **Каталог:** из IndexedDB, серый placeholder вместо фото
-- **AI-чат:** заблокирован "ИИ-ассистент недоступен без интернета"
-- **Кэш устарел (>7д):** оранжевая полоса "Кэш устарел. Данные от Xд назад."
+Current architecture:
+- app shell through PWA/service worker;
+- IndexedDB store catalog cache;
+- pending scan queue;
+- offline banner/status context;
+- sync on reconnect where supported.
 
-### Ключевые файлы офлайн-модуля
+Rules:
+- AI chat requires internet and should fail clearly offline.
+- Cached product data must be marked when stale.
+- Offline cache should never silently become canonical truth.
 
-| Файл | Назначение |
-|---|---|
-| `src/utils/offlineDB.js` | IndexedDB: catalog, pending_scans, store_meta |
-| `src/contexts/OfflineContext.jsx` | React Context: isOnline, cacheAge, pendingCount |
-| `src/sw.js` | Workbox precache + Background Sync + push + fetch handler |
-| `src/components/OfflineBanner.jsx` | Жёлтая/оранжевая полоса офлайн-индикации |
-| `vite.config.js` | vite-plugin-pwa конфигурация (injectManifest) |
+Detailed doc: `docs/vault/architecture/offline-resilience.md`.
 
-### Решения
-- **Сценарий:** онлайн → потом офлайн (кэшируем при входе в магазин)
-- **Картинки:** НЕ кэшируются в V1 (Supabase Storage 500MB лимит — обсудить отдельно)
-- **products.json:** НЕ участвует в офлайн (удаляется Фаза 8)
-- **V1 scope:** только продуктовые магазины
-- **Сжатие фото:** Агрессивное WebP 80% (~80KB) — будущее, после Nano Banana 2 пайплайна
+---
 
-### Напоминания (обсудить после офлайн)
-1. Supabase Storage 500MB лимит — при 3000 товаров × фото → порог. Нужен план: обновить тариф / внешний S3 / агрессивное сжатие.
-2. Nano Banana 2 пайплайн — обработка фото, водяные знаки, ретушь, сжатие (Фаза 7).
-3. Электроника/строительные магазины — V2+, не проектировать сейчас.
+## 12. UI, Theme, I18n
+
+UI rules:
+- Mobile-first PWA.
+- Keep established premium style unless owner explicitly approves design direction changes.
+- Support dark and light themes.
+- Core UI colors should use semantic CSS variables, not hardcoded white/black surfaces.
+- New user-visible text must go through RU/KZ i18n.
+- Use `<ProfileAvatar />` for avatars.
+
+Important files:
+- `src/styles/theme.css`
+- `src/i18n/`
+- `src/locales/`
+- `scripts/check-i18n.mjs`
+
+Design changes should be verified visually on mobile-like and desktop widths when possible.
+
+---
+
+## 13. Monitoring And Operations
+
+Known operational pieces:
+- Sentry frontend/backend integration.
+- Telegram alerts.
+- Health endpoint.
+- Vercel deploys from GitHub push.
+
+Rule: do not run manual `vercel --prod` unless owner explicitly asks. Production deploy should happen through the owner-connected GitHub/Vercel pipeline.
+
+Detailed doc: `docs/vault/operations/monitoring-runbook.md`.
+
+---
+
+## 14. Known Fragile Areas
+
+Keep these as caution flags, not as permanent truth:
+
+- `AlternativesScreen.jsx`: needs verification/fix before production polish.
+- Some legacy Vault plans may describe old priorities or model-specific workflows.
+- Old roadmap deadlines before 2026-05-06 are historical, not current commitments.
+- Any Supabase Dashboard settings, RLS policies and email templates must be verified against the live project before final claims.
+- Product completeness/Data Moat remains a business-critical risk.
+
+---
+
+## 15. How To Update This File
+
+Update this file only when architecture-level facts change:
+- new subsystem;
+- removed subsystem;
+- changed data model;
+- changed route boundary;
+- changed security/auth/offline/RAG architecture.
+
+Do not add:
+- session logs;
+- detailed task histories;
+- temporary TODOs;
+- long audit tables;
+- speculative ideas without owner decision.
+
+Put details in Vault and link them from here.

@@ -4,62 +4,16 @@ import { supabase } from '../utils/supabase.js'
 import { useI18n } from '../i18n/index.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { getReturnTo } from '../utils/authFlow.js'
-
-function EyeBtn({ show, onToggle }) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      style={{
-        position: 'absolute',
-        right: 14,
-        top: '50%',
-        transform: 'translateY(-50%)',
-        background: 'none',
-        border: 'none',
-        color: 'var(--text-disabled)',
-        cursor: 'pointer',
-        padding: 4,
-        display: 'flex',
-      }}
-    >
-      {show ? (
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-        >
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-          <circle cx="12" cy="12" r="3" />
-        </svg>
-      ) : (
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-        >
-          <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
-          <line x1="1" y1="1" x2="23" y2="23" />
-        </svg>
-      )}
-    </button>
-  )
-}
+import EyeBtn from '../components/EyeBtn.jsx'
+import AuthBackground from '../components/AuthBackground.jsx'
+import PasswordRules from '../components/PasswordRules.jsx'
+import AuthAlert from '../components/AuthAlert.jsx'
 
 export default function UpdatePasswordScreen() {
   const navigate = useNavigate()
   const location = useLocation()
   const { t } = useI18n()
   const { user } = useAuth()
-
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -69,6 +23,7 @@ export default function UpdatePasswordScreen() {
   const [success, setSuccess] = useState(null)
   const [tokenValid, setTokenValid] = useState(null)
   const [focusedField, setFocusedField] = useState(null)
+  const [sameAsOld, setSameAsOld] = useState(false)
 
   const returnTo = getReturnTo(location, '/')
 
@@ -83,7 +38,7 @@ export default function UpdatePasswordScreen() {
       }
     }
     checkSession()
-  }, [t])
+  }, [])
 
   useEffect(() => {
     if (success && user) {
@@ -101,24 +56,35 @@ export default function UpdatePasswordScreen() {
     password.length >= 8 &&
     /[0-9]/.test(password) &&
     /[A-Za-z]/.test(password) &&
-    confirmPassword === password
+    confirmPassword === password &&
+    !sameAsOld
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!canSubmit) return
     setLoading(true)
     setError(null)
+    setSameAsOld(false)
 
     try {
       const { error: updateError } = await supabase.auth.updateUser({ password })
-      if (updateError) throw updateError
+      if (updateError) {
+        if (/same password/i.test(updateError.message)) {
+          setSameAsOld(true)
+          setError(t('auth.errPwSameAsOld'))
+        } else if (
+          updateError.message?.includes('expired') ||
+          updateError.message?.includes('invalid')
+        ) {
+          setError(t('auth.updatePwExpired'))
+        } else {
+          setError(t('auth.updatePwError'))
+        }
+        return
+      }
       setSuccess(t('auth.updatePwSuccess'))
-    } catch (err) {
-      setError(
-        err.message?.includes('expired') || err.message?.includes('invalid')
-          ? t('auth.updatePwExpired')
-          : t('auth.updatePwError')
-      )
+    } catch {
+      setError(t('auth.updatePwError'))
     } finally {
       setLoading(false)
     }
@@ -140,13 +106,6 @@ export default function UpdatePasswordScreen() {
 
   return (
     <>
-      <style>{`
-        @keyframes floatA1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(20px,-15px) scale(1.08)} }
-        @keyframes floatA2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-18px,12px) scale(0.92)} }
-        .auth-input::placeholder { color: var(--text-disabled) !important; }
-        .auth-input:focus { border-color: var(--badge-border) !important; }
-      `}</style>
-
       <div
         className="screen auth-screen"
         style={{
@@ -162,59 +121,12 @@ export default function UpdatePasswordScreen() {
           WebkitOverflowScrolling: 'touch',
         }}
       >
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            pointerEvents: 'none',
-            zIndex: 0,
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              position: 'absolute',
-              top: -60,
-              left: -60,
-              width: 200,
-              height: 200,
-              borderRadius: '50%',
-              background: 'rgba(124,58,237,0.12)',
-              filter: 'blur(70px)',
-              animation: 'floatA1 8s ease-in-out infinite',
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              top: '40%',
-              right: -40,
-              width: 160,
-              height: 160,
-              borderRadius: '50%',
-              background: 'rgba(236,72,153,0.08)',
-              filter: 'blur(60px)',
-              animation: 'floatA2 10s ease-in-out infinite',
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              bottom: 60,
-              left: 40,
-              width: 120,
-              height: 120,
-              borderRadius: '50%',
-              background: 'rgba(52,211,153,0.06)',
-              filter: 'blur(50px)',
-              animation: 'floatA1 12s ease-in-out infinite',
-            }}
-          />
-        </div>
+        <AuthBackground />
 
         <div style={{ position: 'relative', zIndex: 10, padding: '0 20px' }}>
           <button
-            onClick={() => navigate('/auth', { replace: true })}
+            onClick={() => navigate('/', { replace: true })}
+            aria-label={t('auth.backAria')}
             style={{
               position: 'absolute',
               top: 16,
@@ -308,80 +220,15 @@ export default function UpdatePasswordScreen() {
               marginBottom: 20,
             }}
           >
-            {error && (
-              <div
-                style={{
-                  background: 'rgba(239,68,68,0.08)',
-                  border: '1px solid rgba(239,68,68,0.2)',
-                  color: 'var(--error-bright)',
-                  padding: '12px 16px',
-                  borderRadius: 12,
-                  fontSize: 13,
-                  fontFamily: 'var(--font-display)',
-                  marginBottom: 18,
-                  textAlign: 'center',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                }}
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="8" x2="12" y2="12" />
-                  <line x1="12" y1="16" x2="12.01" y2="16" />
-                </svg>
-                {error}
-              </div>
-            )}
+            {error && <AuthAlert type="error">{error}</AuthAlert>}
 
-            {success && (
-              <div
-                style={{
-                  background: 'rgba(16,185,129,0.08)',
-                  border: '1px solid rgba(16,185,129,0.2)',
-                  color: 'var(--success-bright)',
-                  padding: '12px 16px',
-                  borderRadius: 12,
-                  fontSize: 13,
-                  fontFamily: 'var(--font-display)',
-                  marginBottom: 18,
-                  textAlign: 'center',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                }}
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                >
-                  <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
-                {success}
-              </div>
-            )}
+            {success && <AuthAlert type="success">{success}</AuthAlert>}
 
             {tokenValid === false && !loading && (
               <div style={{ textAlign: 'center', padding: '12px 0' }}>
                 <button
                   type="button"
-                  onClick={() => navigate('/auth', { replace: true })}
+                  onClick={() => navigate('/', { replace: true })}
                   style={{
                     background: 'none',
                     border: 'none',
@@ -406,7 +253,8 @@ export default function UpdatePasswordScreen() {
                   <input
                     type={showPassword ? 'text' : 'password'}
                     className="auth-input"
-                    placeholder={t('auth.pwPlaceholder')}
+                    autoComplete="new-password"
+                    aria-label={t('auth.pwPlaceholder')}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -414,81 +262,21 @@ export default function UpdatePasswordScreen() {
                     onBlur={() => setFocusedField(null)}
                     style={inputStyle('pw')}
                   />
-                  <EyeBtn show={showPassword} onToggle={() => setShowPassword(!showPassword)} />
+                  <EyeBtn
+                    show={showPassword}
+                    onToggle={() => setShowPassword(!showPassword)}
+                    t={t}
+                  />
                 </div>
 
-                {password.length > 0 && (
-                  <div
-                    style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '0 2px' }}
-                  >
-                    {[
-                      {
-                        ok: password.length >= 8,
-                        text: t('auth.pwMinLength'),
-                      },
-                      {
-                        ok: /[0-9]/.test(password),
-                        text: t('auth.pwMinDigit'),
-                      },
-                      {
-                        ok: /[A-Za-z]/.test(password),
-                        text: t('auth.pwMinLetter'),
-                      },
-                    ].map((rule, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <div
-                          style={{
-                            width: 14,
-                            height: 14,
-                            borderRadius: '50%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            background: rule.ok ? 'rgba(16,185,129,0.15)' : 'var(--glass-bg)',
-                          }}
-                        >
-                          {rule.ok ? (
-                            <svg
-                              width="10"
-                              height="10"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="var(--success-bright)"
-                              strokeWidth="3"
-                              strokeLinecap="round"
-                            >
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                          ) : (
-                            <div
-                              style={{
-                                width: 4,
-                                height: 4,
-                                borderRadius: '50%',
-                                background: 'var(--text-disabled)',
-                              }}
-                            />
-                          )}
-                        </div>
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontFamily: 'var(--font-display)',
-                            color: rule.ok ? 'var(--success-bright)' : 'var(--text-disabled)',
-                          }}
-                        >
-                          {rule.text}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                {password.length > 0 && <PasswordRules password={password} t={t} />}
 
                 <div style={{ position: 'relative' }}>
                   <input
                     type={showConfirmPassword ? 'text' : 'password'}
                     className="auth-input"
-                    placeholder={t('auth.pwConfirmPlaceholder')}
+                    autoComplete="new-password"
+                    aria-label={t('auth.pwConfirmPlaceholder')}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
@@ -497,7 +285,7 @@ export default function UpdatePasswordScreen() {
                     style={{
                       ...inputStyle('cpw'),
                       borderColor: pwMismatch
-                        ? 'rgba(239,68,68,0.5)'
+                        ? 'var(--error-border)'
                         : focusedField === 'cpw'
                           ? 'var(--badge-border)'
                           : 'var(--input-border)',
@@ -506,6 +294,7 @@ export default function UpdatePasswordScreen() {
                   <EyeBtn
                     show={showConfirmPassword}
                     onToggle={() => setShowConfirmPassword(!showConfirmPassword)}
+                    t={t}
                   />
                   {pwMismatch && (
                     <div
@@ -540,7 +329,7 @@ export default function UpdatePasswordScreen() {
                     transition: 'opacity 0.2s',
                   }}
                 >
-                  {loading ? '...' : t('auth.updatePwBtn')}
+                  {loading ? t('common.loading') : t('auth.updatePwBtn')}
                 </button>
               </form>
             )}

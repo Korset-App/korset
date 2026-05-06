@@ -16,9 +16,12 @@
   --success: #059669;
   --success-bright: #10b981;
   --success-dim: rgba(5, 150, 105, 0.13);
+  --success-border: rgba(16, 185, 129, 0.2);
+  --success-glow: rgba(16, 185, 129, 0.28);
   --error: #dc2626;
   --error-bright: #f87171;
   --error-dim: rgba(220, 38, 38, 0.13);
+  --error-border: rgba(239, 68, 68, 0.2);
   --warning: #d97706;
   --text: #e8e8ff;
   --text-sub: #c9c9e8;
@@ -110,9 +113,12 @@
   --success: #047857;
   --success-bright: #059669;
   --success-dim: rgba(5, 150, 105, 0.12);
+  --success-border: rgba(5, 150, 105, 0.2);
+  --success-glow: rgba(5, 150, 105, 0.28);
   --error: #dc2626;
   --error-bright: #dc2626;
   --error-dim: rgba(220, 38, 38, 0.1);
+  --error-border: rgba(220, 38, 38, 0.2);
   --warning: #b45309;
   --text: #111827;
   --text-sub: #40506a;
@@ -2186,3 +2192,17 @@ body {
     transform: translateY(0) scale(1);
   }
 }
+
+@keyframes authFloatA1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(20px, -15px) scale(1.08); }
+}
+@keyframes authFloatA2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-18px, 12px) scale(0.92); }
+}
+@keyframes authSpin {
+  to { transform: rotate(360deg); }
+}
+.auth-input::placeholder { color: var(--text-disabled) !important; }
+.auth-input:focus { border-color: var(--badge-border) !important; }

@@ -1,109 +1,140 @@
-# 🎯 KÖRSET — ИТОГОВЫЙ ROADMAP К ПИЛОТУ V1 
-*(Дедлайн: 30 апреля 2026)*
+# KORSET — ROADMAP
 
-*Документ выровнен с «Master Truth» проектом. Архитектура разбита на атомарные фазы. Работа ведется строго в парадигме **Dual-Agent** (Antigravity + Windsurf) для максимальной экономии токенов и защиты ядра.*
-
----
-
-## 🤖 DUAL-AGENT СТРАТЕГИЯ (ИНСТРУКЦИЯ ДЛЯ ИИ)
-**Правило для Агентов:** Прежде чем писать код в новой сессии, вы обязаны прочитать этот документ. Ищите фазу, назначенную на вас, и выполняйте только её. Не выходите за рамки своей роли!
-
-| Агент | Специализация (Модели) | Зона ответственности | Запрещено |
-|-------|------------------------|----------------------|-----------|
-| **Antigravity** (Терминал) | `Gemini 3.1 Pro (High) / Claude Opus 4.6` | Data Engineering, SQL (Supabase), Архитектура ядра "Fit-Check", Интеграции API. | Тратить токены на верстку кнопок и анимаций. |
-| **Windsurf** (IDE Cascade) | `Claude Sonnet 4.6 / SWE-1.6 / Adaptive` | UI/UX (React), Glassmorphism, Рефакторинг SCSS, Компоненты, Роутинг (Визуал). | Изменять/создавать SQL базы и ломать логику "Fit-Check". |
+> Обновлено: 2026-05-06.
+> Роль файла: текущие приоритеты, открытые решения и launch direction. Это не архив всех планов.
+> Архивные аудиты и старые фазы лежат в `docs/vault/plans/` и `docs/vault/changelog/`.
 
 ---
 
-## 📞 СВЯЗЬ И ЭСКАЛАЦИЯ (OWNER CONTACTS)
-*Для ИИ-агентов и скриптов (Vercel/Supabase): В случае критических блокировок, изменения биллинга API, или когда архитектура непонятна — СТОП и запрос Approve по этим каналам:*
-- **Email (Главный инбокс):** `founder@korset.app`
-- **Telegram (Управление):** `[Проектный аккаунт в разработке]`
-- **Instagram:** `@korset.app` (B2C маркетинг)
+## 1. Current Goal
+
+Сделать Körset pilot-ready для первого продуктового магазина:
+- buyer PWA должна быстро и надежно помогать у полки;
+- retail cabinet должен выглядеть и работать как продаваемый B2B-инструмент;
+- data pipeline должен честно обрабатывать unknown EAN и не выдумывать безопасность;
+- документация и Vault должны помогать нескольким ИИ-агентам работать без конфликтов.
+
+Критерий качества: не “быстро накидать”, а shipped-quality без лишнего усложнения.
 
 ---
 
-## 📅 ПОЭТАПНЫЙ ПЛАН РАЗРАБОТКИ (PHASED EXECUTION)
+## 2. P0 — Now
 
-### 🔥 Фаза 1: Retail Business Logic & Dashboard [ОСВОЕНО]
-*Большая часть данных уже собирается, нужно довести UX до премиум-стандарта.*
-- [x] Статистика сканирований (7/30 дней).
-- [x] Дашборд: "Спасенные продажи" (Saved Sales) и "Радар дефицита" (Упущенная выгода).
-- [x] **Финансовая Метрика Dashboard:** Перевод метрики "Спасенные продажи" из штук в тенге. `getLostRevenue` → `~X ₸` на карточке. ✅ Реализовано в `RetailDashboardScreen.jsx`.
-- [ ] **Доработка Dashboard:** Полировка визуальных составляющих (Metrics Widgets), добавление глубокой аналитики предпочтений (Тепловая карта аллергий посетителей), GMROI. *Отложено за рамки V1.*
+1. Memory system normalization
+   - `AGENTS.md`, `CONTEXT.md`, `ARCHITECTURE.md`, `ROADMAP_PILOT_V1.md` должны иметь разные роли.
+   - Vault folders need README indexes and consistent metadata.
+   - `scripts/embed-vault.mjs` should index domains correctly on Windows.
 
-### 📦 Фаза 2: Retail Products & Catalog Admin [OWNER: Windsurf]
-- [x] Аккордеон-редактор: Управление ценой, наличием, полкой.
-- [x] Встроенный HTML5-сканер штрихкодов в Sticky Header.
-- [x] **Импорт прайс-листа:** ✅ Полностью реализован. `RetailImportScreen.jsx` (445 строк): drag&drop CSV/XLS/XLSX, preview, mapping, bulk RPC `apply_retail_import`, unknown EAN staging, template download, report export. `retailImport.js` — парсер и apply-логика. *Бывший "P0 блокер" — решён.*
-- [ ] **Доработка UI:** Исправление багов верстки аккордеона, приведение иконок к `Material Symbols`.
+2. Verify/fix `AlternativesScreen.jsx`
+   - Check current runtime bug around `useLocalName(product)`.
+   - Remove old hardcoded core colors if still present.
+   - Verify product route, empty states and same-store alternative logic.
 
-### 🛠 Фаза 3: Retail Settings & B2B Premium Cabinet [OWNER: Antigravity] ✅
-*Перевод кабинета управления магазином в рабочий Production-ready вид.*
-- [x] **Настройки магазина:** Инпуты Названия и Адреса подключены к `updateStoreSettings` → `UPDATE stores` в Supabase. Данные инициализируются из `currentStore`. Кнопка «Сохранить» с индикатором загрузки и Toast-фидбеком (RU/KZ).
-- [x] **RBAC Security:** Жесткая валидация `stores.owner_id === user.id` в `RetailLayout.jsx`. Экран «Нет доступа» уже реализован. `RetailEntryScreen` автоматически находит магазин владельца по `owner_id`.
-- [ ] **Визуальный брендинг:** Загрузка Логотипа и Баннера магазина напрямую в `Supabase Storage` (отображение в Consumer App).
-- [x] **QR-инструментарий:** Модуль генерации и скачивания реального QR-кода магазина в PNG с дизайном Körset.
-- [x] **Уведомления магазина:** Настройка тумблеров (Daily reports, Push-уведомления об Out-of-Stock).
+3. Auth/profile final verification
+   - Confirm Supabase redirect URLs.
+   - Confirm email templates and password recovery.
+   - Smoke test Google, email/password, email code and account linked-method UI.
 
-### 📱 Фаза 4: Consumer App: "Fit-Check" Engine & AI Intelligence [OWNER: Antigravity]
-*Ядро безопасности и ценности для пользователя. Строгое разделение логики.*
-- [x] **Красный уровень (Аллергены & Диабет):** ✅ Детерминированный код в `fitCheck.js`. Жесткий блок сахара, фруктозы, глютена. `checkProductFit()` возвращает severity: red/orange/yellow/ok.
-- [x] **Оранжевый уровень (Следы):** ✅ Реализован — "Произведено на оборудовании..." обрабатывается как warning.
-- [x] **Желтый уровень (Халал / Lifestyle):** ✅ `halal_status` в БД + AI fallback через `resolver.js`. Если `halal_status` известен — используется напрямую. Если нет — AI-обогащение с маркировкой `aiEnriched`.
-- [x] **Контекстный Чат с ИИ:** ✅ `AIScreen.jsx` + `api/ai.js` — диалоговый интерфейс с RAG через `vault_embeddings`. Режимы: general, product, compare.
+4. Pilot data readiness
+   - Choose first real pilot store/data source.
+   - Validate product import path for real CSV/XLS/XLSX.
+   - Confirm unknown EAN recovery loop.
 
-### 📡 Фаза 5-OFFLINE: Офлайн-режим — ✅ ЗАВЕРШЕНО [OWNER: Antigravity]
-*Без офлайн продукт мёртв в подвале магазина — основном юзкейсе. 6 слоёв реализованы.*
-- [x] **App Shell Precache:** ✅ `vite-plugin-pwa` + `sw.js` (Workbox precache + fetch handler + push).
-- [x] **IndexedDB каталог:** ✅ `offlineDB.js` — `saveCatalog/getCatalog` при входе в магазин (~9MB, без картинок).
-- [x] **Офлайн-резолвер:** ✅ `resolver.js` — IndexedDB lookup, ранний выход при offline (`isOffline` → return cached).
-- [x] **Очередь scan_events:** ✅ `pending_scans` в IndexedDB, 100 FIFO, Background Sync (`sync.register('flush-pending-scans')`), fallback в `App.jsx`.
-- [x] **OfflineContext + OfflineBanner:** ✅ `isOnline`, `cacheAge`, `cacheStale`, `pendingCount` — жёлтая/оранжевая полоса, i18n RU+KZ.
-- [x] **SWR при возврате сети:** ✅ `flushPendingScans()` при `FLUSH_PENDING_SCANS` message от SW.
-- [x] **Кэш свежести:** ✅ 7 дней TTL, метка "устарел" (не стирается). `cacheAge` в OfflineContext.
-
-### ⚖️ Фаза 5: Consumer App: Core Features & Flow [OWNER: Windsurf]
-- [x] **Split-Screen (Сравнение):** ✅ Полностью реализован. `CompareScreen.jsx` (481+ строк): двухэтапный scan flow в `ScanScreen.jsx` (pin → navigate), multi-factor scoring (safety 35 + quality 25 + E-additive purity 20 + halal 10), dynamic rows по категории, AI commentary. Маршрут `/s/:storeSlug/product/:ean/compare/:ean2`.
-- [ ] **Smart Upsell (Кросс-сейл):** ИИ-алгоритм на кассе/полке. **[⚠️ ЗАМОРОЖЕНО V1]**
-- [x] **Микролокация:** ✅ `shelf_zone` из `store_products` отображается в `ProductScreen.jsx`.
-- [x] **Real Prices (Интеграция цен):** ✅ `price_kzt` подтягивается из `store_products` в `ProductScreen.jsx` через `storeOverlay` в `resolver.js`. Отображается рядом с названием.
-- [ ] **Стоун-Роутинг (QR):** Маршрут `/join/:code` — НЕТ в `App.jsx`. `[⚠️ ОСТАЛОСЬ]`
-- [ ] **Apple ID Авторизация:** НЕТ. `[⚠️ ОСТАЛОСЬ]`
-
-### 💎 Фаза 6: Редизайн и UX Полировка Consumer App [OWNER: Windsurf]
-*То, что уже пытались реализовать, но нужно "довести до идеала Dark Premium".*
-- [ ] **Глобальный Landing Page:** Безупречный UI, правильные 3D/Parallax элементы на скролле, эффект глубокого стекла, гармония блоков "Для бизнеса".
-- [ ] **Рабочий Footer & Логотипы:** Разработка полноценного рабочего подвала (Footer), расстановка реальных иконок и логотипов (`logo.png`, `icon_logo.svg` из `/public`) в шапке (сверху справа) и в самом футере.
-- [ ] **Smart Merge UI:** Доработка кривого модального окна разрешения конфликтов (Cloud vs Local) при авторизации, привести к стилю.
-- [ ] **Grid/List Switch:** Доработка переключателя в Каталоге, плавная адаптивная сетка без багов верстки.
-- [ ] **Новый Home Screen:** Полный отказ от старого долгого онбординга. Перенос обучения в интерактивные карточки-Сториз (горизонтальный свайп).
-- [ ] **Блок "Ваш Профиль":** Единообразие дизайна всех ячеек (E-добавки, Детектор аллергий и т.д). Плавная архитектура.
-
-### 🚀 Фаза 7: Инженерия Данных & AI Photo Pipeline (Консьерж) [OWNER: Antigravity]
-*Подготовка внутренней системы для интеграции региональных баз данных.*
-- [ ] **Фото-Пайплайн (Nano Banana 2 + AI Tools):** Автоматизация удаления фона -> наложение единого премиум-фона -> ретушь -> удаление водяных знаков -> веб-сжатие. **[⚠️ ТРЕБУЕТ ОБСУЖДЕНИЯ (Оплата API и лимиты)]**
-- [ ] **Интеграция БД:** API-подключение к локальным казахстанским базам штрихкодов ЕАЭС для максимальной автоматизации парсинга *Global Products*.
-- [ ] **Локализация (i18n):** Глубокий перевод контента состава и всего интерфейса на Казахстанский язык (KZ-режим).
-
-### ⚙️ Фаза 8: Технический долг и Производительность [OWNER: Оба агента - Совместно]
-- [ ] **Отказ от JSON:** Тотальное удаление `products.json` и локальных моков. 100% переезд на SQL.
-- [ ] **Скорость SWR:** Тотальная отладка `Stale-while-revalidate` (кэширование Supabase -> localStorage) для загрузки UI за 0.1 сек (Skeleton loaders без мерцаний белого экрана).
-- [ ] **Рефакторинг React:** Ленивая загрузка (`React.lazy()` + Suspense), логичный перенос `UserDataContext` и `Provider` наверх древа дерева (App.jsx).
-- [ ] **Иконки:** 
-- [ ] **ErrorBoundary:** Сделать резервный экран падения в корпоративном стиле.
-
-### 🏁 Фаза 9: Запуск Офлайн-Пилота (Launch Prep)
-- [ ] Выгрузка реального прайс-листа 1-го партнера (~100 товаров) с идеальными фото и составами в базу.
-- [ ] Дизайн POS-материалов (наклейки у кассы, воблеры на полки "Узнай про Е-добавки здесь").
-- [ ] 1-страничная Cheat Sheet (шпаргалка) для кассира "Как питчить Körset".
-- [ ] Физическое End-to-End тестирование в самом магазине (освещение, грязные штрихкоды, подвал без интернета).
+5. Launch-quality checks
+   - Mobile scan flow.
+   - Product page and Fit-Check.
+   - Catalog search/category browsing.
+   - Retail dashboard/products/import/settings.
+   - Offline behavior in weak/no network.
 
 ---
 
-## 🚫 ЧТО МЫ СТРОГО НЕ ДЕЛАЕМ В V1 (Заморожено)
-- [x] Интеллектуальный парсинг сканированного фото прямо из галереи магазина (AR Computer Vision распознавания банок без QR).
-- [x] Интерактивная планограмма (3D Карта магазина).
-- [x] Social-фичи (Поделиться сканом) и Геймификация.
-- [x] Интеграция платежных систем внутрь приложения (B2B оплату берем наличными/переводом).
-- [x] Self-service портал: В V1 владельцы магазинов не регистрируются сами (работает Консьерж-выгрузка силами Körset Team).
+## 3. P1 — Next
+
+1. Data Moat v1
+   - product quality score;
+   - source confidence;
+   - TTL/freshness;
+   - Kazakhstan/EAEU barcode/data sources;
+   - clear “unknown / not enough data” states.
+
+2. Retail polish
+   - B2B metrics in money, not only counts;
+   - import report clarity;
+   - better owner-facing empty/error states;
+   - settings/branding polish.
+
+3. Database integrity and performance
+   - unique constraints where needed;
+   - cascade rules;
+   - indexes for search/analytics;
+   - RLS verification;
+   - scan_events growth plan.
+
+4. ProductScreen and resolver cleanup
+   - reduce monolith risk;
+   - keep deterministic safety logic clear;
+   - make unknown/enriched/cached states obvious.
+
+5. Launch materials
+   - QR poster/sticker/cashier assets;
+   - cashier pitch sheet;
+   - physical store test checklist.
+
+---
+
+## 4. Frozen For V1
+
+Do not build these unless the owner explicitly changes scope:
+
+- non-grocery verticals;
+- social/gamification;
+- in-app B2B payments;
+- full self-service owner onboarding;
+- AR/computer-vision recognition without barcode;
+- interactive 3D store map/planogram;
+- heavy health dashboards beyond the immediate Fit-Check value.
+
+These ideas may stay in Vault, but they should not distract from pilot readiness.
+
+---
+
+## 5. Open Decisions
+
+These require owner input before implementation:
+
+- First pilot store and real dataset source.
+- Exact B2B offer: monthly price, trial/discount, included services.
+- Whether phone/WhatsApp identity returns later and in what form.
+- Product photo pipeline: manual, AI-assisted, R2/Supabase Storage, compression policy.
+- How strict V1 must be on local JSON/demo fallbacks.
+- Which physical launch materials are needed first.
+
+---
+
+## 6. Useful Deep Links
+
+- Fast context: `docs/CONTEXT.md`
+- Architecture map: `docs/ARCHITECTURE.md`
+- AI collaboration protocol: `docs/AI_COLLAB_PROTOCOL.md`
+- Full legacy audit: `docs/vault/plans/audit-full.md`
+- Data Moat: `docs/vault/knowledge/data-moat-pipeline-strategy.md`
+- Retail import: `docs/vault/changelog/retail-import-v1-2026-04-25.md`
+- Offline resilience: `docs/vault/architecture/offline-resilience.md`
+- Auth system: `docs/vault/architecture/auth-system.md`
+- EAN recovery: `docs/vault/architecture/ean-recovery-system.md`
+
+---
+
+## 7. How To Update This File
+
+Keep it short.
+
+Add only:
+- current priorities;
+- open product decisions;
+- launch blockers;
+- frozen scope changes;
+- links to deeper plans.
+
+Move completed histories and long reasoning into dated Vault changelog or plans.

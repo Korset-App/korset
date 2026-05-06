@@ -1,144 +1,184 @@
-# AGENTS.md — Инструкции для ИИ-ассистента Körset
+# AGENTS.md - Körset Agent Instructions
 
-> **Автозагрузка:** opencode подхватывает этот файл в КАЖДЫЙ чат автоматически.
-> **Последнее обновление:** 2026-04-17
+This file is the primary project instruction set for AI coding agents working on Körset.
+Keep it short, stable, and behavior-focused. Do not turn it into a changelog, roadmap, or architecture dump.
 
----
+## 1. Communication
 
-## VAULT PROTOCOL (ЖЕЛЕЗНОЕ ПРАВИЛО #0)
+- Speak with the user in Russian only.
+- Write code, identifiers, commit messages, and technical comments in English.
+- The user may write long, informal, or uncertain messages. Extract the intent carefully and confirm only when needed.
+- Be direct, honest, and useful. Do not flatter, over-agree, or hide uncertainty.
 
-### НАЧАЛО чата — загрузи контекст:
+## 2. Project Snapshot
 
-1. Прочитай `docs/CONTEXT.md` — это единственный файл для ручной загрузки
-2. Если задача специфичная — запроси Vault RAG: `node scripts/query-vault.mjs "запрос" --domain knowledge`
-3. Всё. Не читай другие файлы без необходимости.
+Körset is a mobile-first PWA for offline grocery stores in Kazakhstan.
+Customers scan a barcode in a specific store and get a Fit-Check for allergies, halal status, diets, and product facts.
 
-### КОНЕЦ чата — сохрани контекст:
+Business model: B2B2C. Stores pay for SaaS; shoppers use the consumer flow.
+V1 scope: grocery stores only. Do not design for pharmacies, electronics, construction, alcohol/tobacco flows, or generic marketplaces unless the user explicitly changes scope.
 
-1. Обнови `docs/CONTEXT.md` — текущий фокус, статус
-2. Создай/обнови vault-файлы в `docs/vault/` по теме (если было что-то значимое)
-3. Запусти `node scripts/embed-vault.mjs`
-4. Кратко скажи: что сохранено, сколько чанков
+Core stack:
+- React 18 + Vite
+- JavaScript, not TypeScript
+- Vanilla CSS, not Tailwind
+- Supabase: PostgreSQL, Auth, Storage, RLS
+- Vercel Serverless
+- OpenAI
 
-**НИКОГДА не заканчивай чат без сохранения.**
+## 3. Truthfulness And Pushback
 
----
+- The user can be wrong, missing context, or working from outdated assumptions. Do not agree blindly.
+- If a request is risky, outdated, technically incorrect, over-scoped, or bad for the product, say so clearly and propose a better path.
+- The agent can also be wrong. If you notice your own mistake, admit it directly, explain the impact, and correct course.
+- Do not invent missing facts. Inspect local context first; if the answer is still unclear and the decision matters, pause and ask.
+- Prefer a small number of high-value questions over broad questionnaires.
 
-## ПРОЕКТ KÖRSET
+## 4. Execution Style
 
-**Что:** Store-context AI assistant (mobile-first PWA) для офлайн-магазинов Казахстана.
-Покупатель сканирует штрихкод → получает Fit-Check (аллергии, Халал, диеты).
-**Модель:** B2B2C, платят магазины (~15 000 тг/мес SaaS).
+- Think before coding. For non-trivial work, state assumptions, risks, and a short plan before editing.
+- Small, safe fixes may be implemented directly when the intent is clear.
+- Get approval before major UI redesigns, architecture changes, database/RLS changes, auth changes, data pipeline changes, product-scope changes, or anything with broad side effects.
+- Keep changes surgical. Every changed line should trace back to the task.
+- Match existing patterns and style, even if you would personally design them differently.
+- Do not refactor adjacent code, rename things, reformat files, or remove old code unless required for the task.
+- Do not add speculative abstractions, generic frameworks, or configurability that was not requested.
+- Prefer professional, future-aware solutions, but do not over-engineer. Quality and simplicity must work together.
 
-**Стек:** React 18 + Vite + Supabase (PostgreSQL) + Vercel Serverless + OpenAI
-**Код:** JavaScript (не TypeScript), Vanilla CSS (не Tailwind)
+## 5. When To Stop And Ask
 
----
+Stop and ask before editing when:
+- Requirements are ambiguous and guessing could affect behavior, data, design, security, payments, auth, routing, or business logic.
+- Local files contradict the user's request or each other.
+- The task seems to require changing product scope or business assumptions.
+- You cannot verify a critical fact from local context or current official docs.
+- Continuing would require destructive actions, deleting data, resetting git state, or manual production deploys.
 
-## ЖЕЛЕЗНЫЕ ПРАВИЛА
+Do not stop for trivial details that can be safely inferred from existing code.
 
-0. **Пиши на русском.** ВСЕ ответы, пояснения, итоги — только на русском. Код и комментарии в коде — на английском, но всё общение с пользователем — русский.
-1. **Сначала анализ → потом код.** Предложи план → получи апрув → правь.
-2. **Не ломать работающее.**
-3. **Смотри шире — проверяй связи.** Каждое изменение → проверь ВСЁ что с ним связано: .gitignore, i18n, vault/embed, контекст, импорты, связанные файлы, Side effects. Примеры ошибок: добавил data/ файлы → забыл .gitignore; удалил vault файл → забыл обновить RAG эмбеддинги; обрезал поля в запросе → забыл что ProductScreen использует product.images; сделал neues Feature → забыл i18n ключи. **ЧЕКЛИСТ перед каждой задачей:**
-   - Что ещё зависит от этого изменения?
-   - Нужно ли обновить .gitignore? i18n? vault? CONTEXT.md?
-   - Не сломает ли это другой экран/компонент/скрипт?
-   - Если создаю файл/папку — добавить ли в .gitignore?
-4. **Экраны покупателя → только внутри `/s/:storeSlug/`.**
-4. **Иконки:** Используем качественные SVG для премиального вида. Material Symbols допустимы для простых системных элементов, если это уместно.
-5. **Аватары только `<ProfileAvatar />`.**
-6. **Тёмная + светлая тема — обе поддерживаются.** В проекте есть рабочая светлая тема. При добавлении ЛЮБОГО нового UI:
-   - Используй ТОЛЬКО CSS-переменные: `var(--bg-app)`, `var(--text)`, `var(--text-sub)`, `var(--text-dim)`, `var(--text-disabled)`, `var(--glass-bg)`, `var(--glass-border)`, `var(--glass-subtle)`, `var(--glass-soft-border)`, `var(--primary)`, `var(--primary-dim)`.
-   - НЕ хардкодь `#ffffff`, `#000`, `rgba(255,255,255,...)` для текста/фона/бордеров — используй переменные.
-   - Полупрозрачные акцентные цвета (фиолет/красный/зелёный для статусов) — допустимы как `rgba(...)`, они работают в обеих темах.
-   - Перед коммитом — мысленно прогоняй экран в обеих темах. При сомнении — открой `src/styles/theme.css` и сверь.
-7. **Новый текст → через `useI18n` (RU/KZ обязательно).**
-8. **Оценивай через B2B:** «Помогает ли это продать подписку?»
-9. **V1 scope — только продуктовые магазины.**
-10. **Не менять дизайн без разрешения владельца** (урок из отката BottomNav).
-11. **НЕ делать ручной деплой `vercel --prod`**. После `git push` Vercel автоматически деплоит от GitHub-аккаунта владельца (`NeyDi07`). Ручной CLI-деплой (`neydikz-7791`) создаёт дубль на Production.
+## 6. Memory And Context System
 
----
+The project uses layered memory. Keep each layer in its role.
 
-## АРХИТЕКТУРНЫЙ АУДИТ — 6 слабых мест
+- `AGENTS.md`: stable agent behavior rules. Keep concise.
+- `docs/CONTEXT.md`: fast-start project context. It should be fuller than this file, but not an archive. Keep current focus, working status, critical constraints, and links to deeper docs.
+- `docs/ARCHITECTURE.md`: deep system map and long-lived architecture.
+- `docs/ROADMAP_PILOT_V1.md`: current product roadmap and launch priorities.
+- `docs/AI_TASK_MODES.md`: task-specific workflows for UI, bugfix, DB, architecture, memory, and release work.
+- `docs/AI_TOOLS_MATRIX.md`: which skills, plugins, MCP tools, and checks to use for each task type.
+- `docs/PROMPT_STARTERS.md`: reusable short prompts for the owner.
+- `docs/AI_COLLAB_PROTOCOL.md`: multi-agent workflow.
+- `docs/vault/`: detailed memory, decisions, research, plans, operations, and changelog notes for RAG.
 
-Подробно → `docs/vault/plans/audit-full.md`
+Start of meaningful work:
+1. Read `docs/CONTEXT.md`.
+2. Use targeted file search for the task area.
+3. Query Vault only when project memory is needed:
+   `node scripts/query-vault.mjs "query" --domain architecture`
+   or use `knowledge`, `plans`, `decisions`, `operations`, `changelog` as appropriate.
+4. Do not read the whole repository just to "understand everything". Build the smallest sufficient map for the task.
 
-| # | Слабое место | Оценка | Статус |
-|---|-------------|--------|--------|
-| 1 | **Data Moat** | 25/100 | НЕ НАЧАТО — СЛЕДУЮЩИЙ ФОКУС |
-| 2 | Офлайн-режим | 85/100 | ИСПРАВЛЕНО |
-| 3 | Масштабирование | 40/100 | НЕ НАЧАТО |
-| 4 | B2B2C модель | 30/100 | НЕ НАЧАТО |
-| 5 | Стратегические тупики | 45/100 | НЕ НАЧАТО |
-| 6 | БД Supabase | 55/100 | НЕ НАЧАТО |
+Deep work exception:
+- For broad architecture, audit, product strategy, or cross-system refactors, read `docs/ARCHITECTURE.md` and relevant Vault files after `docs/CONTEXT.md`.
 
-**Общая оценка проекта: ~50/100**
+Before the final response after meaningful work:
+- Update `docs/CONTEXT.md` only with current, durable, fast-start information.
+- Add or update the relevant Vault note when work changes architecture, product direction, data model, important UX patterns, business logic, decisions, or future handoff context.
+- Run `npm run memory:save` after Vault changes when credentials/network are available.
+- Do not let `docs/CONTEXT.md` grow into a changelog. Move details to Vault and leave links/summaries.
 
-### Приоритеты:
+## 7. Multi-Agent Coordination
 
-1. Data Moat — data_quality_score, TTL, каскад источников, КЗ-базы
-2. Импорт прайс-листа — RetailImportScreen пустой (P0 блокер продажи)
-3. БД-фиксы — UNIQUE, CASCADE, триггеры, GIN
-4. Метрики в тенге — дашборд не продаёт без денег
-5. Масштабирование — партицирование scan_events
+The user may work in Codex, OpenCode, Windsurf, Antigravity, and Claude-like tools at the same time.
 
----
+- Assume other agents or the user may have changed files.
+- Check local state before editing when relevant.
+- Never revert changes you did not make unless the user explicitly asks.
+- If parallel work may collide, document handoff notes clearly: changed files, decisions, verification, and next steps.
+- Keep memory fresh enough that another agent can continue without following stale context.
 
-## VAULT RAG — Система памяти проекта
+## 8. UI And Product Rules
 
-### Как устроена
+- Consumer screens must live under `/s/:storeSlug/`.
+- V1 is mobile-first and store-context-first.
+- Evaluate product decisions through B2B value: does this help sell or retain store subscriptions?
+- Do not redesign existing UI without approval.
+- Maintain premium, serious-brand quality. Avoid cheap, generic, or decorative UI choices.
+- Support both dark and light themes.
+- Use existing CSS variables for text, backgrounds, borders, glass surfaces, and brand colors.
+- Do not hardcode `#fff`, `#000`, or raw white/black transparent backgrounds for core UI surfaces or text.
+- New user-facing text must use `useI18n` with RU and KZ coverage.
+- Avatars must use `<ProfileAvatar />`.
+- Use high-quality SVG or existing icon patterns. Material Symbols are acceptable for simple system icons when consistent with the current UI.
 
-- **Obsidian vault:** `docs/vault/` — markdown-файлы с знаниями проекта
-- **pgvector:** Supabase таблица `vault_embeddings` — векторные эмбеддинги чанков
-- **Embed pipeline:** `scripts/embed-vault.mjs` — читает vault → генерирует эмбеддинги → upsert в Supabase
-- **Query:** `scripts/query-vault.mjs` — семантический поиск по vault
-- **AI-чат:** `api/ai.js` + `vite.config.js` — RAG-контекст подтягивается перед OpenAI-вызовом
+## 9. Code Comments
 
-### Структура vault
+- Do not add comments by default.
+- Add a short English comment only when it explains a non-obvious invariant, security concern, browser/platform workaround, migration risk, or AI-handoff-relevant decision.
+- Do not add comments that merely restate the code.
+- Prefer clear names and small functions over explanatory comments.
 
-| Папка | Назначение | Для кого |
-|-------|-----------|----------|
-| `knowledge/` | Е-добавки, халал, аллергены, Data Moat | AI-чат + Fit-Check |
-| `architecture/` | Как устроены ключевые системы | RAG-запросы |
-| `decisions/` | Почему выбрали X вместо Y | RAG-запросы |
-| `plans/` | Аудиты, приоритеты | RAG-запросы |
-| `changelog.md` | Лог сессий | RAG-запросы |
+## 10. Data, Auth, And Supabase Safety
 
----
+- Treat Supabase, RLS, auth, and data migrations as high-risk areas.
+- Prefer explicit constraints, indexes, and tests for data integrity changes.
+- Do not weaken RLS or security checks to make a feature pass.
+- Do not expose service-role keys or secrets to the client.
+- For DB/API changes, check all consumers: screens, utilities, tests, RLS policies, migrations, seed/import scripts, and Vault docs.
 
-## Инструменты
+## 11. Deployment Safety
 
-### Custom Tools (`.opencode/tools/`)
-- **vault-query** — RAG-поиск по vault (вместо bash-команды)
-- **vault-embed** — обновление эмбеддингов (вместо bash-команды)
+- Do not run manual `vercel --prod`.
+- Production deploys should happen from the owner's GitHub/Vercel flow after git push.
+- Be careful with commands that mutate remote data, production data, auth settings, storage, or deployments. Ask first unless the user explicitly requested the exact action.
 
-### MCP серверы (`opencode.json`)
-- **context7** — поиск по документациям библиотек (React, Supabase, Vite, etc.)
-- **gh_grep** — поиск примеров кода по всему GitHub
+## 12. Verification
 
-### Skills (загружаются по требованию через `skill()`)
-| Skill | Для чего | Когда вызывать |
-|-------|---------|---------------|
-| supabase-postgres-best-practices | PostgreSQL: индексы, RLS, триггеры, партицирование | БД-фиксы, миграции |
-| supabase | Supabase: auth, storage, realtime | Auth, Storage, RLS |
-| vercel-react-best-practices | React 18: хуки, паттерны, производительность | Компоненты, контексты |
-| frontend-design | Качественный UI/UX, продакшен-дизайн | Экраны, компоненты |
-| web-design-guidelines | Веб-дизайн: типографика, spacing, цвет | Дизайн-система |
-| sleek-design-mobile-apps | Мобильный дизайн: touch, viewport, PWA | Мобильные экраны |
-| systematic-debugging | Систематический дебаггинг | Баги, ошибки |
-| test-driven-development | TDD подход | Написание тестов |
-| webapp-testing | Тестирование PWA/веб-приложений | Playwright, e2e |
-| writing-plans | Структурированное планирование | Архитектура, фичи |
-| executing-plans | Пошаговое выполнение планов | Реализация фич |
-| deploy-to-vercel | Деплой на Vercel | Релизы |
-| verification-before-completion | Проверка перед завершением | Финальная проверка |
-| requesting-code-review | Код-ревью | После написания кода |
+Choose verification based on risk and touched areas.
 
-## ЧАСТЫЕ КОМАНДЫ
+Common checks:
+- `npm run check:agent:docs` for docs/memory/script syntax checks
+- `npm run check:agent` for quick default verification
+- `npm run check:agent:ui` for UI/i18n/lint/build checks
+- `npm run check:agent:full` for broad pre-handoff verification
+- `npm run build`
+- `npm run lint`
+- `npm run test:unit`
+- `node scripts/check-i18n.mjs` when text or i18n changes
+- Browser/Playwright smoke checks for UI flows
+- Targeted script or test for data pipelines and domain logic
 
-```bash
-npm run build    # сборка
-npm run lint     # линтинг
-```
+Before claiming work is done:
+- Run the relevant checks when feasible.
+- If a check cannot be run, say why.
+- Do not present unverified work as verified.
+
+## 13. Preferred User Prompt Style
+
+The user may give short prompts. The agent should expand them into a professional workflow.
+
+For example, if the user says "work on the home screen":
+1. Read current context.
+2. Inspect the relevant screen, styles, i18n, and routes.
+3. Ask only the key product/design questions.
+4. Propose a plan.
+5. Wait for approval before major UI changes.
+
+For a small bug:
+1. Reproduce or locate the cause.
+2. Fix surgically.
+3. Verify.
+4. Update memory only if future agents need the knowledge.
+
+## 14. What Not To Store Here
+
+Do not add the following to `AGENTS.md`:
+- Session changelogs
+- Old audits and numeric project scores
+- Full architecture explanations
+- Database statistics snapshots
+- Long command catalogs
+- Tool lists that are specific to one IDE
+- Temporary plans or completed task history
+
+Put those in `docs/CONTEXT.md`, `docs/ARCHITECTURE.md`, `docs/ROADMAP_PILOT_V1.md`, or `docs/vault/` depending on their role.

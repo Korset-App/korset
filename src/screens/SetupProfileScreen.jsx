@@ -101,7 +101,7 @@ function AvatarChoice({ selected, onClick, children }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 6px 18px rgba(16,185,129,0.28)',
+            boxShadow: '0 6px 18px var(--success-glow)',
           }}
         >
           <svg
@@ -109,7 +109,7 @@ function AvatarChoice({ selected, onClick, children }) {
             height="14"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#06110d"
+            stroke="var(--text-inverse)"
             strokeWidth="3"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -255,6 +255,7 @@ export default function SetupProfileScreen() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [name, setName] = useState('')
   const [nameError, setNameError] = useState('')
+  const [profileError, setProfileError] = useState(null)
   const [selectedAvatarId, setSelectedAvatarId] = useState(AVATAR_PRESETS[0].id)
   const [customAvatarUrl, setCustomAvatarUrl] = useState(null)
 
@@ -297,6 +298,7 @@ export default function SetupProfileScreen() {
     const value = event.target.value
     const regex = /^[a-zA-Zа-яА-ЯәіңғүұқөһӘІҢҒҮҰҚӨҺ0-9\s]*$/
     setName(value)
+    if (profileError) setProfileError(null)
     if (!regex.test(value)) {
       setNameError(t('profileSetup.invalid'))
       return
@@ -323,7 +325,7 @@ export default function SetupProfileScreen() {
       setCustomAvatarUrl(data.publicUrl)
       setSelectedAvatarId('custom')
     } catch (error) {
-      alert(error.message || t('common.photoUploadError'))
+      setProfileError(error.message || t('profileSetup.saveError'))
     } finally {
       setUploadingAvatar(false)
       if (event.target) event.target.value = ''
@@ -334,6 +336,7 @@ export default function SetupProfileScreen() {
     const trimmedName = name.trim()
     if (!user || !trimmedName || nameError || !hasAvatar) return
     setLoading(true)
+    setProfileError(null)
     const avatarValue = selectedAvatarId === 'custom' ? customAvatarUrl : selectedAvatarId
     const deviceId = getOrCreateDeviceId()
 
@@ -370,7 +373,7 @@ export default function SetupProfileScreen() {
 
       navigate(backTarget, { replace: true })
     } catch (error) {
-      alert(error.message || 'Не удалось сохранить профиль')
+      setProfileError(error.message || t('profileSetup.saveError'))
     } finally {
       setLoading(false)
     }
@@ -458,7 +461,7 @@ export default function SetupProfileScreen() {
             <div
               style={{
                 background: 'var(--input-bg)',
-                border: `1px solid ${nameError ? 'rgba(248,113,113,0.45)' : 'var(--input-border)'}`,
+                border: `1px solid ${nameError ? 'var(--error-border)' : 'var(--input-border)'}`,
                 borderRadius: 18,
                 padding: '15px 16px',
               }}
@@ -599,7 +602,12 @@ export default function SetupProfileScreen() {
           </button>
           <div style={{ minWidth: 96, textAlign: 'center' }}>
             <div
-              style={{ fontSize: 12, fontWeight: 700, color: '#A78BFA', letterSpacing: '0.12em' }}
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: 'var(--primary-bright)',
+                letterSpacing: '0.12em',
+              }}
             >
               {t('profileSetup.stepOf', { step, stepCount })}
             </div>
@@ -664,7 +672,7 @@ export default function SetupProfileScreen() {
             <div
               style={{
                 background: 'var(--input-bg)',
-                border: `1px solid ${nameError ? 'rgba(248,113,113,0.45)' : 'var(--input-border)'}`,
+                border: `1px solid ${nameError ? 'var(--error-border)' : 'var(--input-border)'}`,
                 borderRadius: 18,
                 padding: '16px 18px',
               }}
@@ -745,6 +753,24 @@ export default function SetupProfileScreen() {
           </SurfaceCard>
         )}
 
+        {profileError && (
+          <div
+            role="alert"
+            style={{
+              background: 'var(--error-dim)',
+              border: '1px solid var(--error-border)',
+              color: 'var(--error-bright)',
+              padding: '12px 16px',
+              borderRadius: 12,
+              fontSize: 13,
+              fontFamily: 'var(--font-display)',
+              textAlign: 'center',
+              marginBottom: 12,
+            }}
+          >
+            {profileError}
+          </div>
+        )}
         <button
           onClick={onPrimaryAction}
           disabled={loading || (step === 1 ? !canContinueName : !hasAvatar)}
@@ -761,7 +787,7 @@ export default function SetupProfileScreen() {
             color: 'var(--text-inverse)',
             fontSize: 16,
             fontWeight: 700,
-            boxShadow: loading ? 'none' : '0 18px 36px rgba(124,58,237,0.24)',
+            boxShadow: loading ? 'none' : '0 18px 36px var(--primary-glow)',
           }}
         >
           {loading ? '...' : step === 1 ? t('profileSetup.continue') : t('profileSetup.finish')}

@@ -1,5 +1,5 @@
 import { readFileSync, readdirSync, statSync, writeFileSync, existsSync } from 'fs'
-import { join, relative, sep } from 'path'
+import { join } from 'path'
 import { createHash } from 'crypto'
 import { createClient } from '@supabase/supabase-js'
 
@@ -31,6 +31,7 @@ const OVERLAP_TOKENS = 50
 const BATCH_SIZE = 100
 const MAX_RETRIES = 3
 const RETRY_BASE_MS = 1000
+const IGNORED_DIRS = new Set(['.obsidian'])
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -94,6 +95,7 @@ function collectMarkdownFiles(dir, basePath = '') {
     const fullPath = join(dir, entry.name)
     const relPath = basePath ? `${basePath}/${entry.name}` : entry.name
     if (entry.isDirectory()) {
+      if (IGNORED_DIRS.has(entry.name)) continue
       results.push(...collectMarkdownFiles(fullPath, relPath))
     } else if (entry.name.endsWith('.md')) {
       results.push({ fullPath, relPath })
@@ -124,13 +126,17 @@ function parseFrontmatter(content) {
 }
 
 function extractDomain(relPath) {
-  const parts = relPath.split(sep)
+  const parts = splitVaultPath(relPath)
   return parts[0] || 'unknown'
 }
 
 function extractSubdomain(relPath) {
-  const parts = relPath.split(sep)
+  const parts = splitVaultPath(relPath)
   return parts[1] || ''
+}
+
+function splitVaultPath(relPath) {
+  return relPath.split(/[\\/]+/).filter(Boolean)
 }
 
 function detectLang(text) {
@@ -226,6 +232,9 @@ function processFile(fileInfo) {
           domain,
           subdomain,
           lang,
+          ...(fm.status ? { status: fm.status } : {}),
+          ...(fm.topic ? { topic: fm.topic } : {}),
+          ...(fm.updated ? { updated: fm.updated } : {}),
           ...(fm.tags ? { tags: fm.tags } : {}),
         },
       })

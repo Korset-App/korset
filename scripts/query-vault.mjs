@@ -52,6 +52,9 @@ function parseArgs() {
   let count = DEFAULT_MATCH_COUNT
   let domain = null
   let subdomain = null
+  let status = null
+  let source = null
+  let updatedAfter = null
   let minSimilarity = 0.3
 
   for (let i = 0; i < args.length; i++) {
@@ -64,6 +67,15 @@ function parseArgs() {
       i++
     } else if (arg === '--subdomain' && args[i + 1]) {
       subdomain = args[i + 1]
+      i++
+    } else if (arg === '--status' && args[i + 1]) {
+      status = args[i + 1]
+      i++
+    } else if (arg === '--source' && args[i + 1]) {
+      source = args[i + 1]
+      i++
+    } else if (arg === '--updated-after' && args[i + 1]) {
+      updatedAfter = args[i + 1]
       i++
     } else if (arg === '--min-similarity' && args[i + 1]) {
       minSimilarity = parseFloat(args[i + 1])
@@ -79,6 +91,9 @@ Options:
   --count N          Number of results (default: ${DEFAULT_MATCH_COUNT})
   --domain NAME      Filter by domain (knowledge, architecture, decisions, patterns, changelog)
   --subdomain NAME   Filter by subdomain (e-additives, halal-certification, etc.)
+  --status NAME      Filter by frontmatter status (active, superseded, draft, legacy)
+  --source TEXT      Post-filter by source_file substring
+  --updated-after YYYY-MM-DD  Post-filter by metadata.updated date
   --min-similarity F  Minimum similarity threshold 0-1 (default: 0.3)
   --help             Show this help
 
@@ -87,6 +102,8 @@ Examples:
   node scripts/query-vault.mjs "халал правила" --domain knowledge
   node scripts/query-vault.mjs "кармин" --subdomain e-additives --count 10
   node scripts/query-vault.mjs "как работает fit-check" --domain architecture
+  node scripts/query-vault.mjs "roadmap pilot blockers" --domain plans --status active
+  node scripts/query-vault.mjs "auth recovery" --domain changelog --updated-after 2026-05-01
 `)
       process.exit(0)
     } else if (!arg.startsWith('--')) {
@@ -94,7 +111,7 @@ Examples:
     }
   }
 
-  return { query: query.join(' '), count, domain, subdomain, minSimilarity }
+  return { query: query.join(' '), count, domain, subdomain, status, source, updatedAfter, minSimilarity }
 }
 
 async function generateQueryEmbedding(text) {
@@ -139,8 +156,10 @@ function formatResult(result, index) {
   const domain = result.metadata?.domain || '?'
   const sub = result.metadata?.subdomain ? `/${result.metadata.subdomain}` : ''
   const lang = result.metadata?.lang || ''
+  const status = result.metadata?.status ? `, status:${result.metadata.status}` : ''
+  const updated = result.metadata?.updated ? `, updated:${result.metadata.updated}` : ''
 
-  const header = `[${index}] ${result.source_file}${result.heading ? ' → ' + result.heading : ''} (sim: ${sim}%, ${domain}${sub}, ${lang})`
+  const header = `[${index}] ${result.source_file}${result.heading ? ' → ' + result.heading : ''} (sim: ${sim}%, ${domain}${sub}, ${lang}${status}${updated})`
   const separator = '─'.repeat(Math.min(header.length, 80))
   const content =
     result.content.length > 500 ? result.content.slice(0, 500) + '...' : result.content
@@ -149,7 +168,7 @@ function formatResult(result, index) {
 }
 
 async function main() {
-  const { query, count, domain, subdomain, minSimilarity } = parseArgs()
+  const { query, count, domain, subdomain, status, source, updatedAfter, minSimilarity } = parseArgs()
 
   if (!query) {
     console.error('[query-vault] Error: query text required')
@@ -160,9 +179,10 @@ async function main() {
   }
 
   const filter = {}
-  if (domain || subdomain) {
+  if (domain || subdomain || status) {
     if (domain) filter.domain = domain
     if (subdomain) filter.subdomain = subdomain
+    if (status) filter.status = status
   }
 
   const filterJson = Object.keys(filter).length > 0 ? filter : {}
@@ -173,9 +193,15 @@ async function main() {
 
   const embedding = await generateQueryEmbedding(query)
 
-  const results = await searchVault(embedding, count * 2, filterJson)
+  const needsPostFilter = Boolean(source || updatedAfter)
+  const searchCount = needsPostFilter ? Math.max(count * 4, 20) : count * 2
+  const results = await searchVault(embedding, searchCount, filterJson)
 
-  const filtered = results.filter((r) => r.similarity >= minSimilarity).slice(0, count)
+  const filtered = results
+    .filter((r) => r.similarity >= minSimilarity)
+    .filter((r) => !source || r.source_file.toLowerCase().includes(source.toLowerCase()))
+    .filter((r) => !updatedAfter || isOnOrAfter(r.metadata?.updated, updatedAfter))
+    .slice(0, count)
 
   if (filtered.length === 0) {
     console.log('[query-vault] No results found above similarity threshold.')
@@ -196,6 +222,14 @@ async function main() {
   console.log(
     `Found ${filtered.length} results (showing top ${count} with similarity >= ${minSimilarity})`
   )
+}
+
+function isOnOrAfter(value, threshold) {
+  if (!value) return false
+  const date = Date.parse(value)
+  const minDate = Date.parse(threshold)
+  if (Number.isNaN(date) || Number.isNaN(minDate)) return false
+  return date >= minDate
 }
 
 main().catch((e) => {
