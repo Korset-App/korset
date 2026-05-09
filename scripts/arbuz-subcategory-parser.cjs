@@ -242,6 +242,12 @@ async function main() {
       url: 'https://arbuz.kz/ru/almaty/catalog/cat/225209-morozhenoe',
       subcategories: ['ice_cream'],
       pages: 10
+    },
+    semi_finished: {
+      title: 'Полуфабрикаты',
+      url: 'https://arbuz.kz/ru/almaty/catalog/cat/225184-polufabrikaty',
+      subcategories: ['semi_finished'],
+      pages: 10
     }
   }
 
@@ -393,10 +399,13 @@ async function main() {
       } else if (opts.mode === 'ice_cream') {
         category = 'frozen'
         subcategory = 'ice_cream'
+      } else if (opts.mode === 'semi_finished') {
+        category = 'frozen'
+        subcategory = 'semi_finished'
       }
 
       // Filter to keep only target subcategories
-      const expectedCategory = opts.mode === 'ice_cream' ? 'frozen' : 'dairy_eggs'
+      const expectedCategory = (opts.mode === 'ice_cream' || opts.mode === 'semi_finished') ? 'frozen' : 'dairy_eggs'
       const allowedSubcategories = modeConfig.subcategories
       if (category !== expectedCategory || !allowedSubcategories.includes(subcategory)) {
         console.log(`  [skip] Skipping non-target product: ${full.name} (${category} / ${subcategory})`)
