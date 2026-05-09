@@ -504,16 +504,16 @@ export default function ProfileScreen() {
           applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
         })
       }
-      await fetch('/api/push/subscribe', {
+      let authHeaders = {}
+      if (user) {
+        const { data } = await supabase.auth.getSession()
+        if (data?.session?.access_token) {
+          authHeaders = { Authorization: `Bearer ${data.session.access_token}` }
+        }
+      }
+      const response = await fetch('/api/push/subscribe', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(user
-            ? {
-                Authorization: `Bearer ${(await import('../utils/supabase.js')).supabase.auth.session()?.access_token || ''}`,
-              }
-            : {}),
-        },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({
           subscription,
           authUserId: user?.id || null,
@@ -521,6 +521,15 @@ export default function ProfileScreen() {
           storeSlug: currentStore?.slug || null,
         }),
       })
+      if (!response.ok) {
+        if (response.status === 401) {
+          setPushStatus(t('notification.loginForSubscribe'))
+          setTimeout(() => setPushStatus(''), 4000)
+          return
+        }
+        const payload = await response.json().catch(() => ({}))
+        throw new Error(payload.error || 'subscribe_failed')
+      }
       const next = { ...pushSettings, enabled: true, status: 'granted', subscriptionActive: true }
       setPushSettings(next)
       saveNotificationSettings(next)
@@ -1404,11 +1413,20 @@ export default function ProfileScreen() {
                         </span>
                         <Toggle
                           checked={pushSettings.enabled && pushSettings.subscriptionActive}
-                          disabled={pushBusy || !pushSettings.pushSupported}
+                          disabled={
+                            pushBusy ||
+                            !pushSettings.pushSupported ||
+                            pushSettings.status === 'denied'
+                          }
                           onChange={togglePush}
                         />
                       </div>
-                      {!pushSettings.pushSupported && (
+                      {pushSettings.status === 'denied' && (
+                        <div style={{ fontSize: 11, color: '#FCA5A5' }}>
+                          {t('notification.permissionDenied')}
+                        </div>
+                      )}
+                      {!pushSettings.pushSupported && pushSettings.status !== 'denied' && (
                         <div style={{ fontSize: 11, color: 'var(--text-disabled)' }}>
                           {t('notification.pushUnsupported')}
                         </div>
