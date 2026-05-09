@@ -1,6 +1,7 @@
 # Решение: Serverless API для EAN Recovery (обход RLS)
 
 > Дата: 2026-04-27
+> Связи: [[ean-recovery-system]] · [[retail-cabinet]]
 
 ## Контекст
 

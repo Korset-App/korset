@@ -1,5 +1,7 @@
 # 2026-05-03 — ScanScreen redesign prep
 
+> Связи: [[v1-zero-friction-and-light-premium-2026-04-26]] · [[product-resolution]]
+
 ## Summary
 
 User provided a light-theme ScanScreen visual reference and custom SVG icons. The redesign itself is not implemented yet; this note preserves the first safe preparation step.

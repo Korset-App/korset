@@ -1,5 +1,7 @@
 # ПРОМПТ ДЛЯ ИИ-АССИСТЕНТА — Landing Page V3 Full Rebuild
 
+> Связи: [[landing-v3-full-rebuild]] · [[landing-redesign-v2]]
+
 ---
 
 ## ТВОЯ ЗАДАЧА

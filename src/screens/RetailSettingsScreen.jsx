@@ -5,6 +5,10 @@ import { supabase } from '../utils/supabase.js'
 import QRCode from 'react-qr-code'
 import { clearStoreCatalog } from '../utils/retailAnalytics.js'
 import ConfirmDangerModal from '../components/ConfirmDangerModal.jsx'
+import {
+  buildRetailStoreSettingsPayload,
+  getAIStoreNotesLimit,
+} from '../domain/retail/storeSettings.js'
 
 // ── Phone mask utilities (defined outside component) ────────────
 // Store only 10 local digits (without country code) in state.
@@ -41,6 +45,7 @@ export default function RetailSettingsScreen() {
     instagram_url: currentStore?.instagram_url || '',
     whatsapp_number: initLocalPhone(currentStore?.whatsapp_number),
     twogis_url: currentStore?.twogis_url || '',
+    ai_store_notes: currentStore?.ai_store_notes || '',
     notifyMissing: currentStore?.notify_oos_enabled ?? true,
     notifyDaily: currentStore?.notify_daily_enabled ?? false,
   })
@@ -68,6 +73,7 @@ export default function RetailSettingsScreen() {
         instagram_url: currentStore.instagram_url || prev.instagram_url,
         whatsapp_number: initLocalPhone(currentStore.whatsapp_number) || prev.whatsapp_number,
         twogis_url: currentStore.twogis_url || prev.twogis_url,
+        ai_store_notes: currentStore.ai_store_notes || prev.ai_store_notes,
         notifyMissing: currentStore.notify_oos_enabled ?? prev.notifyMissing,
         notifyDaily: currentStore.notify_daily_enabled ?? prev.notifyDaily,
       }))
@@ -97,16 +103,7 @@ export default function RetailSettingsScreen() {
   const handleSave = async () => {
     setIsSaving(true)
     setSaveStatus(null)
-    const { error } = await updateStoreSettings({
-      name: settings.name,
-      address: settings.address,
-      phone: settings.phone ? '7' + settings.phone : null,
-      short_description: settings.short_description || null,
-      description: settings.description || null,
-      instagram_url: settings.instagram_url || null,
-      whatsapp_number: settings.whatsapp_number ? '7' + settings.whatsapp_number : null,
-      twogis_url: settings.twogis_url || null,
-    })
+    const { error } = await updateStoreSettings(buildRetailStoreSettingsPayload(settings))
     setIsSaving(false)
     setSaveStatus(error ? 'error' : 'ok')
     setTimeout(() => setSaveStatus(null), 3000)
@@ -464,6 +461,44 @@ export default function RetailSettingsScreen() {
                   lineHeight: 1.5,
                 }}
               />
+            </div>
+          </div>
+        </div>
+
+        {/* ── AI notes ── */}
+        <div>
+          <div style={SECTION_LABEL_STYLE}>{t('retail.settings.aiNotesTitle')}</div>
+          <div style={CARD_STYLE}>
+            <div style={{ padding: '16px' }}>
+              <div style={FIELD_LABEL}>
+                {t('retail.settings.aiNotesLabel')}
+                <span style={{ fontSize: 11, color: 'var(--text-dim)', marginLeft: 6 }}>
+                  {t('retail.settings.aiNotesHint')}
+                </span>
+              </div>
+              <textarea
+                value={settings.ai_store_notes}
+                onChange={(e) => handleChange('ai_store_notes', e.target.value)}
+                placeholder={t('retail.settings.aiNotesPlaceholder')}
+                maxLength={getAIStoreNotesLimit()}
+                rows={5}
+                style={{
+                  ...INPUT_STYLE,
+                  resize: 'vertical',
+                  minHeight: 120,
+                  lineHeight: 1.5,
+                }}
+              />
+              <div
+                style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 8, lineHeight: 1.5 }}
+              >
+                {t('retail.settings.aiNotesWarning')}
+              </div>
+              <div
+                style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4, textAlign: 'right' }}
+              >
+                {(settings.ai_store_notes || '').length}/{getAIStoreNotesLimit()}
+              </div>
             </div>
           </div>
         </div>

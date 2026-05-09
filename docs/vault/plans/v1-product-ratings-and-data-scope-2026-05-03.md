@@ -1,5 +1,7 @@
 # 2026-05-03 — V1 Product Ratings, Unknown EAN, Unsupported Goods
 
+> Связи: [[data-moat-strategy]] · [[ean-recovery-system]] · [[fit-check-engine]]
+
 ## Final V1 decision
 
 Körset V1 is preparing for a near pilot with a solo developer workflow. Scope must stay narrow, polished, and shippable. Do not add systems that create extra release work unless they clearly improve the pilot.

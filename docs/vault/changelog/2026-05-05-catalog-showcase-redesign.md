@@ -1,5 +1,7 @@
 # 2026-05-05 — CatalogScreen Bento Showcase Redesign
 
+> Связи: [[category-system]] · [[i18n-migration]]
+
 ## Summary
 
 CatalogScreen получил новый верхний уровень: вместо простой сетки иконок теперь показывается адаптивная bento-витрина 18 основных категорий с реальными category cutout-изображениями.

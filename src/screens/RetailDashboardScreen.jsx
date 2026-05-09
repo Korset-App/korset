@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useI18n } from '../i18n/index.js'
 import { useStore } from '../contexts/StoreContext.jsx'
+import { buildRetailAIInsights } from '../domain/retail/aiInsights.js'
 import { getImageUrl } from '../utils/imageUrl.js'
 import { formatPrice } from '../utils/formatPrice.js'
 import {
@@ -359,6 +360,83 @@ function SectionHeader({ icon, iconColor, title }) {
   )
 }
 
+// ── AI insights ────────────────────────────────────────────────────
+const AI_INSIGHT_THEME = {
+  danger: { bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.2)', color: '#F87171' },
+  warning: { bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.22)', color: '#F59E0B' },
+  positive: { bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)', color: '#10B981' },
+  info: { bg: 'rgba(56,189,248,0.08)', border: 'rgba(56,189,248,0.2)', color: '#38BDF8' },
+}
+
+function AIInsightRow({ insight, t, loading }) {
+  if (loading) {
+    return (
+      <div
+        style={{
+          background: 'var(--glass-subtle)',
+          border: '1px solid var(--glass-soft-border)',
+          borderRadius: 12,
+          padding: '11px 12px',
+          display: 'flex',
+          gap: 10,
+        }}
+      >
+        <Skel w={30} h={30} r={8} />
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 7 }}>
+          <Skel h={13} w="55%" />
+          <Skel h={11} w="88%" />
+        </div>
+      </div>
+    )
+  }
+
+  const theme = AI_INSIGHT_THEME[insight.tone] ?? AI_INSIGHT_THEME.info
+  const values = {
+    ...insight.values,
+    amountText:
+      insight.values?.amount != null ? formatPrice(Number(insight.values.amount) || 0) : undefined,
+  }
+
+  return (
+    <div
+      style={{
+        background: theme.bg,
+        border: `1px solid ${theme.border}`,
+        borderRadius: 12,
+        padding: '11px 12px',
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 10,
+      }}
+    >
+      <div
+        style={{
+          width: 30,
+          height: 30,
+          borderRadius: 8,
+          background: 'var(--glass-bg)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: 17, color: theme.color }}>
+          {insight.icon}
+        </span>
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', lineHeight: 1.25 }}>
+          {t(insight.titleKey, values)}
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-dim)', lineHeight: 1.35, marginTop: 3 }}>
+          {t(insight.bodyKey, values)}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Empty state ────────────────────────────────────────────────────
 function EmptyState({ icon, label, sub }) {
   return (
@@ -412,6 +490,9 @@ export default function RetailDashboardScreen() {
       missedFilterAll: t('retail.dashboard.missedFilterAll'),
       missedFilterNotInCatalog: t('retail.dashboard.missedFilterNotInCatalog'),
       missedFilterOutOfStock: t('retail.dashboard.missedFilterOutOfStock'),
+      aiInsightsTitle: t('retail.dashboard.aiInsightsTitle'),
+      aiInsightsEmpty: t('retail.dashboard.aiInsightsEmpty'),
+      aiInsightsEmptySub: t('retail.dashboard.aiInsightsEmptySub'),
     }),
     [t]
   )
@@ -480,6 +561,27 @@ export default function RetailDashboardScreen() {
   const missedFiltered = (missedQ.data ?? []).filter(
     (item) => missedFilter === 'all' || item.reason === missedFilter
   )
+
+  const aiInsights = useMemo(
+    () =>
+      buildRetailAIInsights({
+        scansCount: scansQ.data ?? 0,
+        totalProducts: totalQ.data ?? 0,
+        scanCoverage: coverageQ.data,
+        lostRevenue: lostQ.data ?? 0,
+        missedOpportunities: missedQ.data ?? [],
+        topProducts: topQ.data ?? [],
+      }),
+    [coverageQ.data, lostQ.data, missedQ.data, scansQ.data, topQ.data, totalQ.data]
+  )
+
+  const aiInsightsLoading =
+    scansQ.isLoading ||
+    totalQ.isLoading ||
+    coverageQ.isLoading ||
+    lostQ.isLoading ||
+    missedQ.isLoading ||
+    topQ.isLoading
 
   const MISSED_TABS = [
     { key: 'all', label: d.missedFilterAll },
@@ -709,6 +811,21 @@ export default function RetailDashboardScreen() {
         <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 5 }}>
           {d.catalogCoverageHint}
         </div>
+      </div>
+
+      {/* AI insights */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <SectionHeader icon="auto_awesome" iconColor="#38BDF8" title={d.aiInsightsTitle} />
+
+        {aiInsightsLoading ? (
+          Array.from({ length: 3 }).map((_, i) => <AIInsightRow key={i} loading t={t} />)
+        ) : aiInsights.length === 0 ? (
+          <EmptyState icon="insights" label={d.aiInsightsEmpty} sub={d.aiInsightsEmptySub} />
+        ) : (
+          aiInsights.map((insight) => (
+            <AIInsightRow key={insight.id} insight={insight} t={t} loading={false} />
+          ))
+        )}
       </div>
 
       {/* ── Top-5 Products ── */}

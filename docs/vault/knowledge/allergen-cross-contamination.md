@@ -3,7 +3,7 @@
 > Источник: ТР ТС 022/2011, Codex Alimentarius (CAC/GL 106-2008), EU Regulation 1169/2011
 > Домен: knowledge / allergen-cross-contamination
 > Для: Fit-Check Orange level (Следы) + AI-чат
-> Связи: [[e-additives]] · [[fit-check-engine]] · [[why-deterministic-fit-check]]
+> Связи: [[e-additives]] · [[fit-check-engine]] · [[halal-certification]]
 
 ---
 

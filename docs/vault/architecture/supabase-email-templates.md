@@ -1,6 +1,7 @@
 Создано: 2026-05-06
 Статус: active
 Тип: configuration
+Связи: [[auth-system]]
 
 # Supabase Auth Email Templates
 

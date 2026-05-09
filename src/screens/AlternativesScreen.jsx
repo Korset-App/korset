@@ -1,44 +1,33 @@
 import { useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useProfile } from '../contexts/ProfileContext.jsx'
 import { useI18n } from '../i18n/index.js'
 import { useLocalName, getLocalName } from '../utils/localName.js'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { checkProductFit, formatPrice } from '../utils/fitCheck.js'
-import { getAnyKnownProductByRef, getStoreCatalogProducts } from '../utils/storeCatalog.js'
+import { findProductAlternatives, findProductInCatalog } from '../domain/product/alternatives.js'
 import { buildProductAIPath, buildProductPath } from '../utils/routes.js'
 
 export default function AlternativesScreen() {
   const { ean, storeSlug } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const { profile } = useProfile()
   const { t } = useI18n()
-  const localName = useLocalName(product)
-  const { currentStore } = useStore()
+  const { currentStore, catalogProducts = [], isCatalogReady } = useStore()
   const activeStoreSlug = storeSlug || currentStore?.slug || null
 
-  const product = useMemo(
-    () => getAnyKnownProductByRef(ean, activeStoreSlug),
-    [ean, activeStoreSlug]
-  )
-  const baseProducts = useMemo(() => getStoreCatalogProducts(activeStoreSlug), [activeStoreSlug])
+  const product = useMemo(() => {
+    const stateProduct = location.state?.product || null
+    if (stateProduct?.ean && String(stateProduct.ean) === String(ean)) return stateProduct
+    return findProductInCatalog(catalogProducts, ean)
+  }, [catalogProducts, ean, location.state])
+
+  const localName = useLocalName(product)
 
   const alternatives = useMemo(() => {
-    if (!product) return []
-    const preferredCategory = product.category
-    return baseProducts
-      .filter((item) => item.ean !== product.ean)
-      .filter((item) => item.category === preferredCategory)
-      .sort((a, b) => {
-        const aFit = checkProductFit(a, profile).fits ? 0 : 1
-        const bFit = checkProductFit(b, profile).fits ? 0 : 1
-        if (aFit !== bFit) return aFit - bFit
-        const priceDeltaA = Math.abs((a.priceKzt || 0) - (product.priceKzt || 0))
-        const priceDeltaB = Math.abs((b.priceKzt || 0) - (product.priceKzt || 0))
-        return priceDeltaA - priceDeltaB
-      })
-      .slice(0, 6)
-  }, [baseProducts, product, profile])
+    return findProductAlternatives({ product, catalogProducts, profile })
+  }, [catalogProducts, product, profile])
 
   if (!product) {
     return (
@@ -46,7 +35,7 @@ export default function AlternativesScreen() {
         className="screen"
         style={{ display: 'grid', placeItems: 'center', color: 'var(--text-dim)' }}
       >
-        {t('common.notFound')}
+        {!isCatalogReady ? t('common.loading') : t('common.notFound')}
       </div>
     )
   }
@@ -55,17 +44,20 @@ export default function AlternativesScreen() {
     <div className="screen">
       <div className="header" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <button
+          type="button"
+          aria-label={t('common.back')}
           onClick={() => navigate(-1)}
           style={{
             width: 38,
             height: 38,
             borderRadius: 12,
-            border: '1px solid rgba(255,255,255,0.1)',
-            background: 'rgba(255,255,255,0.05)',
-            color: '#fff',
+            border: '1px solid var(--glass-border)',
+            background: 'var(--glass-bg)',
+            color: 'var(--text)',
+            cursor: 'pointer',
           }}
         >
-          ←
+          <span aria-hidden="true">&larr;</span>
         </button>
         <div className="screen-title" style={{ margin: 0 }}>
           {t('common.alternatives')}
@@ -75,30 +67,53 @@ export default function AlternativesScreen() {
       <div
         style={{
           padding: '0 20px 24px',
-          color: 'rgba(220,220,240,0.72)',
+          color: 'var(--text-soft)',
           fontSize: 13,
           lineHeight: 1.6,
         }}
       >
         {t('alternatives.subtitle')}{' '}
-        <span style={{ color: '#fff', fontWeight: 700 }}>{localName}</span>
+        <span style={{ color: 'var(--text)', fontWeight: 700 }}>{localName}</span>
         {activeStoreSlug ? ` ${t('alternatives.inStore')}` : '.'}
       </div>
 
       <div style={{ padding: '0 20px 100px', display: 'grid', gap: 10 }}>
+        {isCatalogReady && alternatives.length === 0 && (
+          <div
+            style={{
+              padding: 18,
+              borderRadius: 18,
+              background: 'var(--glass-muted)',
+              border: '1px solid var(--glass-soft-border)',
+              color: 'var(--text-soft)',
+              lineHeight: 1.5,
+            }}
+          >
+            <div style={{ color: 'var(--text)', fontWeight: 700, marginBottom: 4 }}>
+              {t('alternatives.empty')}
+            </div>
+            <div style={{ fontSize: 13 }}>{t('alternatives.emptyHint')}</div>
+          </div>
+        )}
+
         {alternatives.map((alt) => {
           const fit = checkProductFit(alt, profile)
           return (
             <button
+              type="button"
               key={alt.ean}
-              onClick={() => navigate(buildProductPath(activeStoreSlug, alt.ean))}
+              onClick={() =>
+                navigate(buildProductPath(activeStoreSlug, alt.ean), {
+                  state: { product: alt },
+                })
+              }
               style={{
                 padding: 12,
                 borderRadius: 18,
                 cursor: 'pointer',
                 textAlign: 'left',
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                background: 'var(--glass-muted)',
+                border: '1px solid var(--glass-soft-border)',
                 display: 'grid',
                 gridTemplateColumns: '56px 1fr auto',
                 gap: 12,
@@ -107,14 +122,26 @@ export default function AlternativesScreen() {
             >
               <AltThumb product={alt} />
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 4 }}>
+                <div
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: 'var(--text)',
+                    marginBottom: 4,
+                  }}
+                >
                   {getLocalName(alt)}
                 </div>
-                <div style={{ fontSize: 11, color: 'rgba(180,180,210,0.65)', marginBottom: 6 }}>
-                  {alt.brand || t('alternatives.noBrand')} ·{' '}
+                <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 6 }}>
+                  {alt.brand || t('alternatives.noBrand')} &middot;{' '}
                   {alt.shelf || t('alternatives.shelfPending')}
                 </div>
-                <div style={{ fontSize: 11, color: fit.fits ? '#34D399' : '#F59E0B' }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: fit.fits ? 'var(--success-bright)' : 'var(--warning)',
+                  }}
+                >
                   {fit.fits ? t('alternatives.fitsProfile') : t('alternatives.checkIngredients')}
                 </div>
               </div>
@@ -123,7 +150,7 @@ export default function AlternativesScreen() {
                   fontFamily: 'var(--font-display)',
                   fontSize: 18,
                   fontWeight: 800,
-                  color: '#A78BFA',
+                  color: 'var(--primary-bright)',
                   whiteSpace: 'nowrap',
                 }}
               >
@@ -134,8 +161,13 @@ export default function AlternativesScreen() {
         })}
 
         <button
+          type="button"
           className="btn btn-secondary btn-full"
-          onClick={() => navigate(buildProductAIPath(activeStoreSlug, product.ean))}
+          onClick={() =>
+            navigate(buildProductAIPath(activeStoreSlug, product.ean), {
+              state: { product },
+            })
+          }
         >
           {t('alternatives.askAI')}
         </button>
@@ -146,8 +178,9 @@ export default function AlternativesScreen() {
 
 function getPrimaryImage(product) {
   if (!product) return null
+  if (product.image) return product.image
+  if (product.imageUrl) return product.imageUrl
   if (product.images?.[0]) return product.images[0]
-  if (product.ean) return `/products/${product.ean}.png`
   return null
 }
 
@@ -162,7 +195,7 @@ function AltThumb({ product }) {
         height: 56,
         display: 'grid',
         placeItems: 'center',
-        background: 'rgba(255,255,255,0.03)',
+        background: 'var(--image-bg)',
         borderRadius: 14,
       }}
     >
@@ -174,7 +207,9 @@ function AltThumb({ product }) {
           onError={() => setOk(false)}
         />
       ) : (
-        <span style={{ color: 'var(--primary-bright)', fontSize: 18 }}>📦</span>
+        <span style={{ color: 'var(--primary-bright)', fontSize: 18, fontWeight: 800 }}>
+          {product.name?.[0] || 'K'}
+        </span>
       )}
     </div>
   )

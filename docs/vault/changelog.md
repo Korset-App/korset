@@ -2,6 +2,7 @@
 
 > Домен: changelog
 > Дата начала: 2026-04-17
+> Связи: [[assistant-access-and-architecture-governance]] · [[architecture-decisions]] · [[fit-check-engine]] · [[2026-04-28-security-allergen-audit]]
 
 ---
 

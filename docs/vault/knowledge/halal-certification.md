@@ -3,7 +3,7 @@
 > Источник: Quran 2:173, 5:3, 6:145 | JAKIM Malaysia | HFCE Europe | Казахстанский Исламский Центр
 > Домен: knowledge / halal-certification
 > Для: Fit-Check Yellow level (Халал / Lifestyle) + AI-чат
-> Связи: [[e-additives]] · [[fit-check-engine]] · [[why-deterministic-fit-check]]
+> Связи: [[e-additives]] · [[fit-check-engine]] · [[allergen-cross-contamination]] · [[kz-product-databases]]
 
 ---
 

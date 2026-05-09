@@ -1,5 +1,7 @@
 # 2026-05-05 — Auth Strategy Discovery
 
+> Связи: [[auth-system]] · [[auth-flow]]
+
 ## Context
 
 User wants a professional auth audit before implementation, not just a surface password reset change. The target product is a mobile-first PWA for Kazakhstan grocery stores and shoppers.

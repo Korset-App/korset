@@ -1,5 +1,7 @@
 # 2026-05-03 — Data Moat V1 pilot scope
 
+> Связи: [[data-moat-strategy]] · [[data-moat-pipeline-strategy]] · [[data-moat-best-actions-2026-05-03]]
+
 Decision: full Data Trust Layer is too deep for V1. For the upcoming pilot, Körset should implement the smallest high-impact Data Moat slice that improves buyer trust, helps the store owner see value, and avoids risky AI overclaims.
 
 V1 focus:

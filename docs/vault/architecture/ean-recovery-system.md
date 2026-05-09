@@ -1,6 +1,7 @@
 # EAN Recovery System
 
 > Дата: 2026-04-27 | Статус: Рабочий
+> Связи: [[product-resolution]] · [[data-moat-pipeline-strategy]] · [[ean-recovery-rls-decision]] · [[retail-cabinet]] · [[2026-05-03-v1-unknown-ean-request]]
 
 ## Проблема
 

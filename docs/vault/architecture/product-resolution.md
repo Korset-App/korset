@@ -2,7 +2,7 @@
 
 > Домен: architecture / product-resolution
 > Обновлено: 2026-04-17
-> Связи: [[fit-check-engine]] · [[retail-cabinet]] · [[auth-flow]]
+> Связи: [[fit-check-engine]] · [[ean-recovery-system]] · [[offline-resilience]] · [[retail-cabinet]] · [[data-moat-strategy]] · [[2026-05-02-scan-optimization-s1]] · [[2026-05-02-scan-optimization-s2]]
 
 ---
 

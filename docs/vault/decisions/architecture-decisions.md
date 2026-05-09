@@ -2,6 +2,7 @@
 
 > Домен: decisions
 > Дата: 2026-04-17
+> Связи: [[fit-check-engine]] · [[assistant-memory-pipeline]] · [[data-moat-strategy]] · [[changelog]] · [[audit-full]]
 
 ---
 

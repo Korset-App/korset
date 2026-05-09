@@ -1,5 +1,7 @@
 # Multi-LLM Coordination — 2026-04-25
 
+> Связи: [[assistant-access-and-architecture-governance]] · [[assistant-memory-pipeline]]
+
 ## Что добавлено
 
 - `docs/AI_COLLAB_PROTOCOL.md` — минимальный протокол совместной работы Codex, GLM 5.1 и Kimi 2.6.

@@ -1,5 +1,7 @@
 # 2026-05-01 — Быстрые победы: idx_users_auth_id + Sentry + SECURITY DEFINER views
 
+> Связи: [[monitoring-runbook]] · [[auth-system]]
+
 ## Сделано
 
 1. **Миграция 022** — `idx_users_auth_id` на `public.users(auth_id)`.

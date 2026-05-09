@@ -1,5 +1,7 @@
 # Память ассистента и Vault pipeline
 
+> Связи: [[assistant-access-and-architecture-governance]] · [[architecture-decisions]] · [[2026-04-27-audit-sync]]
+
 ## Цель
 
 Держать Codex в контексте Körset с минимальным расходом токенов: короткий `docs/CONTEXT.md` для старта чата и глубокий `docs/vault/` для RAG-поиска по необходимости.

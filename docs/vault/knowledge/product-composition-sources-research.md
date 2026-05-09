@@ -3,6 +3,7 @@
 > Domain: knowledge / product-composition-sources
 > Tested with real API calls using products from our Kaspi dataset
 > Priority: composition (Состав) > nutrition (КБЖУ) > specifications > images
+> Связи: [[data-moat-pipeline-strategy]] · [[ean-lookup-methods-research]]
 
 ---
 

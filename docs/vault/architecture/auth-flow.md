@@ -2,7 +2,7 @@
 
 > Домен: architecture / auth-flow
 > Обновлено: 2026-04-17
-> Связи: [[product-resolution]] · [[retail-cabinet]] · [[fit-check-engine]]
+> Связи: [[auth-system]] · [[retail-cabinet]] · [[product-resolution]] · [[auth-strategy-discovery-2026-05-05]] · [[2026-04-28-lazy-routes]]
 
 ---
 

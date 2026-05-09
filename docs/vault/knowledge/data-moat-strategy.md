@@ -2,7 +2,7 @@
 
 > Домен: knowledge / data-moat-strategy
 > Дата: 2026-04-17
-> Связи: [[audit-full]] · [[product-resolution]] · [[fit-check-engine]]
+> Связи: [[data-moat-pipeline-strategy]] · [[product-resolution]] · [[fit-check-engine]] · [[v1-product-ratings-and-data-scope-2026-05-03]]
 
 ---
 

@@ -132,7 +132,7 @@ Infrastructure:
 
 ## 5. Важные Риски И Не Считать “Готовым”
 
-- `AlternativesScreen.jsx` требует проверки/фикса: сейчас в коде `useLocalName(product)` вызывается до объявления `product`, плюс есть старые hardcoded colors. Не считать экран production-polished, пока не проверен.
+- `AlternativesScreen.jsx` подключён к `StoreContext.catalogProducts`: подбор альтернатив идёт только из текущего магазина, helper покрыт unit-тестами. Экран больше не зависит от старых `storeCatalog`-заглушек.
 - `docs/ARCHITECTURE.md` содержит старые и новые разделы вместе; перед архитектурными решениями сверять с кодом.
 - `docs/ROADMAP_PILOT_V1.md` содержит старый дедлайн и старую dual-agent модель; использовать как источник идей, но не как безусловную текущую правду.
 - `docs/vault/changelog.md` большой и legacy-like; лучше искать свежие детали в `docs/vault/changelog/`.
@@ -162,6 +162,23 @@ Infrastructure:
 
 ## 7. Текущий Фокус
 
+На 2026-05-09:
+
+- ✅ **Каталог и штрихкоды**: Возвращено отображение количества продуктов в UX каталога (переменная `showCatalogMeta = true` в `CatalogScreen.jsx` активирована).
+- ✅ **Поддержка нескольких EAN на один товар**: Подтверждена готовность архитектуры (колонки `alternate_eans`, PostgreSQL функция `fn_resolve_product` и обработка в `resolver.js`/`offlineDB.js` полностью поддерживают сканирование альтернативных кодов для одного товара).
+- **Store-aware AI для пилота**: Перед кодом зафиксированы:
+- спецификация: `docs/vault/plans/2026-05-08-store-ai-pilot-spec.md`;
+- поэтапный roadmap: `docs/vault/plans/2026-05-09-store-ai-implementation-roadmap.md`.
+
+Решение: делать AI ассистентом конкретного магазина, с store context, локальной историей чата, умными стартовыми подсказками, catalog-grounded рекомендациями, карточками товаров в чате, Product AI upgrade, store AI notes и позже Retail AI Insights. Не делать в V1: полки/карту магазина, live internet search в buyer-чате, собственную локальную модель, серверную историю чатов и большой owner AI chat.
+
+- ✅ Phase 1 foundation: store context helper, локальная история чата, новые AI chips, store-aware general/product prompts. См. `docs/vault/changelog/2026-05-09-store-ai-phase-1-foundation.md` (Полностью реализовано и покрыто unit-тестами).
+Phase 2/3 first pass: общий AI получает catalog candidates из текущего магазина и может вернуть grouped product cards/follow-up chips. См. `docs/vault/changelog/2026-05-09-store-ai-phase-2-3-catalog-cards.md`.
+Phase 4 first pass: Product AI больше не зависит только от `location.state`/legacy no-op lookup; `/s/:storeSlug/product/:ean/ai` резолвит товар через full store fetch, fallback на текущий catalog по primary/alternate EAN, и отправляет AI цену, наличие, EAN и same-store alternatives. См. `docs/vault/changelog/2026-05-09-store-ai-phase-4-product-ai.md`.
+Phase 5 Store AI Notes: создана миграция `027_store_ai_notes.sql`, Retail Settings получил textarea `ai_store_notes` с лимитом 2000 символов и предупреждением про проверяемые факты; notes уже попадают в AI как store facts через существующий context/API. См. `docs/vault/changelog/2026-05-09-store-ai-phase-5-store-notes.md`. Миграция создана локально, но не применялась к Supabase из этой сессии.
+Phase 6 Retail AI Insights: Retail Dashboard получил блок “KÖRSET AI заметил”, который строит 3–5 агрегированных owner-сигналов из existing scans/missed/coverage/lost/top-products data: unknown EAN demand, out-of-stock demand, low catalog coverage, estimated lost revenue, weak product data, top demand and activation nudge. Без owner chat, predictions и user-level analytics. См. `docs/vault/changelog/2026-05-09-store-ai-phase-6-retail-insights.md`.
+Phase 7 launch polish: AI guardrails стали явным тестируемым контрактом: anonymous/auth rate limits, 12-message history, 1200-char single message, 6000-char total payload, 12 catalog candidates, 4 structured groups/12 products, compact max_tokens per AI mode. QA prompt set и known limitations записаны в `docs/vault/plans/2026-05-09-store-ai-phase-7-qa-prompts.md`; changelog: `docs/vault/changelog/2026-05-09-store-ai-phase-7-launch-polish.md`.
+
 На 2026-05-06:
 
 Auth — **DONE**. Полный deep audit + cleanup завершён. Код стабильный, тесты зелёные. Единственный ручной остаток: вставить 3 email шаблона из `docs/vault/architecture/supabase-email-templates.md` в Supabase Dashboard → Auth → Email Templates. См. `docs/vault/changelog/2026-05-06-auth-deep-audit-cleanup.md`.
@@ -172,7 +189,8 @@ Auth — **DONE**. Полный deep audit + cleanup завершён. Код с
 3. Далее: frontmatter/status в старые Vault-файлы, oversized files index, query-vault.mjs metadata check
 
 Недавний product/code focus:
-- Catalog bento showcase и Landing V3 недавно дорабатывались
+- ✅ **Landing V3**: Все Unsplash-заглушки (шаги, фоны, превью видео, карточки «Для кого») заменены на локальные высококачественные ИИ-изображения под контекст Казахстана и СНГ.
+- Catalog bento showcase доработан.
 - i18n migration завершена и защищается `scripts/check-i18n.mjs`
 
 ---

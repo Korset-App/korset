@@ -133,16 +133,57 @@ function calcQualityScore(p) {
   return Math.min(score, 100)
 }
 
-async function npcSearchByName(name) {
+function cleanQueryForNpc(name) {
+  if (!name) return ''
+  let q = name
+  // Split by comma and take first part (often weights/volumes are after comma)
+  if (q.includes(',')) {
+    q = q.split(',')[0]
+  }
+  // Remove weight/volume patterns like "50 г", "50г", "50.5 г", "50,5г", "1 л", "1.5л", "500 мл"
+  q = q.replace(/\d+([.,]\d+)?\s*(г|кг|л|мл|шт|%)\.?/gi, '')
+  // Remove trailing dashes, spaces, dots
+  q = q.replace(/[-\s.]+$/, '').trim()
+  return q
+}
+
+async function npcSearchByName(name, brand = null) {
   if (!NPC_API_KEY || !name) return null
-  try {
-    const r = await httpReq('POST', 'https://nationalcatalog.kz/gw/search/api/v1/search', {
-      'X-API-KEY': NPC_API_KEY, 'Content-Type': 'application/json',
-    }, { query: name.substring(0, 80), page: 1, size: 3 })
-    if (r.status !== 200) return null
-    const items = JSON.parse(r.body).items || []
-    return items.length > 0 ? items[0] : null
-  } catch { return null }
+
+  const cleaned = cleanQueryForNpc(name)
+  const queriesToTry = [cleaned]
+
+  if (brand && !cleaned.toLowerCase().includes(brand.toLowerCase())) {
+    queriesToTry.push(`${brand} ${cleaned}`)
+  }
+
+  if (cleaned.split(/\s+/).length > 4) {
+    queriesToTry.push(cleaned.split(/\s+/).slice(0, 3).join(' '))
+  }
+
+  const uniqueQueries = [...new Set(queriesToTry.filter(q => q && q.length > 2))]
+
+  for (const query of uniqueQueries) {
+    try {
+      const r = await httpReq('POST', 'https://nationalcatalog.kz/gw/search/api/v1/search', {
+        'X-API-KEY': NPC_API_KEY, 'Content-Type': 'application/json',
+      }, { query: query.substring(0, 80), page: 1, size: 5 })
+
+      if (r.status === 200) {
+        const items = JSON.parse(r.body).items || []
+        if (items.length > 0) {
+          const withGtin = items.find(item => item.gtin && /^\d+$/.test(item.gtin.trim()))
+          if (withGtin) return withGtin
+          return items[0]
+        }
+      }
+    } catch (e) {
+      // ignore and try fallback
+    }
+    await sleep(100)
+  }
+
+  return null
 }
 
 const CATEGORY_QUERIES = [
@@ -151,20 +192,12 @@ const CATEGORY_QUERIES = [
   'сок', 'кофе', 'чай', 'мороженое', 'йогурт',
   'колбаса', 'сосиски', 'макароны', 'крупа', 'рис',
   'кетчуп', 'майонез', 'сахар', 'мука', 'соль',
-  'вода', 'пиво', 'вино', 'водка',
-  'творог', 'сметана', 'ряженка', 'подсолнечное масло', 'оливковое масло',
-  'рыба', 'креветки', 'икра', 'крабовые палочки',
-  'говядина', 'курица', 'свинина', 'фарш', 'бекон',
-  'помидоры', 'огурцы', 'картофель', 'лук', 'морковь',
-  'яблоки', 'бананы', 'виноград', 'апельсины', 'лимоны',
-  'яйца', 'плавленый сыр', 'творожный сырок',
+  'вода', 'творог', 'сметана', 'ряженка', 'подсолнечное масло', 'оливковое масло',
+  'крабовые палочки', 'бекон', 'яйца', 'плавленый сыр', 'творожный сырок',
   'орехи', 'мёд', 'варенье', 'сгущенка',
   'зефир', 'мармелад', 'халва', 'вафли', 'бисквит',
-  'пельмени', 'вареники', 'котлеты', 'наггетсы',
-  'пицца', 'роллы', 'суши',
-  'шампунь', 'гель для душа', 'зубная паста', 'мыло',
-  'подгузники', 'детское питание', 'смесь детская', 'пюре детское',
-  'корм для кошек', 'корм для собак',
+  'пельмени', 'вареники', 'наггетсы',
+  'детское питание', 'смесь детская', 'пюре детское'
 ]
 
 function parseArgs() {
@@ -285,7 +318,7 @@ async function main() {
 
       process.stdout.write(`  [${i + 1}/${productArray.length}] ${(p.name || '').substring(0, 35)}... `)
 
-      const npcItem = await npcSearchByName(p.name)
+      const npcItem = await npcSearchByName(p.name, p.brand)
       if (npcItem) {
         const gtin = npcItem.gtin || null
         if (gtin) {
@@ -313,7 +346,20 @@ async function main() {
   console.log('\n── PHASE 3: Batch upsert to Supabase ──')
   const results = { created: 0, enriched: 0, errors: 0 }
 
-  const allEans = productArray.map(p => p.ean || 'arbuz_' + p.arbuzId)
+  // De-duplicate product array based on calculated/resolved EAN to prevent duplicate rows in single upsert batch
+  const uniqueProducts = []
+  const seenEansForUpsert = new Set()
+  for (const p of productArray) {
+    const ean = p.ean || 'arbuz_' + p.arbuzId
+    if (!seenEansForUpsert.has(ean)) {
+      seenEansForUpsert.add(ean)
+      uniqueProducts.push(p)
+    } else {
+      console.log(`  Skipping duplicate item in batch (duplicate EAN=${ean}): ${p.name}`)
+    }
+  }
+
+  const allEans = uniqueProducts.map(p => p.ean || 'arbuz_' + p.arbuzId)
 
   // 3a: Batch fetch existing products
   const existingMap = new Map()
@@ -332,8 +378,8 @@ async function main() {
   const toUpsert = []
   const now = new Date().toISOString()
 
-  for (let i = 0; i < productArray.length; i++) {
-    const p = productArray[i]
+  for (let i = 0; i < uniqueProducts.length; i++) {
+    const p = uniqueProducts[i]
     const ean = allEans[i]
     const existing = existingMap.get(ean)
 

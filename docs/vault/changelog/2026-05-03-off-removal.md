@@ -1,5 +1,7 @@
 # 2026-05-03 — OFF Removal + Background AI Enrichment
 
+> Связи: [[data-moat-pipeline-strategy]] · [[product-composition-sources-research]]
+
 ## Что сделано
 
 ### 1. Open Food Facts полностью удалён из пользовательского потока

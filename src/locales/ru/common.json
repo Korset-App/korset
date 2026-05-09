@@ -32,13 +32,11 @@
   "common.storeDefault": "Магазин 1",
   "common.shelfDefault": "Полка уточняется",
   "common.shelfPlaceholder": "Например: Стеллаж 4, Полка 2",
-  "common.error": "Ошибка",
   "common.yes": "Да",
   "common.close": "Закрыть",
   "common.feedback": "Обратная связь",
   "common.langRu": "Русский",
   "common.langKzAria": "Қазақша",
   "common.on": "Вкл",
-  "common.off": "Выкл",
-  "common.loading": "Загрузка…"
+  "common.off": "Выкл"
 }

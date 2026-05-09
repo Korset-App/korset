@@ -2,7 +2,7 @@
 
 > Домен: plans / audit-full
 > Дата: 2026-04-17 (обновлено)
-> Связи: [[p0-security]] · [[session-2026-04-17]] · [[data-moat-strategy]] · [[offline-resilience]]
+> Связи: [[data-moat-strategy]] · [[product-resolution]] · [[offline-resilience]] · [[monitoring-runbook]] · [[stabilization-2026-04-24]]
 
 ---
 

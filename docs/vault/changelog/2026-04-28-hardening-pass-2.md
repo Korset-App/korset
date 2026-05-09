@@ -2,10 +2,7 @@
 title: Hardening Pass 2 - app_metadata RBAC + IndexedDB Migration Framework
 date: 2026-04-28
 tags: [security, rbac, app_metadata, indexeddb, migration_framework, critical, jwt]
-related:
-  - architecture/auth-flow.md
-  - decisions/server-controlled-rbac.md
-  - 2026-04-28-security-allergen-audit.md
+related: [[auth-system]] · [[offline-resilience]]
 ---
 
 # 2026-04-28: HARDENING Этап 4 — Security Pass 2 + Migration Framework

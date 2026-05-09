@@ -2,6 +2,7 @@
 
 > Домен: changelog  
 > Статус: completed
+> Связи: [[v1-zero-friction-and-light-premium-2026-04-26]] · [[light-theme-stage1-2026-04-26]]
 
 ---
 

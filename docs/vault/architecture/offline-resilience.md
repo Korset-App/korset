@@ -2,7 +2,7 @@
 
 > Домен: architecture / offline-resilience
 > Дата: 2026-04-17
-> Связи: [[audit-full]] · [[session-2026-04-17b]]
+> Связи: [[product-resolution]] · [[retail-cabinet]] · [[2026-04-28-hardening-pass-2]]
 
 ---
 

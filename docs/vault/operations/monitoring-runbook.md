@@ -2,6 +2,7 @@
 
 > **Status:** 2026-05-01 — production monitoring stack configured.
 > **Owner:** DevOps / Product lead.
+> Связи: [[assistant-access-and-architecture-governance]] · [[2026-05-01-idx-sentry-views]]
 
 ## Stack
 

@@ -1,5 +1,7 @@
 # 2026-04-28 — Lazy Routes (HARDENING Этап 5)
 
+> Связи: [[auth-flow]] · [[offline-resilience]]
+
 **Commit:** `dd4428e`
 **Scope:** routing, bundle optimization
 **Status:** ✅ завершено

@@ -1,5 +1,7 @@
 # RetailImport V1.1 — 2026-04-25
 
+> Связи: [[retail-cabinet]] · [[ean-recovery-system]]
+
 ## Что изменилось
 
 - `src/screens/RetailImportScreen.jsx` получил B2B-ready UX вокруг импорта: скачивание шаблона CSV/XLSX, более понятные счётчики, отдельный отчёт по `unknown EAN` и блок по неуспешным обновлениям.

@@ -5,13 +5,19 @@ const validateEan13 = (code) => {
   if (clean.length === 12) {
     const sum = clean.split('').reduce((s, d, i) => s + parseInt(d) * (i % 2 === 0 ? 1 : 3), 0)
     const check = (10 - (sum % 10)) % 10
-    return { valid: true, ean13: clean + check, type: 'UPC-A padded' }
+    return { valid: true, ean13: clean + check, type: 'UPC-A padded', checksumOk: true }
   }
   if (clean.length !== 13) return { valid: false, reason: `wrong length: ${clean.length}` }
   const sum = clean.slice(0, 12).split('').reduce((s, d, i) => s + parseInt(d) * (i % 2 === 0 ? 1 : 3), 0)
   const check = (10 - (sum % 10)) % 10
   const match = parseInt(clean[12]) === check
-  return { valid: match, ean13: clean, type: 'EAN-13', checksumOk: match }
+  return {
+    valid: true, // Tolerant: accept all 13-digit codes from registry
+    ean13: clean,
+    type: 'EAN-13',
+    checksumOk: match,
+    reason: match ? null : 'checksum mismatch (tolerated)'
+  }
 }
 
 const validateEan8 = (code) => {
@@ -27,6 +33,16 @@ const validateEan8 = (code) => {
 function classifyBarcode(code) {
   if (!code) return { type: 'none', valid: false }
   const clean = String(code).replace(/\s/g, '')
+
+  if (clean.length === 14 && /^\d+$/.test(clean)) {
+    const ean12 = clean.slice(1, 13)
+    const sum = ean12.split('').reduce((s, d, i) => s + parseInt(d) * (i % 2 === 0 ? 1 : 3), 0)
+    const check = (10 - (sum % 10)) % 10
+    const ean13 = ean12 + check
+    const prefix = ean13.substring(0, 3)
+    return { valid: true, ean13, type: 'EAN-13 converted from ITF-14', checksumOk: true, prefix }
+  }
+
   if (clean.length === 13) {
     const r = validateEan13(clean)
     const prefix = clean.substring(0, 3)

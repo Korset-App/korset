@@ -1,6 +1,5 @@
-// TODO: AlternativesScreen — rewrite using StoreContext.catalogProducts (Supabase-based).
-// All functions below are stubs pending that refactor. getAnyKnownProductByRef, getStoreCatalogProducts
-// return null/[] until the alternatives feature is properly implemented.
+// Legacy no-op helpers kept only for older imports during cleanup.
+// New product and alternatives flows should use StoreContext.catalogProducts.
 
 export function getStoreCatalogProducts(_storeSlug) {
   return []

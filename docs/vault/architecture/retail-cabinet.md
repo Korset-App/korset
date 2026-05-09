@@ -2,7 +2,7 @@
 
 > Домен: architecture / retail-cabinet
 > Обновлено: 2026-04-17
-> Связи: [[auth-flow]] · [[product-resolution]] · [[fit-check-engine]]
+> Связи: [[auth-flow]] · [[product-resolution]] · [[ean-recovery-system]] · [[retail-import-v1-2026-04-25]] · [[retail-import-v1-1-2026-04-25]] · [[2026-05-06-alternatives-screen-store-catalog]]
 
 ---
 

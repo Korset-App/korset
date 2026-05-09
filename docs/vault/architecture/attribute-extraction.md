@@ -1,5 +1,7 @@
 # Attribute Extraction System
 
+> Связи: [[fit-check-engine]] · [[category-system]] · [[name-normalization]] · [[data-moat-pipeline-strategy]]
+
 ## Overview
 
 Rule-based extraction of structured product attributes from free-text product names.

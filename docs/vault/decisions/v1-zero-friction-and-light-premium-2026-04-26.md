@@ -1,5 +1,7 @@
 # Решение - 2026-04-26 - V1 Zero-Friction и Light Premium
 
+> Связи: [[architecture-decisions]] · [[i18n-migration]] · [[light-theme-stage1-2026-04-26]] · [[light-theme-stage2-2026-04-26]] · [[2026-05-03-scanscreen-redesign-prep]]
+
 ## Контекст
 
 У Körset исторически был `Dark Premium Glassmorphism` и блокирующий buyer-onboarding на первом входе. Это помогало объяснять продукт, но создавало дополнительный шаг между сканированием QR-кода и первой полезностью.

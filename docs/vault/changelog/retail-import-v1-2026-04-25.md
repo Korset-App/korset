@@ -1,5 +1,7 @@
 # RetailImport V1 — 2026-04-25
 
+> Связи: [[retail-cabinet]] · [[ean-recovery-system]]
+
 ## Что изменилось
 
 - `RetailImportScreen` перестал быть заглушкой и стал рабочим экраном импорта прайс-листа для Retail Cabinet.

@@ -11,8 +11,8 @@ import { useStore } from '../contexts/StoreContext.jsx'
 import { useOffline } from '../contexts/OfflineContext.jsx'
 import { supabase } from '../utils/supabase.js'
 import { fetchFullProduct } from '../contexts/StoreContext.jsx'
-import { getAnyKnownProductByRef } from '../utils/storeCatalog.js'
 import { coerceProductEntity } from '../domain/product/normalizers.js'
+import { findProductInCatalog } from '../domain/product/alternatives.js'
 import { resolveProductByEan, enrichmentEvents } from '../domain/product/resolver.js'
 import {
   canRequestUnknownProduct,
@@ -71,20 +71,19 @@ export default function ProductScreen() {
   const { profile } = useProfile()
   const { user } = useAuth()
   const { lang, t } = useI18n()
-  const { currentStore } = useStore()
+  const { currentStore, storeId, catalogProducts = [] } = useStore()
   const { checkIsFavorite, toggleFavorite } = useUserData()
   const { isOnline, formatCacheAge } = useOffline()
 
   const activeStoreSlug = storeSlug || currentStore?.slug || null
-  const { storeId } = useStore()
   const fromScan = location.state?.fromScan === true
   const baseProduct = useMemo(() => {
-    const known = getAnyKnownProductByRef(ean, activeStoreSlug)
+    const known = findProductInCatalog(catalogProducts, ean)
     const stateProduct = coerceProductEntity(location.state?.product)
     if (known) return known
     if (stateProduct && stateProduct.ean === ean) return stateProduct
     return stateProduct || null
-  }, [ean, activeStoreSlug, location.state])
+  }, [catalogProducts, ean, location.state])
 
   const [fullProduct, setFullProduct] = useState(null)
   const [fetchingFull, setFetchingFull] = useState(false)
@@ -570,7 +569,11 @@ export default function ProductScreen() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
           <div style={{ display: 'flex', gap: 10 }}>
             <button
-              onClick={() => navigate(buildProductAlternativesPath(activeStoreSlug, product.ean))}
+              onClick={() =>
+                navigate(buildProductAlternativesPath(activeStoreSlug, product.ean), {
+                  state: { product },
+                })
+              }
               style={{
                 flex: 1,
                 padding: '14px 10px',

@@ -2,10 +2,7 @@
 title: Security Hardening + TR TS 022/2011 Allergen Audit
 date: 2026-04-28
 tags: [security, allergens, hardening, migrations, tests, ci, legal-critical]
-related:
-  - architecture/allergen-system.md
-  - architecture/database-migrations.md
-  - decisions/canonical-allergen-ids.md
+related: [[fit-check-engine]] · [[allergen-cross-contamination]]
 ---
 
 # 2026-04-28: Security Hardening (Этапы 1-3) + TR TS Allergen Audit

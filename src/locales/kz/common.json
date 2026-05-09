@@ -32,13 +32,11 @@
   "common.storeDefault": "Дүкен 1",
   "common.shelfDefault": "Сөре нақтылануда",
   "common.shelfPlaceholder": "Мысалы: Сөре 4, Қатары 2",
-  "common.error": "Қате",
   "common.yes": "Иә",
   "common.close": "Жабу",
   "common.feedback": "Кері байланыс",
   "common.langRu": "Орысша",
   "common.langKzAria": "Қазақша",
   "common.on": "Қосу",
-  "common.off": "Өшіру",
-  "common.loading": "Жүктелуде…"
+  "common.off": "Өшіру"
 }

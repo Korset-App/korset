@@ -7,6 +7,8 @@ updated: 2026-05-06
 
 # Auth System Architecture
 
+> Связи: [[auth-flow]] · [[supabase-email-templates]] · [[i18n-migration]] · [[2026-05-06-auth-deep-audit-cleanup]] · [[2026-04-27-profile-screen]]
+
 ## Overview
 
 Körset uses Supabase Auth with email-based sign-in methods. Phone/WhatsApp removed from V1.

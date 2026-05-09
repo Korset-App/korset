@@ -2,6 +2,7 @@
 date: 2026-04-27
 type: changelog
 status: completed
+related: [[profile-redesign]] · [[auth-system]]
 ---
 
 # ProfileScreen Redesign — Завершение

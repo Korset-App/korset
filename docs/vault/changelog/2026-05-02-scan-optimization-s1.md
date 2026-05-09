@@ -1,5 +1,7 @@
 # Сессия 1: Оптимизация сканирования — Умный резолвер
 
+> Связи: [[product-resolution]] · [[offline-resilience]]
+
 **Дата:** 2026-05-02
 **Сессия:** 1 из 3 (план: scan-optimization-89f4ca.md)
 

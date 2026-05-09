@@ -4,6 +4,8 @@
  * API ключ НЕ уходит в клиент
  */
 
+import { buildStoreAIContext } from '../domain/ai/context.js'
+
 const AI_ENDPOINT = '/api/ai'
 
 /**
@@ -14,11 +16,34 @@ const AI_ENDPOINT = '/api/ai'
  * @param {string} lang — 'ru' или 'kz'
  * @returns {Promise<string>} — ответ AI
  */
-export async function askProductAI(messages, product, profile, lang) {
+function compactProductAlternative(product) {
+  if (!product) return null
+  return {
+    ean: product.ean,
+    name: product.name,
+    brand: product.brand,
+    priceKzt: product.priceKzt,
+    stockStatus: product.stockStatus,
+    halalStatus:
+      product.halalStatus ??
+      (product.halal === true ? 'yes' : product.halal === false ? 'no' : 'unknown'),
+  }
+}
+
+export async function askProductAI(
+  messages,
+  product,
+  profile,
+  lang,
+  store = null,
+  alternatives = []
+) {
+  const storeContext = store ? buildStoreAIContext(store) : null
   return callAI({
     messages,
     mode: 'product',
     product: {
+      ean: product.ean,
       name: product.name,
       brand: product.brand,
       ingredients: product.ingredients,
@@ -28,6 +53,8 @@ export async function askProductAI(messages, product, profile, lang) {
         product.halalStatus ??
         (product.halal === true ? 'yes' : product.halal === false ? 'no' : 'unknown'),
       priceKzt: product.priceKzt,
+      stockStatus: product.stockStatus,
+      alternatives: alternatives.map(compactProductAlternative).filter(Boolean).slice(0, 5),
     },
     profile: profile
       ? {
@@ -36,6 +63,7 @@ export async function askProductAI(messages, product, profile, lang) {
           dietGoals: profile.dietGoals,
         }
       : null,
+    store: storeContext,
     lang,
   })
 }
@@ -46,8 +74,29 @@ export async function askProductAI(messages, product, profile, lang) {
  * @param {string} lang — 'ru' или 'kz'
  * @returns {Promise<string>} — ответ AI
  */
-export async function askGeneralAI(messages, lang) {
-  return callAI({ messages, mode: 'general', lang })
+export async function askGeneralAI(
+  messages,
+  lang,
+  store = null,
+  profile = null,
+  catalogContext = []
+) {
+  const storeContext = store ? buildStoreAIContext(store) : null
+  return callAI({
+    messages,
+    mode: 'general',
+    lang,
+    store: storeContext,
+    profile: profile
+      ? {
+          halal: profile.halal || profile.halalOnly,
+          allergens: profile.allergens,
+          dietGoals: profile.dietGoals,
+        }
+      : null,
+    catalogContext,
+    responseFormat: 'structured',
+  })
 }
 
 /**
@@ -87,5 +136,6 @@ async function callAI(body) {
 
   const data = await res.json()
   if (!data.reply) throw new Error('Empty reply')
+  if (body.responseFormat === 'structured') return data
   return data.reply
 }

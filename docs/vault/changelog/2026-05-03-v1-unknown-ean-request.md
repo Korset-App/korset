@@ -1,5 +1,7 @@
 # 2026-05-03 — V1 unknown EAN request flow
 
+> Связи: [[ean-recovery-system]] · [[data-moat-strategy]] · [[i18n-migration]]
+
 ## Summary
 
 Implemented the first V1 slice of the unknown EAN flow. After the central i18n migration landed, the UI copy was aligned with the new locale system.

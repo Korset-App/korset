@@ -1,5 +1,7 @@
 # Category Normalization System
 
+> Связи: [[attribute-extraction]] · [[name-normalization]] · [[data-moat-pipeline-strategy]] · [[2026-05-05-catalog-showcase-redesign]]
+
 ## Overview
 
 All 7046 active products in `global_products` are classified into **18 categories** with **~85 subcategories** using stable English keys stored in DB. Russian/Kazakh labels are rendered at display time via `getCategoryLabel(key, lang)`.

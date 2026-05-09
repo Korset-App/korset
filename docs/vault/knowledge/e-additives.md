@@ -3,7 +3,7 @@
 > Источник: ТР ТС 022/2011, JAKIM (Малайзия), HFCE (Европа)
 > Домен: knowledge / e-additives
 > Для: Fit-Check Yellow level (Халал / Lifestyle) + AI-чат
-> Связи: [[halal-certification]] · [[allergen-cross-contamination]] · [[fit-check-engine]] · [[why-deterministic-fit-check]]
+> Связи: [[halal-certification]] · [[allergen-cross-contamination]] · [[fit-check-engine]]
 
 ---
 

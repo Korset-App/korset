@@ -1,6 +1,7 @@
 # Name Normalization System
 
 > Этап 3 data enrichment pipeline. Применён 2026-05-02.
+> Связи: [[attribute-extraction]] · [[category-system]]
 
 ## Проблема
 

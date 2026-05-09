@@ -188,10 +188,10 @@ function AlternativesIcon() {
 }
 
 const AUDIENCE_PHOTOS = [
-  'https://images.unsplash.com/photo-1576671081837-49000212a370?auto=format&fit=crop&w=640&q=75',
-  'https://images.unsplash.com/photo-1569701813229-33284b643e3c?auto=format&fit=crop&w=640&q=75',
-  'https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=640&q=75',
-  'https://images.unsplash.com/photo-1534483509719-3feaee7c30da?auto=format&fit=crop&w=640&q=75',
+  '/landing/audience_allergy.png',
+  '/landing/audience_halal.png',
+  '/landing/audience_diet.png',
+  '/landing/audience_family.png',
 ]
 
 function FeatScreenShell({ children }) {
@@ -1094,7 +1094,7 @@ export default function LandingScreen() {
               <div className="lp-how__step-media lp-reveal lp-reveal--right">
                 <figure className="lp-how__img-wrap">
                   <img
-                    src="https://images.unsplash.com/photo-1534723452862-4c874986ebca?auto=format&fit=crop&w=900&q=75"
+                    src="/landing/how_step_1.png"
                     alt=""
                     className="lp-how__img"
                     loading="lazy"
@@ -1124,7 +1124,7 @@ export default function LandingScreen() {
               <div className="lp-how__step-media lp-reveal lp-reveal--left">
                 <figure className="lp-how__img-wrap">
                   <img
-                    src="https://images.unsplash.com/photo-1605810230434-7631ac76ec81?auto=format&fit=crop&w=900&q=75"
+                    src="/landing/how_step_2.png"
                     alt=""
                     className="lp-how__img"
                     loading="lazy"
@@ -1200,7 +1200,7 @@ export default function LandingScreen() {
         {/* Background photo */}
         <div className="lp-fit__bg" aria-hidden="true">
           <img
-            src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1600&q=60"
+            src="/landing/fit_bg.png"
             alt=""
             className="lp-fit__bg-img"
             loading="lazy"
@@ -1342,7 +1342,7 @@ export default function LandingScreen() {
       <section className="lp-stats" id="stats" aria-label="Körset — статистика">
         <div className="lp-stats__bg" aria-hidden="true">
           <img
-            src="https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&w=1800&q=55"
+            src="/landing/stats_bg.png"
             alt=""
             className="lp-stats__bg-img"
             loading="lazy"
@@ -1373,7 +1373,7 @@ export default function LandingScreen() {
           <div className="lp-video__player lp-reveal lp-reveal--delay-1">
             <figure className="lp-video__thumb">
               <img
-                src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1400&q=70"
+                src="/landing/video_thumb.png"
                 alt=""
                 className="lp-video__thumb-img"
                 loading="lazy"

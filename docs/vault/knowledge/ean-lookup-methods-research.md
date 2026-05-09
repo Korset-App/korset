@@ -2,6 +2,7 @@
 
 > Full investigation of ALL methods to find EAN codes for KZ-market products.
 > Priority: finding EAN for products that only have name+brand (reverse lookup).
+> Связи: [[data-moat-pipeline-strategy]] · [[kz-product-databases]] · [[product-composition-sources-research]] · [[ean-recovery-system]]
 
 ---
 

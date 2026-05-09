@@ -1,6 +1,7 @@
 # Data Moat Pipeline — ФИНАЛЬНАЯ СТРАТЕГИЯ 2026-04-18
 
 > Утверждённая стратегия наполнения БД Körset качественными данными
+> Связи: [[data-moat-strategy]] · [[ean-lookup-methods-research]] · [[npc-ean-harvest-pipeline]] · [[product-composition-sources-research]] · [[kz-product-databases]] · [[r2-cdn]] · [[2026-05-03-off-removal]]
 
 ---
 

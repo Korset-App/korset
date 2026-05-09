@@ -2,7 +2,7 @@
 
 > Домен: architecture
 > Дата: 2026-04-24
-> Связи: [[audit-full]] · [[assistant-memory-pipeline]] · [[architecture-decisions]]
+> Связи: [[assistant-memory-pipeline]] · [[architecture-decisions]] · [[monitoring-runbook]] · [[2026-05-06-agent-memory-system-normalization]] · [[multi-llm-coordination-2026-04-25]]
 
 ## Цель
 

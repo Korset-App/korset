@@ -1,6 +1,7 @@
 # R2 CDN — Архитектура хранения изображений
 
 > Дата: 2026-04-19
+> Связи: [[product-resolution]] · [[data-moat-pipeline-strategy]]
 
 ## Общая схема
 

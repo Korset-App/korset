@@ -7,8 +7,17 @@ import { useOffline } from '../contexts/OfflineContext.jsx'
 import KorsetAvatar from '../components/KorsetAvatar.jsx'
 import { askProductAI } from '../services/ai.js'
 import { useStore } from '../contexts/StoreContext.jsx'
-import { getAnyKnownProductByRef } from '../utils/storeCatalog.js'
 import { buildProductPath } from '../utils/routes.js'
+import { resolveProductForProductAI } from '../domain/ai/productContext.js'
+import { findProductAlternatives } from '../domain/product/alternatives.js'
+import { resolveProductByEan } from '../domain/product/resolver.js'
+import {
+  buildAIChatStorageKey,
+  buildStoreAIContext,
+  clearAIChatSession,
+  loadAIChatSession,
+  saveAIChatSession,
+} from '../domain/ai/context.js'
 
 function getChips(t) {
   return [
@@ -30,21 +39,82 @@ export default function AIScreen() {
   const location = useLocation()
   const { profile } = useProfile()
   const { lang, t } = useI18n()
-  const { currentStore } = useStore()
+  const { currentStore, storeId, catalogProducts = [], isStoreLoading } = useStore()
   const { isOnline } = useOffline()
   const activeStoreSlug = storeSlug || currentStore?.slug || null
-  const product = getAnyKnownProductByRef(ean, activeStoreSlug) || location.state?.product || null
+  const storeContext = buildStoreAIContext(currentStore)
+  const chatKey = buildAIChatStorageKey({ mode: 'product', storeSlug: activeStoreSlug, ean })
+  const fallbackProduct = location.state?.product || null
+  const [product, setProduct] = useState(fallbackProduct)
+  const [isProductLoading, setIsProductLoading] = useState(true)
   const localName = useLocalName(product)
 
-  const [messages, setMessages] = useState([])
+  const [messages, setMessages] = useState(
+    () =>
+      loadAIChatSession({
+        storage: typeof window !== 'undefined' ? window.localStorage : null,
+        key: chatKey,
+      }).messages
+  )
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const bottomRef = useRef(null)
 
   useEffect(() => {
+    let active = true
+    const markLoading = () => {
+      Promise.resolve().then(() => {
+        if (active) setIsProductLoading(true)
+      })
+    }
+
+    if (storeSlug && !storeId && isStoreLoading) {
+      markLoading()
+      return () => {
+        active = false
+      }
+    }
+
+    markLoading()
+    resolveProductForProductAI({
+      productRef: ean,
+      storeId,
+      catalogProducts,
+      fallbackProduct,
+      resolveProductByEanImpl: resolveProductByEan,
+    })
+      .then((resolved) => {
+        if (active) setProduct(resolved)
+      })
+      .finally(() => {
+        if (active) setIsProductLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [ean, storeId, storeSlug, isStoreLoading, catalogProducts, fallbackProduct])
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
+
+  useEffect(() => {
+    saveAIChatSession({
+      storage: typeof window !== 'undefined' ? window.localStorage : null,
+      key: chatKey,
+      messages,
+    })
+  }, [chatKey, messages])
+
+  const clearChat = () => {
+    clearAIChatSession({
+      storage: typeof window !== 'undefined' ? window.localStorage : null,
+      key: chatKey,
+    })
+    setMessages([])
+  }
 
   const sendMessage = async (text) => {
     if (!text.trim() || loading || !product) return
@@ -55,7 +125,20 @@ export default function AIScreen() {
     setInput('')
     setLoading(true)
     try {
-      const reply = await askProductAI(newMessages, product, profile, lang)
+      const alternatives = findProductAlternatives({
+        product,
+        catalogProducts,
+        profile,
+        limit: 5,
+      })
+      const reply = await askProductAI(
+        newMessages,
+        product,
+        profile,
+        lang,
+        storeContext,
+        alternatives
+      )
       setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
     } catch (e) {
       setError(`${t('ai.errorPrefix')} ${e.message}`)
@@ -63,6 +146,17 @@ export default function AIScreen() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (isProductLoading) {
+    return (
+      <div
+        className="screen"
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      >
+        <p style={{ color: 'var(--text-dim)' }}>{t('common.loading')}</p>
+      </div>
+    )
   }
 
   if (!product) {
@@ -161,7 +255,7 @@ export default function AIScreen() {
         <KorsetAvatar size={38} />
 
         {/* Имя + статус */}
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
               fontSize: 16,
@@ -177,6 +271,31 @@ export default function AIScreen() {
             {t('common.online')}
           </div>
         </div>
+        {messages.length > 0 && (
+          <button
+            type="button"
+            onClick={clearChat}
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 12,
+              border: '1px solid var(--glass-soft-border)',
+              background: 'var(--glass-subtle)',
+              color: 'var(--text-sub)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+            aria-label={t('ai.clearChat')}
+            title={t('ai.clearChat')}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 19 }}>
+              delete
+            </span>
+          </button>
+        )}
       </div>
 
       {/* ── Контекст товара ── */}

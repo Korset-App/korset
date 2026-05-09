@@ -2,6 +2,7 @@
 
 > Домен: knowledge
 > Дата: 2026-04-26
+> Связи: [[data-moat-pipeline-strategy]] · [[ean-recovery-system]] · [[ean-lookup-methods-research]]
 
 ---
 

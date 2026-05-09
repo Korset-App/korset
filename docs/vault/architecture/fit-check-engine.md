@@ -2,7 +2,7 @@
 
 > Домен: architecture / fit-check-engine
 > Обновлено: 2026-04-17
-> Связи: [[e-additives]] · [[halal-certification]] · [[allergen-cross-contamination]] · [[why-deterministic-fit-check]] · [[product-resolution]]
+> Связи: [[e-additives]] · [[halal-certification]] · [[allergen-cross-contamination]] · [[attribute-extraction]] · [[product-resolution]] · [[2026-04-28-security-allergen-audit]]
 
 ---
 

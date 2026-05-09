@@ -1,5 +1,7 @@
 # 2026-05-03 — Data Moat best actions
 
+> Связи: [[data-moat-strategy]] · [[data-moat-pipeline-strategy]] · [[data-moat-v1-pilot-scope-2026-05-03]]
+
 Цель: зафиксировать лучшее применение Codex для следующего крупного направления Körset — Data Moat как продуктовый и бизнес-актив, а не просто набор парсеров.
 
 ## Главный вывод

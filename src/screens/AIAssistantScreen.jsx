@@ -1,17 +1,172 @@
 import { useState, useRef, useEffect } from 'react'
+import { useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/index.js'
 import KorsetAvatar from '../components/KorsetAvatar.jsx'
 import { askGeneralAI } from '../services/ai.js'
+import { useStore } from '../contexts/StoreContext.jsx'
+import { useProfile } from '../contexts/ProfileContext.jsx'
+import {
+  buildAIChatStorageKey,
+  buildStoreAIContext,
+  clearAIChatSession,
+  loadAIChatSession,
+  saveAIChatSession,
+} from '../domain/ai/context.js'
+import { buildCatalogAIContext, findCatalogCandidates } from '../domain/ai/catalogSearch.js'
+import { buildProductPath } from '../utils/routes.js'
+
+function MessageProductGroups({ groups, storeSlug, t }) {
+  const [expanded, setExpanded] = useState({})
+  if (!groups?.length) return null
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
+      {groups.map((group) => {
+        const isExpanded = !!expanded[group.id]
+        const visible = isExpanded ? group.products : group.products.slice(0, 1)
+        const hiddenCount = Math.max(0, group.products.length - visible.length)
+        return (
+          <div
+            key={group.id}
+            style={{
+              border: '1px solid var(--glass-soft-border)',
+              background: 'var(--glass-subtle)',
+              borderRadius: 14,
+              padding: 10,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 800,
+                color: 'var(--text-sub)',
+                marginBottom: 8,
+                textTransform: 'uppercase',
+              }}
+            >
+              {group.title}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {visible.map((product) => (
+                <a
+                  key={product.ean}
+                  href={buildProductPath(storeSlug, product.ean)}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '46px 1fr auto',
+                    gap: 10,
+                    alignItems: 'center',
+                    textDecoration: 'none',
+                    color: 'var(--text)',
+                    background: 'var(--bg)',
+                    border: '1px solid var(--glass-soft-border)',
+                    borderRadius: 12,
+                    padding: 8,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 46,
+                      height: 46,
+                      borderRadius: 10,
+                      background: 'var(--glass-muted)',
+                      overflow: 'hidden',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {product.image ? (
+                      <img
+                        src={product.image}
+                        alt=""
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <span className="material-symbols-outlined" style={{ fontSize: 22 }}>
+                        grocery
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 800,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {product.name}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: 'var(--text-faint)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        marginTop: 2,
+                      }}
+                    >
+                      {[product.brand, product.stockStatus].filter(Boolean).join(' · ')}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--primary)' }}>
+                    {product.priceKzt ? `${product.priceKzt} ₸` : ''}
+                  </div>
+                </a>
+              ))}
+            </div>
+            {hiddenCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setExpanded((prev) => ({ ...prev, [group.id]: true }))}
+                style={{
+                  marginTop: 8,
+                  border: 'none',
+                  background: 'transparent',
+                  color: 'var(--primary)',
+                  fontSize: 12,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  padding: 0,
+                }}
+              >
+                {t('ai.showMoreProducts', { count: hiddenCount })}
+              </button>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 
 export default function AIAssistantScreen() {
   const { lang, t, exists } = useI18n()
+  const { storeSlug: routeStoreSlug } = useParams()
+  const { currentStore, storeSlug, catalogProducts = [] } = useStore()
+  const { profile } = useProfile()
+  const storeContext = buildStoreAIContext(currentStore)
+  const chatKey = buildAIChatStorageKey({
+    mode: 'general',
+    storeSlug: storeContext?.slug || routeStoreSlug || storeSlug,
+  })
   const generalChips = []
   let gi = 0
   while (exists(`ai.generalChips.${gi}`)) {
     generalChips.push(t(`ai.generalChips.${gi}`))
     gi++
   }
-  const [messages, setMessages] = useState([])
+  const [messages, setMessages] = useState(
+    () =>
+      loadAIChatSession({
+        storage: typeof window !== 'undefined' ? window.localStorage : null,
+        key: chatKey,
+      }).messages
+  )
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const bottomRef = useRef(null)
@@ -19,6 +174,22 @@ export default function AIAssistantScreen() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
+
+  useEffect(() => {
+    saveAIChatSession({
+      storage: typeof window !== 'undefined' ? window.localStorage : null,
+      key: chatKey,
+      messages,
+    })
+  }, [chatKey, messages])
+
+  const clearChat = () => {
+    clearAIChatSession({
+      storage: typeof window !== 'undefined' ? window.localStorage : null,
+      key: chatKey,
+    })
+    setMessages([])
+  }
 
   const sendMessage = async (text) => {
     if (!text.trim() || loading) return
@@ -28,8 +199,19 @@ export default function AIAssistantScreen() {
     setInput('')
     setLoading(true)
     try {
-      const reply = await askGeneralAI(newMessages, lang)
-      setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
+      const candidates = findCatalogCandidates(text, catalogProducts, profile, { limit: 20 })
+      const catalogContext = buildCatalogAIContext(candidates, { maxItems: 20 })
+      const response = await askGeneralAI(newMessages, lang, storeContext, profile, catalogContext)
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: response.reply,
+          productGroups: response.productGroups || [],
+          followUps: response.followUps || [],
+          warnings: response.warnings || [],
+        },
+      ])
     } catch {
       setMessages((prev) => [...prev, { role: 'assistant', content: t('ai.errorGeneric') }])
     } finally {
@@ -57,7 +239,7 @@ export default function AIAssistantScreen() {
         }}
       >
         <KorsetAvatar size={40} />
-        <div>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
               fontSize: 17,
@@ -69,9 +251,36 @@ export default function AIAssistantScreen() {
             Körset AI
           </div>
           <div style={{ fontSize: 12, color: '#34D399', fontWeight: 500, marginTop: 1 }}>
-            {t('ai.generalSubtitle')}
+            {storeContext?.name
+              ? t('ai.generalStoreSubtitle', { store: storeContext.name })
+              : t('ai.generalSubtitle')}
           </div>
         </div>
+        {messages.length > 0 && (
+          <button
+            type="button"
+            onClick={clearChat}
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 12,
+              border: '1px solid var(--glass-soft-border)',
+              background: 'var(--glass-subtle)',
+              color: 'var(--text-sub)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+            aria-label={t('ai.clearChat')}
+            title={t('ai.clearChat')}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 19 }}>
+              delete
+            </span>
+          </button>
+        )}
       </div>
       <div
         style={{
@@ -98,7 +307,9 @@ export default function AIAssistantScreen() {
                 color: 'var(--text)',
               }}
             >
-              {t('ai.welcomeGeneral')}
+              {storeContext?.name
+                ? t('ai.welcomeGeneralStore', { store: storeContext.name })
+                : t('ai.welcomeGeneral')}
             </div>
           </div>
         )}
@@ -139,6 +350,49 @@ export default function AIAssistantScreen() {
               }
             >
               {msg.content}
+              {msg.role === 'assistant' && msg.warnings?.length > 0 && (
+                <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-faint)' }}>
+                  {msg.warnings[0]}
+                </div>
+              )}
+              {msg.role === 'assistant' && (
+                <MessageProductGroups
+                  groups={msg.productGroups}
+                  storeSlug={storeContext?.slug || routeStoreSlug || storeSlug}
+                  t={t}
+                />
+              )}
+              {msg.role === 'assistant' && msg.followUps?.length > 0 && (
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: 6,
+                    flexWrap: 'wrap',
+                    marginTop: 10,
+                  }}
+                >
+                  {msg.followUps.map((item) => (
+                    <button
+                      type="button"
+                      key={item}
+                      onClick={() => sendMessage(item)}
+                      disabled={loading}
+                      style={{
+                        border: '1px solid var(--glass-soft-border)',
+                        background: 'var(--glass-subtle)',
+                        color: 'var(--text-sub)',
+                        borderRadius: 999,
+                        padding: '6px 9px',
+                        fontSize: 11,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {item}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         ))}

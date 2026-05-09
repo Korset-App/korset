@@ -3,6 +3,7 @@ domain: changelog
 subdomain: agent-memory
 status: active
 updated: 2026-05-06
+related: [[assistant-memory-pipeline]] · [[assistant-access-and-architecture-governance]]
 ---
 
 # 2026-05-06 - Agent and memory system normalization

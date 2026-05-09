@@ -3,6 +3,7 @@ domain: changelog
 subdomain: auth
 status: active
 updated: 2026-05-06
+related: [[auth-system]] · [[auth-flow]] · [[supabase-email-templates]]
 ---
 
 # 2026-05-06 - Auth Deep Audit, Cleanup & Polish (Complete)

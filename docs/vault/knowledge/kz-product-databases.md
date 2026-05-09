@@ -2,6 +2,7 @@
 
 > Глубокое исследование всех доступных источников данных для Data Moat Körset.
 > Приоритет: EAN → название → состав → КБЖУ → халал → фото
+> Связи: [[data-moat-pipeline-strategy]] · [[ean-lookup-methods-research]] · [[halal-certification]]
 
 ---
 
