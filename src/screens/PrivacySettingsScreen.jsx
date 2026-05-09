@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../utils/supabase.js'
 import { useProfile } from '../contexts/ProfileContext.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
-import { useStore } from '../contexts/StoreContext.jsx'
 import { useI18n } from '../i18n/index.js'
 import {
   clearLocalScanHistory,
@@ -35,49 +34,6 @@ function Section({ title, children }) {
       <div className="glass-card" style={{ padding: 0 }}>
         {children}
       </div>
-    </div>
-  )
-}
-
-function Row({ label, description, right, danger = false, onClick }) {
-  return (
-    <div
-      onClick={onClick}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 16,
-        padding: '15px 18px',
-        cursor: onClick ? 'pointer' : 'default',
-      }}
-    >
-      <div style={{ minWidth: 0 }}>
-        <div
-          style={{
-            fontFamily: 'var(--font-body)',
-            fontSize: 14,
-            fontWeight: 600,
-            color: danger ? '#FCA5A5' : 'var(--text)',
-          }}
-        >
-          {label}
-        </div>
-        {description ? (
-          <div
-            style={{
-              fontFamily: 'var(--font-body)',
-              fontSize: 12,
-              lineHeight: 1.45,
-              color: 'var(--text-faint)',
-              marginTop: 4,
-            }}
-          >
-            {description}
-          </div>
-        ) : null}
-      </div>
-      <div style={{ flexShrink: 0 }}>{right}</div>
     </div>
   )
 }
@@ -145,10 +101,8 @@ function ActionButton({ label, danger = false, onClick, disabled = false }) {
 
 export default function PrivacySettingsScreen() {
   const navigate = useNavigate()
-  useParams()
   const { profile, updateProfile } = useProfile()
   const { user, internalUserId } = useAuth()
-  const { clearRememberedStore } = useStore()
   const { t } = useI18n()
   const [busy, setBusy] = useState(false)
   const [statusText, setStatusText] = useState('')
@@ -171,23 +125,7 @@ export default function PrivacySettingsScreen() {
     await updateProfile({ privacy: next })
     notifyPrivacyChanged()
     setStatusText(t('privacy.saved'))
-  }
-
-  async function handleLocalHistoryToggle(value) {
-    if (!value) {
-      const ok = window.confirm(t('privacy.confirmDisableLocal'))
-      if (!ok) return
-      clearLocalScanHistory(buildHistoryOwnerKey(user))
-      window.dispatchEvent(new CustomEvent('korset:scan_added'))
-    }
-    await updatePrivacy({ localHistoryEnabled: value })
-  }
-
-  async function handleRememberStoreToggle(value) {
-    if (!value) {
-      clearRememberedStore()
-    }
-    await updatePrivacy({ rememberStoreEnabled: value })
+    setTimeout(() => setStatusText(''), 3000)
   }
 
   async function clearDeviceHistory() {
@@ -196,11 +134,13 @@ export default function PrivacySettingsScreen() {
     clearLocalScanHistory(buildHistoryOwnerKey(user))
     window.dispatchEvent(new CustomEvent('korset:scan_added'))
     setStatusText(t('privacy.deviceHistoryCleared'))
+    setTimeout(() => setStatusText(''), 3000)
   }
 
   async function clearCloudHistory() {
     if (!user || !internalUserId) {
       setStatusText(t('privacy.loginForCloud'))
+      setTimeout(() => setStatusText(''), 3000)
       return
     }
     const ok = window.confirm(t('privacy.confirmClearCloud'))
@@ -211,20 +151,14 @@ export default function PrivacySettingsScreen() {
       if (error) throw error
       window.dispatchEvent(new CustomEvent('korset:scan_added'))
       setStatusText(t('privacy.cloudHistoryDeleted'))
+      setTimeout(() => setStatusText(''), 3000)
     } catch (error) {
       console.error(error)
       setStatusText(t('privacy.cloudDeleteFailed'))
+      setTimeout(() => setStatusText(''), 3000)
     } finally {
       setBusy(false)
     }
-  }
-
-  async function resetPrivacySettings() {
-    const ok = window.confirm(t('privacy.confirmReset'))
-    if (!ok) return
-    await updateProfile({ privacy: { ...DEFAULT_PRIVACY_SETTINGS } })
-    notifyPrivacyChanged()
-    setStatusText(t('privacy.resetDone'))
   }
 
   return (
@@ -293,78 +227,154 @@ export default function PrivacySettingsScreen() {
         </div>
       </div>
 
-      <Section title={t('privacy.sectionPersonalization')}>
-        <Row
-          label={t('privacy.personalizedRecommendations')}
-          description={t('privacy.personalizedRecommendationsDesc')}
-          right={
-            <Toggle
-              checked={privacy.personalizationEnabled}
-              onChange={(value) => updatePrivacy({ personalizationEnabled: value })}
-            />
-          }
-        />
-        <div style={{ height: 1, background: 'var(--line-soft)', margin: '0 18px' }} />
-        <Row
-          label={t('privacy.anonymousAnalytics')}
-          description={t('privacy.anonymousAnalyticsDesc')}
-          right={
+      <Section title={t('privacy.sectionScanData')}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 16,
+            padding: '15px 18px',
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <div
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: 14,
+                fontWeight: 600,
+                color: 'var(--text)',
+              }}
+            >
+              {t('privacy.scanDataToggle')}
+            </div>
+            <div
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: 12,
+                lineHeight: 1.45,
+                color: 'var(--text-faint)',
+                marginTop: 4,
+              }}
+            >
+              {t('privacy.scanDataToggleDesc')}
+            </div>
+          </div>
+          <div style={{ flexShrink: 0 }}>
             <Toggle
               checked={privacy.analyticsEnabled}
               onChange={(value) => updatePrivacy({ analyticsEnabled: value })}
             />
-          }
-        />
-      </Section>
-
-      <Section title={t('privacy.sectionDevice')}>
-        <Row
-          label={t('privacy.localHistory')}
-          description={t('privacy.localHistoryDesc', { count: localHistoryCount })}
-          right={
-            <Toggle checked={privacy.localHistoryEnabled} onChange={handleLocalHistoryToggle} />
-          }
-        />
-        <div style={{ height: 1, background: 'var(--line-soft)', margin: '0 18px' }} />
-        <Row
-          label={t('privacy.rememberStore')}
-          description={t('privacy.rememberStoreDesc')}
-          right={
-            <Toggle checked={privacy.rememberStoreEnabled} onChange={handleRememberStoreToggle} />
-          }
-        />
-      </Section>
-
-      <Section title={t('privacy.sectionData')}>
-        <div style={{ padding: 18, display: 'grid', gap: 10 }}>
-          <ActionButton label={t('privacy.clearDeviceHistory')} onClick={clearDeviceHistory} />
-          <ActionButton
-            label={t('privacy.clearCloudHistory')}
-            danger
-            onClick={clearCloudHistory}
-            disabled={!user || busy}
-          />
-          <ActionButton
-            label={t('privacy.resetPrivacy')}
-            onClick={resetPrivacySettings}
-            disabled={busy}
-          />
+          </div>
         </div>
       </Section>
 
-      <Section title={t('privacy.sectionPractical')}>
-        <Row
-          label={t('privacy.ifAnalyticsOff')}
-          description={t('privacy.ifAnalyticsOffDesc')}
-          right={null}
-        />
-        <div style={{ height: 1, background: 'var(--line-soft)', margin: '0 18px' }} />
-        <Row
-          label={t('privacy.ifLocalHistoryOff')}
-          description={t('privacy.ifLocalHistoryOffDesc')}
-          right={null}
-        />
+      <Section title={t('privacy.sectionDataManagement')}>
+        <div style={{ padding: 18, display: 'grid', gap: 10 }}>
+          <div>
+            <ActionButton label={t('privacy.clearDeviceHistory')} onClick={clearDeviceHistory} />
+            <div
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: 12,
+                lineHeight: 1.45,
+                color: 'var(--text-faint)',
+                marginTop: 6,
+                padding: '0 2px',
+              }}
+            >
+              {t('privacy.clearDeviceHistoryDesc', { count: localHistoryCount })}
+            </div>
+          </div>
+          <div>
+            <ActionButton
+              label={t('privacy.clearCloudHistory')}
+              danger
+              onClick={clearCloudHistory}
+              disabled={!user || busy}
+            />
+            <div
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: 12,
+                lineHeight: 1.45,
+                color: 'var(--text-faint)',
+                marginTop: 6,
+                padding: '0 2px',
+              }}
+            >
+              {t('privacy.clearCloudHistoryDesc')}
+            </div>
+          </div>
+        </div>
       </Section>
+
+      <Section title={t('privacy.sectionWhatWeCollect')}>
+        <div style={{ padding: '15px 18px' }}>
+          <div
+            style={{
+              fontFamily: 'var(--font-body)',
+              fontSize: 12,
+              lineHeight: 1.6,
+              color: 'var(--text-soft)',
+            }}
+          >
+            <div style={{ marginBottom: 8 }}>{t('privacy.whatWeCollectIntro')}</div>
+            <div style={{ display: 'grid', gap: 4 }}>
+              <span style={{ color: 'var(--text-faint)' }}>
+                <span style={{ color: 'var(--primary-bright)', marginRight: 6 }}>&#8226;</span>
+                {t('privacy.dataPointBarcode')}
+              </span>
+              <span style={{ color: 'var(--text-faint)' }}>
+                <span style={{ color: 'var(--primary-bright)', marginRight: 6 }}>&#8226;</span>
+                {t('privacy.dataPointResult')}
+              </span>
+              <span style={{ color: 'var(--text-faint)' }}>
+                <span style={{ color: 'var(--primary-bright)', marginRight: 6 }}>&#8226;</span>
+                {t('privacy.dataPointTime')}
+              </span>
+            </div>
+            <div style={{ marginTop: 8, color: 'var(--text-disabled)', fontStyle: 'italic' }}>
+              {t('privacy.whatWeDontCollect')}
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      <div style={{ padding: '0 22px 24px' }}>
+        <button
+          onClick={() => navigate('/privacy-policy')}
+          style={{
+            width: '100%',
+            border: '1px solid var(--glass-soft-border)',
+            borderRadius: 14,
+            padding: '14px 18px',
+            background: 'var(--glass-muted)',
+            color: 'var(--text-soft)',
+            fontFamily: 'var(--font-body)',
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <span>{t('privacy.policyLink')}</span>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+        </button>
+      </div>
 
       {statusText ? (
         <div style={{ padding: '0 22px 24px' }}>

@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useLocation } from 'react-router-dom'
 import { supabase } from '../utils/supabase.js'
 import { parseJson } from '../domain/product/model.js'
-import { loadPrivacySettings, PRIVACY_EVENT } from '../utils/privacySettings.js'
+import { PRIVACY_EVENT } from '../utils/privacySettings.js'
 import { getStoreBySlug } from '../data/stores.js'
 import { saveCatalogToIndexedDB } from '../utils/offlineDB.js'
 import { notifyCatalogWarmed } from '../domain/product/resolver.js'
@@ -148,14 +148,11 @@ export async function fetchFullProduct(storeId, ean) {
 export function StoreProvider({ children }) {
   const location = useLocation()
   const pathStoreSlug = getStoreSlugFromPath(location.pathname)
-  const [rememberStoreEnabled, setRememberStoreEnabled] = useState(
-    () => loadPrivacySettings().rememberStoreEnabled
-  )
-  const [rememberedStoreSlug, setRememberedStoreSlug] = useState(() =>
-    loadPrivacySettings().rememberStoreEnabled ? localStorage.getItem(STORE_KEY) || null : null
+  const [rememberedStoreSlug, setRememberedStoreSlug] = useState(
+    () => localStorage.getItem(STORE_KEY) || null
   )
 
-  const storeSlug = pathStoreSlug || (rememberStoreEnabled ? rememberedStoreSlug : null) || null
+  const storeSlug = pathStoreSlug || rememberedStoreSlug || null
 
   const [currentStore, setCurrentStore] = useState(() => loadStoreFromCache(storeSlug))
   const [isStoreLoading, setIsStoreLoading] = useState(() =>
@@ -166,30 +163,23 @@ export function StoreProvider({ children }) {
   const fetchAbortRef = useRef(null)
 
   useEffect(() => {
-    const syncPrivacy = () => {
-      const nextEnabled = loadPrivacySettings().rememberStoreEnabled
-      setRememberStoreEnabled(nextEnabled)
-      if (!nextEnabled) {
-        setRememberedStoreSlug(null)
-        localStorage.removeItem(STORE_KEY)
-      } else {
-        setRememberedStoreSlug(localStorage.getItem(STORE_KEY) || null)
-      }
+    const syncStorage = () => {
+      setRememberedStoreSlug(localStorage.getItem(STORE_KEY) || null)
     }
-    window.addEventListener('storage', syncPrivacy)
-    window.addEventListener(PRIVACY_EVENT, syncPrivacy)
+    window.addEventListener('storage', syncStorage)
+    window.addEventListener(PRIVACY_EVENT, syncStorage)
     return () => {
-      window.removeEventListener('storage', syncPrivacy)
-      window.removeEventListener(PRIVACY_EVENT, syncPrivacy)
+      window.removeEventListener('storage', syncStorage)
+      window.removeEventListener(PRIVACY_EVENT, syncStorage)
     }
   }, [])
 
   useEffect(() => {
     if (pathStoreSlug) {
       setRememberedStoreSlug(pathStoreSlug)
-      if (rememberStoreEnabled) localStorage.setItem(STORE_KEY, pathStoreSlug)
+      localStorage.setItem(STORE_KEY, pathStoreSlug)
     }
-  }, [pathStoreSlug, rememberStoreEnabled])
+  }, [pathStoreSlug])
 
   useEffect(() => {
     if (!storeSlug) {
@@ -313,13 +303,10 @@ export function StoreProvider({ children }) {
     [currentStore]
   )
 
-  const rememberStore = useCallback(
-    (slug) => {
-      setRememberedStoreSlug(slug)
-      if (rememberStoreEnabled) localStorage.setItem(STORE_KEY, slug)
-    },
-    [rememberStoreEnabled]
-  )
+  const rememberStore = useCallback((slug) => {
+    setRememberedStoreSlug(slug)
+    localStorage.setItem(STORE_KEY, slug)
+  }, [])
   const clearRememberedStore = useCallback(() => {
     setRememberedStoreSlug(null)
     localStorage.removeItem(STORE_KEY)

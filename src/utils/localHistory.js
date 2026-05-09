@@ -232,42 +232,40 @@ export async function syncScanHistoryWithCloud(internalUserId, user) {
   }
 
   // ── Step 3: Download cloud scans missing locally ──────────────────────────
-  if (privacy.localHistoryEnabled) {
-    try {
-      const { data: cloudScans } = await withSyncTimeout(
-        supabase
-          .from('scan_events')
-          .select('ean, scanned_at, store_id')
-          .eq('user_id', internalUserId)
-          .order('scanned_at', { ascending: false })
-          .limit(50)
-      )
+  try {
+    const { data: cloudScans } = await withSyncTimeout(
+      supabase
+        .from('scan_events')
+        .select('ean, scanned_at, store_id')
+        .eq('user_id', internalUserId)
+        .order('scanned_at', { ascending: false })
+        .limit(50)
+    )
 
-      if (cloudScans?.length > 0) {
-        const currentLocal = readLocalScanHistory(ownerKey)
-        const localEans = new Set(currentLocal.map((h) => String(h.ean)))
-        const toAdd = cloudScans
-          .filter((scan) => !localEans.has(String(scan.ean)))
-          .map((scan) =>
-            normalizeHistoryEntry({
-              ownerKey,
-              ean: scan.ean,
-              scanDate: scan.scanned_at,
-              storeId: scan.store_id || null,
-              source: 'cloud_sync',
-            })
-          )
-          .filter(Boolean)
+    if (cloudScans?.length > 0) {
+      const currentLocal = readLocalScanHistory(ownerKey)
+      const localEans = new Set(currentLocal.map((h) => String(h.ean)))
+      const toAdd = cloudScans
+        .filter((scan) => !localEans.has(String(scan.ean)))
+        .map((scan) =>
+          normalizeHistoryEntry({
+            ownerKey,
+            ean: scan.ean,
+            scanDate: scan.scanned_at,
+            storeId: scan.store_id || null,
+            source: 'cloud_sync',
+          })
+        )
+        .filter(Boolean)
 
-        if (toAdd.length > 0) {
-          const updatedHistory = mergeHistoryLists(currentLocal, toAdd).slice(0, 50)
-          writeLocalScanHistory(ownerKey, updatedHistory)
-          emitLocalHistoryChanged(ownerKey)
-        }
+      if (toAdd.length > 0) {
+        const updatedHistory = mergeHistoryLists(currentLocal, toAdd).slice(0, 50)
+        writeLocalScanHistory(ownerKey, updatedHistory)
+        emitLocalHistoryChanged(ownerKey)
       }
-    } catch (err) {
-      console.warn('[localHistory] Failed to download cloud scans to local:', err.message)
     }
+  } catch (err) {
+    console.warn('[localHistory] Failed to download cloud scans to local:', err.message)
   }
 
   // Mark session as synced

@@ -17,7 +17,7 @@ import {
   readLocalScanHistory,
   SCAN_HISTORY_STORAGE_KEY,
 } from '../utils/localHistory.js'
-import { loadPrivacySettings, PRIVACY_EVENT } from '../utils/privacySettings.js'
+import { PRIVACY_EVENT } from '../utils/privacySettings.js'
 import { buildAuthNavigateState } from '../utils/authFlow.js'
 
 function toDate(value) {
@@ -84,9 +84,7 @@ export default function HistoryScreen() {
 
   useEffect(() => {
     const ownerKey = buildHistoryOwnerKey(user)
-    const scopedLocalHistory = loadPrivacySettings().localHistoryEnabled
-      ? readLocalScanHistory(ownerKey)
-      : []
+    const scopedLocalHistory = readLocalScanHistory(ownerKey)
 
     if (!user || !internalUserId) {
       setHistory(scopedLocalHistory)
@@ -165,9 +163,7 @@ export default function HistoryScreen() {
 
   useEffect(() => {
     const syncLocalHistory = () => {
-      const scopedLocalHistory = loadPrivacySettings().localHistoryEnabled
-        ? readLocalScanHistory(buildHistoryOwnerKey(user))
-        : []
+      const scopedLocalHistory = readLocalScanHistory(buildHistoryOwnerKey(user))
       setHistory((prev) => mergeHistoryItems(prev, scopedLocalHistory))
     }
 

@@ -10,7 +10,6 @@ import {
   hydrateProductsFromScanRows,
 } from '../domain/product/resolver.js'
 import { buildHistoryOwnerKey, readLocalScanHistory } from '../utils/localHistory.js'
-import { loadPrivacySettings } from '../utils/privacySettings.js'
 import { loadSoundSettings, saveSoundSettings } from '../utils/soundSettings.js'
 import ProfileStatsTabs from '../components/profile/ProfileStatsTabs.jsx'
 import {
@@ -462,9 +461,7 @@ export default function ProfileScreen() {
     ;(async () => {
       try {
         const ownerKey = buildHistoryOwnerKey(user)
-        const local = loadPrivacySettings().localHistoryEnabled
-          ? readLocalScanHistory(ownerKey)
-          : []
+        const local = readLocalScanHistory(ownerKey)
         let remoteHydrated = []
         if (user && internalUserId) {
           const { data, error } = await supabase
