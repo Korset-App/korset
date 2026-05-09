@@ -168,11 +168,11 @@ async function main() {
   console.log('1. Deleting old store_products...')
   await apiFetch(`store_products?store_id=eq.${STORE_ID}`, { method: 'DELETE' }).catch(e => console.log('   Delete note:', e.message.substring(0, 80)))
 
-  console.log('2. Loading global_products (quality >= 30)...')
+  console.log('2. Loading active global_products (quality >= 30)...')
   const allProducts = []
   let offset = 0
   while (true) {
-    const r = await apiFetch(`global_products?select=id,ean,name,brand,category,data_quality_score&data_quality_score=gte.30&order=data_quality_score.desc&offset=${offset}&limit=500`)
+    const r = await apiFetch(`global_products?select=id,ean,name,brand,category,data_quality_score&data_quality_score=gte.30&is_active=eq.true&order=data_quality_score.desc&offset=${offset}&limit=500`)
     const data = await r.json()
     if (!data || data.length === 0) break
     allProducts.push(...data)
@@ -223,7 +223,7 @@ async function main() {
     }
   }
 
-  console.log(`\nDone! ${inserted} products linked to DARA store with prices & shelves.`)
+  console.log(`\nDone! ${inserted} products linked to MARS store with prices & shelves.`)
 }
 
 main()

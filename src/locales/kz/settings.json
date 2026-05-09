@@ -119,6 +119,7 @@
   "notification.deviceSubscribed": "Құрылғы хабарландыруларға жазылды.",
   "notification.subscribeFailed": "Хабарландыруларға жазу мүмкін болмады.",
   "notification.loginForSubscribe": "Хабарландыруларға жазылу үшін аккаунтқа кіріңіз.",
+  "notification.subscribing": "Қосылу…",
   "notification.unsubscribed": "Хабарландырулар өшірілді.",
   "notification.unsubscribeFailed": "Хабарландыруларды өшіру мүмкін болмады.",
   "notification.introShort": "Маңызды хабарландыруларды алыңыз: жүйелік хабарламалар, таңдаулы тауарлар бойынша өзгерістер, қолжетімділік және акциялар. Спамсыз.",

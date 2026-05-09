@@ -119,6 +119,7 @@
   "notification.deviceSubscribed": "Устройство подписано на уведомления.",
   "notification.subscribeFailed": "Не удалось подписаться на уведомления.",
   "notification.loginForSubscribe": "Войдите в аккаунт, чтобы подписаться на уведомления.",
+  "notification.subscribing": "Подключение…",
   "notification.unsubscribed": "Уведомления отключены.",
   "notification.unsubscribeFailed": "Не удалось отключить уведомления.",
   "notification.introShort": "Получайте важные уведомления: системные сообщения, изменения по избранным товарам, наличие и акции. Без спама.",

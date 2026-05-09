@@ -437,6 +437,22 @@ export default function ProfileScreen() {
     }))
   }, [profile])
 
+  useEffect(() => {
+    const syncOnFocus = () => {
+      setPushSettings((prev) => {
+        const browser = browserNotificationStatus()
+        const needsUpdate =
+          prev.status !== browser.status || prev.pushSupported !== browser.pushSupported
+        if (!needsUpdate) return prev
+        const next = { ...prev, ...browser }
+        saveNotificationSettings(next)
+        return next
+      })
+    }
+    window.addEventListener('focus', syncOnFocus)
+    return () => window.removeEventListener('focus', syncOnFocus)
+  }, [])
+
   // Lazy-loaded mini-grids for favorites/history tabs (top 6 each).
   // null = not loaded yet, [] = loaded but empty, [items] = loaded with content.
   const [topFavorites, setTopFavorites] = useState(null)
@@ -444,7 +460,16 @@ export default function ProfileScreen() {
   const [topHistory, setTopHistory] = useState(null)
   const [loadingTab, setLoadingTab] = useState(null)
 
-  const deviceId = typeof window !== 'undefined' ? localStorage.getItem('korset_device_id') : null
+  const deviceId =
+    typeof window !== 'undefined'
+      ? localStorage.getItem('korset_device_id') || crypto.randomUUID?.() || null
+      : null
+
+  useEffect(() => {
+    if (deviceId && !localStorage.getItem('korset_device_id')) {
+      localStorage.setItem('korset_device_id', deviceId)
+    }
+  }, [deviceId])
 
   async function togglePush(checked) {
     if (!checked) {
@@ -453,18 +478,23 @@ export default function ProfileScreen() {
         const registration = await navigator.serviceWorker?.getRegistration('/sw.js')
         const subscription = await registration?.pushManager?.getSubscription?.()
         if (subscription) {
-          await fetch('/api/push/unsubscribe', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              endpoint: subscription.endpoint,
-              authUserId: user?.id || null,
-              deviceId,
-            }),
-          })
+          try {
+            await fetch('/api/push/unsubscribe', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ endpoint: subscription.endpoint, deviceId }),
+            })
+          } catch {
+            // server unsubscribe failed — continue with local cleanup
+          }
           await subscription.unsubscribe()
         }
-        const next = { ...pushSettings, enabled: false, subscriptionActive: false }
+        const next = {
+          ...pushSettings,
+          ...browserNotificationStatus(),
+          enabled: false,
+          subscriptionActive: false,
+        }
         setPushSettings(next)
         saveNotificationSettings(next)
         setPushStatus(t('notification.unsubscribed'))
@@ -486,14 +516,15 @@ export default function ProfileScreen() {
       setPushBusy(true)
       const result = await Notification.requestPermission()
       if (result !== 'granted') {
+        const next = { ...pushSettings, ...browserNotificationStatus(), enabled: false }
+        setPushSettings(next)
+        saveNotificationSettings(next)
         setPushStatus(t('notification.accessNotGranted'))
-        setTimeout(() => setPushStatus(''), 3000)
         return
       }
       const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY
       if (!vapidPublicKey) {
         setPushStatus(t('notification.vapidNotSet'))
-        setTimeout(() => setPushStatus(''), 3000)
         return
       }
       const registration = await registerPushServiceWorker()
@@ -524,13 +555,17 @@ export default function ProfileScreen() {
       if (!response.ok) {
         if (response.status === 401) {
           setPushStatus(t('notification.loginForSubscribe'))
-          setTimeout(() => setPushStatus(''), 4000)
           return
         }
         const payload = await response.json().catch(() => ({}))
         throw new Error(payload.error || 'subscribe_failed')
       }
-      const next = { ...pushSettings, enabled: true, status: 'granted', subscriptionActive: true }
+      const next = {
+        ...pushSettings,
+        ...browserNotificationStatus(),
+        enabled: true,
+        subscriptionActive: true,
+      }
       setPushSettings(next)
       saveNotificationSettings(next)
       setPushStatus(t('notification.deviceSubscribed'))
@@ -1412,7 +1447,11 @@ export default function ProfileScreen() {
                           {t('notification.pushNotifications')}
                         </span>
                         <Toggle
-                          checked={pushSettings.enabled && pushSettings.subscriptionActive}
+                          checked={
+                            pushSettings.enabled &&
+                            pushSettings.subscriptionActive &&
+                            pushSettings.status === 'granted'
+                          }
                           disabled={
                             pushBusy ||
                             !pushSettings.pushSupported ||
@@ -1431,7 +1470,12 @@ export default function ProfileScreen() {
                           {t('notification.pushUnsupported')}
                         </div>
                       )}
-                      {pushStatus && (
+                      {pushBusy && (
+                        <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+                          {t('notification.subscribing')}
+                        </div>
+                      )}
+                      {pushStatus && !pushBusy && (
                         <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>{pushStatus}</div>
                       )}
                     </div>
