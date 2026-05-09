@@ -11,11 +11,18 @@ import {
 } from '../domain/product/resolver.js'
 import { buildHistoryOwnerKey, readLocalScanHistory } from '../utils/localHistory.js'
 import { loadSoundSettings, saveSoundSettings } from '../utils/soundSettings.js'
+import {
+  browserNotificationStatus,
+  DEFAULT_NOTIFICATION_SETTINGS,
+  loadNotificationSettings,
+  registerPushServiceWorker,
+  saveNotificationSettings,
+  urlBase64ToUint8Array,
+} from '../utils/notificationSettings.js'
 import ProfileStatsTabs from '../components/profile/ProfileStatsTabs.jsx'
 import {
   buildAccountPath,
   buildHistoryPath,
-  buildNotificationSettingsPath,
   buildPrivacyPath,
   buildProfileEditPath,
   buildFaqPath,
@@ -412,6 +419,23 @@ export default function ProfileScreen() {
   const [authPromptOpen, setAuthPromptOpen] = useState(false)
   const [supportOpen, setSupportOpen] = useState(false)
   const [scannerSettingsExpanded, setScannerSettingsExpanded] = useState(false)
+  const [notificationsExpanded, setNotificationsExpanded] = useState(false)
+  const [pushBusy, setPushBusy] = useState(false)
+  const [pushStatus, setPushStatus] = useState('')
+  const [pushSettings, setPushSettings] = useState(() => ({
+    ...DEFAULT_NOTIFICATION_SETTINGS,
+    ...loadNotificationSettings(),
+    ...browserNotificationStatus(),
+  }))
+
+  useEffect(() => {
+    setPushSettings((prev) => ({
+      ...prev,
+      ...DEFAULT_NOTIFICATION_SETTINGS,
+      ...loadNotificationSettings(),
+      ...browserNotificationStatus(),
+    }))
+  }, [profile])
 
   // Lazy-loaded mini-grids for favorites/history tabs (top 6 each).
   // null = not loaded yet, [] = loaded but empty, [items] = loaded with content.
@@ -419,6 +443,95 @@ export default function ProfileScreen() {
   const [soundSettings, setSoundSettings] = useState(() => loadSoundSettings())
   const [topHistory, setTopHistory] = useState(null)
   const [loadingTab, setLoadingTab] = useState(null)
+
+  const deviceId = typeof window !== 'undefined' ? localStorage.getItem('korset_device_id') : null
+
+  async function togglePush(checked) {
+    if (!checked) {
+      try {
+        setPushBusy(true)
+        const registration = await navigator.serviceWorker?.getRegistration('/sw.js')
+        const subscription = await registration?.pushManager?.getSubscription?.()
+        if (subscription) {
+          await fetch('/api/push/unsubscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              endpoint: subscription.endpoint,
+              authUserId: user?.id || null,
+              deviceId,
+            }),
+          })
+          await subscription.unsubscribe()
+        }
+        const next = { ...pushSettings, enabled: false, subscriptionActive: false }
+        setPushSettings(next)
+        saveNotificationSettings(next)
+        setPushStatus(t('notification.unsubscribed'))
+      } catch {
+        setPushStatus(t('notification.unsubscribeFailed'))
+      } finally {
+        setPushBusy(false)
+        setTimeout(() => setPushStatus(''), 3000)
+      }
+      return
+    }
+
+    if (!pushSettings.pushSupported) {
+      setPushStatus(t('notification.pushUnsupported'))
+      setTimeout(() => setPushStatus(''), 3000)
+      return
+    }
+    try {
+      setPushBusy(true)
+      const result = await Notification.requestPermission()
+      if (result !== 'granted') {
+        setPushStatus(t('notification.accessNotGranted'))
+        setTimeout(() => setPushStatus(''), 3000)
+        return
+      }
+      const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY
+      if (!vapidPublicKey) {
+        setPushStatus(t('notification.vapidNotSet'))
+        setTimeout(() => setPushStatus(''), 3000)
+        return
+      }
+      const registration = await registerPushServiceWorker()
+      let subscription = await registration.pushManager.getSubscription()
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+        })
+      }
+      await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(user
+            ? {
+                Authorization: `Bearer ${(await import('../utils/supabase.js')).supabase.auth.session()?.access_token || ''}`,
+              }
+            : {}),
+        },
+        body: JSON.stringify({
+          subscription,
+          authUserId: user?.id || null,
+          deviceId,
+          storeSlug: currentStore?.slug || null,
+        }),
+      })
+      const next = { ...pushSettings, enabled: true, status: 'granted', subscriptionActive: true }
+      setPushSettings(next)
+      saveNotificationSettings(next)
+      setPushStatus(t('notification.deviceSubscribed'))
+    } catch {
+      setPushStatus(t('notification.subscribeFailed'))
+    } finally {
+      setPushBusy(false)
+      setTimeout(() => setPushStatus(''), 3000)
+    }
+  }
 
   useEffect(() => {
     if (activeTab !== 'favorites' || topFavorites !== null) return
@@ -1242,8 +1355,69 @@ export default function ProfileScreen() {
                     </svg>
                   ),
                   label: t('profile.sectionNotifications'),
-                  onClick: () =>
-                    navigate(buildNotificationSettingsPath(currentStore?.slug || null)),
+                  onClick: () => setNotificationsExpanded(!notificationsExpanded),
+                  right: (
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="var(--text-dim)"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      style={{
+                        transform: notificationsExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.2s',
+                      }}
+                    >
+                      <path d="M9 18l6-6-6-6" />
+                    </svg>
+                  ),
+                  children: notificationsExpanded && (
+                    <div
+                      style={{
+                        padding: '4px 18px 14px 66px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 10,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontFamily: 'var(--font-body)',
+                          fontSize: 12,
+                          lineHeight: 1.45,
+                          color: 'var(--text-faint)',
+                        }}
+                      >
+                        {t('notification.introShort')}
+                      </div>
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <span style={{ fontSize: 13, color: 'var(--text-sub)' }}>
+                          {t('notification.pushNotifications')}
+                        </span>
+                        <Toggle
+                          checked={pushSettings.enabled && pushSettings.subscriptionActive}
+                          disabled={pushBusy || !pushSettings.pushSupported}
+                          onChange={togglePush}
+                        />
+                      </div>
+                      {!pushSettings.pushSupported && (
+                        <div style={{ fontSize: 11, color: 'var(--text-disabled)' }}>
+                          {t('notification.pushUnsupported')}
+                        </div>
+                      )}
+                      {pushStatus && (
+                        <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>{pushStatus}</div>
+                      )}
+                    </div>
+                  ),
                 },
                 {
                   icon: (

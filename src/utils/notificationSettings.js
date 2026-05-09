@@ -1,23 +1,16 @@
 export const DEFAULT_NOTIFICATION_SETTINGS = {
   enabled: false,
-  status: 'default', // default | granted | denied | unsupported
+  status: 'default',
   pushSupported: false,
   subscriptionActive: false,
-  weekly: true,
-  favorites: true,
-  restock: true,
-  promo: false,
-  system: true,
-  quietHoursEnabled: false,
-  quietFrom: '22:00',
-  quietTo: '08:00',
-  lastPermissionCheckAt: null,
 }
 
 export function loadNotificationSettings() {
   try {
     const raw = localStorage.getItem('korset_notification_settings')
-    return raw ? { ...DEFAULT_NOTIFICATION_SETTINGS, ...JSON.parse(raw) } : DEFAULT_NOTIFICATION_SETTINGS
+    return raw
+      ? { ...DEFAULT_NOTIFICATION_SETTINGS, ...JSON.parse(raw) }
+      : DEFAULT_NOTIFICATION_SETTINGS
   } catch {
     return DEFAULT_NOTIFICATION_SETTINGS
   }
@@ -29,7 +22,8 @@ export function saveNotificationSettings(settings) {
 
 export function browserNotificationStatus() {
   if (typeof window === 'undefined') return { pushSupported: false, status: 'unsupported' }
-  const pushSupported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
+  const pushSupported =
+    'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
   if (!pushSupported) return { pushSupported: false, status: 'unsupported' }
   return { pushSupported: true, status: Notification.permission || 'default' }
 }

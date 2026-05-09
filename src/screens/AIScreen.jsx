@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useProfile } from '../contexts/ProfileContext.jsx'
 import { useI18n } from '../i18n/index.js'
@@ -9,6 +9,7 @@ import { askProductAI } from '../services/ai.js'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { buildProductPath } from '../utils/routes.js'
 import { resolveProductForProductAI } from '../domain/ai/productContext.js'
+import { buildProductAISuggestions } from '../domain/ai/productSuggestions.js'
 import { findProductAlternatives } from '../domain/product/alternatives.js'
 import { resolveProductByEan } from '../domain/product/resolver.js'
 import {
@@ -18,20 +19,6 @@ import {
   loadAIChatSession,
   saveAIChatSession,
 } from '../domain/ai/context.js'
-
-function getChips(t) {
-  return [
-    { id: 'why', label: t('ai.chips.why') },
-    { id: 'cook', label: t('ai.chips.cook') },
-    { id: 'compare', label: t('ai.chips.compare') },
-    { id: 'store', label: t('ai.chips.store') },
-  ]
-}
-
-function buildChipQuestion(chipId, product, t) {
-  const val = t(`ai.chipQuestions.${chipId}`, { name: product.name })
-  return val === `ai.chipQuestions.${chipId}` ? chipId : val
-}
 
 export default function AIScreen() {
   const { ean, storeSlug } = useParams()
@@ -60,6 +47,26 @@ export default function AIScreen() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const bottomRef = useRef(null)
+  const productAlternatives = useMemo(
+    () =>
+      findProductAlternatives({
+        product,
+        catalogProducts,
+        profile,
+        limit: 5,
+      }),
+    [product, catalogProducts, profile]
+  )
+  const productSuggestions = useMemo(
+    () =>
+      buildProductAISuggestions({
+        product,
+        profile,
+        alternatives: productAlternatives,
+        limit: 5,
+      }),
+    [product, profile, productAlternatives]
+  )
 
   useEffect(() => {
     let active = true
@@ -125,19 +132,13 @@ export default function AIScreen() {
     setInput('')
     setLoading(true)
     try {
-      const alternatives = findProductAlternatives({
-        product,
-        catalogProducts,
-        profile,
-        limit: 5,
-      })
       const reply = await askProductAI(
         newMessages,
         product,
         profile,
         lang,
         storeContext,
-        alternatives
+        productAlternatives
       )
       setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
     } catch (e) {
@@ -519,36 +520,43 @@ export default function AIScreen() {
         }}
       >
         {/* Быстрые вопросы */}
-        {messages.length === 0 && (
+        {messages.length === 0 && productSuggestions.length > 0 && (
           <div
             style={{
               display: 'flex',
+              flexWrap: 'wrap',
               gap: 8,
-              overflowX: 'auto',
               paddingBottom: 10,
-              scrollbarWidth: 'none',
             }}
           >
-            {getChips(t).map((chip) => (
+            {productSuggestions.map((chip, index) => (
               <button
                 key={chip.id}
-                onClick={() => sendMessage(buildChipQuestion(chip.id, product, t))}
+                onClick={() =>
+                  sendMessage(
+                    t(chip.questionKey, {
+                      name: localName || product.name,
+                      ...(chip.values || {}),
+                    })
+                  )
+                }
                 disabled={loading}
                 style={{
-                  flexShrink: 0,
-                  padding: '7px 14px',
-                  borderRadius: 20,
+                  flex: index === 0 ? '1 1 100%' : '0 1 auto',
+                  minHeight: index === 0 ? 38 : 32,
+                  padding: index === 0 ? '9px 14px' : '7px 12px',
+                  borderRadius: index === 0 ? 14 : 18,
                   fontSize: 13,
-                  fontWeight: 500,
+                  fontWeight: index === 0 ? 700 : 500,
                   cursor: 'pointer',
                   border: '1px solid var(--glass-soft-border)',
-                  background: 'var(--glass-subtle)',
-                  color: 'var(--text-sub)',
+                  background: index === 0 ? 'var(--glass)' : 'var(--glass-subtle)',
+                  color: index === 0 ? 'var(--text)' : 'var(--text-sub)',
                   fontFamily: 'var(--font-body)',
-                  whiteSpace: 'nowrap',
+                  textAlign: 'left',
                 }}
               >
-                {chip.label}
+                {t(chip.labelKey, chip.values || {})}
               </button>
             ))}
           </div>

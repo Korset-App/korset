@@ -218,6 +218,30 @@ async function main() {
       url: 'https://arbuz.kz/ru/almaty/catalog/cat/225446-kefir_tvorog_smetana',
       subcategories: ['fermented', 'cream', 'cottage'],
       pages: 10
+    },
+    yogurt: {
+      title: 'Йогурты, сырки, десерты',
+      url: 'https://arbuz.kz/ru/almaty/catalog/cat/225171-iogurty_syrki_deserty',
+      subcategories: ['fermented', 'cottage', 'milk'],
+      pages: 10
+    },
+    eggs_butter: {
+      title: 'Яйца, масло, маргарин',
+      url: 'https://arbuz.kz/ru/almaty/catalog/cat/225245-yaica_maslo_margarin',
+      subcategories: ['eggs', 'butter', 'spread'],
+      pages: 5
+    },
+    cheese: {
+      title: 'Сыры',
+      url: 'https://arbuz.kz/ru/almaty/catalog/cat/20160-syr',
+      subcategories: ['cheese'],
+      pages: 14
+    },
+    ice_cream: {
+      title: 'Мороженое',
+      url: 'https://arbuz.kz/ru/almaty/catalog/cat/225209-morozhenoe',
+      subcategories: ['ice_cream'],
+      pages: 10
     }
   }
 
@@ -348,14 +372,34 @@ async function main() {
       }
 
       // Normalize Category & Attributes
-      const normCategory = normalizeCategory(null, null, full.name, full.brandName)
-      const category = normCategory.category || 'dairy_eggs'
-      const subcategory = normCategory.subcategory || 'milk'
+      let normCategory = normalizeCategory(null, null, full.name, full.brandName)
+      let category = normCategory.category || 'dairy_eggs'
+      let subcategory = normCategory.subcategory || 'milk'
+
+      // Force category/subcategory mapping for eggs_butter or cheese mode
+      if (opts.mode === 'eggs_butter') {
+        category = 'dairy_eggs'
+        const lowerName = (full.name || '').toLowerCase()
+        if (lowerName.includes('яйц') || lowerName.includes('яйцо')) {
+          subcategory = 'eggs'
+        } else if (lowerName.includes('маргарин') || lowerName.includes('спред')) {
+          subcategory = 'spread'
+        } else {
+          subcategory = 'butter'
+        }
+      } else if (opts.mode === 'cheese') {
+        category = 'dairy_eggs'
+        subcategory = 'cheese'
+      } else if (opts.mode === 'ice_cream') {
+        category = 'frozen'
+        subcategory = 'ice_cream'
+      }
 
       // Filter to keep only target subcategories
+      const expectedCategory = opts.mode === 'ice_cream' ? 'frozen' : 'dairy_eggs'
       const allowedSubcategories = modeConfig.subcategories
-      if (category !== 'dairy_eggs' || !allowedSubcategories.includes(subcategory)) {
-        console.log(`  [skip] Skipping non-dairy product: ${full.name} (${category} / ${subcategory})`)
+      if (category !== expectedCategory || !allowedSubcategories.includes(subcategory)) {
+        console.log(`  [skip] Skipping non-target product: ${full.name} (${category} / ${subcategory})`)
         continue
       }
 

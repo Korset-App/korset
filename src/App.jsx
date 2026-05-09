@@ -27,7 +27,6 @@ const AuthScreen = lazy(() => import('./screens/AuthScreen.jsx'))
 const UpdatePasswordScreen = lazy(() => import('./screens/UpdatePasswordScreen.jsx'))
 const SetupProfileScreen = lazy(() => import('./screens/SetupProfileScreen.jsx'))
 const HistoryScreen = lazy(() => import('./screens/HistoryScreen.jsx'))
-const NotificationSettingsScreen = lazy(() => import('./screens/NotificationSettingsScreen.jsx'))
 const PrivacySettingsScreen = lazy(() => import('./screens/PrivacySettingsScreen.jsx'))
 const PrivacyPolicyScreen = lazy(() => import('./screens/PrivacyPolicyScreen.jsx'))
 const SoundSettingsScreen = lazy(() => import('./screens/SoundSettingsScreen.jsx'))
@@ -106,7 +105,6 @@ function AppInner() {
           <Route path="/s/:storeSlug/profile" element={<ProfileScreen />} />
           <Route path="/s/:storeSlug/profile/edit" element={<ProfileEditScreen />} />
           <Route path="/s/:storeSlug/account" element={<AccountScreen />} />
-          <Route path="/s/:storeSlug/notifications" element={<NotificationSettingsScreen />} />
           <Route path="/s/:storeSlug/privacy" element={<PrivacySettingsScreen />} />
           <Route path="/s/:storeSlug/sound-settings" element={<SoundSettingsScreen />} />
           <Route path="/s/:storeSlug/faq" element={<FaqScreen />} />
