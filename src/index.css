@@ -2218,17 +2218,6 @@ body {
 }
 :root[data-theme='light'] .product-img-blend { mix-blend-mode: normal; }
 
-.catalog-chips-row {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-  scroll-padding-inline: 20px;
-  padding-bottom: 2px;
-}
-.catalog-chips-row::-webkit-scrollbar { display: none; }
-
 .catalog-search-wrap {
   flex: 1;
   position: relative;
@@ -2275,6 +2264,45 @@ body {
 .catalog-search-input:focus { border-color: var(--badge-border); }
 .catalog-search-input::placeholder { color: var(--text-dim); }
 
+.catalog-search-history-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+}
+.catalog-search-history-row::-webkit-scrollbar { display: none; }
+.catalog-search-history-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.catalog-search-history-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 11px;
+  border-radius: 999px;
+  white-space: nowrap;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.18s ease;
+  border: 1.5px solid var(--glass-soft-border);
+  background: var(--glass-muted);
+  color: var(--text-soft);
+  flex-shrink: 0;
+}
+.catalog-search-history-chip .material-symbols-outlined { font-size: 13px; }
+.catalog-search-history-chip:hover {
+  border-color: var(--badge-border);
+  color: var(--primary-bright);
+}
+
 .catalog-view-toggle {
   display: flex;
   align-items: center;
@@ -2300,54 +2328,117 @@ body {
 }
 .catalog-view-btn.active { background: var(--badge-bg); color: var(--primary-bright); }
 .catalog-view-btn .material-symbols-outlined { font-size: 18px; }
-
+.catalog-dropdown-trigger {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--glass-muted);
+  border: 1px solid var(--glass-soft-border);
+  color: var(--text-soft);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 0;
+  font-family: var(--font-display);
+}
+.catalog-dropdown-trigger:hover {
+  background: var(--glass-bg);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+.catalog-dropdown-trigger.active {
+  background: var(--primary-dim);
+  border-color: var(--primary-border);
+  color: var(--primary-bright);
+}
+@keyframes expandDropdown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scaleY(0.95);
+    transform-origin: top;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+    transform-origin: top;
+  }
+}
 .catalog-sub-chip {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 7px 12px;
-  border-radius: 999px;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 14px;
   white-space: nowrap;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  transition: all 0.18s ease;
-  border: 1.5px solid var(--glass-soft-border);
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.04);
   background: var(--glass-muted);
   color: var(--text-soft);
   flex-shrink: 0;
 }
-.catalog-sub-chip.active {
-  background: var(--badge-bg);
-  border-color: var(--badge-border);
-  color: var(--primary-bright);
-  box-shadow: 0 0 12px rgba(167,139,250,0.2);
+:root[data-theme='light'] .catalog-sub-chip {
+  border-color: rgba(0, 0, 0, 0.05);
 }
-.catalog-sub-chip-count { font-size: 10px; font-weight: 700; opacity: 0.65; }
+.catalog-sub-chip:hover {
+  color: var(--text);
+  background: var(--glass-bg);
+}
+.catalog-sub-chip.active {
+  background: var(--text);
+  color: var(--bg-body);
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.catalog-sub-chip-count { font-size: 11px; font-weight: 700; opacity: 0.6; }
+.catalog-sub-chip.active .catalog-sub-chip-count { opacity: 0.8; color: var(--bg-body); }
 
 .catalog-sort-chip {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 11px;
-  border-radius: 10px;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 12px;
   white-space: nowrap;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  transition: all 0.18s ease;
-  border: 1.5px solid var(--glass-soft-border);
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.04);
   background: var(--glass-muted);
   color: var(--text-soft);
   flex-shrink: 0;
 }
-.catalog-sort-chip .material-symbols-outlined { font-size: 13px; }
-.catalog-sort-chip.active {
-  background: var(--accent-sky-dim);
-  border-color: var(--accent-sky-border);
-  color: var(--accent-sky);
-  box-shadow: 0 0 10px rgba(56,189,248,0.18);
+:root[data-theme='light'] .catalog-sort-chip {
+  border-color: rgba(0, 0, 0, 0.05);
 }
+.catalog-sort-chip .material-symbols-outlined { font-size: 16px; }
+.catalog-sort-chip:hover {
+  color: var(--text);
+  background: var(--glass-bg);
+}
+.catalog-sort-chip.active {
+  background: var(--primary-dim);
+  border-color: var(--primary-border);
+  color: var(--primary-bright);
+}
+
+.catalog-chips-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-padding-inline: 20px;
+  padding: 0 20px 4px 20px;
+}
+.catalog-chips-row::-webkit-scrollbar { display: none; }
 
 .catalog-verdict-badge {
   display: inline-flex;
@@ -2406,13 +2497,21 @@ body {
 .catalog-img-box {
   border-radius: 14px;
   overflow: hidden;
-  background: rgba(255,255,255,0.06);
+  /* Премиальный светлый подиум для товара:
+     Благодаря светлому фону, mix-blend-mode: multiply убирает белый квадрат от JPEG,
+     а сам товар остается ярким и сочным. */
+  background: linear-gradient(145deg, #ffffff 0%, #f1f5f9 100%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), inset 0 2px 4px rgba(255, 255, 255, 1);
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-:root[data-theme='light'] .catalog-img-box { background: rgba(255,255,255,0.82); }
+:root[data-theme='light'] .catalog-img-box {
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), inset 0 2px 4px rgba(255, 255, 255, 1);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
 
 .catalog-empty-state {
   display: flex;

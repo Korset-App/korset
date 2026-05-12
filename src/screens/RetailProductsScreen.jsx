@@ -10,7 +10,6 @@ import {
   getStoreCatalogProducts,
   updateProductPrice,
   updateProductStock,
-  updateProductShelf,
   deleteStoreProduct,
 } from '../utils/retailAnalytics.js'
 import RetailScannerModal from '../components/RetailScannerModal.jsx'
@@ -292,102 +291,6 @@ function StockToggle({ product, label, stockMutation }) {
   )
 }
 
-// ── Shelf field with save-on-blur ──────────────────────────────────
-function ShelfField({ productId, initialShelf, p, shelfMutation }) {
-  const [draft, setDraft] = useState(initialShelf ?? '')
-  const [saveState, setSaveState] = useState('idle')
-  const timerRef = useRef(null)
-
-  useEffect(() => () => clearTimeout(timerRef.current), [])
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (saveState === 'idle') setDraft(initialShelf ?? '')
-  }, [initialShelf]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleBlur = useCallback(() => {
-    const val = draft.trim()
-    if (val === (initialShelf || '')) return
-    setSaveState('saving')
-    shelfMutation.mutate(
-      { id: productId, shelfZone: val },
-      {
-        onSuccess: () => {
-          setSaveState('saved')
-          timerRef.current = setTimeout(() => setSaveState('idle'), 2000)
-        },
-        onError: () => {
-          setSaveState('error')
-          timerRef.current = setTimeout(() => setSaveState('idle'), 3000)
-        },
-      }
-    )
-  }, [draft, initialShelf, productId, shelfMutation])
-
-  const stateColor = {
-    idle: 'var(--text-dim)',
-    saving: '#38BDF8',
-    saved: '#10B981',
-    error: '#F87171',
-  }
-  const stateLabel = { idle: null, saving: p.saving, saved: `✓ ${p.saved}`, error: p.saveError }
-  const borderColor = {
-    idle: 'var(--glass-border)',
-    saving: 'rgba(56,189,248,0.4)',
-    saved: 'rgba(16,185,129,0.4)',
-    error: 'rgba(248,113,113,0.4)',
-  }
-
-  return (
-    <div>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: 8,
-        }}
-      >
-        <label style={{ fontSize: 12, color: 'var(--text-sub)', fontWeight: 500 }}>
-          {p.shelfLabel}
-        </label>
-        {stateLabel[saveState] && (
-          <span
-            style={{
-              fontSize: 11,
-              color: stateColor[saveState],
-              fontWeight: 600,
-              transition: 'color 0.2s',
-            }}
-          >
-            {stateLabel[saveState]}
-          </span>
-        )}
-      </div>
-      <input
-        type="text"
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={handleBlur}
-        placeholder={p.shelfPlaceholder}
-        style={{
-          width: '100%',
-          fontSize: 15,
-          fontFamily: 'var(--font-body)',
-          padding: '11px 16px',
-          borderRadius: 12,
-          background: 'var(--input-bg)',
-          border: `1px solid ${borderColor[saveState]}`,
-          color: 'var(--text)',
-          outline: 'none',
-          margin: 0,
-          transition: 'border-color 0.2s',
-        }}
-      />
-    </div>
-  )
-}
-
 // ── Readonly Block ─────────────────────────────────────────────────
 function ReadonlyBlock({ product, p, storeSlug }) {
   const gp = product.global_products
@@ -405,24 +308,24 @@ function ReadonlyBlock({ product, p, storeSlug }) {
     >
       <div style={{ display: 'flex', gap: 14 }}>
         <div
+          className="catalog-img-box"
           style={{
             width: 64,
             height: 64,
             borderRadius: 10,
-            background: 'var(--glass-bg)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             overflow: 'hidden',
             flexShrink: 0,
-            padding: 4,
           }}
         >
           {gp.image_url ? (
             <img
               src={getImageUrl(gp.image_url)}
               alt=""
-              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+              className="product-img-blend"
+              style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }}
             />
           ) : (
             <span
@@ -510,7 +413,6 @@ const ProductCard = memo(
     tr,
     storeSlug,
     priceMutation,
-    shelfMutation,
     stockMutation,
     setExpandedId,
     onDeleteRequest,
@@ -543,11 +445,11 @@ const ProductCard = memo(
         >
           {/* Thumb */}
           <div
+            className="catalog-img-box"
             style={{
               width: 48,
               height: 48,
               borderRadius: 12,
-              background: 'var(--glass-bg)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -560,6 +462,7 @@ const ProductCard = memo(
               <img
                 src={imgUrl}
                 alt={name}
+                className="product-img-blend"
                 style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }}
               />
             ) : (
@@ -667,12 +570,6 @@ const ProductCard = memo(
                 p={tr}
                 priceMutation={priceMutation}
               />
-              <ShelfField
-                productId={product.id}
-                initialShelf={product.shelf_zone}
-                p={tr}
-                shelfMutation={shelfMutation}
-              />
               <StockToggle product={product} label={tr.stockLabel} stockMutation={stockMutation} />
               <ReadonlyBlock product={product} p={tr} storeSlug={storeSlug} />
 
@@ -737,21 +634,21 @@ function GridCard({ product, tr, onEdit }) {
       }}
     >
       <div
+        className="catalog-img-box"
         style={{
           height: 120,
           flexShrink: 0,
-          background: 'var(--glass-muted)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: 10,
         }}
       >
         {imgUrl ? (
           <img
             src={imgUrl}
             alt={name}
-            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            className="product-img-blend"
+            style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 10 }}
           />
         ) : (
           <span
@@ -837,7 +734,6 @@ function EditBottomSheet({
   tr,
   storeSlug,
   priceMutation,
-  shelfMutation,
   stockMutation,
   onClose,
   onDeleteRequest,
@@ -886,24 +782,24 @@ function EditBottomSheet({
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 20px 0' }}>
           <div
+            className="catalog-img-box"
             style={{
               width: 52,
               height: 52,
               borderRadius: 12,
-              background: 'var(--input-bg)',
               overflow: 'hidden',
               flexShrink: 0,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: 4,
             }}
           >
             {imgUrl ? (
               <img
                 src={imgUrl}
                 alt=""
-                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                className="product-img-blend"
+                style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }}
               />
             ) : (
               <span
@@ -992,12 +888,6 @@ function EditBottomSheet({
             initialPrice={product.price_kzt}
             p={tr}
             priceMutation={priceMutation}
-          />
-          <ShelfField
-            productId={product.id}
-            initialShelf={product.shelf_zone}
-            p={tr}
-            shelfMutation={shelfMutation}
           />
           <StockToggle product={product} label={tr.stockLabel} stockMutation={stockMutation} />
 
@@ -1175,8 +1065,6 @@ export default function RetailProductsScreen() {
       saved: t('retail.products.saved'),
       saveError: t('retail.products.saveError'),
       priceLabel: t('retail.products.priceLabel'),
-      shelfLabel: t('retail.products.shelfLabel'),
-      shelfPlaceholder: t('common.shelfPlaceholder'),
       inStock: t('retail.products.inStock'),
       lowStock: t('retail.products.lowStock'),
       outOfStock: t('retail.products.outOfStock'),
@@ -1304,23 +1192,6 @@ export default function RetailProductsScreen() {
       setConfirmDeleteId(null)
       setExpandedId(null)
       setGridSelectedId(null)
-      return { prev }
-    },
-    onError: (_err, _vars, ctx) => {
-      if (ctx?.prev) ctx.prev.forEach(([key, val]) => queryClient.setQueryData(key, val))
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['retail-products', storeId] })
-    },
-  })
-
-  // ── Shelf mutation (optimistic + rollback + invalidate) ───────────
-  const shelfMutation = useMutation({
-    mutationFn: ({ id, shelfZone }) => updateProductShelf(id, storeId, shelfZone),
-    onMutate: async ({ id, shelfZone }) => {
-      await queryClient.cancelQueries({ queryKey: ['retail-products', storeId] })
-      const prev = queryClient.getQueriesData({ queryKey: ['retail-products', storeId] })
-      patchPages((item) => (item.id === id ? { ...item, shelf_zone: shelfZone } : item))
       return { prev }
     },
     onError: (_err, _vars, ctx) => {
@@ -1732,7 +1603,6 @@ export default function RetailProductsScreen() {
                 tr={p}
                 storeSlug={storeSlug}
                 priceMutation={priceMutation}
-                shelfMutation={shelfMutation}
                 stockMutation={stockMutation}
                 setExpandedId={setExpandedId}
                 onDeleteRequest={(id) => setConfirmDeleteId(id)}
@@ -1824,7 +1694,6 @@ export default function RetailProductsScreen() {
             tr={p}
             storeSlug={storeSlug}
             priceMutation={priceMutation}
-            shelfMutation={shelfMutation}
             stockMutation={stockMutation}
             onClose={() => setGridSelectedId(null)}
             onDeleteRequest={(id) => setConfirmDeleteId(id)}

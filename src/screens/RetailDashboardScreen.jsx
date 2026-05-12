@@ -123,11 +123,11 @@ function ProductRow({ rank, name, scanCount, imageUrl, scanLabel, loading }) {
         {rank}
       </div>
       <div
+        className="catalog-img-box"
         style={{
           width: 40,
           height: 40,
           borderRadius: 8,
-          background: 'var(--glass-bg)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -139,7 +139,8 @@ function ProductRow({ rank, name, scanCount, imageUrl, scanLabel, loading }) {
           <img
             src={imageUrl}
             alt={name ?? ''}
-            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            className="product-img-blend"
+            style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 2 }}
           />
         ) : (
           <span
@@ -224,11 +225,11 @@ function MissedRow({
   return (
     <div style={rowStyle}>
       <div
+        className="catalog-img-box"
         style={{
           width: 40,
           height: 40,
           borderRadius: 8,
-          background: 'var(--glass-bg)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -240,7 +241,8 @@ function MissedRow({
           <img
             src={imageUrl}
             alt={name ?? ''}
-            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            className="product-img-blend"
+            style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 2 }}
           />
         ) : (
           <span

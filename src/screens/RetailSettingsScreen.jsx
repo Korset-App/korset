@@ -298,11 +298,11 @@ export default function RetailSettingsScreen() {
           <div style={{ ...CARD_STYLE, padding: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
               <div
+                className="catalog-img-box"
                 style={{
                   width: 72,
                   height: 72,
                   borderRadius: 16,
-                  background: 'var(--glass-bg)',
                   border: '1px dashed var(--glass-strong-border)',
                   display: 'flex',
                   alignItems: 'center',
@@ -315,7 +315,8 @@ export default function RetailSettingsScreen() {
                   <img
                     src={logoUrl}
                     alt="logo"
-                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    className="product-img-blend"
+                    style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }}
                   />
                 ) : (
                   <span

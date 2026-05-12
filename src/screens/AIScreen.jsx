@@ -315,13 +315,13 @@ export default function AIScreen() {
       >
         {/* Фото */}
         <div
+          className="catalog-img-box"
           style={{
             width: 42,
             height: 42,
             borderRadius: 10,
             overflow: 'hidden',
             flexShrink: 0,
-            background: 'var(--glass-muted)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -331,7 +331,8 @@ export default function AIScreen() {
             <img
               src={productImage}
               alt=""
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              className="product-img-blend"
+              style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 2 }}
             />
           ) : (
             <span style={{ fontSize: 22 }}>🛍️</span>

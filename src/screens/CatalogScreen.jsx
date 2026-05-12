@@ -25,10 +25,14 @@ import { getLocalName } from '../utils/localName.js'
 
 import { getCatalogFromIndexedDB } from '../utils/offlineDB.js'
 import { buildProductPath, buildComparePath } from '../utils/routes.js'
-import { supabase } from '../utils/supabase.js'
-import { getImageUrl } from '../utils/imageUrl.js'
-import { enrichQuantity, getDisplayQuantity } from '../utils/parseQuantity.js'
+import { getDisplayQuantity } from '../utils/parseQuantity.js'
 import { CATEGORY_SHOWCASE_ORDER, getCategoryShowcase } from '../domain/product/catalogShowcase.js'
+import { getProductSearchDiagnosticsAttrs } from '../domain/product/searchDiagnostics.js'
+import { searchStoreProductsRPC } from '../domain/product/search.js'
+import {
+  appendCatalogSearchQuery,
+  readCatalogSearchHistory,
+} from '../domain/product/searchHistory.js'
 
 function ProductThumb({ product }) {
   const [imgOk, setImgOk] = useState(true)
@@ -105,6 +109,67 @@ const GridItem = forwardRef(({ style, children, ...props }, ref) => (
 
 const gridComponents = { List: GridList, Item: GridItem }
 
+const FIT_VERDICT_ORDER = { safe: 0, caution: 1, warning: 2, danger: 3 }
+
+function getProductSearchKey(product) {
+  return product.globalProductId || product.ean || product.storeProductId || product.canonicalId
+}
+
+function mergeProductsBySearchKey(primary, secondary) {
+  const seen = new Set()
+  const merged = []
+  for (const product of [...primary, ...secondary]) {
+    const key = getProductSearchKey(product)
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    merged.push(product)
+  }
+  return merged
+}
+
+function sortCatalogProducts(products, sort, profile, isSearching) {
+  const arr = [...products]
+  arr.sort((a, b) => {
+    if (sort === 'cheap') return (a.priceKzt || 0) - (b.priceKzt || 0)
+    if (sort === 'pricey') return (b.priceKzt || 0) - (a.priceKzt || 0)
+    const aFit = checkProductFit(a, profile)
+    const bFit = checkProductFit(b, profile)
+    const aFitScore = FIT_VERDICT_ORDER[aFit.verdict] ?? (aFit.fits ? 0 : 3)
+    const bFitScore = FIT_VERDICT_ORDER[bFit.verdict] ?? (bFit.fits ? 0 : 3)
+    if (aFitScore !== bFitScore) return aFitScore - bFitScore
+    if (isSearching) return (b.searchRank || 0) - (a.searchRank || 0)
+    return 0
+  })
+  return arr
+}
+
+function buildSearchSuggestions(query) {
+  const normalized = query.trim().replace(/\s+/g, ' ')
+  const suggestions = []
+  const addSuggestion = (value) => {
+    const next = value.trim()
+    if (next.length >= 2 && next !== normalized && !suggestions.includes(next)) {
+      suggestions.push(next)
+    }
+  }
+
+  if (normalized.includes(' ')) {
+    addSuggestion(normalized.split(' ')[0])
+  }
+
+  const compactDigits = normalized.replace(/\D/g, '')
+  if (compactDigits.length >= 6) {
+    addSuggestion(compactDigits)
+  }
+
+  const separatorMatch = normalized.match(/^(.+?)[,;:]/)
+  if (separatorMatch?.[1]) {
+    addSuggestion(separatorMatch[1])
+  }
+
+  return suggestions.slice(0, 3)
+}
+
 const ListFooter = forwardRef(({ style, ...props }, ref) => (
   <div ref={ref} style={{ ...style, height: 100 }} {...props} />
 ))
@@ -160,14 +225,23 @@ export default function CatalogScreen() {
 
   const [offlineCatalog, setOfflineCatalog] = useState([])
   const [serverResults, setServerResults] = useState([])
+  const [serverResultsQuery, setServerResultsQuery] = useState('')
   const [isSearchingServer, setIsSearchingServer] = useState(false)
+  const [recentSearchesVersion, setRecentSearchesVersion] = useState(0)
+  const [isSearchFocused, setIsSearchFocused] = useState(false)
 
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [selectedSubcategory, setSelectedSubcategory] = useState(null)
   const [pendingCategory, setPendingCategory] = useState(null)
   const categoryExitTimerRef = useRef(null)
+  const [isSubMenuOpen, setIsSubMenuOpen] = useState(false)
+  const [isSortMenuOpen, setIsSortMenuOpen] = useState(false)
 
   const isSearching = q.trim().length > 0
+  const normalizedQuery = q.trim()
+  const searchStoreKey = storeId || currentStore?.slug || storeSlug || 'global'
+  const canUseServerSearch =
+    isSearching && isOnline && Boolean(storeId) && normalizedQuery.length >= 2
 
   useEffect(() => {
     if (!isOnline && (!catalogProducts || catalogProducts.length === 0)) {
@@ -183,7 +257,7 @@ export default function CatalogScreen() {
     if (storeId && catalogProducts.length > 0) return catalogProducts
     if (!isOnline && offlineCatalog.length > 0) return offlineCatalog
     return []
-  }, [storeId, catalogProducts, currentStore, isOnline, offlineCatalog])
+  }, [storeId, catalogProducts, isOnline, offlineCatalog])
 
   const categoryCountMap = useMemo(() => {
     const map = {}
@@ -241,93 +315,71 @@ export default function CatalogScreen() {
       })
     }
 
-    arr.sort((a, b) => {
-      if (sort === 'cheap') return (a.priceKzt || 0) - (b.priceKzt || 0)
-      if (sort === 'pricey') return (b.priceKzt || 0) - (a.priceKzt || 0)
-      const aFit = checkProductFit(a, profile).fits ? 0 : 1
-      const bFit = checkProductFit(b, profile).fits ? 0 : 1
-      if (aFit !== bFit) return aFit - bFit
-      return 0
-    })
-
-    return arr
+    return sortCatalogProducts(arr, sort, profile, isSearching)
   }, [baseProducts, selectedCategory, selectedSubcategory, profile, q, sort, isSearching])
 
-  const clientEmpty = isSearching && list.length === 0
-
   useEffect(() => {
-    if (!isOnline || !q.trim() || !storeId) {
+    if (!canUseServerSearch) {
       setServerResults([])
+      setServerResultsQuery('')
       setIsSearchingServer(false)
       return
     }
-    if (!clientEmpty) {
-      setServerResults([])
-      return
-    }
-    const term = q.trim()
+    let cancelled = false
     const timer = setTimeout(() => {
       setIsSearchingServer(true)
-      supabase
-        .from('store_products')
-        .select(
-          `ean, price_kzt, shelf_zone, stock_status, local_name, global_products!inner(ean, name, name_kz, brand, category, subcategory, quantity, image_url, halal_status, packaging_type, fat_percent, diet_tags_json, nutriscore)`
-        )
-        .eq('store_id', storeId)
-        .eq('is_active', true)
-        .eq('global_products.is_active', true)
-        .or(
-          `global_products.name.ilike.%${term}%,global_products.brand.ilike.%${term}%,local_name.ilike.%${term}%`
-        )
-        .range(0, 29)
-        .then(({ data, error }) => {
-          if (error || !data) {
-            setServerResults([])
-          } else {
-            const mapped = data.map((sp) => {
-              const gp = sp.global_products || {}
-              return {
-                ean: gp.ean || sp.ean,
-                name: sp.local_name || gp.name,
-                nameKz: gp.name_kz || null,
-                brand: gp.brand || null,
-                category: gp.category || null,
-                subcategory: gp.subcategory || null,
-                quantity: gp.quantity || null,
-                image: getImageUrl(gp.image_url) || null,
-                images: [],
-                priceKzt: sp.price_kzt || null,
-                shelf: sp.shelf_zone || null,
-                stockStatus: sp.stock_status || null,
-                halalStatus: gp.halal_status || 'unknown',
-                packagingType: gp.packaging_type || null,
-                fatPercent: gp.fat_percent ?? null,
-                dietTags: gp.diet_tags_json
-                  ? typeof gp.diet_tags_json === 'string'
-                    ? JSON.parse(gp.diet_tags_json)
-                    : gp.diet_tags_json
-                  : [],
-                nutriscore: gp.nutriscore || null,
-                allergens: [],
-                source: 'server_search',
-              }
-            })
-            setServerResults(mapped.map((p) => enrichQuantity(p)))
-          }
-          setIsSearchingServer(false)
+      searchStoreProductsRPC(storeId, normalizedQuery, { limit: 60 })
+        .then((products) => {
+          if (cancelled) return
+          setServerResults(products)
+          setServerResultsQuery(normalizedQuery)
         })
         .catch(() => {
+          if (cancelled) return
           setServerResults([])
+          setServerResultsQuery(normalizedQuery)
+        })
+        .finally(() => {
+          if (cancelled) return
           setIsSearchingServer(false)
         })
     }, 400)
-    return () => clearTimeout(timer)
-  }, [clientEmpty, q, storeId, isOnline])
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [canUseServerSearch, normalizedQuery, storeId])
 
   const displayList = useMemo(() => {
-    if (clientEmpty && serverResults.length > 0) return serverResults
+    if (canUseServerSearch) {
+      const activeServerResults = serverResultsQuery === normalizedQuery ? serverResults : []
+      return sortCatalogProducts(
+        mergeProductsBySearchKey(activeServerResults, list),
+        sort,
+        profile,
+        true
+      )
+    }
     return list
-  }, [clientEmpty, serverResults, list])
+  }, [canUseServerSearch, serverResults, serverResultsQuery, normalizedQuery, list, sort, profile])
+
+  const isSearchPending =
+    canUseServerSearch && (isSearchingServer || serverResultsQuery !== normalizedQuery)
+  const searchSuggestions = useMemo(
+    () => (isSearching ? buildSearchSuggestions(normalizedQuery) : []),
+    [isSearching, normalizedQuery]
+  )
+  const recentSearches = useMemo(
+    () => readCatalogSearchHistory(searchStoreKey, recentSearchesVersion ? 6 : 6),
+    [recentSearchesVersion, searchStoreKey]
+  )
+  const showRecentSearches = isSearchFocused && !isSearching && recentSearches.length > 0
+
+  const rememberCatalogSearch = useCallback(() => {
+    if (normalizedQuery.length < 2 || isSearchPending) return
+    appendCatalogSearchQuery(searchStoreKey, normalizedQuery)
+    setRecentSearchesVersion((version) => version + 1)
+  }, [isSearchPending, normalizedQuery, searchStoreKey])
 
   const [comparePin, setComparePin] = useState(() => {
     try {
@@ -361,6 +413,7 @@ export default function CatalogScreen() {
 
   const handleNavigate = useCallback(
     (product) => {
+      rememberCatalogSearch()
       if (virtuosoRef.current?.getState) {
         virtuosoRef.current.getState((state) => {
           if (state?.range?.startIndex != null) {
@@ -372,7 +425,7 @@ export default function CatalogScreen() {
         state: { product },
       })
     },
-    [currentStore, navigate]
+    [currentStore, navigate, rememberCatalogSearch]
   )
 
   useEffect(() => {
@@ -399,6 +452,8 @@ export default function CatalogScreen() {
     setPendingCategory(null)
     setSelectedCategory(null)
     setSelectedSubcategory(null)
+    setIsSubMenuOpen(false)
+    setIsSortMenuOpen(false)
   }, [])
 
   const storeTitle =
@@ -417,8 +472,10 @@ export default function CatalogScreen() {
         comparePin?.ean === product.ean ? 'active-pin' : comparePin ? 'select-second' : 'default'
       const compareIcon =
         comparePin?.ean === product.ean ? 'close' : comparePin ? 'add' : 'compare_arrows'
+      const searchDiagnosticsAttrs = getProductSearchDiagnosticsAttrs(product)
       return (
         <div
+          {...searchDiagnosticsAttrs}
           onClick={() => handleNavigate(product)}
           style={{
             background: 'var(--glass-muted)',
@@ -518,8 +575,10 @@ export default function CatalogScreen() {
           : comparePin
             ? t('compare.btnLabel')
             : t('compare.compareMode')
+      const searchDiagnosticsAttrs = getProductSearchDiagnosticsAttrs(product)
       return (
         <div
+          {...searchDiagnosticsAttrs}
           onClick={() => handleNavigate(product)}
           style={{
             background: 'var(--glass-muted)',
@@ -714,6 +773,11 @@ export default function CatalogScreen() {
               className="catalog-search-input"
               value={q}
               onChange={(e) => setQ(e.target.value)}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setTimeout(() => setIsSearchFocused(false), 120)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') rememberCatalogSearch()
+              }}
               placeholder={t('catalog.searchPlaceholder')}
             />
             {q.trim().length > 0 && (
@@ -746,35 +810,145 @@ export default function CatalogScreen() {
               </div>
             )}
           </div>
-          <div className="catalog-view-toggle">
-            <button
-              className={`catalog-view-btn${viewMode === 'list' ? ' active' : ''}`}
-              onClick={() => {
-                setViewMode('list')
-                sessionStorage.setItem('korset_catalog_view', 'list')
-              }}
-              aria-label="Список"
-            >
-              <span className="material-symbols-outlined">view_list</span>
-            </button>
-            <button
-              className={`catalog-view-btn${viewMode === 'grid' ? ' active' : ''}`}
-              onClick={() => {
-                setViewMode('grid')
-                sessionStorage.setItem('korset_catalog_view', 'grid')
-              }}
-              aria-label="Сетка"
-            >
-              <span className="material-symbols-outlined">grid_view</span>
-            </button>
-          </div>
+          {!showCategories && (
+            <div className="catalog-view-toggle">
+              <button
+                className={`catalog-view-btn${viewMode === 'list' ? ' active' : ''}`}
+                onClick={() => {
+                  setViewMode('list')
+                  sessionStorage.setItem('korset_catalog_view', 'list')
+                }}
+                aria-label="Список"
+              >
+                <span className="material-symbols-outlined">view_list</span>
+              </button>
+              <button
+                className={`catalog-view-btn${viewMode === 'grid' ? ' active' : ''}`}
+                onClick={() => {
+                  setViewMode('grid')
+                  sessionStorage.setItem('korset_catalog_view', 'grid')
+                }}
+                aria-label="Сетка"
+              >
+                <span className="material-symbols-outlined">grid_view</span>
+              </button>
+            </div>
+          )}
         </div>
 
-        {showSubcategories && activeSubcategoryKeys.length > 1 && (
-          <div className="catalog-chips-row" style={{ marginBottom: 10 }}>
+        {showRecentSearches && (
+          <div
+            className="catalog-search-history-row"
+            style={{ marginBottom: showSubcategories ? 10 : 14 }}
+            aria-label={t('catalog.recentSearches')}
+          >
+            <span className="catalog-search-history-label">{t('catalog.recentSearches')}</span>
+            {recentSearches.map((item) => (
+              <button
+                key={`${item.storeKey}:${item.query}`}
+                className="catalog-search-history-chip"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  setQ(item.query)
+                  setIsSearchFocused(false)
+                }}
+              >
+                <span className="material-symbols-outlined">history</span>
+                {item.query}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {showSubcategories && (
+          <div style={{ display: 'flex', gap: 10, padding: '0 20px', marginBottom: 12 }}>
+            {activeSubcategoryKeys.length > 1 && (
+              <button
+                className={`catalog-dropdown-trigger${isSubMenuOpen ? ' active' : ''}`}
+                onClick={() => {
+                  setIsSubMenuOpen(!isSubMenuOpen)
+                  setIsSortMenuOpen(false)
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                  filter_list
+                </span>
+                <span
+                  style={{
+                    flex: 1,
+                    textAlign: 'left',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {selectedSubcategory
+                    ? getSubcategoryLabel(selectedCategory, selectedSubcategory, lang)
+                    : t('catalog.allSubcategories')}
+                </span>
+                <span
+                  className="material-symbols-outlined"
+                  style={{
+                    transition: 'transform 0.2s',
+                    transform: isSubMenuOpen ? 'rotate(180deg)' : 'none',
+                    fontSize: 18,
+                  }}
+                >
+                  expand_more
+                </span>
+              </button>
+            )}
+            <button
+              className={`catalog-dropdown-trigger${isSortMenuOpen ? ' active' : ''}`}
+              onClick={() => {
+                setIsSortMenuOpen(!isSortMenuOpen)
+                setIsSubMenuOpen(false)
+              }}
+              style={{ flex: activeSubcategoryKeys.length > 1 ? '1' : '1 0 100%' }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                {sort === 'fit' ? 'sort' : sort === 'cheap' ? 'arrow_downward' : 'arrow_upward'}
+              </span>
+              <span
+                style={{
+                  flex: 1,
+                  textAlign: 'left',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {[
+                  { id: 'fit', label: t('catalog.sort.fit') },
+                  { id: 'cheap', label: t('catalog.sort.cheap') },
+                  { id: 'pricey', label: t('catalog.sort.pricey') },
+                ].find((o) => o.id === sort)?.label || t('catalog.sort.fit')}
+              </span>
+              <span
+                className="material-symbols-outlined"
+                style={{
+                  transition: 'transform 0.2s',
+                  transform: isSortMenuOpen ? 'rotate(180deg)' : 'none',
+                  fontSize: 18,
+                }}
+              >
+                expand_more
+              </span>
+            </button>
+          </div>
+        )}
+
+        {showSubcategories && isSubMenuOpen && activeSubcategoryKeys.length > 1 && (
+          <div
+            className="catalog-chips-row"
+            style={{ marginBottom: 12, animation: 'expandDropdown 0.2s ease-out' }}
+          >
             <button
               className={`catalog-sub-chip${!selectedSubcategory ? ' active' : ''}`}
-              onClick={() => setSelectedSubcategory(null)}
+              onClick={() => {
+                setSelectedSubcategory(null)
+                setIsSubMenuOpen(false)
+              }}
             >
               {t('catalog.allSubcategories')}
               <span className="catalog-sub-chip-count">
@@ -785,7 +959,10 @@ export default function CatalogScreen() {
               <button
                 key={subKey}
                 className={`catalog-sub-chip${selectedSubcategory === subKey ? ' active' : ''}`}
-                onClick={() => setSelectedSubcategory(subKey)}
+                onClick={() => {
+                  setSelectedSubcategory(subKey)
+                  setIsSubMenuOpen(false)
+                }}
               >
                 {getSubcategoryLabel(selectedCategory, subKey, lang)}
                 <span className="catalog-sub-chip-count">{subcategoryCountMap[subKey] || 0}</span>
@@ -794,8 +971,11 @@ export default function CatalogScreen() {
           </div>
         )}
 
-        {showSubcategories && (
-          <div className="catalog-chips-row" style={{ marginBottom: 16 }}>
+        {showSubcategories && isSortMenuOpen && (
+          <div
+            className="catalog-chips-row"
+            style={{ marginBottom: 12, animation: 'expandDropdown 0.2s ease-out' }}
+          >
             {[
               { id: 'fit', label: t('catalog.sort.fit'), icon: 'sort' },
               { id: 'cheap', label: t('catalog.sort.cheap'), icon: 'arrow_downward' },
@@ -804,7 +984,10 @@ export default function CatalogScreen() {
               <button
                 key={option.id}
                 className={`catalog-sort-chip${sort === option.id ? ' active' : ''}`}
-                onClick={() => setSort(option.id)}
+                onClick={() => {
+                  setSort(option.id)
+                  setIsSortMenuOpen(false)
+                }}
               >
                 <span className="material-symbols-outlined">{option.icon}</span>
                 {option.label}
@@ -906,11 +1089,33 @@ export default function CatalogScreen() {
       {!showCategories && (
         <div style={{ flex: 1, minHeight: 0 }}>
           {displayList.length === 0 ? (
-            isSearching ? (
+            isSearching && isSearchPending ? (
+              <div className="catalog-empty-state">
+                <span className="material-symbols-outlined">travel_explore</span>
+                <div className="catalog-empty-state-title">{t('catalog.searchLoadingTitle')}</div>
+                <div className="catalog-empty-state-sub">{t('catalog.searchLoadingSub')}</div>
+              </div>
+            ) : isSearching ? (
               <div className="catalog-empty-state">
                 <span className="material-symbols-outlined">search_off</span>
                 <div className="catalog-empty-state-title">{t('catalog.emptySearch')}</div>
                 <div className="catalog-empty-state-sub">«{q.trim()}»</div>
+                <div className="catalog-empty-state-sub">{t('catalog.emptySearchHint')}</div>
+                {searchSuggestions.length > 0 && (
+                  <div
+                    style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}
+                  >
+                    {searchSuggestions.map((suggestion) => (
+                      <button
+                        key={suggestion}
+                        className="catalog-empty-state-btn"
+                        onClick={() => setQ(suggestion)}
+                      >
+                        {t('catalog.searchSuggestion', { query: suggestion })}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <button className="catalog-empty-state-btn" onClick={() => setQ('')}>
                   {t('catalog.clearSearch')}
                 </button>

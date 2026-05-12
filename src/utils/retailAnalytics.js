@@ -148,17 +148,6 @@ export async function updateProductStock(productId, storeId, stockStatus) {
   if (!data || data.length === 0) throw new Error('Update blocked: RLS or row not found')
 }
 
-export async function updateProductShelf(productId, storeId, shelfZone) {
-  const { data, error } = await supabase
-    .from('store_products')
-    .update({ shelf_zone: shelfZone, updated_at: new Date().toISOString() })
-    .eq('id', productId)
-    .eq('store_id', storeId)
-    .select('id')
-  if (error) throw new Error(error.message ?? error)
-  if (!data || data.length === 0) throw new Error('Update blocked: RLS or row not found')
-}
-
 export async function deleteStoreProduct(productId, storeId) {
   const { error } = await supabase
     .from('store_products')

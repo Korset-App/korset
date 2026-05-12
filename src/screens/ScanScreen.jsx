@@ -244,9 +244,9 @@ function ProductScanChip({ product, index, t }) {
   return (
     <div className="scan-product-chip">
       <div className="scan-product-chip__index">{index}</div>
-      <div className="scan-product-chip__media">
+      <div className="scan-product-chip__media catalog-img-box">
         {product.image_url ? (
-          <img src={product.image_url} alt="" />
+          <img src={product.image_url} alt="" className="product-img-blend" />
         ) : (
           <span className="material-symbols-outlined">barcode</span>
         )}
@@ -335,8 +335,12 @@ function RecentScansSheet({ open, scans, onClose, onSelect, t }) {
                 className="scan-recent-item"
                 onClick={() => onSelect(scan)}
               >
-                <span className="scan-recent-item__media">
-                  {scan.image_url ? <img src={scan.image_url} alt="" /> : <IconHistory size={22} />}
+                <span className="scan-recent-item__media catalog-img-box">
+                  {scan.image_url ? (
+                    <img src={scan.image_url} alt="" className="product-img-blend" />
+                  ) : (
+                    <IconHistory size={22} />
+                  )}
                 </span>
                 <span>
                   <strong>{scan.name || scan.ean}</strong>

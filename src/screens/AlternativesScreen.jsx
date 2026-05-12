@@ -189,13 +189,12 @@ function AltThumb({ product }) {
   const [ok, setOk] = useState(true)
   return (
     <div
-      className="product-thumb"
+      className="product-thumb catalog-img-box"
       style={{
         width: 56,
         height: 56,
         display: 'grid',
         placeItems: 'center',
-        background: 'var(--image-bg)',
         borderRadius: 14,
       }}
     >
@@ -203,6 +202,7 @@ function AltThumb({ product }) {
         <img
           src={src}
           alt={product.name}
+          className="product-img-blend"
           style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 6 }}
           onError={() => setOk(false)}
         />

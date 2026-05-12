@@ -43,12 +43,12 @@ export default function ProductMiniCard({ product }) {
         }
       }}
     >
-      <div className="product-mini-card__image-wrap">
+      <div className="product-mini-card__image-wrap catalog-img-box">
         {image ? (
           <img
             src={image}
             alt=""
-            className="product-mini-card__image"
+            className="product-mini-card__image product-img-blend"
             loading="lazy"
             onError={(e) => {
               e.currentTarget.style.display = 'none'

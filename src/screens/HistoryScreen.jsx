@@ -561,11 +561,11 @@ export default function HistoryScreen() {
                 }}
               >
                 <div
+                  className="catalog-img-box"
                   style={{
                     width: 56,
                     height: 56,
                     borderRadius: 12,
-                    background: 'var(--image-bg)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -577,6 +577,7 @@ export default function HistoryScreen() {
                     <img
                       src={product.image || product.images?.[0]}
                       alt={product.name}
+                      className="product-img-blend"
                       style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }}
                       onError={(event) => {
                         event.currentTarget.style.display = 'none'

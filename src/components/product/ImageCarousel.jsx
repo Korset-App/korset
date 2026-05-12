@@ -18,10 +18,10 @@ export default function ImageCarousel({ images, fallbackEan, singleImage }) {
   if (finalImages.length === 0) {
     return (
       <div
+        className="catalog-img-box"
         style={{
           height: 280,
           borderRadius: 20,
-          background: 'var(--image-bg)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -44,13 +44,12 @@ export default function ImageCarousel({ images, fallbackEan, singleImage }) {
 
   return (
     <div
+      className="catalog-img-box"
       style={{
         position: 'relative',
         width: '100%',
         height: 280,
-        borderRadius: 20,
-        overflow: 'hidden',
-        background: 'var(--image-bg)',
+        borderRadius: 20 /* override to match product screen style */,
       }}
     >
       <div
@@ -72,12 +71,14 @@ export default function ImageCarousel({ images, fallbackEan, singleImage }) {
             src={src}
             alt=""
             loading="lazy"
+            className="product-img-blend"
             style={{
               width: '100%',
               height: '100%',
-              objectFit: 'cover',
+              objectFit: 'contain',
               scrollSnapAlign: 'start',
               flexShrink: 0,
+              padding: 24, // breathing room for the premium look
             }}
             onError={(e) => {
               e.target.style.display = 'none'

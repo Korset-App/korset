@@ -65,11 +65,11 @@ function MessageProductGroups({ groups, storeSlug, t }) {
                   }}
                 >
                   <div
+                    className="catalog-img-box"
                     style={{
                       width: 46,
                       height: 46,
                       borderRadius: 10,
-                      background: 'var(--glass-muted)',
                       overflow: 'hidden',
                       display: 'flex',
                       alignItems: 'center',
@@ -80,7 +80,8 @@ function MessageProductGroups({ groups, storeSlug, t }) {
                       <img
                         src={product.image}
                         alt=""
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        className="product-img-blend"
+                        style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }}
                       />
                     ) : (
                       <span className="material-symbols-outlined" style={{ fontSize: 22 }}>

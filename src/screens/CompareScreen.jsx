@@ -226,6 +226,7 @@ function ProductPhoto({ product }) {
       src={src}
       alt={product?.name || ''}
       onError={() => setOk(false)}
+      className="product-img-blend"
       style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 6 }}
     />
   )
@@ -428,11 +429,13 @@ export default function CompareScreen() {
               }}
             >
               <div
+                className="catalog-img-box"
                 style={{
                   width: 72,
                   height: 72,
                   borderRadius: 14,
-                  background: 'rgba(255,255,255,0.04)',
+                  // Keep inline border and overflow to override if needed,
+                  // but rely on catalog-img-box for the premium radial light source
                   border: '1px solid rgba(255,255,255,0.08)',
                   overflow: 'hidden',
                   marginBottom: 7,

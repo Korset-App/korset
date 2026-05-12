@@ -478,12 +478,12 @@ export default function EanRecoveryScreen() {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
+                  className="catalog-img-box"
                   style={{
                     width: 48,
                     height: 48,
                     borderRadius: 12,
                     flexShrink: 0,
-                    background: 'var(--image-bg)',
                     overflow: 'hidden',
                     display: 'flex',
                     alignItems: 'center',
@@ -495,7 +495,8 @@ export default function EanRecoveryScreen() {
                     <img
                       src={getImageUrl(pr.image_url)}
                       alt=""
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      className="product-img-blend"
+                      style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }}
                     />
                   ) : (
                     <span
