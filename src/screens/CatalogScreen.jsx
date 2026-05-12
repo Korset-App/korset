@@ -127,11 +127,47 @@ function mergeProductsBySearchKey(primary, secondary) {
   return merged
 }
 
+function getNutrientValue(product, type) {
+  if (!product) return null
+  let nutrition = product.nutritionPer100 || product.nutriments || product.nutriments_json
+  if (!nutrition) return null
+  if (typeof nutrition === 'string') {
+    try {
+      nutrition = JSON.parse(nutrition)
+    } catch {
+      return null
+    }
+  }
+  if (!nutrition || typeof nutrition !== 'object') return null
+  if (type === 'protein') {
+    const val = nutrition.protein ?? nutrition.proteins ?? nutrition.proteins_100g
+    return val != null ? Number(val) : null
+  }
+  if (type === 'sugar') {
+    const val = nutrition.sugar ?? nutrition.sugars ?? nutrition.sugars_100g
+    return val != null ? Number(val) : null
+  }
+  return null
+}
+
 function sortCatalogProducts(products, sort, profile, isSearching) {
   const arr = [...products]
   arr.sort((a, b) => {
     if (sort === 'cheap') return (a.priceKzt || 0) - (b.priceKzt || 0)
     if (sort === 'pricey') return (b.priceKzt || 0) - (a.priceKzt || 0)
+    if (sort === 'protein') {
+      const aVal = getNutrientValue(a, 'protein') ?? 0
+      const bVal = getNutrientValue(b, 'protein') ?? 0
+      return bVal - aVal
+    }
+    if (sort === 'sugar') {
+      const aVal = getNutrientValue(a, 'sugar')
+      const bVal = getNutrientValue(b, 'sugar')
+      if (aVal == null && bVal != null) return 1
+      if (aVal != null && bVal == null) return -1
+      if (aVal == null && bVal == null) return 0
+      return aVal - bVal
+    }
     const aFit = checkProductFit(a, profile)
     const bFit = checkProductFit(b, profile)
     const aFitScore = FIT_VERDICT_ORDER[aFit.verdict] ?? (aFit.fits ? 0 : 3)
@@ -213,12 +249,14 @@ export default function CatalogScreen() {
   const { profile } = useProfile()
   const { storeId, currentStore, catalogProducts, isCatalogReady } = useStore()
   const { isOnline } = useOffline()
-  const [q, setQ] = useState('')
-  const [sort, setSort] = useState('fit')
+  const [q, setQ] = useState(() => sessionStorage.getItem('korset_catalog_q') || '')
+  const [sort, setSort] = useState(() => sessionStorage.getItem('korset_catalog_sort') || 'fit')
   const [viewMode, setViewMode] = useState(
     () => sessionStorage.getItem('korset_catalog_view') || 'list'
   )
   const virtuosoRef = useRef(null)
+  const scrollRef = useRef(0)
+  const isInitialMount = useRef(true)
   const [initialScrollIndex] = useState(() =>
     parseInt(sessionStorage.getItem('korset_catalog_scroll') || '0', 10)
   )
@@ -230,8 +268,17 @@ export default function CatalogScreen() {
   const [recentSearchesVersion, setRecentSearchesVersion] = useState(0)
   const [isSearchFocused, setIsSearchFocused] = useState(false)
 
-  const [selectedCategory, setSelectedCategory] = useState(null)
-  const [selectedSubcategory, setSelectedSubcategory] = useState(null)
+  const [selectedCategory, setSelectedCategory] = useState(
+    () => sessionStorage.getItem('korset_catalog_category') || null
+  )
+  const [selectedSubcategories, setSelectedSubcategories] = useState(() => {
+    try {
+      const val = sessionStorage.getItem('korset_catalog_subcategories')
+      return val ? JSON.parse(val) : []
+    } catch {
+      return []
+    }
+  })
   const [pendingCategory, setPendingCategory] = useState(null)
   const categoryExitTimerRef = useRef(null)
   const [isSubMenuOpen, setIsSubMenuOpen] = useState(false)
@@ -242,6 +289,38 @@ export default function CatalogScreen() {
   const searchStoreKey = storeId || currentStore?.slug || storeSlug || 'global'
   const canUseServerSearch =
     isSearching && isOnline && Boolean(storeId) && normalizedQuery.length >= 2
+
+  useEffect(() => {
+    sessionStorage.setItem('korset_catalog_q', q)
+  }, [q])
+
+  useEffect(() => {
+    sessionStorage.setItem('korset_catalog_sort', sort)
+  }, [sort])
+
+  useEffect(() => {
+    if (selectedCategory) {
+      sessionStorage.setItem('korset_catalog_category', selectedCategory)
+    } else {
+      sessionStorage.removeItem('korset_catalog_category')
+    }
+  }, [selectedCategory])
+
+  useEffect(() => {
+    sessionStorage.setItem('korset_catalog_subcategories', JSON.stringify(selectedSubcategories))
+  }, [selectedSubcategories])
+
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      return
+    }
+    sessionStorage.setItem('korset_catalog_scroll', '0')
+    scrollRef.current = 0
+    if (virtuosoRef.current) {
+      virtuosoRef.current.scrollToIndex({ index: 0, align: 'start', behavior: 'auto' })
+    }
+  }, [selectedCategory, selectedSubcategories, sort, q])
 
   useEffect(() => {
     if (!isOnline && (!catalogProducts || catalogProducts.length === 0)) {
@@ -301,8 +380,8 @@ export default function CatalogScreen() {
 
     if (!isSearching && selectedCategory) {
       arr = arr.filter((product) => product.category === selectedCategory)
-      if (selectedSubcategory) {
-        arr = arr.filter((product) => product.subcategory === selectedSubcategory)
+      if (selectedSubcategories.length > 0) {
+        arr = arr.filter((product) => selectedSubcategories.includes(product.subcategory))
       }
     }
 
@@ -316,7 +395,7 @@ export default function CatalogScreen() {
     }
 
     return sortCatalogProducts(arr, sort, profile, isSearching)
-  }, [baseProducts, selectedCategory, selectedSubcategory, profile, q, sort, isSearching])
+  }, [baseProducts, selectedCategory, selectedSubcategories, profile, q, sort, isSearching])
 
   useEffect(() => {
     if (!canUseServerSearch) {
@@ -414,13 +493,7 @@ export default function CatalogScreen() {
   const handleNavigate = useCallback(
     (product) => {
       rememberCatalogSearch()
-      if (virtuosoRef.current?.getState) {
-        virtuosoRef.current.getState((state) => {
-          if (state?.range?.startIndex != null) {
-            sessionStorage.setItem('korset_catalog_scroll', String(state.range.startIndex))
-          }
-        })
-      }
+      sessionStorage.setItem('korset_catalog_scroll', String(scrollRef.current))
       navigate(buildProductPath(currentStore?.slug || null, product.ean), {
         state: { product },
       })
@@ -436,11 +509,13 @@ export default function CatalogScreen() {
 
   const handleCategoryClick = useCallback((catKey) => {
     if (categoryExitTimerRef.current) clearTimeout(categoryExitTimerRef.current)
+    sessionStorage.setItem('korset_catalog_scroll', '0')
+    scrollRef.current = 0
     setPendingCategory(catKey)
     categoryExitTimerRef.current = setTimeout(() => {
       startTransition(() => {
         setSelectedCategory(catKey)
-        setSelectedSubcategory(null)
+        setSelectedSubcategories([])
         setPendingCategory(null)
       })
       categoryExitTimerRef.current = null
@@ -449,9 +524,11 @@ export default function CatalogScreen() {
 
   const handleBackToCategories = useCallback(() => {
     if (categoryExitTimerRef.current) clearTimeout(categoryExitTimerRef.current)
+    sessionStorage.setItem('korset_catalog_scroll', '0')
+    scrollRef.current = 0
     setPendingCategory(null)
     setSelectedCategory(null)
-    setSelectedSubcategory(null)
+    setSelectedSubcategories([])
     setIsSubMenuOpen(false)
     setIsSortMenuOpen(false)
   }, [])
@@ -864,7 +941,7 @@ export default function CatalogScreen() {
           <div style={{ display: 'flex', gap: 10, padding: '0 20px', marginBottom: 12 }}>
             {activeSubcategoryKeys.length > 1 && (
               <button
-                className={`catalog-dropdown-trigger${isSubMenuOpen ? ' active' : ''}`}
+                className={`catalog-dropdown-trigger${isSubMenuOpen || selectedSubcategories.length > 0 ? ' active' : ''}`}
                 onClick={() => {
                   setIsSubMenuOpen(!isSubMenuOpen)
                   setIsSortMenuOpen(false)
@@ -882,9 +959,11 @@ export default function CatalogScreen() {
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  {selectedSubcategory
-                    ? getSubcategoryLabel(selectedCategory, selectedSubcategory, lang)
-                    : t('catalog.allSubcategories')}
+                  {selectedSubcategories.length === 0
+                    ? t('catalog.allSubcategories')
+                    : selectedSubcategories.length === 1
+                      ? getSubcategoryLabel(selectedCategory, selectedSubcategories[0], lang)
+                      : `${lang === 'kz' ? 'Таңдалды' : 'Выбрано'}: ${selectedSubcategories.length}`}
                 </span>
                 <span
                   className="material-symbols-outlined"
@@ -907,7 +986,15 @@ export default function CatalogScreen() {
               style={{ flex: activeSubcategoryKeys.length > 1 ? '1' : '1 0 100%' }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                {sort === 'fit' ? 'sort' : sort === 'cheap' ? 'arrow_downward' : 'arrow_upward'}
+                {sort === 'fit'
+                  ? 'sort'
+                  : sort === 'cheap'
+                    ? 'arrow_downward'
+                    : sort === 'pricey'
+                      ? 'arrow_upward'
+                      : sort === 'protein'
+                        ? 'fitness_center'
+                        : 'cookie'}
               </span>
               <span
                 style={{
@@ -922,6 +1009,8 @@ export default function CatalogScreen() {
                   { id: 'fit', label: t('catalog.sort.fit') },
                   { id: 'cheap', label: t('catalog.sort.cheap') },
                   { id: 'pricey', label: t('catalog.sort.pricey') },
+                  { id: 'protein', label: t('catalog.sort.protein') },
+                  { id: 'sugar', label: t('catalog.sort.sugar') },
                 ].find((o) => o.id === sort)?.label || t('catalog.sort.fit')}
               </span>
               <span
@@ -944,9 +1033,9 @@ export default function CatalogScreen() {
             style={{ marginBottom: 12, animation: 'expandDropdown 0.2s ease-out' }}
           >
             <button
-              className={`catalog-sub-chip${!selectedSubcategory ? ' active' : ''}`}
+              className={`catalog-sub-chip${selectedSubcategories.length === 0 ? ' active' : ''}`}
               onClick={() => {
-                setSelectedSubcategory(null)
+                setSelectedSubcategories([])
                 setIsSubMenuOpen(false)
               }}
             >
@@ -958,10 +1047,11 @@ export default function CatalogScreen() {
             {activeSubcategoryKeys.map((subKey) => (
               <button
                 key={subKey}
-                className={`catalog-sub-chip${selectedSubcategory === subKey ? ' active' : ''}`}
+                className={`catalog-sub-chip${selectedSubcategories.includes(subKey) ? ' active' : ''}`}
                 onClick={() => {
-                  setSelectedSubcategory(subKey)
-                  setIsSubMenuOpen(false)
+                  setSelectedSubcategories((prev) =>
+                    prev.includes(subKey) ? prev.filter((k) => k !== subKey) : [...prev, subKey]
+                  )
                 }}
               >
                 {getSubcategoryLabel(selectedCategory, subKey, lang)}
@@ -980,6 +1070,8 @@ export default function CatalogScreen() {
               { id: 'fit', label: t('catalog.sort.fit'), icon: 'sort' },
               { id: 'cheap', label: t('catalog.sort.cheap'), icon: 'arrow_downward' },
               { id: 'pricey', label: t('catalog.sort.pricey'), icon: 'arrow_upward' },
+              { id: 'protein', label: t('catalog.sort.protein'), icon: 'fitness_center' },
+              { id: 'sugar', label: t('catalog.sort.sugar'), icon: 'cookie' },
             ].map((option) => (
               <button
                 key={option.id}
@@ -1134,6 +1226,9 @@ export default function CatalogScreen() {
               itemContent={renderGridItem}
               overscan={600}
               initialTopMostItemIndex={initialScrollIndex}
+              rangeChanged={(range) => {
+                scrollRef.current = range.startIndex
+              }}
             />
           ) : (
             <Virtuoso
@@ -1143,6 +1238,9 @@ export default function CatalogScreen() {
               overscan={600}
               components={{ Footer: ListFooter }}
               initialTopMostItemIndex={initialScrollIndex}
+              rangeChanged={(range) => {
+                scrollRef.current = range.startIndex
+              }}
             />
           )}
         </div>

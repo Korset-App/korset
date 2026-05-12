@@ -102,6 +102,8 @@
   "catalog.sort.fit": "Сізге сай",
   "catalog.sort.cheap": "Арзанынан",
   "catalog.sort.pricey": "Қымбатынан",
+  "catalog.sort.protein": "Көбірек ақуыз",
+  "catalog.sort.sugar": "Азырақ қант",
   "catalog.verdict.safe": "Сай келеді",
   "catalog.verdict.caution": "Абайлаңыз",
   "catalog.verdict.warning": "Ескерту",

@@ -2351,8 +2351,8 @@ body {
   transform: translateY(-1px);
 }
 .catalog-dropdown-trigger.active {
-  background: var(--primary-dim);
-  border-color: var(--primary-border);
+  background: var(--badge-bg);
+  border-color: var(--badge-border);
   color: var(--primary-bright);
 }
 @keyframes expandDropdown {
@@ -2391,13 +2391,13 @@ body {
   background: var(--glass-bg);
 }
 .catalog-sub-chip.active {
-  background: var(--text);
-  color: var(--bg-body);
-  border-color: transparent;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: var(--badge-bg);
+  border-color: var(--badge-border);
+  color: var(--primary-bright);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15);
 }
 .catalog-sub-chip-count { font-size: 11px; font-weight: 700; opacity: 0.6; }
-.catalog-sub-chip.active .catalog-sub-chip-count { opacity: 0.8; color: var(--bg-body); }
+.catalog-sub-chip.active .catalog-sub-chip-count { opacity: 0.9; color: var(--primary-bright); }
 
 .catalog-sort-chip {
   display: flex;
@@ -2424,8 +2424,8 @@ body {
   background: var(--glass-bg);
 }
 .catalog-sort-chip.active {
-  background: var(--primary-dim);
-  border-color: var(--primary-border);
+  background: var(--badge-bg);
+  border-color: var(--badge-border);
   color: var(--primary-bright);
 }
 

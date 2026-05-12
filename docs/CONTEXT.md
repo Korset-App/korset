@@ -107,7 +107,7 @@ Consumer:
 - ProductScreen: Fit-Check, факты товара, цена/store overlay, unknown-EAN request flow, переходы к AI/compare/alternatives.
 - CompareScreen: сравнение двух товаров через scan flow.
 - AIScreen/AIAssistantScreen: product/general/compare AI modes, серверный `/api/ai.js`, RAG через `vault_embeddings`.
-- CatalogScreen: 18 нормализованных категорий, bento showcase, поиск (иконка + кнопка ×), view toggle list/grid, subcategory chips со счётчиками, sort chips с иконками, 4-уровневый Fit-Check badge (safe/caution/warning/danger), mix-blend-mode на изображениях, empty states, Virtuoso, offline fallback.
+- CatalogScreen: 18 нормализованных категорий, bento showcase, поиск (иконка + кнопка ×), view toggle list/grid, минималистичные выпадающие панели (дропдауны) с поддержкой мульти-выбора подкатегорий и счётчиками товаров, продвинутая сортировка (по пригодности Fit-Check, цене, максимуму белка, минимуму сахара) с иконками, 4-уровневый Fit-Check badge (safe/caution/warning/danger), mix-blend-mode на изображениях, empty states, Virtuoso, offline fallback.
 - History, favorites, profile, account и service screens.
 
 Auth/profile:

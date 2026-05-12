@@ -102,6 +102,8 @@
   "catalog.sort.fit": "Подходящие мне",
   "catalog.sort.cheap": "Сначала дешевле",
   "catalog.sort.pricey": "Сначала дороже",
+  "catalog.sort.protein": "Больше белка",
+  "catalog.sort.sugar": "Меньше сахара",
   "catalog.verdict.safe": "Подходит",
   "catalog.verdict.caution": "Осторожно",
   "catalog.verdict.warning": "Внимание",
