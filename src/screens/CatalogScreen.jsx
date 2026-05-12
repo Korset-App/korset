@@ -38,8 +38,9 @@ function ProductThumb({ product }) {
       <img
         src={src}
         alt={product.name}
+        className="product-img-blend"
         onError={() => setImgOk(false)}
-        style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 8 }}
+        style={{ padding: 8 }}
       />
     )
   }
@@ -58,6 +59,16 @@ function ProductThumb({ product }) {
       {product.name?.[0] || '•'}
     </div>
   )
+}
+
+function getVerdictConfig(fit, t) {
+  const v = fit.verdict
+  if (v === 'danger') return { cls: 'danger', icon: 'cancel', label: t('catalog.verdict.danger') }
+  if (v === 'warning')
+    return { cls: 'warning', icon: 'error_outline', label: t('catalog.verdict.warning') }
+  if (v === 'caution')
+    return { cls: 'caution', icon: 'warning', label: t('catalog.verdict.caution') }
+  return { cls: 'safe', icon: 'check_circle', label: t('catalog.verdict.safe') }
 }
 
 const GridList = forwardRef(({ style, children, ...props }, ref) => (
@@ -401,6 +412,11 @@ export default function CatalogScreen() {
   const renderGridItem = useCallback(
     (index, product) => {
       const fit = checkProductFit(product, profile)
+      const verdict = getVerdictConfig(fit, t)
+      const compareState =
+        comparePin?.ean === product.ean ? 'active-pin' : comparePin ? 'select-second' : 'default'
+      const compareIcon =
+        comparePin?.ean === product.ean ? 'close' : comparePin ? 'add' : 'compare_arrows'
       return (
         <div
           onClick={() => handleNavigate(product)}
@@ -414,35 +430,23 @@ export default function CatalogScreen() {
             cursor: 'pointer',
             position: 'relative',
             height: '100%',
+            minHeight: 260,
           }}
         >
-          <div style={{ position: 'absolute', top: 10, left: 10, zIndex: 2 }}>
-            <div
-              style={{
-                fontSize: 9,
-                fontWeight: 700,
-                padding: '2px 6px',
-                borderRadius: 999,
-                background: fit.fits ? 'rgba(16,185,129,0.18)' : 'rgba(239,68,68,0.18)',
-                color: fit.fits ? '#34D399' : '#F87171',
-                border: `1px solid ${fit.fits ? 'rgba(52,211,153,0.3)' : 'rgba(248,113,113,0.3)'}`,
-              }}
-            >
-              {fit.fits ? t('catalog.fits') : t('catalog.check')}
+          <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 2 }}>
+            <div className={`catalog-verdict-badge ${verdict.cls}`}>
+              <span className="material-symbols-outlined">{verdict.icon}</span>
+              {verdict.label}
             </div>
           </div>
+
           <div
-            style={{
-              width: '100%',
-              aspectRatio: '1/1',
-              borderRadius: 14,
-              background: 'var(--image-bg)',
-              overflow: 'hidden',
-              marginBottom: 10,
-            }}
+            className="catalog-img-box"
+            style={{ width: '100%', aspectRatio: '1/1', marginBottom: 10 }}
           >
             <ProductThumb product={product} />
           </div>
+
           <div
             style={{
               fontFamily: 'var(--font-display)',
@@ -454,45 +458,29 @@ export default function CatalogScreen() {
               WebkitLineClamp: 2,
               WebkitBoxOrient: 'vertical',
               overflow: 'hidden',
-              marginBottom: 6,
-              flex: 1,
+              marginBottom: 4,
+              minHeight: '2.6em',
             }}
           >
             {getLocalName(product)}
           </div>
-          {product.brand && (
-            <div
-              style={{
-                fontSize: 11,
-                color: 'var(--text-soft)',
-                marginBottom: getDisplayQuantity(product, lang) ? 0 : 6,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {product.brand}
-            </div>
-          )}
-          {getDisplayQuantity(product, lang) && (
-            <div
-              style={{
-                fontSize: 11,
-                color: 'var(--text-dim)',
-                marginBottom: 6,
-              }}
-            >
-              {getDisplayQuantity(product, lang)}
-            </div>
-          )}
+
           <div
             style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-end',
-              marginTop: 'auto',
+              fontSize: 11,
+              color: 'var(--text-soft)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              marginBottom: 2,
+              minHeight: '1.4em',
             }}
           >
+            {[product.brand, getDisplayQuantity(product, lang)].filter(Boolean).join(' · ') ||
+              '\u00A0'}
+          </div>
+
+          <div style={{ marginTop: 'auto', paddingTop: 8 }}>
             <div
               style={{
                 fontFamily: 'var(--font-display)',
@@ -503,41 +491,13 @@ export default function CatalogScreen() {
             >
               {formatPrice(product.priceKzt)}
             </div>
-            <button
-              onClick={(e) => handleCompare(product, e)}
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: 8,
-                cursor: 'pointer',
-                background:
-                  comparePin?.ean === product.ean
-                    ? 'rgba(124,58,237,0.4)'
-                    : comparePin
-                      ? 'rgba(52,211,153,0.15)'
-                      : 'rgba(124,58,237,0.15)',
-                border: `1px solid ${comparePin?.ean === product.ean ? 'rgba(139,92,246,0.8)' : comparePin ? 'rgba(52,211,153,0.5)' : 'rgba(139,92,246,0.3)'}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <span
-                className="material-symbols-outlined"
-                style={{
-                  fontSize: 14,
-                  color:
-                    comparePin?.ean === product.ean
-                      ? '#C4B5FD'
-                      : comparePin
-                        ? '#34D399'
-                        : '#A78BFA',
-                }}
-              >
-                {comparePin?.ean === product.ean ? 'close' : comparePin ? 'add' : 'compare_arrows'}
-              </span>
-            </button>
           </div>
+          <button
+            className={`catalog-compare-btn-grid ${compareState}`}
+            onClick={(e) => handleCompare(product, e)}
+          >
+            <span className="material-symbols-outlined">{compareIcon}</span>
+          </button>
         </div>
       )
     },
@@ -547,6 +507,17 @@ export default function CatalogScreen() {
   const renderListItem = useCallback(
     (index, product) => {
       const fit = checkProductFit(product, profile)
+      const verdict = getVerdictConfig(fit, t)
+      const compareState =
+        comparePin?.ean === product.ean ? 'active-pin' : comparePin ? 'select-second' : 'default'
+      const compareIcon =
+        comparePin?.ean === product.ean ? 'close' : comparePin ? 'add' : 'compare_arrows'
+      const compareLabel =
+        comparePin?.ean === product.ean
+          ? t('compare.cancel')
+          : comparePin
+            ? t('compare.btnLabel')
+            : t('compare.compareMode')
       return (
         <div
           onClick={() => handleNavigate(product)}
@@ -557,132 +528,77 @@ export default function CatalogScreen() {
             padding: 12,
             margin: '0 20px',
             display: 'grid',
-            gridTemplateColumns: '92px 1fr',
-            gap: 12,
+            gridTemplateColumns: '80px 1fr',
+            gap: 10,
             cursor: 'pointer',
           }}
         >
-          <div
-            style={{
-              width: 92,
-              height: 92,
-              borderRadius: 16,
-              background: 'var(--image-bg)',
-              overflow: 'hidden',
-            }}
-          >
+          <div className="catalog-img-box" style={{ width: 80, height: 80 }}>
             <ProductThumb product={product} />
           </div>
-          <div style={{ minWidth: 0 }}>
+
+          <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
             <div
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems: 'start',
-                gap: 12,
-                marginBottom: 6,
+                alignItems: 'flex-start',
+                gap: 8,
               }}
             >
               <div
                 style={{
                   fontFamily: 'var(--font-display)',
-                  fontSize: 15,
+                  fontSize: 14,
                   fontWeight: 700,
                   color: 'var(--text)',
                   lineHeight: 1.35,
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  flex: 1,
                 }}
               >
                 {getLocalName(product)}
               </div>
-              <div
-                style={{
-                  fontSize: 11,
-                  padding: '4px 8px',
-                  borderRadius: 999,
-                  background: fit.fits ? 'rgba(16,185,129,0.14)' : 'rgba(239,68,68,0.14)',
-                  color: fit.fits ? '#34D399' : '#F87171',
-                  flexShrink: 0,
-                }}
-              >
-                {fit.fits ? t('catalog.fits') : t('catalog.check')}
+              <div className={`catalog-verdict-badge ${verdict.cls}`}>
+                <span className="material-symbols-outlined">{verdict.icon}</span>
+                {verdict.label}
               </div>
             </div>
-            <div style={{ fontSize: 12, color: 'var(--text-soft)', marginBottom: 10 }}>
+
+            <div style={{ fontSize: 12, color: 'var(--text-soft)' }}>
               {[product.brand || t('catalog.noBrand'), getDisplayQuantity(product, lang)]
                 .filter(Boolean)
                 .join(' · ')}
             </div>
+
             <div
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems: 'end',
-                gap: 12,
+                alignItems: 'center',
+                marginTop: 'auto',
               }}
             >
-              <div>
-                <div
-                  style={{
-                    fontFamily: 'var(--font-display)',
-                    fontSize: 22,
-                    fontWeight: 900,
-                    color: 'var(--primary-bright)',
-                  }}
-                >
-                  {formatPrice(product.priceKzt)}
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>
-                  {product.shelf || t('catalog.shelfTbd')}
-                </div>
-              </div>
               <div
                 style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'flex-end',
-                  gap: 6,
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 20,
+                  fontWeight: 900,
+                  color: 'var(--primary-bright)',
                 }}
               >
-                <button
-                  onClick={(e) => handleCompare(product, e)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    padding: '4px 8px',
-                    borderRadius: 8,
-                    cursor: 'pointer',
-                    background:
-                      comparePin?.ean === product.ean
-                        ? 'rgba(124,58,237,0.35)'
-                        : comparePin
-                          ? 'rgba(52,211,153,0.12)'
-                          : 'rgba(124,58,237,0.12)',
-                    border: `1px solid ${comparePin?.ean === product.ean ? 'rgba(139,92,246,0.7)' : comparePin ? 'rgba(52,211,153,0.4)' : 'rgba(139,92,246,0.25)'}`,
-                    color:
-                      comparePin?.ean === product.ean
-                        ? '#C4B5FD'
-                        : comparePin
-                          ? '#34D399'
-                          : '#A78BFA',
-                    fontSize: 10,
-                    fontWeight: 700,
-                  }}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: 12 }}>
-                    {comparePin?.ean === product.ean
-                      ? 'close'
-                      : comparePin
-                        ? 'add'
-                        : 'compare_arrows'}
-                  </span>
-                  {comparePin?.ean === product.ean
-                    ? t('compare.cancel')
-                    : comparePin
-                      ? t('compare.btnLabel')
-                      : t('compare.compareMode')}
-                </button>
+                {formatPrice(product.priceKzt)}
               </div>
+              <button
+                className={`catalog-compare-btn ${compareState}`}
+                onClick={(e) => handleCompare(product, e)}
+              >
+                <span className="material-symbols-outlined">{compareIcon}</span>
+                {compareLabel}
+              </button>
             </div>
           </div>
         </div>
@@ -791,30 +707,29 @@ export default function CatalogScreen() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-          <div style={{ flex: 1, position: 'relative' }}>
-            <div
-              style={{
-                padding: '12px 14px',
-                borderRadius: 16,
-                background: 'var(--input-bg)',
-                border: '1px solid var(--input-border)',
-              }}
-            >
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder={t('catalog.searchPlaceholder')}
-                style={{
-                  width: '100%',
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  color: 'var(--text)',
-                  fontSize: 14,
-                }}
-              />
-            </div>
+        <div style={{ display: 'flex', gap: 10, marginBottom: 14, alignItems: 'center' }}>
+          <div className="catalog-search-wrap">
+            <span className="catalog-search-icon material-symbols-outlined">search</span>
+            <input
+              className="catalog-search-input"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder={t('catalog.searchPlaceholder')}
+            />
+            {q.trim().length > 0 && (
+              <button
+                className="catalog-search-clear"
+                onClick={() => setQ('')}
+                aria-label={t('catalog.clearSearch')}
+              >
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 14, color: 'var(--text-soft)' }}
+                >
+                  close
+                </span>
+              </button>
+            )}
             {searchHint && (
               <div
                 style={{
@@ -831,104 +746,67 @@ export default function CatalogScreen() {
               </div>
             )}
           </div>
-          {!showCategories && (
+          <div className="catalog-view-toggle">
             <button
+              className={`catalog-view-btn${viewMode === 'list' ? ' active' : ''}`}
               onClick={() => {
-                const next = viewMode === 'list' ? 'grid' : 'list'
-                setViewMode(next)
-                sessionStorage.setItem('korset_catalog_view', next)
+                setViewMode('list')
+                sessionStorage.setItem('korset_catalog_view', 'list')
               }}
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 14,
-                background: 'var(--glass-muted)',
-                border: '1px solid var(--glass-soft-border)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                color: 'var(--text-soft)',
-              }}
+              aria-label="Список"
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-                {viewMode === 'list' ? 'grid_view' : 'view_list'}
-              </span>
+              <span className="material-symbols-outlined">view_list</span>
             </button>
-          )}
+            <button
+              className={`catalog-view-btn${viewMode === 'grid' ? ' active' : ''}`}
+              onClick={() => {
+                setViewMode('grid')
+                sessionStorage.setItem('korset_catalog_view', 'grid')
+              }}
+              aria-label="Сетка"
+            >
+              <span className="material-symbols-outlined">grid_view</span>
+            </button>
+          </div>
         </div>
 
         {showSubcategories && activeSubcategoryKeys.length > 1 && (
-          <div
-            style={{
-              display: 'flex',
-              gap: 8,
-              overflowX: 'auto',
-              paddingBottom: 4,
-              marginBottom: 10,
-            }}
-          >
+          <div className="catalog-chips-row" style={{ marginBottom: 10 }}>
             <button
+              className={`catalog-sub-chip${!selectedSubcategory ? ' active' : ''}`}
               onClick={() => setSelectedSubcategory(null)}
-              style={{
-                padding: '8px 12px',
-                borderRadius: 999,
-                whiteSpace: 'nowrap',
-                cursor: 'pointer',
-                background: !selectedSubcategory ? 'var(--badge-bg)' : 'var(--glass-muted)',
-                border: `1px solid ${!selectedSubcategory ? 'var(--badge-border)' : 'var(--glass-soft-border)'}`,
-                color: !selectedSubcategory ? 'var(--primary-bright)' : 'var(--text-soft)',
-                fontSize: 12,
-                fontWeight: 600,
-              }}
             >
               {t('catalog.allSubcategories')}
+              <span className="catalog-sub-chip-count">
+                {activeSubcategoryKeys.reduce((acc, k) => acc + (subcategoryCountMap[k] || 0), 0)}
+              </span>
             </button>
             {activeSubcategoryKeys.map((subKey) => (
               <button
                 key={subKey}
+                className={`catalog-sub-chip${selectedSubcategory === subKey ? ' active' : ''}`}
                 onClick={() => setSelectedSubcategory(subKey)}
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: 999,
-                  whiteSpace: 'nowrap',
-                  cursor: 'pointer',
-                  background:
-                    selectedSubcategory === subKey ? 'var(--badge-bg)' : 'var(--glass-muted)',
-                  border: `1px solid ${selectedSubcategory === subKey ? 'var(--badge-border)' : 'var(--glass-soft-border)'}`,
-                  color:
-                    selectedSubcategory === subKey ? 'var(--primary-bright)' : 'var(--text-soft)',
-                  fontSize: 12,
-                  fontWeight: 600,
-                }}
               >
                 {getSubcategoryLabel(selectedCategory, subKey, lang)}
+                <span className="catalog-sub-chip-count">{subcategoryCountMap[subKey] || 0}</span>
               </button>
             ))}
           </div>
         )}
 
         {showSubcategories && (
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          <div className="catalog-chips-row" style={{ marginBottom: 16 }}>
             {[
-              { id: 'fit', label: t('catalog.sort.fit') },
-              { id: 'cheap', label: t('catalog.sort.cheap') },
-              { id: 'pricey', label: t('catalog.sort.pricey') },
+              { id: 'fit', label: t('catalog.sort.fit'), icon: 'sort' },
+              { id: 'cheap', label: t('catalog.sort.cheap'), icon: 'arrow_downward' },
+              { id: 'pricey', label: t('catalog.sort.pricey'), icon: 'arrow_upward' },
             ].map((option) => (
               <button
                 key={option.id}
+                className={`catalog-sort-chip${sort === option.id ? ' active' : ''}`}
                 onClick={() => setSort(option.id)}
-                style={{
-                  padding: '7px 10px',
-                  borderRadius: 12,
-                  cursor: 'pointer',
-                  background: sort === option.id ? 'var(--accent-sky-dim)' : 'var(--glass-muted)',
-                  border: `1px solid ${sort === option.id ? 'var(--accent-sky-border)' : 'var(--glass-soft-border)'}`,
-                  color: sort === option.id ? 'var(--accent-sky)' : 'var(--text-soft)',
-                  fontSize: 11,
-                  fontWeight: 600,
-                }}
               >
+                <span className="material-symbols-outlined">{option.icon}</span>
                 {option.label}
               </button>
             ))}
@@ -1027,7 +905,23 @@ export default function CatalogScreen() {
 
       {!showCategories && (
         <div style={{ flex: 1, minHeight: 0 }}>
-          {viewMode === 'grid' ? (
+          {displayList.length === 0 ? (
+            isSearching ? (
+              <div className="catalog-empty-state">
+                <span className="material-symbols-outlined">search_off</span>
+                <div className="catalog-empty-state-title">{t('catalog.emptySearch')}</div>
+                <div className="catalog-empty-state-sub">«{q.trim()}»</div>
+                <button className="catalog-empty-state-btn" onClick={() => setQ('')}>
+                  {t('catalog.clearSearch')}
+                </button>
+              </div>
+            ) : (
+              <div className="catalog-empty-state">
+                <span className="material-symbols-outlined">inventory_2</span>
+                <div className="catalog-empty-state-title">{t('catalog.emptyCategory')}</div>
+              </div>
+            )
+          ) : viewMode === 'grid' ? (
             <VirtuosoGrid
               ref={virtuosoRef}
               data={displayList}
@@ -1048,13 +942,6 @@ export default function CatalogScreen() {
           )}
         </div>
       )}
-
-      <style>{`
-        @keyframes compareBarIn {
-          from { opacity: 0; transform: translateY(-8px) }
-          to   { opacity: 1; transform: translateY(0) }
-        }
-      `}</style>
     </div>
   )
 }

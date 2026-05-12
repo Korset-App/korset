@@ -107,7 +107,7 @@ Consumer:
 - ProductScreen: Fit-Check, факты товара, цена/store overlay, unknown-EAN request flow, переходы к AI/compare/alternatives.
 - CompareScreen: сравнение двух товаров через scan flow.
 - AIScreen/AIAssistantScreen: product/general/compare AI modes, серверный `/api/ai.js`, RAG через `vault_embeddings`.
-- CatalogScreen: 18 нормализованных категорий, bento showcase, поиск, сортировка, Virtuoso, offline fallback.
+- CatalogScreen: 18 нормализованных категорий, bento showcase, поиск (иконка + кнопка ×), view toggle list/grid, subcategory chips со счётчиками, sort chips с иконками, 4-уровневый Fit-Check badge (safe/caution/warning/danger), mix-blend-mode на изображениях, empty states, Virtuoso, offline fallback.
 - History, favorites, profile, account и service screens.
 
 Auth/profile:
@@ -178,6 +178,7 @@ Auth — **DONE**. Полный deep audit + cleanup завершён. Код с
 
 Недавний product/code focus:
 
+- 🔎 **Catalog Search upgrade — Stage 1 audit**: зафиксирован контракт профессионального поиска и текущий search/data flow. Детали: `docs/vault/plans/2026-05-13-catalog-search-stage1-audit.md`. Ключевой вывод: `tsvector`/GIN уже есть и улучшены миграцией 018 (`russian` stemming), но `CatalogScreen.jsx` всё ещё использует клиентский `includes` и серверный `ILIKE`; Stage 2 должен добавить тонкую RPC/`pg_trgm` миграцию без переписывания старых миграций.
 - ✅ **Landing V3**: Все Unsplash-заглушки (шаги, фоны, превью видео, карточки «Для кого») заменены на локальные высококачественные ИИ-изображения под контекст Казахстана и СНГ.
 - Catalog bento showcase доработан.
 - i18n migration завершена и защищается `scripts/check-i18n.mjs`
