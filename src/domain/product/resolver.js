@@ -212,6 +212,8 @@ async function logMissingProduct(ean, storeId) {
 }
 
 async function persistLocalHistory(product, foundStatus, storeId) {
+  const privacy = loadPrivacySettings()
+  if (!privacy.localHistoryEnabled) return
   if (!product?.ean) return
   const ownerKey = await getCurrentHistoryOwnerKey()
   const entry = buildLocalScanHistoryEntry(product, foundStatus, storeId)

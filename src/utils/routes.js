@@ -63,6 +63,10 @@ export function buildPrivacyPath(storeSlug = null) {
   return storeSlug ? `${buildStoreAppBase(storeSlug)}/privacy` : '/privacy'
 }
 
+export function buildNotificationSettingsPath(storeSlug = null) {
+  return storeSlug ? `${buildStoreAppBase(storeSlug)}/notifications` : '/notifications'
+}
+
 export function buildComparePath(storeSlug = null, ean1, ean2) {
   return `${buildProductPath(storeSlug, ean1)}/compare/${ean2}`
 }

@@ -15,6 +15,7 @@ Körset — store-context AI assistant для офлайн-продуктовы�
 V1 scope: только продуктовые магазины.
 
 Главная ценность:
+
 - Покупателю: быстро понять, подходит ли продукт прямо у полки.
 - Магазину: лояльность, меньше потерянных продаж, аналитика сканов, сигналы спроса по unknown EAN, цифровой слой поверх офлайн-магазина.
 
@@ -31,6 +32,7 @@ V1 scope: только продуктовые магазины.
 - PWA/offline: service worker, IndexedDB, очередь offline-сканов.
 
 Важные папки:
+
 - `src/screens/` — экраны.
 - `src/components/` — общие UI-компоненты.
 - `src/contexts/` — React contexts.
@@ -99,6 +101,7 @@ Retail:
 ## 4. Что Работает Сейчас
 
 Consumer:
+
 - Сканер штрихкодов с ручным вводом EAN.
 - Product resolution через store catalog/global products, IndexedDB offline cache и enrichment paths.
 - ProductScreen: Fit-Check, факты товара, цена/store overlay, unknown-EAN request flow, переходы к AI/compare/alternatives.
@@ -108,6 +111,7 @@ Consumer:
 - History, favorites, profile, account и service screens.
 
 Auth/profile:
+
 - Supabase Auth: Google OAuth, email/password, email OTP.
 - Phone/WhatsApp auth UI удалён из AuthScreen; AccountScreen всё ещё может показывать существующий `user.phone`, если он есть в Supabase identity.
 - Password recovery идёт через `/update-password`.
@@ -115,6 +119,7 @@ Auth/profile:
 - Profile использует `<ProfileAvatar />` для аватаров.
 
 Retail:
+
 - Dashboard с scan/business metrics.
 - Products management: price/stock/shelf editing, barcode search, list/grid режим.
 - Import: CSV/XLS/XLSX, template download, bulk update, unknown-EAN staging, auto-resolve.
@@ -122,6 +127,7 @@ Retail:
 - EAN Recovery: отдельный экран + `/api/ean-recovery`.
 
 Infrastructure:
+
 - RLS и JWT-protected APIs для чувствительных действий.
 - Sentry frontend/backend, Telegram alerts, health endpoint.
 - Offline app shell, IndexedDB catalog cache, pending scan queue, OfflineBanner.
@@ -154,22 +160,24 @@ Infrastructure:
 Решение: делать AI ассистентом конкретного магазина, с store context, локальной историей чата, умными стартовыми подсказками, catalog-grounded рекомендациями, карточками товаров в чате, Product AI upgrade, store AI notes и позже Retail AI Insights. Не делать в V1: полки/карту магазина, live internet search в buyer-чате, собственную локальную модель, серверную историю чатов и большой owner AI chat.
 
 - ✅ Phase 1 foundation: store context helper, локальная история чата, новые AI chips, store-aware general/product prompts. См. `docs/vault/changelog/2026-05-09-store-ai-phase-1-foundation.md` (Полностью реализовано и покрыто unit-тестами).
-Phase 2/3 first pass: общий AI получает catalog candidates из текущего магазина и может вернуть grouped product cards/follow-up chips. См. `docs/vault/changelog/2026-05-09-store-ai-phase-2-3-catalog-cards.md`.
-Phase 4 first pass: Product AI больше не зависит только от `location.state`/legacy no-op lookup; `/s/:storeSlug/product/:ean/ai` резолвит товар через full store fetch, fallback на текущий catalog по primary/alternate EAN, и отправляет AI цену, наличие, EAN и same-store alternatives. См. `docs/vault/changelog/2026-05-09-store-ai-phase-4-product-ai.md`.
-Phase 5 Store AI Notes: создана миграция `027_store_ai_notes.sql`, Retail Settings получил textarea `ai_store_notes` с лимитом 2000 символов и предупреждением про проверяемые факты; notes уже попадают в AI как store facts через существующий context/API. См. `docs/vault/changelog/2026-05-09-store-ai-phase-5-store-notes.md`. Миграция создана локально, но не применялась к Supabase из этой сессии.
-Phase 6 Retail AI Insights: Retail Dashboard получил блок “KÖRSET AI заметил”, который строит 3–5 агрегированных owner-сигналов из existing scans/missed/coverage/lost/top-products data: unknown EAN demand, out-of-stock demand, low catalog coverage, estimated lost revenue, weak product data, top demand and activation nudge. Без owner chat, predictions и user-level analytics. См. `docs/vault/changelog/2026-05-09-store-ai-phase-6-retail-insights.md`.
-Phase 7 launch polish: AI guardrails стали явным тестируемым контрактом: anonymous/auth rate limits, 12-message history, 1200-char single message, 6000-char total payload, 12 catalog candidates, 4 structured groups/12 products, compact max_tokens per AI mode. QA prompt set и known limitations записаны в `docs/vault/plans/2026-05-09-store-ai-phase-7-qa-prompts.md`; changelog: `docs/vault/changelog/2026-05-09-store-ai-phase-7-launch-polish.md`.
+  Phase 2/3 first pass: общий AI получает catalog candidates из текущего магазина и может вернуть grouped product cards/follow-up chips. См. `docs/vault/changelog/2026-05-09-store-ai-phase-2-3-catalog-cards.md`.
+  Phase 4 first pass: Product AI больше не зависит только от `location.state`/legacy no-op lookup; `/s/:storeSlug/product/:ean/ai` резолвит товар через full store fetch, fallback на текущий catalog по primary/alternate EAN, и отправляет AI цену, наличие, EAN и same-store alternatives. См. `docs/vault/changelog/2026-05-09-store-ai-phase-4-product-ai.md`.
+  Phase 5 Store AI Notes: создана миграция `027_store_ai_notes.sql`, Retail Settings получил textarea `ai_store_notes` с лимитом 2000 символов и предупреждением про проверяемые факты; notes уже попадают в AI как store facts через существующий context/API. См. `docs/vault/changelog/2026-05-09-store-ai-phase-5-store-notes.md`. Миграция создана локально, но не применялась к Supabase из этой сессии.
+  Phase 6 Retail AI Insights: Retail Dashboard получил блок “KÖRSET AI заметил”, который строит 3–5 агрегированных owner-сигналов из existing scans/missed/coverage/lost/top-products data: unknown EAN demand, out-of-stock demand, low catalog coverage, estimated lost revenue, weak product data, top demand and activation nudge. Без owner chat, predictions и user-level analytics. См. `docs/vault/changelog/2026-05-09-store-ai-phase-6-retail-insights.md`.
+  Phase 7 launch polish: AI guardrails стали явным тестируемым контрактом: anonymous/auth rate limits, 12-message history, 1200-char single message, 6000-char total payload, 12 catalog candidates, 4 structured groups/12 products, compact max_tokens per AI mode. QA prompt set и known limitations записаны в `docs/vault/plans/2026-05-09-store-ai-phase-7-qa-prompts.md`; changelog: `docs/vault/changelog/2026-05-09-store-ai-phase-7-launch-polish.md`.
 
 На 2026-05-06:
 
 Auth — **DONE**. Полный deep audit + cleanup завершён. Код стабильный, тесты зелёные. Единственный ручной остаток: вставить 3 email шаблона из `docs/vault/architecture/supabase-email-templates.md` в Supabase Dashboard → Auth → Email Templates. См. `docs/vault/changelog/2026-05-06-auth-deep-audit-cleanup.md`.
 
 Текущий meta-focus — AI-agent memory system:
+
 1. ✅ `AGENTS.md` переписан
 2. ✅ `docs/CONTEXT.md` нормализован
 3. Далее: frontmatter/status в старые Vault-файлы, oversized files index, query-vault.mjs metadata check
 
 Недавний product/code focus:
+
 - ✅ **Landing V3**: Все Unsplash-заглушки (шаги, фоны, превью видео, карточки «Для кого») заменены на локальные высококачественные ИИ-изображения под контекст Казахстана и СНГ.
 - Catalog bento showcase доработан.
 - i18n migration завершена и защищается `scripts/check-i18n.mjs`
@@ -179,6 +187,7 @@ Auth — **DONE**. Полный deep audit + cleanup завершён. Код с
 ## 8. Последний Устойчивый Статус
 
 Auth (DONE — vault: `architecture/auth-system.md`, changelog: `2026-05-06-auth-deep-audit-cleanup.md`):
+
 - AuthScreen: password tab + email-code tab. Google OAuth, email/password, email OTP, reset/update password.
 - Shared components: `AuthBackground`, `PasswordRules`, `AuthAlert`, `GoogleLogo`, `EyeBtn`.
 - `src/utils/authHelpers.js` — localizeError, validatePassword, isValidEmail. Tests: 9/9.
@@ -188,18 +197,22 @@ Auth (DONE — vault: `architecture/auth-system.md`, changelog: `2026-05-06-auth
 - OTP paste: works from any input
 
 i18n:
+
 - Локали лежат в `src/locales/ru/*.json` и `src/locales/kz/*.json`.
 - `src/i18n/loader.js` собирает namespaces в flat dictionaries.
 - `scripts/check-i18n.mjs` проверяет missing KZ keys, orphan keys, empty values, identical RU/KZ values.
 - Новый UI-текст не должен появляться напрямую в JSX.
 
 Design:
+
 - Dark и light themes поддерживаются.
 - Не возвращать raw hardcoded white/black цвета для core UI surfaces/text.
 - Catalog top-level — 18-card bento showcase.
+- Consumer home `/s/:storeSlug` — store-first scan hub with context panel, catalog/AI/history quick actions, contacts and loading/missing-store states. Details: `docs/vault/changelog/2026-05-12-consumer-home-redesign.md`.
 - Landing V3 имеет отдельную visual system; детали — в Vault plans/changelog.
 
 Data:
+
 - Категории нормализованы до 18 ключей.
 - KZ names и R2/CDN product images используются.
 - Unknown EAN — это data-improvement flow, а не повод выдумывать AI-ответ.
@@ -227,6 +240,7 @@ Data:
 - `docs/vault/changelog.md` — legacy changelog/index.
 
 Старт задачи:
+
 1. Прочитать `AGENTS.md` и этот файл.
 2. Сделать targeted search по зоне задачи.
 3. Использовать Vault RAG только если нужна глубокая проектная память.

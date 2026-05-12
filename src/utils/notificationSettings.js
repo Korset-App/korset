@@ -1,8 +1,17 @@
 export const DEFAULT_NOTIFICATION_SETTINGS = {
   enabled: false,
-  status: 'default',
+  status: 'default', // default | granted | denied | unsupported
   pushSupported: false,
   subscriptionActive: false,
+  weekly: true,
+  favorites: true,
+  restock: true,
+  promo: false,
+  system: true,
+  quietHoursEnabled: false,
+  quietFrom: '22:00',
+  quietTo: '08:00',
+  lastPermissionCheckAt: null,
 }
 
 export function loadNotificationSettings() {

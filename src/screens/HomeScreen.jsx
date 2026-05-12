@@ -1,1704 +1,233 @@
 import { useEffect } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../i18n/index.js'
 import { useStore } from '../contexts/StoreContext.jsx'
-import { useAuth } from '../contexts/AuthContext.jsx'
-import { buildAuthNavigateState } from '../utils/authFlow.js'
 import LandingScreen from './LandingScreen.jsx'
+import './HomeScreen.css'
+
+function StoreLogo({ store }) {
+  const logo = store.logo_url || store.logo
+  const initial = store.name?.[0]?.toUpperCase() || 'K'
+
+  if (logo) {
+    return <img className="home-store-logo" src={logo} alt={store.name} />
+  }
+
+  return <div className="home-store-logo home-store-logo--fallback">{initial}</div>
+}
+
+function HomeIcon({ name, className = '' }) {
+  return <span className={`material-symbols-outlined ${className}`}>{name}</span>
+}
 
 export default function HomeScreen() {
   const navigate = useNavigate()
-  const location = useLocation()
-  const { t } = useI18n()
-  const { currentStore, isStoreApp, routes } = useStore()
-  const { user } = useAuth()
+  const { t, format } = useI18n()
+  const {
+    currentStore,
+    isStoreApp,
+    isStoreLoading,
+    routes,
+    catalogProducts = [],
+    isCatalogReady,
+  } = useStore()
 
   useEffect(() => {
     import('html5-qrcode').catch(() => {})
   }, [])
 
-  if (isStoreApp && currentStore && routes) {
+  if (!isStoreApp) {
+    return <LandingScreen />
+  }
+
+  if (!currentStore || !routes) {
     return (
-      <div
-        className="screen"
-        style={{ paddingBottom: 100, background: 'var(--bg-app)', minHeight: '100vh' }}
-      >
-        {/* Background glow */}
-        <div
-          style={{
-            position: 'fixed',
-            top: -100,
-            left: -100,
-            width: 300,
-            height: 300,
-            background: 'radial-gradient(circle, rgba(124,58,237,0.15) 0%, transparent 70%)',
-            zIndex: 0,
-          }}
-        />
-        <div
-          style={{
-            position: 'fixed',
-            top: 200,
-            right: -150,
-            width: 400,
-            height: 400,
-            background: 'radial-gradient(circle, rgba(56,189,248,0.1) 0%, transparent 70%)',
-            zIndex: 0,
-          }}
-        />
-
-        <div style={{ padding: '20px 24px 0', position: 'relative', zIndex: 10 }}>
-          {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32 }}>
-            {currentStore.logo_url || currentStore.logo ? (
-              <img
-                src={currentStore.logo_url || currentStore.logo}
-                alt={currentStore.name}
-                style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: 20,
-                  objectFit: 'cover',
-                  background: 'var(--image-bg)',
-                  boxShadow: 'var(--shadow-card)',
-                }}
-              />
-            ) : (
-              <div
-                style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: 20,
-                  background:
-                    'linear-gradient(135deg, rgba(56,189,248,0.25), rgba(124,58,237,0.25))',
-                  border: '1px solid var(--accent-sky-border)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 26,
-                  fontWeight: 800,
-                  color: 'var(--text-inverse)',
-                  fontFamily: 'var(--font-display)',
-                  flexShrink: 0,
-                  boxShadow: 'var(--shadow-card)',
-                }}
-              >
-                {currentStore.name?.[0]?.toUpperCase() || 'K'}
-              </div>
-            )}
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                <span
-                  className="material-symbols-outlined"
-                  style={{ fontSize: 14, color: 'var(--accent-sky)' }}
-                >
-                  verified
-                </span>
-                <span
-                  style={{
-                    fontSize: 11,
-                    color: 'var(--primary-bright)',
-                    fontWeight: 800,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.1em',
-                  }}
-                >
-                  Официальный магазин
-                </span>
-              </div>
-              <h1
-                style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: 28,
-                  fontWeight: 900,
-                  color: 'var(--text)',
-                  lineHeight: 1.1,
-                  margin: 0,
-                  letterSpacing: '-0.02em',
-                }}
-              >
-                {currentStore.name}
-              </h1>
-              <div
-                style={{
-                  fontSize: 13,
-                  color: 'var(--text-dim)',
-                  marginTop: 6,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
-                  location_on
-                </span>
-                {currentStore.city} · {currentStore.address}
-              </div>
-              {currentStore.short_description && (
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: 'var(--text-dim)',
-                    marginTop: 5,
-                    lineHeight: 1.4,
-                  }}
-                >
-                  {currentStore.short_description}
-                </div>
-              )}
-              {(currentStore.phone ||
-                currentStore.whatsapp_number ||
-                currentStore.instagram_url) && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-                  {currentStore.phone && (
-                    <a
-                      href={`tel:${currentStore.phone.replace(/[^\d+]/g, '')}`}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 4,
-                        padding: '4px 9px',
-                        borderRadius: 8,
-                        background: 'rgba(74,222,128,0.08)',
-                        border: '1px solid rgba(74,222,128,0.2)',
-                        color: '#4ADE80',
-                        fontSize: 11,
-                        fontWeight: 600,
-                        textDecoration: 'none',
-                      }}
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: 13 }}>
-                        call
-                      </span>
-                      {currentStore.phone}
-                    </a>
-                  )}
-                  {currentStore.whatsapp_number && (
-                    <a
-                      href={`https://wa.me/${currentStore.whatsapp_number.replace(/\D/g, '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 4,
-                        padding: '4px 9px',
-                        borderRadius: 8,
-                        background: 'rgba(37,211,102,0.08)',
-                        border: '1px solid rgba(37,211,102,0.2)',
-                        color: '#25D366',
-                        fontSize: 11,
-                        fontWeight: 600,
-                        textDecoration: 'none',
-                      }}
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: 13 }}>
-                        chat
-                      </span>
-                      WhatsApp
-                    </a>
-                  )}
-                  {currentStore.instagram_url && (
-                    <a
-                      href={currentStore.instagram_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 4,
-                        padding: '4px 9px',
-                        borderRadius: 8,
-                        background: 'rgba(225,48,108,0.08)',
-                        border: '1px solid rgba(225,48,108,0.2)',
-                        color: '#E1306C',
-                        fontSize: 11,
-                        fontWeight: 600,
-                        textDecoration: 'none',
-                      }}
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: 13 }}>
-                        photo_camera
-                      </span>
-                      Instagram
-                    </a>
-                  )}
-                </div>
-              )}
-              {(currentStore.short_description ||
-                currentStore.description ||
-                currentStore.twogis_url) && (
-                <button
-                  onClick={() => navigate(routes.publicPage)}
-                  style={{
-                    marginTop: 7,
-                    padding: '4px 10px',
-                    borderRadius: 8,
-                    background: 'rgba(167,139,250,0.1)',
-                    border: '1px solid rgba(167,139,250,0.2)',
-                    color: 'var(--primary-bright)',
-                    fontSize: 11,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                  }}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: 12 }}>
-                    info
-                  </span>
-                  {t('home.moreInfo')}
-                </button>
-              )}
-            </div>
+      <div className="screen home-screen home-screen--state">
+        <div className="home-orb home-orb--left" />
+        <div className="home-orb home-orb--right" />
+        <div className="home-state-card">
+          <div className="home-state-mark">
+            <HomeIcon name={isStoreLoading ? 'progress_activity' : 'storefront'} />
           </div>
-
-          {/* Context Banner */}
-          <div
-            style={{
-              padding: '16px 20px',
-              borderRadius: 20,
-              background: 'var(--glass-subtle)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              border: '1px solid var(--glass-soft-border)',
-              marginBottom: 24,
-              display: 'flex',
-              gap: 14,
-              alignItems: 'center',
-            }}
-          >
-            <div
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 12,
-                background: 'var(--badge-bg)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <span
-                className="material-symbols-outlined"
-                style={{ color: 'var(--primary-bright)', fontSize: 20 }}
-              >
-                info
-              </span>
-            </div>
-            <div>
-              <div
-                style={{
-                  fontSize: 14,
-                  fontWeight: 800,
-                  color: 'var(--text)',
-                  marginBottom: 2,
-                  fontFamily: 'var(--font-display)',
-                }}
-              >
-                Контекст магазина
-              </div>
-              <div style={{ fontSize: 12, lineHeight: 1.4, color: 'var(--text-soft)' }}>
-                Аллергены, халал, КБЖУ, наличие и цена адаптированы под этот филиал.
-              </div>
-            </div>
-          </div>
-
-          {/* Primary Action: Scan */}
-          <button
-            onClick={() => navigate(routes.scan)}
-            style={{
-              width: '100%',
-              padding: '24px 20px',
-              borderRadius: 24,
-              cursor: 'pointer',
-              background: 'linear-gradient(135deg, rgba(124,58,237,0.3), rgba(56,189,248,0.15))',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              border: '1px solid var(--glass-strong-border)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 20,
-              boxShadow: 'var(--shadow-card), inset 0 1px 0 rgba(255,255,255,0.2)',
-              marginBottom: 16,
-              transition: 'transform 0.2s, box-shadow 0.2s',
-            }}
-            onPointerDown={(e) => {
-              e.currentTarget.style.transform = 'scale(0.98)'
-            }}
-            onPointerUp={(e) => {
-              e.currentTarget.style.transform = ''
-            }}
-            onPointerLeave={(e) => {
-              e.currentTarget.style.transform = ''
-            }}
-          >
-            <div
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: 16,
-                flexShrink: 0,
-                background: 'linear-gradient(135deg, #7C3AED, #38BDF8)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 8px 24px rgba(56,189,248,0.4)',
-              }}
-            >
-              <span
-                className="material-symbols-outlined"
-                style={{ color: 'var(--text-inverse)', fontSize: 28 }}
-              >
-                barcode_scanner
-              </span>
-            </div>
-            <div style={{ textAlign: 'left' }}>
-              <div
-                style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: 20,
-                  fontWeight: 800,
-                  color: 'var(--text)',
-                  marginBottom: 4,
-                  letterSpacing: '-0.01em',
-                }}
-              >
-                {t('home.scanBtn')}
-              </div>
-              <div style={{ fontSize: 13, color: 'var(--text-soft)', fontWeight: 500 }}>
-                {t('home.scanSub')}
-              </div>
-            </div>
-            <span
-              className="material-symbols-outlined"
-              style={{ marginLeft: 'auto', color: 'var(--icon-muted)', fontSize: 24 }}
-            >
-              chevron_right
-            </span>
-          </button>
-
-          {/* Bento Grid for Secondary Actions */}
-          <div
-            style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}
-          >
-            <div
-              onClick={() => navigate(routes.catalog)}
-              style={{
-                padding: '20px 16px',
-                borderRadius: 24,
-                cursor: 'pointer',
-                background: 'var(--glass-subtle)',
-                backdropFilter: 'blur(20px)',
-                border: '1px solid var(--glass-soft-border)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 12,
-                boxShadow: 'var(--shadow-card)',
-              }}
-            >
-              <div
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 14,
-                  background: 'var(--accent-sky-dim)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <svg
-                  width="22"
-                  height="22"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="var(--accent-sky)"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <rect x="3" y="3" width="7" height="7" rx="1" />
-                  <rect x="14" y="3" width="7" height="7" rx="1" />
-                  <rect x="3" y="14" width="7" height="7" rx="1" />
-                  <rect x="14" y="14" width="7" height="7" rx="1" />
-                </svg>
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontFamily: 'var(--font-display)',
-                    fontSize: 16,
-                    fontWeight: 800,
-                    color: 'var(--text)',
-                    marginBottom: 2,
-                  }}
-                >
-                  {t('home.catalog')}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.3 }}>
-                  {t('home.catalogSub')}
-                </div>
-              </div>
-            </div>
-
-            <div
-              onClick={() => navigate(routes.ai)}
-              style={{
-                padding: '20px 16px',
-                borderRadius: 24,
-                cursor: 'pointer',
-                background: 'var(--glass-subtle)',
-                backdropFilter: 'blur(20px)',
-                border: '1px solid var(--glass-soft-border)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 12,
-                boxShadow: 'var(--shadow-card)',
-              }}
-            >
-              <div
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 14,
-                  background: 'rgba(167,139,250,0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <svg
-                  width="22"
-                  height="22"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#A78BFA"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z" />
-                </svg>
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontFamily: 'var(--font-display)',
-                    fontSize: 16,
-                    fontWeight: 800,
-                    color: 'var(--text)',
-                    marginBottom: 2,
-                  }}
-                >
-                  {t('home.ai')}
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.3 }}>
-                  {t('home.aiSub')}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <button
-            onClick={() => navigate(routes.history)}
-            style={{
-              width: '100%',
-              padding: '18px 20px',
-              borderRadius: 20,
-              cursor: 'pointer',
-              background: 'var(--glass-subtle)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid var(--glass-soft-border)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 16,
-              marginBottom: 20,
-              boxShadow: 'var(--shadow-card)',
-            }}
-          >
-            <div
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 12,
-                background: 'rgba(52,211,153,0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <span
-                className="material-symbols-outlined"
-                style={{ color: '#34D399', fontSize: 20 }}
-              >
-                history
-              </span>
-            </div>
-            <div style={{ textAlign: 'left', flex: 1 }}>
-              <div
-                style={{
-                  fontSize: 15,
-                  fontWeight: 800,
-                  color: 'var(--text)',
-                  fontFamily: 'var(--font-display)',
-                  letterSpacing: '0.01em',
-                }}
-              >
-                {t('home.myHistory')}
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 2 }}>
-                {t('home.scannedProducts')}
-              </div>
-            </div>
-            <span
-              className="material-symbols-outlined"
-              style={{ color: 'var(--icon-muted)', fontSize: 20 }}
-            >
-              arrow_forward
-            </span>
-          </button>
+          <p className="home-eyebrow">{t('home.contextLabel')}</p>
+          <h1>{isStoreLoading ? t('home.loadingTitle') : t('home.missingTitle')}</h1>
+          <p>{isStoreLoading ? t('home.loadingText') : t('home.missingText')}</p>
+          {!isStoreLoading && (
+            <button className="home-pill-button" type="button" onClick={() => navigate('/stores')}>
+              {t('home.chooseStore')}
+            </button>
+          )}
         </div>
       </div>
     )
   }
 
-  if (!isStoreApp) {
-    return <LandingScreen />
-  }
+  const address = [currentStore.city, currentStore.address].filter(Boolean).join(' · ')
+  const hasContacts = Boolean(
+    currentStore.phone || currentStore.whatsapp_number || currentStore.instagram_url
+  )
+  const catalogCount = catalogProducts.length
+  const catalogCountLabel = isCatalogReady
+    ? t('home.catalogCount', { count: catalogCount, countText: format.number(catalogCount) })
+    : t('home.catalogSyncing')
+
+  const actions = [
+    {
+      key: 'catalog',
+      icon: 'grid_view',
+      title: t('home.catalog'),
+      text: catalogCount > 0 ? catalogCountLabel : t('home.catalogSub'),
+      path: routes.catalog,
+      tone: 'sky',
+    },
+    {
+      key: 'ai',
+      icon: 'auto_awesome',
+      title: t('home.ai'),
+      text: t('home.aiSub'),
+      path: routes.ai,
+      tone: 'violet',
+    },
+    {
+      key: 'history',
+      icon: 'history',
+      title: t('home.myHistory'),
+      text: t('home.scannedProducts'),
+      path: routes.history,
+      tone: 'mint',
+    },
+  ]
+
+  const fitSignals = [
+    ['allergy', t('home.signalAllergens')],
+    ['verified', t('home.signalHalal')],
+    ['restaurant', t('home.signalNutrition')],
+  ]
 
   return (
-    <>
-      <style>{`
-        .landing-page {
-          --primary: var(--primary-bright);
-          --primary-container: var(--primary);
-          --secondary: var(--primary-bright);
-          --secondary-container: #523787;
-          --tertiary: #ffb784;
-          --tertiary-container: #a15100;
-          --bg: var(--bg-app);
-          --surface: var(--bg-surface);
-          --surface-variant: var(--bg-card);
-          --on-surface-variant: var(--text-sub);
-          --error: #ffb4ab;
+    <div className="screen home-screen">
+      <div className="home-orb home-orb--left" />
+      <div className="home-orb home-orb--right" />
 
-          position: fixed;
-          inset: 0;
-          z-index: 200;
-          overflow-y: auto;
-          overflow-x: hidden;
-          font-family: var(--font-body);          background-color: var(--bg);
-          color: var(--text);
-          scrollbar-width: thin;
-          scrollbar-color: rgba(124,58,237,0.3) transparent;
-        }
-        .landing-page::-webkit-scrollbar { width: 6px; }
-        .landing-page::-webkit-scrollbar-track { background: transparent; }
-        .landing-page::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.3); border-radius: 3px; }
-        
-        .font-headline { font-family: 'Advent Pro', sans-serif; }
-        .font-label { font-family: var(--font-body); }
-        
-        .glass { 
-          background: var(--glass-bg); 
-          backdrop-filter: blur(20px); 
-          -webkit-backdrop-filter: blur(20px);
-        }
-        .ghost-border { 
-          border: 1px solid var(--glass-soft-border); 
-        }
-        
-        .top-nav {
-          position: sticky;
-          top: 0;
-          z-index: 50;
-          background: var(--header-bg);
-          backdrop-filter: blur(24px);
-          -webkit-backdrop-filter: blur(24px);
-          border-bottom: 1px solid var(--line-soft);
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 14px 24px;
-        }
-        .top-nav__logo {
-          height: 30px;
-          object-fit: contain;
-          filter: brightness(1.1);
-        }
-        .top-nav__icon {
-          height: 28px;
-          width: 28px;
-          object-fit: contain;
-        }
-        .top-nav__btn {
-          width: 38px;
-          height: 38px;
-          border-radius: 10px;
-          background: var(--glass-bg);
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
-          border: 1px solid var(--glass-soft-border);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          color: var(--primary-bright);
-          transition: background 0.2s, color 0.2s;
-        }
-        .top-nav__btn:hover {
-          background: var(--bg-card-hover);
-          color: var(--primary-bright);
-        }
-
-        .hero-section {
-          position: relative;
-          padding: 48px 24px 60px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          text-align: center;
-        }
-        .hero-radial {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 600px;
-          background: radial-gradient(circle at center, rgba(124,58,237,0.12) 0%, transparent 60%);
-          z-index: 0;
-          pointer-events: none;
-        }
-
-        .hero-content {
-          position: relative;
-          z-index: 10;
-          width: 100%;
-          max-width: 1000px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-        }
-
-        .floating-plates {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          margin-bottom: 30px;
-          width: 100%;
-        }
-        .plate {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 10px 20px;
-          border-radius: 99px;
-          box-shadow: var(--shadow-card);
-          white-space: nowrap;
-        }
-        .plate-left {
-          transform: rotate(-4deg);
-          margin-right: -20px;
-          z-index: 1;
-          background: var(--glass-bg);
-        }
-        .plate-center {
-          transform: rotate(0deg) scale(1.05);
-          z-index: 2;
-          padding: 14px 28px;
-          border: 1px solid rgba(210, 187, 255, 0.2);
-          background: var(--glass-strong);
-          box-shadow: var(--shadow-soft);
-        }
-        .plate-right {
-          transform: rotate(4deg);
-          margin-left: -20px;
-          z-index: 1;
-          background: var(--glass-bg);
-        }
-
-        .hero-title {
-          font-size: clamp(36px, 9vw, 72px);
-          font-weight: 700;
-          line-height: 1.1;
-          letter-spacing: -0.02em;
-          margin-bottom: 24px;
-        }
-        .gradient-text {
-          background: linear-gradient(135deg, var(--primary), var(--primary-container));
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-        }
-
-        .hero-btns {
-          display: flex;
-          flex-direction: column;
-          gap: 14px;
-          width: 100%;
-          align-items: center;
-          margin-top: 10px;
-        }
-        @media (min-width: 600px) {
-          .hero-btns { flex-direction: row; justify-content: center; gap: 20px; }
-        }
-
-        .cta-btn-main {
-          background: linear-gradient(135deg, #A78BFA 0%, #7C3AED 100%);
-          color: #fff;
-          width: 100%;
-          max-width: 280px;
-          padding: 18px 24px;
-          border-radius: 99px;
-          font-family: 'Advent Pro', sans-serif;
-          font-weight: 700;
-          font-size: 16px;
-          border: none;
-          cursor: pointer;
-          box-shadow: 0 10px 30px rgba(124, 58, 237, 0.3);
-          transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .cta-btn-main:active { transform: scale(0.98); box-shadow: 0 5px 15px rgba(124, 58, 237, 0.2); }
-
-        .cta-btn-sec {
-          background: var(--glass-bg);
-          color: var(--text);
-          width: 100%;
-          max-width: 280px;
-          padding: 18px 24px;
-          border-radius: 99px;
-          border: 1px solid var(--glass-border);
-          font-family: 'Advent Pro', sans-serif;
-          font-weight: 700;
-          font-size: 16px;
-          cursor: pointer;
-          transition: background 0.2s;
-        }
-        .cta-btn-sec:hover { background: var(--bg-card-hover); }
-        .cta-btn-sec:active { background: var(--glass-muted); transform: scale(0.98); }
-
-        .neon-glow-primary { box-shadow: 0 0 40px -10px rgba(210, 187, 255, 0.4); }
-        .neon-glow-tertiary { box-shadow: 0 0 40px -10px rgba(255, 183, 132, 0.4); }
-        .neon-glow-emerald { box-shadow: 0 0 40px -10px rgba(16, 185, 129, 0.4); }
-
-        .step-card {
-          position: relative;
-          overflow: hidden;
-          padding: 40px;
-          border-radius: 24px;
-          background: var(--glass-bg);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
-          border: 1px solid var(--glass-soft-border);
-          transition: transform 0.3s ease, box-shadow 0.3s ease;
-          z-index: 1;
-        }
-        .step-card:hover {
-          transform: scale(1.03);
-          box-shadow: var(--shadow-card);
-        }
-        .step-num {
-          position: absolute;
-          top: -24px;
-          right: -16px;
-          font-family: 'Advent Pro', sans-serif;
-          font-size: 160px;
-          font-weight: 900;
-          color: var(--line-soft);
-          line-height: 1;
-          transition: color 0.3s ease;
-          z-index: -1;
-          pointer-events: none;
-        }
-        .step-card:hover .step-num {
-          color: rgba(210, 187, 255, 0.08);
-        }
-
-        .section-padding { padding: 80px 24px; }
-        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 32px; max-width: 1100px; margin: 0 auto; }
-        .bento-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; max-width: 1200px; margin: 0 auto; }
-        
-        @media (max-width: 800px) {
-          .bento-grid { display: flex; flex-direction: column; }
-          .floating-plates { gap: 10px; flex-wrap: wrap; margin-bottom: 40px; }
-          .plate-left { transform: rotate(0deg); margin-right: 0; padding: 10px 16px; font-size: 12px; }
-          .plate-right { transform: rotate(0deg); margin-left: 0; padding: 10px 16px; font-size: 12px; }
-          .plate-center { width: calc(100% - 40px); justify-content: center; margin: 0 auto 10px; order: -1; transform: scale(1); }
-        }
-
-        .icon-box {
-          width: 64px; height: 64px; border-radius: 16px;
-          display: flex; align-items: center; justify-content: center;
-          margin-bottom: 24px;
-        }
-
-        .bento-item {
-          border-radius: 24px;
-          padding: 32px;
-          display: flex;
-          flex-direction: column;
-        }
-        .col-8 { grid-column: span 8; }
-        .col-4 { grid-column: span 4; }
-
-        @keyframes footerPulse {
-          0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
-          50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(34,197,94,0); }
-        }
-
-        .landing-footer {
-          position: relative;
-          padding: 64px 24px 24px;
-          background: var(--header-bg);
-          backdrop-filter: blur(40px);
-          -webkit-backdrop-filter: blur(40px);
-          border-top: 1px solid rgba(124, 58, 237, 0.12);
-          overflow: hidden;
-        }
-        @media (max-width: 700px) {
-          .landing-footer { padding: 48px 20px 20px; }
-        }
-        .landing-footer__glow {
-          position: absolute;
-          top: -120px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 700px;
-          height: 300px;
-          background: radial-gradient(ellipse, rgba(124, 58, 237, 0.07) 0%, rgba(56, 189, 248, 0.03) 40%, transparent 70%);
-          pointer-events: none;
-        }
-        .landing-footer__inner {
-          position: relative;
-          z-index: 1;
-          max-width: 1100px;
-          margin: 0 auto 40px;
-          display: grid;
-          grid-template-columns: 1.6fr 1fr;
-          gap: 48px;
-        }
-        @media (max-width: 700px) {
-          .landing-footer__inner {
-            grid-template-columns: 1fr;
-            gap: 32px;
-            margin-bottom: 32px;
-          }
-        }
-        .landing-footer__logo {
-          width: 100%;
-          max-width: 180px;
-          height: auto;
-          object-fit: contain;
-          margin-bottom: 20px;
-          opacity: 0.85;
-        }
-        .landing-footer__desc {
-          font-size: 14px;
-          line-height: 1.7;
-          color: var(--text-faint);
-          max-width: 420px;
-          margin: 0 0 20px;
-        }
-        .landing-footer__status {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-        .landing-footer__status-dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          background: #22c55e;
-          animation: footerPulse 2s infinite;
-        }
-        .landing-footer__status span {
-          font-size: 12px;
-          color: var(--text-faint);
-          font-weight: 500;
-        }
-        .landing-footer__nav {
-          display: flex;
-          gap: 48px;
-          flex-wrap: wrap;
-        }
-        @media (max-width: 700px) {
-          .landing-footer__nav { gap: 24px 40px; }
-        }
-        .landing-footer__nav-group {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-        .landing-footer__nav-title {
-          font-size: 11px;
-          font-weight: 700;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          color: var(--text-disabled);
-          margin: 0 0 4px;
-          font-family: var(--font-body);        }
-        .landing-footer__link {
-          background: none;
-          border: none;
-          padding: 0;
-          color: var(--text-soft);
-          font-size: 14px;
-          cursor: pointer;
-          text-align: left;
-          transition: color 0.2s;
-          font-family: var(--font-body);        }
-        .landing-footer__link:hover { color: #A78BFA; }
-        .landing-footer__bottom {
-          position: relative;
-          z-index: 1;
-          max-width: 1100px;
-          margin: 0 auto;
-          display: flex;
-          flex-wrap: wrap;
-          justify-content: space-between;
-          align-items: center;
-          padding-top: 24px;
-          border-top: 1px solid var(--line-soft);
-          gap: 16px;
-        }
-        .landing-footer__copyright {
-          font-size: 13px;
-          color: var(--text-disabled);
-        }
-        .landing-footer__kz-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 6px 14px;
-          background: rgba(124, 58, 237, 0.08);
-          border: 1px solid rgba(124, 58, 237, 0.15);
-          border-radius: 99px;
-          font-size: 11px;
-          font-weight: 700;
-          letter-spacing: 0.05em;
-          text-transform: uppercase;
-          color: rgba(167, 139, 250, 0.7);
-        }
-      `}</style>
-
-      <div className="landing-page">
-        {/* Top Header — Dark Premium */}
-        <header className="top-nav">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button className="top-nav__btn" onClick={() => navigate('/retail')}>
-              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-                storefront
-              </span>
-            </button>
-            <button
-              className="top-nav__btn"
-              onClick={() =>
-                navigate(user ? '/retail' : '/auth', {
-                  state: user ? undefined : buildAuthNavigateState(location),
-                })
-              }
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-                person
-              </span>
-            </button>
-          </div>
-          <img src="/korset_logo.svg" alt="Körset" className="top-nav__logo" />
-        </header>
-
-        {/* Hero */}
-        <section className="hero-section">
-          <div className="hero-radial"></div>
-
-          <div className="hero-content">
-            <div className="floating-plates">
-              <div className="plate plate-left ghost-border">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="#d2bbff" stroke="none">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-                </svg>
-                <span
-                  className="font-label"
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.1em',
-                  }}
-                >
-                  Халал
-                </span>
-              </div>
-              <div
-                className="plate plate-center ghost-border"
-                style={{ border: '1px solid rgba(210, 187, 255, 0.2)' }}
-              >
-                <svg
-                  width="22"
-                  height="22"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#d2bbff"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                  <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-                  <line x1="12" y1="22.08" x2="12" y2="12" />
-                </svg>
-                <span
-                  className="font-label"
-                  style={{
-                    fontSize: 15,
-                    fontWeight: 800,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.1em',
-                  }}
-                >
-                  Умный анализ
-                </span>
-              </div>
-              <div className="plate plate-right ghost-border">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="#ffb784" stroke="none">
-                  <path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z" />
-                </svg>
-                <span
-                  className="font-label"
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.1em',
-                  }}
-                >
-                  Без глютена
-                </span>
-              </div>
+      <header className="home-hero">
+        <div className="home-store-row">
+          <StoreLogo store={currentStore} />
+          <div className="home-store-copy">
+            <div className="home-verified">
+              <HomeIcon name="verified" />
+              <span>{t('home.officialStore')}</span>
             </div>
-
-            <h1 className="hero-title font-headline">
-              Узнайте <span className="gradient-text">правду</span> о<br />
-              том, что вы едите
-            </h1>
-            <p
-              className="font-label"
-              style={{
-                color: 'var(--text-soft)',
-                fontSize: 16,
-                lineHeight: 1.6,
-                maxWidth: 460,
-                marginBottom: 40,
-                fontWeight: 500,
-              }}
-            >
-              Körset за секунду расшифрует состав продукта, найдет скрытые Е-добавки и предупредит
-              об аллергенах. Выбирайте еду осознанно.
-            </p>
-
-            <div className="hero-btns">
-              <button className="cta-btn-main" onClick={() => navigate('/stores')}>
-                Выбрать магазин
-              </button>
-              <button
-                className="cta-btn-sec"
-                onClick={() =>
-                  document.getElementById('b2b-section')?.scrollIntoView({ behavior: 'smooth' })
-                }
-              >
-                О проекте
-              </button>
-            </div>
-          </div>
-        </section>
-
-        {/* How it works */}
-        <section
-          id="b2b-section"
-          className="section-padding"
-          style={{ maxWidth: 1200, margin: '0 auto' }}
-        >
-          <div style={{ textAlign: 'center', marginBottom: 64 }}>
-            <h2
-              className="font-headline"
-              style={{ fontSize: 'clamp(32px, 5vw, 48px)', fontWeight: 700, marginBottom: 16 }}
-            >
-              Как это работает
-            </h2>
-            <div
-              style={{
-                width: 80,
-                height: 4,
-                background: 'var(--primary)',
-                margin: '0 auto',
-                borderRadius: 99,
-              }}
-            ></div>
-          </div>
-
-          <div className="grid-3">
-            {/* Step 1 */}
-            <div className="step-card group">
-              <div className="step-num">01</div>
-              <div style={{ marginBottom: 32 }}>
-                <span
-                  className="material-symbols-outlined"
-                  style={{ fontSize: 48, color: 'var(--primary)' }}
-                >
-                  barcode_scanner
-                </span>
-              </div>
-              <h3
-                className="font-headline"
-                style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}
-              >
-                Сканируйте штрихкод
-              </h3>
-              <p
-                className="font-label"
-                style={{ color: 'var(--on-surface-variant)', lineHeight: 1.6, fontSize: 15 }}
-              >
-                Просто наведите камеру на штрихкод продукта, чтобы мгновенно получить его данные
-                прямо в магазине.
+            <h1>{currentStore.name}</h1>
+            {address && (
+              <p className="home-address">
+                <HomeIcon name="location_on" />
+                <span>{address}</span>
               </p>
-            </div>
-
-            {/* Step 2 */}
-            <div className="step-card group">
-              <div className="step-num">02</div>
-              <div style={{ marginBottom: 32 }}>
-                <span
-                  className="material-symbols-outlined"
-                  style={{ fontSize: 48, color: 'var(--primary)' }}
-                >
-                  psychology
-                </span>
-              </div>
-              <h3
-                className="font-headline"
-                style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}
-              >
-                Анализ нейросетью
-              </h3>
-              <p
-                className="font-label"
-                style={{ color: 'var(--on-surface-variant)', lineHeight: 1.6, fontSize: 15 }}
-              >
-                Наши алгоритмы Körset AI расшифруют состав, найдут добавки, консерванты и скрытые
-                аллергены.
-              </p>
-            </div>
-
-            {/* Step 3 */}
-            <div className="step-card group">
-              <div className="step-num">03</div>
-              <div style={{ marginBottom: 32 }}>
-                <span
-                  className="material-symbols-outlined"
-                  style={{ fontSize: 48, color: 'var(--primary)' }}
-                >
-                  fact_check
-                </span>
-              </div>
-              <h3
-                className="font-headline"
-                style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}
-              >
-                Умный вердикт
-              </h3>
-              <p
-                className="font-label"
-                style={{ color: 'var(--on-surface-variant)', lineHeight: 1.6, fontSize: 15 }}
-              >
-                Получите строгую оценку качества продукта и его соответствия вашим предпочтениям.
-              </p>
-            </div>
+            )}
           </div>
-        </section>
+        </div>
 
-        {/* Features Vertical Stack (Mobile First) */}
-        <section
-          className="section-padding"
-          style={{ background: 'rgba(14, 15, 20, 0.6)', backdropFilter: 'blur(30px)' }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 20,
-              maxWidth: 1100,
-              margin: '0 auto',
-            }}
+        {currentStore.short_description && (
+          <p className="home-store-description">{currentStore.short_description}</p>
+        )}
+
+        <div className="home-hero-card">
+          <p className="home-eyebrow">{t('home.heroEyebrow')}</p>
+          <h2>{t('home.heroTitle')}</h2>
+          <p>{t('home.heroText')}</p>
+
+          <button className="home-scan-button" type="button" onClick={() => navigate(routes.scan)}>
+            <span className="home-scan-button__icon">
+              <HomeIcon name="barcode_scanner" />
+            </span>
+            <span className="home-scan-button__copy">
+              <strong>{t('home.scanBtn')}</strong>
+              <span>{t('home.scanSub')}</span>
+            </span>
+            <HomeIcon name="arrow_forward" className="home-scan-button__arrow" />
+          </button>
+        </div>
+      </header>
+
+      <section className="home-section home-fit-panel" aria-label={t('home.contextLabel')}>
+        <div>
+          <p className="home-eyebrow">{t('home.contextLabel')}</p>
+          <h2>{t('home.contextTitle')}</h2>
+          <p>{t('home.contextText')}</p>
+        </div>
+        <div className="home-fit-signals">
+          {fitSignals.map(([icon, label]) => (
+            <div className="home-fit-signal" key={label}>
+              <HomeIcon name={icon} />
+              <span>{label}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="home-actions" aria-label={t('home.quickActions')}>
+        {actions.map((action) => (
+          <button
+            className={`home-action-card home-action-card--${action.tone}`}
+            key={action.key}
+            type="button"
+            onClick={() => navigate(action.path)}
           >
-            {/* Карточка 1: E-добавки */}
-            <div
-              className="glass"
-              style={{
-                padding: '32px',
-                borderRadius: 24,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 16,
-                borderTop: '1px solid rgba(210, 187, 255, 0.15)',
-                boxShadow: '0 16px 40px rgba(0,0,0,0.2)',
-              }}
-            >
-              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                <div
-                  style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: '50%',
-                    background:
-                      'linear-gradient(135deg, rgba(210, 187, 255, 0.15), rgba(124, 58, 237, 0.1))',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    border: '1px solid rgba(210, 187, 255, 0.2)',
-                  }}
-                >
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ fontSize: 28, color: 'var(--primary)' }}
-                  >
-                    science
-                  </span>
-                </div>
-                <h3
-                  className="font-headline"
-                  style={{ fontSize: 28, fontWeight: 800, color: 'var(--text)', margin: 0 }}
-                >
-                  E-Добавки
-                </h3>
-              </div>
-              <p
-                className="font-label"
-                style={{
-                  fontSize: 16,
-                  color: 'var(--on-surface-variant)',
-                  lineHeight: 1.6,
-                  opacity: 0.9,
-                  margin: 0,
-                }}
-              >
-                Körset выявляет все скрытые красители, консерванты и эмульгаторы, разбивая сложный
-                химический состав на понятные компоненты.
-              </p>
-            </div>
+            <span className="home-action-card__icon">
+              <HomeIcon name={action.icon} />
+            </span>
+            <span className="home-action-card__copy">
+              <strong>{action.title}</strong>
+              <span>{action.text}</span>
+            </span>
+            <HomeIcon name="chevron_right" className="home-action-card__arrow" />
+          </button>
+        ))}
+      </section>
 
-            {/* Карточка 2: Умный сканер */}
-            <div
-              className="glass"
-              style={{
-                padding: '32px',
-                borderRadius: 24,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 16,
-                borderTop: '1px solid rgba(255, 183, 132, 0.15)',
-                boxShadow: 'var(--shadow-card)',
-              }}
-            >
-              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                <div
-                  style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: '50%',
-                    background:
-                      'linear-gradient(135deg, rgba(255, 183, 132, 0.15), rgba(161, 81, 0, 0.1))',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    border: '1px solid rgba(255, 183, 132, 0.2)',
-                  }}
-                >
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ fontSize: 28, color: 'var(--tertiary)' }}
-                  >
-                    center_focus_strong
-                  </span>
-                </div>
-                <h3
-                  className="font-headline"
-                  style={{ fontSize: 28, fontWeight: 800, color: 'var(--text)', margin: 0 }}
-                >
-                  Умный сканер
-                </h3>
-              </div>
-              <p
-                className="font-label"
-                style={{
-                  fontSize: 16,
-                  color: 'var(--on-surface-variant)',
-                  lineHeight: 1.6,
-                  opacity: 0.9,
-                  margin: 0,
-                }}
-              >
-                Наведите камеру смартфона на штрихкод товара, и вы за долю секунды получите
-                подробный Fit-Check прямо у полки магазина.
-              </p>
-            </div>
+      <section className="home-section home-store-panel">
+        <div>
+          <p className="home-eyebrow">{t('home.storeTools')}</p>
+          <h2>{t('home.storePage')}</h2>
+          <p>{t('home.storePanelText')}</p>
+        </div>
 
-            {/* Карточка 3: Персональные фильтры (Халал/Веган) */}
-            <div
-              className="glass"
-              style={{
-                padding: '32px',
-                borderRadius: 24,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 16,
-                borderTop: '1px solid rgba(16, 185, 129, 0.15)',
-                boxShadow: 'var(--shadow-card)',
-              }}
-            >
-              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                <div
-                  style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: '50%',
-                    background:
-                      'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(4, 120, 87, 0.1))',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    border: '1px solid rgba(16, 185, 129, 0.2)',
-                  }}
-                >
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ fontSize: 28, color: '#10B981' }}
-                  >
-                    person_search
-                  </span>
-                </div>
-                <h3
-                  className="font-headline"
-                  style={{ fontSize: 28, fontWeight: 800, color: 'var(--text)', margin: 0 }}
-                >
-                  Ваш профиль
-                </h3>
-              </div>
-              <p
-                className="font-label"
-                style={{
-                  color: 'var(--on-surface-variant)',
-                  fontSize: 16,
-                  lineHeight: 1.6,
-                  margin: 0,
-                }}
+        {hasContacts && (
+          <div className="home-contact-list" aria-label={t('home.storeContacts')}>
+            {currentStore.phone && (
+              <a href={`tel:${currentStore.phone.replace(/[^\d+]/g, '')}`}>
+                <HomeIcon name="call" />
+                <span>{currentStore.phone}</span>
+              </a>
+            )}
+            {currentStore.whatsapp_number && (
+              <a
+                href={`https://wa.me/${currentStore.whatsapp_number.replace(/\D/g, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                Настройте фильтры: Халал, Веган или диетические программы. Приложение заранее
-                предупредит вас, если продукт вам не подходит.
-              </p>
-            </div>
-
-            {/* Карточка 4: Защита аллергиков */}
-            <div
-              className="glass"
-              style={{
-                padding: '32px',
-                borderRadius: 24,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 16,
-                borderTop: '1px solid rgba(244, 63, 94, 0.15)',
-                boxShadow: 'var(--shadow-card)',
-              }}
-            >
-              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                <div
-                  style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: '50%',
-                    background:
-                      'linear-gradient(135deg, rgba(244, 63, 94, 0.15), rgba(159, 18, 57, 0.1))',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    border: '1px solid rgba(244, 63, 94, 0.2)',
-                  }}
-                >
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ fontSize: 28, color: '#F43F5E' }}
-                  >
-                    health_and_safety
-                  </span>
-                </div>
-                <h3
-                  className="font-headline"
-                  style={{ fontSize: 28, fontWeight: 800, color: 'var(--text)', margin: 0 }}
-                >
-                  Детектор аллергий
-                </h3>
-              </div>
-              <p
-                className="font-label"
-                style={{
-                  color: 'var(--on-surface-variant)',
-                  fontSize: 16,
-                  lineHeight: 1.6,
-                  margin: 0,
-                }}
-              >
-                Мгновенное выявление критичных аллергенов (орехи, лактоза, глютен и др.). Сохраняйте
-                проверенные безопасные продукты в историю.
-              </p>
-            </div>
+                <HomeIcon name="chat" />
+                <span>WhatsApp</span>
+              </a>
+            )}
+            {currentStore.instagram_url && (
+              <a href={currentStore.instagram_url} target="_blank" rel="noopener noreferrer">
+                <HomeIcon name="photo_camera" />
+                <span>Instagram</span>
+              </a>
+            )}
           </div>
-        </section>
+        )}
 
-        {/* B2B Section */}
-        <section
-          className="section-padding"
-          style={{ background: 'var(--bg-app)', position: 'relative' }}
+        <button
+          className="home-ghost-button"
+          type="button"
+          onClick={() => navigate(routes.publicPage)}
         >
-          <div
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: '100%',
-              height: '100%',
-              background:
-                'radial-gradient(ellipse at center, rgba(56,189,248,0.1) 0%, transparent 60%)',
-              pointerEvents: 'none',
-            }}
-          />
-          <div
-            className="glass"
-            style={{
-              maxWidth: 1100,
-              margin: '0 auto',
-              borderRadius: 32,
-              borderTop: '1px solid rgba(56,189,248,0.2)',
-              padding: '64px 40px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 24,
-              textAlign: 'center',
-              boxShadow: 'var(--shadow-soft)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-              <div
-                style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: '50%',
-                  background:
-                    'linear-gradient(135deg, rgba(56,189,248,0.15), rgba(124,58,237,0.1))',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '1px solid var(--accent-sky-border)',
-                }}
-              >
-                <span
-                  className="material-symbols-outlined"
-                  style={{ fontSize: 28, color: 'var(--accent-sky)' }}
-                >
-                  storefront
-                </span>
-              </div>
-            </div>
-            <div
-              style={{
-                fontSize: 13,
-                fontWeight: 800,
-                textTransform: 'uppercase',
-                letterSpacing: '0.15em',
-                color: 'var(--accent-sky)',
-                fontFamily: 'var(--font-body)',
-              }}
-            >
-              Для бизнеса
-            </div>
-
-            <h2
-              style={{
-                fontFamily: "'Advent Pro', sans-serif",
-                fontSize: 'clamp(32px, 6vw, 48px)',
-                fontWeight: 800,
-                color: 'var(--text)',
-                lineHeight: 1.1,
-                margin: 0,
-              }}
-            >
-              Вы владелец магазина?
-              <br />
-              <span
-                style={{
-                  background: 'linear-gradient(135deg, #38BDF8, #A78BFA)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                }}
-              >
-                Подключите Körset
-              </span>
-            </h2>
-            <p
-              style={{
-                fontSize: 16,
-                color: 'var(--text-soft)',
-                lineHeight: 1.6,
-                margin: 0,
-                maxWidth: 600,
-              }}
-            >
-              Retail Cabinet даёт вам аналитику сканирований, статистику вовлечённости покупателей и
-              инструменты управления каталогом — всё в одном месте.
-            </p>
-
-            <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                justifyContent: 'center',
-                gap: 32,
-                marginTop: 16,
-                marginBottom: 16,
-              }}
-            >
-              {[
-                ['analytics', t('home.landing.retail.feat.analytics')],
-                ['inventory_2', t('home.landing.retail.feat.catalog')],
-                ['qr_code_2', t('home.landing.retail.feat.qr')],
-              ].map(([icon, label]) => (
-                <div
-                  key={icon}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    background: 'var(--glass-subtle)',
-                    padding: '12px 24px',
-                    borderRadius: 99,
-                    border: '1px solid var(--line-soft)',
-                  }}
-                >
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ fontSize: 22, color: '#A78BFA' }}
-                  >
-                    {icon}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 600,
-                      color: 'var(--text)',
-                      fontFamily: 'var(--font-body)',
-                    }}
-                  >
-                    {label}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            <button
-              onClick={() => navigate('/retail')}
-              style={{
-                marginTop: 16,
-                padding: '20px 40px',
-                borderRadius: 99,
-                cursor: 'pointer',
-                background: 'linear-gradient(135deg, #38BDF8, #7C3AED)',
-                border: 'none',
-                color: 'var(--text-inverse)',
-                fontSize: 16,
-                fontWeight: 800,
-                fontFamily: "'Advent Pro', sans-serif",
-                letterSpacing: '0.02em',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 12,
-                boxShadow: '0 12px 30px rgba(56,189,248,0.3)',
-                transition: 'transform 0.2s, box-shadow 0.2s',
-              }}
-              onPointerDown={(e) => {
-                e.currentTarget.style.transform = 'scale(0.98)'
-              }}
-              onPointerUp={(e) => {
-                e.currentTarget.style.transform = ''
-              }}
-              onPointerLeave={(e) => {
-                e.currentTarget.style.transform = ''
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 24 }}>
-                login
-              </span>
-              {user ? t('home.landing.retail.cta.open') : t('home.landing.retail.cta.login')}
-            </button>
-          </div>
-        </section>
-
-        {/* Footer — Glassmorphism Dark Premium */}
-        <footer className="landing-footer">
-          <div className="landing-footer__glow" />
-
-          <div className="landing-footer__inner">
-            {/* Brand Column */}
-            <div>
-              <img src="/korset_logo.svg" alt="Körset" className="landing-footer__logo" />
-              <p className="landing-footer__desc">{t('footer.description')}</p>
-              <div className="landing-footer__status">
-                <div className="landing-footer__status-dot" />
-                <span>{t('footer.systemOk')}</span>
-              </div>
-            </div>
-
-            {/* Nav Columns */}
-            <div className="landing-footer__nav">
-              <div className="landing-footer__nav-group">
-                <h4 className="landing-footer__nav-title">{t('footer.company')}</h4>
-                <button className="landing-footer__link" onClick={() => navigate('/stores')}>
-                  {t('footer.about')}
-                </button>
-                <button className="landing-footer__link" onClick={() => navigate('/stores')}>
-                  {t('footer.contacts')}
-                </button>
-                <button className="landing-footer__link" onClick={() => navigate('/retail')}>
-                  {t('home.forBusiness')}
-                </button>
-              </div>
-
-              <div className="landing-footer__nav-group">
-                <h4 className="landing-footer__nav-title">{t('footer.legal')}</h4>
-                <button
-                  className="landing-footer__link"
-                  onClick={() => navigate('/privacy-policy')}
-                >
-                  {t('footer.policy')}
-                </button>
-                <button className="landing-footer__link" onClick={() => navigate('/stores')}>
-                  {t('home.aboutApp')}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom Bar */}
-          <div className="landing-footer__bottom">
-            <span className="landing-footer__copyright">{t('footer.copyright')}</span>
-            <div className="landing-footer__kz-badge">
-              <span style={{ fontSize: 14 }}>🇰🇿</span>
-              {t('footer.madeInKz')}
-            </div>
-          </div>
-        </footer>
-      </div>
-    </>
+          <HomeIcon name="info" />
+          <span>{t('home.moreInfo')}</span>
+        </button>
+      </section>
+    </div>
   )
 }

@@ -5,17 +5,13 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return json(res, 405, { error: 'method_not_allowed' })
 
   try {
+    const { user, error: authError } = await requireAuth(req)
+    if (authError) return json(res, 401, { error: 'unauthorized', details: authError })
+
     const body = await getJsonBody(req)
     const { subscription, preferences = {}, storeSlug = null } = body
     const deviceId = getDeviceId(body)
-
-    let authUserId = null
-    const { user } = await requireAuth(req).catch(() => ({ user: null }))
-    if (user) authUserId = user.id
-
-    if (!deviceId && !authUserId) {
-      return json(res, 400, { error: 'device_id_or_auth_required' })
-    }
+    const authUserId = user.id
 
     if (!subscription?.endpoint || !subscription?.keys?.p256dh || !subscription?.keys?.auth) {
       return json(res, 400, { error: 'invalid_subscription' })

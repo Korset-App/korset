@@ -13,20 +13,9 @@ const CORS_ORIGINS = [
   'http://localhost:4173',
 ]
 
-export const RATE_LIMITS = {
+const RATE_LIMITS = {
   authenticated: { maxRequests: 30, windowMs: 60_000 },
   anonymous: { maxRequests: 8, windowMs: 60_000 },
-}
-
-export const AI_LIMITS = {
-  maxMessages: 12,
-  maxMessageLength: 1200,
-  maxTotalMessageLength: 6000,
-  maxCatalogCandidates: 12,
-  maxProductGroups: 4,
-  maxProductsPerGroup: 3,
-  maxStructuredProducts: 12,
-  maxProductAlternatives: 4,
 }
 
 const rateLimitStore = new Map()
@@ -56,23 +45,23 @@ function corsHeaders(req, res) {
 
 // ── Input validation & sanitization ─────────────────────────────
 
-export function validateMessages(messages) {
-  if (!Array.isArray(messages) || messages.length === 0 || messages.length > AI_LIMITS.maxMessages) {
+const MAX_MESSAGES = 20
+const MAX_MESSAGE_LEN = 4000
+const MAX_TOTAL_LEN = 16000
+
+function validateMessages(messages) {
+  if (!Array.isArray(messages) || messages.length === 0 || messages.length > MAX_MESSAGES) {
     return null
   }
   let total = 0
   for (const m of messages) {
     if (!m || typeof m !== 'object') return null
     if (m.role !== 'user' && m.role !== 'assistant') return null
-    if (
-      typeof m.content !== 'string' ||
-      m.content.length === 0 ||
-      m.content.length > AI_LIMITS.maxMessageLength
-    ) {
+    if (typeof m.content !== 'string' || m.content.length === 0 || m.content.length > MAX_MESSAGE_LEN) {
       return null
     }
     total += m.content.length
-    if (total > AI_LIMITS.maxTotalMessageLength) return null
+    if (total > MAX_TOTAL_LEN) return null
   }
   return messages
 }
@@ -85,12 +74,9 @@ function cleanString(value, max = 200) {
 function sanitizeProduct(product) {
   if (!product || typeof product !== 'object') return null
   return {
-    ean: cleanString(product.ean, 80),
     name: cleanString(product.name, 200),
     brand: cleanString(product.brand, 100),
     ingredients: cleanString(product.ingredients, 1500),
-    priceKzt: Number.isFinite(product.priceKzt) ? product.priceKzt : null,
-    stockStatus: cleanString(product.stockStatus, 40),
     halalStatus: ['yes', 'no', 'unknown'].includes(product.halalStatus)
       ? product.halalStatus
       : 'unknown',
@@ -106,18 +92,6 @@ function sanitizeProduct(product) {
       product.nutritionPer100 && typeof product.nutritionPer100 === 'object'
         ? product.nutritionPer100
         : null,
-    alternatives: Array.isArray(product.alternatives)
-      ? product.alternatives.slice(0, AI_LIMITS.maxProductAlternatives).map((item) => ({
-          ean: cleanString(item?.ean, 80),
-          name: cleanString(item?.name, 180),
-          brand: cleanString(item?.brand, 120),
-          priceKzt: Number.isFinite(item?.priceKzt) ? item.priceKzt : null,
-          stockStatus: cleanString(item?.stockStatus, 40),
-          halalStatus: ['yes', 'no', 'unknown'].includes(item?.halalStatus)
-            ? item.halalStatus
-            : 'unknown',
-        }))
-      : [],
   }
 }
 
@@ -139,41 +113,6 @@ function sanitizeProfile(profile) {
           .map((g) => cleanString(g, 50))
       : [],
   }
-}
-
-function sanitizeStore(store) {
-  if (!store || typeof store !== 'object') return null
-  return {
-    slug: cleanString(store.slug, 80),
-    name: cleanString(store.name, 160),
-    city: cleanString(store.city, 120),
-    address: cleanString(store.address, 240),
-    phone: cleanString(store.phone, 80),
-    email: cleanString(store.email, 160),
-    type: cleanString(store.type, 80),
-    shortDescription: cleanString(store.shortDescription, 240),
-    description: cleanString(store.description, 1000),
-    whatsappNumber: cleanString(store.whatsappNumber, 80),
-    twogisUrl: cleanString(store.twogisUrl, 300),
-    instagramUrl: cleanString(store.instagramUrl, 300),
-    websiteUrl: cleanString(store.websiteUrl, 300),
-    aiStoreNotes: cleanString(store.aiStoreNotes, 2000),
-  }
-}
-
-export function sanitizeCatalogContext(items) {
-  if (!Array.isArray(items)) return []
-  return items.slice(0, AI_LIMITS.maxCatalogCandidates).map((item) => ({
-    ean: cleanString(item?.ean, 80),
-    name: cleanString(item?.name, 180),
-    brand: cleanString(item?.brand, 120),
-    category: cleanString(item?.category, 80),
-    priceKzt: Number.isFinite(item?.priceKzt) ? item.priceKzt : null,
-    stockStatus: cleanString(item?.stockStatus, 40),
-    halalStatus: ['yes', 'no', 'unknown'].includes(item?.halalStatus) ? item.halalStatus : 'unknown',
-    dietTags: Array.isArray(item?.dietTags) ? item.dietTags.slice(0, 8).map((v) => cleanString(v, 40)) : [],
-    allergens: Array.isArray(item?.allergens) ? item.allergens.slice(0, 8).map((v) => cleanString(v, 40)) : [],
-  }))
 }
 
 async function verifyAuth(req) {
@@ -313,9 +252,6 @@ export default async function handler(req, res) {
     const productA = sanitizeProduct(body.productA)
     const productB = sanitizeProduct(body.productB)
     const profile = sanitizeProfile(body.profile)
-    const store = sanitizeStore(body.store)
-    const catalogContext = sanitizeCatalogContext(body.catalogContext)
-    const wantsStructured = body.responseFormat === 'structured'
     const winner = ['A', 'B', 'draw'].includes(body.winner) ? body.winner : null
 
     // ── RAG: подтягиваем релевантный контекст из vault ──
@@ -335,17 +271,16 @@ export default async function handler(req, res) {
     let systemPrompt
 
     if (mode === 'product' && product) {
-      systemPrompt = buildProductPrompt(product, profile, lang, ragContext, store)
+      systemPrompt = buildProductPrompt(product, profile, lang, ragContext)
     } else if (mode === 'enrich' && product) {
       systemPrompt = buildEnrichPrompt(product)
     } else if (mode === 'compare' && productA && productB) {
       systemPrompt = buildComparePrompt(productA, productB, profile, winner, lang, ragContext)
     } else {
-      systemPrompt = buildGeneralPrompt(lang, store, profile, catalogContext)
+      systemPrompt = buildGeneralPrompt(lang)
     }
 
     // ── Вызов OpenAI ──
-    const completionLimits = getOpenAICompletionLimits(mode)
     const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -354,7 +289,8 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'gpt-4.1-nano',
-        ...completionLimits,
+        max_tokens: mode === 'enrich' ? 300 : mode === 'compare' ? 200 : 400,
+        temperature: mode === 'enrich' ? 0.3 : 0.7,
         messages: [{ role: 'system', content: systemPrompt }, ...validMessages],
       }),
     })
@@ -368,80 +304,16 @@ export default async function handler(req, res) {
     const data = await openaiRes.json()
     const reply = data.choices?.[0]?.message?.content?.trim()
 
-    return res.status(200).json({
-      reply: reply || '',
-      productGroups: wantsStructured ? buildProductGroupsFromCatalog(catalogContext) : [],
-      followUps: wantsStructured ? buildFollowUps(mode, catalogContext) : [],
-      warnings: wantsStructured ? buildWarnings(catalogContext) : [],
-      ragUsed: !!ragContext,
-    })
+    return res.status(200).json({ reply: reply || '', ragUsed: !!ragContext })
   } catch (e) {
     console.error('API /ai error:', e)
     return res.status(500).json({ error: 'Internal server error' })
   }
 }
 
-export function getOpenAICompletionLimits(mode) {
-  if (mode === 'enrich') return { max_tokens: 260, temperature: 0.3 }
-  if (mode === 'compare') return { max_tokens: 180, temperature: 0.6 }
-  if (mode === 'product') return { max_tokens: 280, temperature: 0.6 }
-  return { max_tokens: 320, temperature: 0.6 }
-}
-
-export function buildProductGroupsFromCatalog(catalogContext) {
-  const groups = new Map()
-  for (const item of catalogContext || []) {
-    if (!item.ean || !item.name) continue
-    const title = item.category || 'Товары'
-    const id = title.toLowerCase().replace(/[^a-zа-я0-9]+/gi, '-').replace(/^-|-$/g, '') || 'products'
-    if (!groups.has(id)) groups.set(id, { id, title, products: [] })
-    const group = groups.get(id)
-    if (group.products.length < AI_LIMITS.maxProductsPerGroup) {
-      group.products.push({
-        ean: item.ean,
-        name: item.name,
-        brand: item.brand,
-        category: item.category,
-        priceKzt: item.priceKzt,
-        stockStatus: item.stockStatus,
-      })
-    }
-  }
-  return [...groups.values()]
-    .filter((group) => group.products.length > 0)
-    .slice(0, AI_LIMITS.maxProductGroups)
-}
-
-function buildFollowUps(_mode, catalogContext) {
-  if (!catalogContext?.length) return ['Показать похожие товары', 'Спросить про магазин']
-  return ['Сделать дешевле', 'Только халал', 'Показать ещё варианты']
-}
-
-function buildWarnings(catalogContext) {
-  if (!catalogContext?.length) return []
-  return ['Цены и наличие указаны по каталогу магазина и могут отличаться на кассе.']
-}
-
 // ── System prompts ──────────────────────────────────────────────
 
-function formatStorePrompt(store) {
-  if (!store) return 'МАГАЗИН: не задан'
-  const contacts = [
-    store.phone ? `телефон ${store.phone}` : '',
-    store.whatsappNumber ? `WhatsApp ${store.whatsappNumber}` : '',
-    store.twogisUrl ? `2GIS ${store.twogisUrl}` : '',
-    store.instagramUrl ? `Instagram ${store.instagramUrl}` : '',
-    store.websiteUrl ? `сайт ${store.websiteUrl}` : '',
-  ].filter(Boolean)
-  const description = [store.shortDescription, store.description].filter(Boolean).join(' ')
-  const notes = store.aiStoreNotes ? `\nДоп. факты магазина: ${store.aiStoreNotes}` : ''
-  return `МАГАЗИН: ${store.name || 'текущий магазин'}${store.city ? `, ${store.city}` : ''}${store.address ? `, ${store.address}` : ''}
-Тип: ${store.type || 'не указан'}
-Описание: ${description || 'не указано'}
-Контакты: ${contacts.length ? contacts.join('; ') : 'не указаны'}${notes}`
-}
-
-function buildProductPrompt(product, profile, lang, ragContext, store = null) {
+function buildProductPrompt(product, profile, lang, ragContext) {
   const profileParts = []
   if (profile?.halal || profile?.halalOnly) profileParts.push('нужен халал')
   if (profile?.allergens?.length) profileParts.push(`аллергии: ${profile.allergens.join(', ')}`)
@@ -449,82 +321,26 @@ function buildProductPrompt(product, profile, lang, ragContext, store = null) {
 
   const nutr = formatNutrition(product)
   const langNote = lang === 'kz' ? 'Отвечай на казахском языке.' : 'Отвечай на русском языке.'
-  const price = product.priceKzt ? `${product.priceKzt} ₸` : 'не указана'
-  const stock = product.stockStatus || 'не указано'
-  const alternatives = formatProductAlternatives(product.alternatives)
 
   const ragSection = ragContext
     ? `\n\nПРОВЕРЕННЫЕ ЗНАНИЯ (используй как факт, приоритет над общими знаниями):\n${ragContext}`
     : ''
 
-  return `Ты — Körset AI, помощник покупателя в конкретном магазине Казахстана. Отвечай на "вы", кратко и по делу. Максимум 3–4 предложения. Без markdown.
+  return `Ты — Körset AI, умный помощник покупателя в супермаркете Казахстана. Отвечай кратко, по делу. Максимум 3–4 предложения. Без markdown — пиши живым текстом как друг.
 ${langNote}
 
-${formatStorePrompt(store)}
-
-ТОВАР: ${product.name} | EAN: ${product.ean || '—'} | Бренд: ${product.brand || '—'} | Цена: ${price} | Наличие: ${stock}
+ТОВАР: ${product.name} | Бренд: ${product.brand || '—'}
 КБЖУ: ${nutr} | Состав: ${product.ingredients || '—'}
 Халал: ${product.halalStatus === 'yes' ? 'да' : product.halalStatus === 'no' ? 'нет' : 'неизвестно'}
 Аллергены: ${product.allergens?.join(', ') || 'нет'}
-ПРОФИЛЬ: ${profileParts.length ? profileParts.join('; ') : 'не задан'}
-АЛЬТЕРНАТИВЫ В ЭТОМ ЖЕ МАГАЗИНЕ: ${alternatives}
-
-Правила: не выдумывай состав, сертификаты, цену, наличие или медицинские выводы. Если в карточке не хватает данных, скажи это спокойно и предложи проверить упаковку. Если халал указан как "да", говори "по данным карточки товара: халал". Если пользователь просит альтернативу, предлагай только товары из списка альтернатив.${ragSection}`
+ПРОФИЛЬ: ${profileParts.length ? profileParts.join('; ') : 'не задан'}${ragSection}`
 }
 
-function formatProductAlternatives(alternatives) {
-  if (!alternatives?.length) return 'нет переданных альтернатив'
-  return alternatives
-    .filter((item) => item.ean && item.name)
-    .map((item, index) => {
-      const price = item.priceKzt ? `${item.priceKzt} ₸` : 'цена не указана'
-      const stock = item.stockStatus || 'наличие не указано'
-      const halal =
-        item.halalStatus === 'yes'
-          ? 'халал'
-          : item.halalStatus === 'no'
-            ? 'не халал'
-            : 'халал неизвестно'
-      return `${index + 1}. ${item.name}${item.brand ? `, ${item.brand}` : ''} | EAN ${item.ean} | ${price} | ${stock} | ${halal}`
-    })
-    .join('; ')
-}
-
-function formatCatalogPrompt(catalogContext) {
-  if (!catalogContext?.length) return 'РЕЛЕВАНТНЫЕ ТОВАРЫ ИЗ КАТАЛОГА: не найдены или не переданы'
-  const lines = catalogContext.slice(0, 20).map((item, index) => {
-    const price = item.priceKzt ? `${item.priceKzt} ₸` : 'цена не указана'
-    const stock = item.stockStatus || 'наличие не указано'
-    const halal =
-      item.halalStatus === 'yes' ? 'халал' : item.halalStatus === 'no' ? 'не халал' : 'халал неизвестно'
-    return `${index + 1}. ${item.name}${item.brand ? `, ${item.brand}` : ''} | ${item.category || 'категория не указана'} | ${price} | ${stock} | ${halal}`
-  })
-  return `РЕЛЕВАНТНЫЕ ТОВАРЫ ИЗ КАТАЛОГА:\n${lines.join('\n')}`
-}
-
-function buildGeneralPrompt(lang, store = null, profile = null, catalogContext = []) {
-  const profileParts = []
-  if (profile?.halal || profile?.halalOnly) profileParts.push('нужен халал')
-  if (profile?.allergens?.length) profileParts.push(`аллергии: ${profile.allergens.join(', ')}`)
-  if (profile?.dietGoals?.length) profileParts.push(`диета: ${profile.dietGoals.join(', ')}`)
-  const profileLine = `ПРОФИЛЬ: ${profileParts.length ? profileParts.join('; ') : 'не задан'}`
-
+function buildGeneralPrompt(lang) {
   if (lang === 'kz') {
-    return `Сен — Körset AI, Қазақстандағы нақты дүкеннің көмекшісісің. Сатып алушыға осы дүкен туралы, тауар табуға, сатып алу тізімін құрастыруға және құрамын түсіндіруге көмектес. Қысқа, сыпайы, қазақша жауап бер. Максимум 3-4 сөйлем.
-
-${formatStorePrompt(store)}
-${profileLine}
-${formatCatalogPrompt(catalogContext)}
-
-Ереже: нақты тауар, баға, құрам, халал мәртебесі немесе бар-жоғын ойдан шығарма. Нақты тауар ұсынсаң, тек "РЕЛЕВАНТНЫЕ ТОВАРЫ ИЗ КАТАЛОГА" тізімінен ұсын. Егер дерек жоқ болса, оны анық айт.`
+    return 'Сен — Қазақстан супермаркетіндегі Körset AI көмекшісісің. Тауар табуға, рецепт ұсынуға және құрамын түсіндіруге көмектес. Қысқа, түсінікті қазақша жауап бер. Максимум 3-4 сөйлем.'
   }
-  return `Ты — Körset AI, помощник покупателя в конкретном магазине Казахстана. Помогаете ответить про этот магазин, найти товары, собрать список покупок и объяснить состав. Отвечай на "вы", кратко, по-русски. Максимум 3-4 предложения.
-
-${formatStorePrompt(store)}
-${profileLine}
-${formatCatalogPrompt(catalogContext)}
-
-Правила: не выдумывай конкретные товары, цены, состав, халал-статус, наличие или медицинские выводы. Если рекомендуешь конкретные товары, используй только список "РЕЛЕВАНТНЫЕ ТОВАРЫ ИЗ КАТАЛОГА". Если подходящих товаров нет, скажи это спокойно и предложи следующий полезный шаг.`
+  return 'Ты — Körset AI, помощник покупателя в супермаркете Казахстана. Помогаешь найти товары, советуешь рецепты, отвечаешь про состав и аллергены. Кратко, по-русски, как дружелюбный консультант. Максимум 3-4 предложения.'
 }
 
 function buildComparePrompt(productA, productB, profile, winner, lang, ragContext) {

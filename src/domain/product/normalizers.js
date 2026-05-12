@@ -123,36 +123,3 @@ export function coerceProductEntity(productLike) {
 
   return withProductImage(enrichQuantity(createEmptyProduct(productLike)))
 }
-
-const OFF_ALLERGEN_MAP = {
-  'en:milk': 'milk',
-  'en:gluten': 'gluten',
-  'en:wheat': 'gluten',
-  'en:eggs': 'eggs',
-  'en:peanuts': 'peanuts',
-  'en:nuts': 'tree_nuts',
-  'en:soybeans': 'soy',
-  'en:soy': 'soy',
-  'en:fish': 'fish',
-  'en:crustaceans': 'crustaceans',
-  'en:molluscs': 'mollusks',
-  'en:sesame-seeds': 'sesame',
-  'en:celery': 'celery',
-  'en:mustard': 'mustard',
-  'en:lupin': 'lupin',
-  'en:sulphur-dioxide-and-sulphites': 'sulfites',
-}
-
-export function normalizeOFFProduct(ean, data = {}) {
-  const mapTags = (tags = []) => {
-    const list = tags.map((tag) => OFF_ALLERGEN_MAP[tag]).filter(Boolean)
-    return [...new Set(list)]
-  }
-
-  return {
-    ean,
-    name: data.product_name || '',
-    allergens: mapTags(data.allergens_tags || []),
-    traces: mapTags(data.traces_tags || []),
-  }
-}

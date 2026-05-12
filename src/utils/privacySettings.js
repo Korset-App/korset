@@ -1,5 +1,8 @@
 export const DEFAULT_PRIVACY_SETTINGS = {
+  personalizationEnabled: true,
   analyticsEnabled: true,
+  localHistoryEnabled: true,
+  rememberStoreEnabled: true,
 }
 
 const PRIVACY_EVENT = 'korset:privacy_changed'
