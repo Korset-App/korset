@@ -72,6 +72,7 @@ export default function TermsScreen() {
         <div
           className="glass-card"
           style={{ padding: '24px 20px', textAlign: 'left' }}
+          lang={lang === 'kz' ? 'kk' : 'ru'}
           dangerouslySetInnerHTML={{
             __html: html
               .replace(
@@ -80,7 +81,7 @@ export default function TermsScreen() {
               )
               .replace(
                 /<p>/g,
-                '<p style="color:var(--text-sub);font-size:13px;line-height:1.65;margin:6px 0">'
+                '<p style="color:var(--text-sub);font-size:13px;line-height:1.65;margin:6px 0;text-align:justify;text-justify:inter-word;hyphens:auto">'
               )
               .replace(
                 /<ul>/g,

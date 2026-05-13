@@ -70,9 +70,14 @@ export default function PrivacyPolicyScreen() {
         <div
           className="glass-card"
           style={{ padding: '24px 20px', textAlign: 'left' }}
+          lang={lang === 'kz' ? 'kk' : 'ru'}
           dangerouslySetInnerHTML={{
             __html: html
               .replace(/<h3>/g, '<h3 style="color:var(--text);margin:16px 0 0">')
+              .replace(
+                /<p>/g,
+                '<p style="color:var(--text-sub);font-size:13px;line-height:1.65;margin:8px 0;text-align:justify;text-justify:inter-word;hyphens:auto">'
+              )
               .replace(/<ul>/g, '<ul style="padding-left:20px;margin:0">'),
           }}
         />
