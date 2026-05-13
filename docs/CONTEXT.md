@@ -185,6 +185,7 @@ Auth — **DONE**. Полный deep audit + cleanup завершён. Код с
 - 🔎 **Catalog Search upgrade — Stage 5 search UX**: улучшены loading/no-results состояния в `CatalogScreen.jsx` без редизайна; pending RPC больше не показывает ложное «ничего не найдено», добавлены короткие query suggestions и RU/KZ i18n ключи. Детали: `docs/vault/changelog/2026-05-13-catalog-search-stage-5-search-ux.md`.
 - 🔎 **Catalog Search upgrade — Stage 6 search history**: добавлен store-scoped recent search history в `localStorage` (`src/domain/product/searchHistory.js`) и quick chips под поиском при focused empty input. Детали: `docs/vault/changelog/2026-05-13-catalog-search-stage-6-search-history.md`.
 - 🔎 **Catalog Search upgrade — Stage 7 search diagnostics**: добавлена невидимая diagnostics-основа для search metadata (`searchMeta`, `data-search-*`) без изменения UX; покрыто unit-тестами. Детали: `docs/vault/changelog/2026-05-13-catalog-search-stage-7-search-diagnostics.md`.
+- 🔎 **Catalog Search upgrade — Stage 8 state stabilization**: серверный search state в `CatalogScreen.jsx` стабилизирован в один atomic `serverSearch` object; убран `set-state-in-effect` warning без изменения UX/ranking/fallback. Детали: `docs/vault/changelog/2026-05-13-catalog-search-stage-8-state-stabilization.md`.
 - ✅ **Landing V3**: Все Unsplash-заглушки (шаги, фоны, превью видео, карточки «Для кого») заменены на локальные высококачественные ИИ-изображения под контекст Казахстана и СНГ.
 - Catalog bento showcase доработан.
 - i18n migration завершена и защищается `scripts/check-i18n.mjs`

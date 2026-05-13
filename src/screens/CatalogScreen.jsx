@@ -262,9 +262,7 @@ export default function CatalogScreen() {
   )
 
   const [offlineCatalog, setOfflineCatalog] = useState([])
-  const [serverResults, setServerResults] = useState([])
-  const [serverResultsQuery, setServerResultsQuery] = useState('')
-  const [isSearchingServer, setIsSearchingServer] = useState(false)
+  const [serverSearch, setServerSearch] = useState({ results: [], query: '', status: 'idle' })
   const [recentSearchesVersion, setRecentSearchesVersion] = useState(0)
   const [isSearchFocused, setIsSearchFocused] = useState(false)
 
@@ -398,29 +396,18 @@ export default function CatalogScreen() {
   }, [baseProducts, selectedCategory, selectedSubcategories, profile, q, sort, isSearching])
 
   useEffect(() => {
-    if (!canUseServerSearch) {
-      setServerResults([])
-      setServerResultsQuery('')
-      setIsSearchingServer(false)
-      return
-    }
+    if (!canUseServerSearch) return undefined
     let cancelled = false
     const timer = setTimeout(() => {
-      setIsSearchingServer(true)
+      setServerSearch((state) => ({ ...state, status: 'pending' }))
       searchStoreProductsRPC(storeId, normalizedQuery, { limit: 60 })
         .then((products) => {
           if (cancelled) return
-          setServerResults(products)
-          setServerResultsQuery(normalizedQuery)
+          setServerSearch({ results: products, query: normalizedQuery, status: 'success' })
         })
         .catch(() => {
           if (cancelled) return
-          setServerResults([])
-          setServerResultsQuery(normalizedQuery)
-        })
-        .finally(() => {
-          if (cancelled) return
-          setIsSearchingServer(false)
+          setServerSearch({ results: [], query: normalizedQuery, status: 'error' })
         })
     }, 400)
     return () => {
@@ -431,7 +418,7 @@ export default function CatalogScreen() {
 
   const displayList = useMemo(() => {
     if (canUseServerSearch) {
-      const activeServerResults = serverResultsQuery === normalizedQuery ? serverResults : []
+      const activeServerResults = serverSearch.query === normalizedQuery ? serverSearch.results : []
       return sortCatalogProducts(
         mergeProductsBySearchKey(activeServerResults, list),
         sort,
@@ -440,10 +427,11 @@ export default function CatalogScreen() {
       )
     }
     return list
-  }, [canUseServerSearch, serverResults, serverResultsQuery, normalizedQuery, list, sort, profile])
+  }, [canUseServerSearch, serverSearch, normalizedQuery, list, sort, profile])
 
   const isSearchPending =
-    canUseServerSearch && (isSearchingServer || serverResultsQuery !== normalizedQuery)
+    canUseServerSearch &&
+    (serverSearch.status === 'pending' || serverSearch.query !== normalizedQuery)
   const searchSuggestions = useMemo(
     () => (isSearching ? buildSearchSuggestions(normalizedQuery) : []),
     [isSearching, normalizedQuery]
@@ -833,7 +821,7 @@ export default function CatalogScreen() {
                   <>
                     {' '}
                     ·{' '}
-                    {isSearchingServer
+                    {isSearchPending
                       ? t('catalog.searchingServer')
                       : `${displayList.length} ${t('catalog.productsCount')}`}
                   </>
