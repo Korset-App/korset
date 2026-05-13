@@ -1839,9 +1839,7 @@ export default function ProfileScreen() {
                             color: item.labelStyle?.color || 'var(--text)',
                             flex: 1,
                             minWidth: 0,
-                            overflow: 'hidden',
-                            whiteSpace: 'nowrap',
-                            textOverflow: 'ellipsis',
+                            lineHeight: 1.3,
                           }}
                         >
                           {item.label}

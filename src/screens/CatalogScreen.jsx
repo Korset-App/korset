@@ -247,7 +247,7 @@ export default function CatalogScreen() {
   const { storeSlug } = useParams()
   const { t, lang } = useI18n()
   const { profile } = useProfile()
-  const { storeId, currentStore, catalogProducts, isCatalogReady } = useStore()
+  const { storeId, currentStore, catalogProducts, isCatalogReady, isCatalogLoading } = useStore()
   const { isOnline } = useOffline()
   const [q, setQ] = useState(() => sessionStorage.getItem('korset_catalog_q') || '')
   const [sort, setSort] = useState(() => sessionStorage.getItem('korset_catalog_sort') || 'fit')
@@ -525,7 +525,7 @@ export default function CatalogScreen() {
     currentStore?.name || (storeSlug ? `${storeSlug[0].toUpperCase()}${storeSlug.slice(1)}` : '')
 
   const searchHint = !isCatalogReady && q.trim() ? t('catalog.loadingSearch') : null
-  const showCatalogMeta = true
+  const showCatalogMeta = false
   const showCategories = !isSearching && !selectedCategory
   const showSubcategories = !isSearching && selectedCategory
 
@@ -1199,6 +1199,18 @@ export default function CatalogScreen() {
                 <button className="catalog-empty-state-btn" onClick={() => setQ('')}>
                   {t('catalog.clearSearch')}
                 </button>
+              </div>
+            ) : isCatalogLoading ? (
+              <div className="catalog-empty-state">
+                <div className="catalog-loading-skeleton">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="catalog-skeleton-row"
+                      style={{ animationDelay: `${i * 0.07}s` }}
+                    />
+                  ))}
+                </div>
               </div>
             ) : (
               <div className="catalog-empty-state">

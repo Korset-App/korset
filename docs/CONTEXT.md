@@ -107,7 +107,7 @@ Consumer:
 - ProductScreen: Fit-Check, факты товара, цена/store overlay, unknown-EAN request flow, переходы к AI/compare/alternatives.
 - CompareScreen: сравнение двух товаров через scan flow.
 - AIScreen/AIAssistantScreen: product/general/compare AI modes, серверный `/api/ai.js`, RAG через `vault_embeddings`.
-- CatalogScreen: 18 нормализованных категорий, bento showcase, поиск (иконка + кнопка ×), view toggle list/grid, минималистичные выпадающие панели (дропдауны) с поддержкой мульти-выбора подкатегорий и счётчиками товаров, продвинутая сортировка (по пригодности Fit-Check, цене, максимуму белка, минимуму сахара) с иконками, 4-уровневый Fit-Check badge (safe/caution/warning/danger), mix-blend-mode на изображениях, empty states, Virtuoso, offline fallback.
+- CatalogScreen: 18 нормализованных категорий, bento showcase, поиск (иконка + кнопка ×), view toggle list/grid, минималистичные выпадающие панели с поддержкой мульти-выбора подкатегорий, продвинутая сортировка (по Fit-Check, цене, белку, сахару) с иконками, 4-уровневый Fit-Check badge, mix-blend-mode на изображениях, skeleton loading state, Virtuoso, offline fallback. Счётчики товаров отключены (`showCatalogMeta = false`).
 - History, favorites, profile, account и service screens.
 
 Auth/profile:
@@ -152,7 +152,8 @@ Infrastructure:
 - ✅ **Парсинг подкатегории «Сыры» с Arbuz.kz**: Успешно завершен боевой импорт подкатегории (333 уникальных EAN-продукта перенесено в Supabase `global_products` без единой ошибки: 293 создано, 40 обогащено, более 100 СТМ и локальных кулинарных позиций отфильтровано). Путем расширения парсера режимом `--mode=cheese` со сканированием 14 страниц и автоматическим форсированием маппинга в `dairy_eggs / cheese` обеспечен безупречный импорт всех видов сыров (моцарелла, пармезан, сулугуни, брынза и др.) со штрихкодами Нацкаталога РК.
 - ✅ **Парсинг подкатегории «Мороженое» с Arbuz.kz**: Успешно завершен боевой импорт подкатегории (212 уникальных EAN-продуктов перенесено в Supabase `global_products` без единой ошибки: 193 создано, 19 обогащено, более 110 СТМ-позиций отфильтровано). Расширили парсер конфигурационным режимом `--mode=ice_cream` со сканированием 10 страниц и автоматическим маппингом в `frozen / ice_cream`. Аккуратно отсеяли все СТМ-позиции собственного производства (бессахарные и безлактозные Arbuz Select, пробиотическое мороженое Dr.Galamilk), импортировав только брендовое мороженое с легитимными штрихкодами Нацкаталога РК.
 - ✅ **Каталог и штрихкоды**: Возвращено отображение количества продуктов в UX каталога (переменная `showCatalogMeta = true` in `CatalogScreen.jsx` активирована).
-- ✅ **Поддержка нескольких EAN на один товар**: Подтверждена готовность архитектуры (колонки `alternate_eans`, PostgreSQL функция `fn_resolve_product` и обработка в `resolver.js`/`offlineDB.js` полностью поддерживают сканирование альтернативных кодов для одного товара).
+- ✅ **Поддержка нескольких EAN на один товар**: `alternate_eans`, `fn_resolve_product` и обработка в `resolver.js`/`offlineDB.js` полностью поддерживают сканирование альтернативных кодов для одного товара.
+- ✅ **Оптимизация загрузки каталога (2026-05-13)**: Заменён sequential batching (~19 round-trips, 15–40s) на единый RPC `fn_get_store_catalog` (migration 029). Время cold-start: 1.5–4s. `StoreContext.jsx`: убраны `initialProducts`, `loadRemaining`, `INITIAL_PAGE_SIZE`; добавлены `mapRpcRowToProduct`, `isCatalogLoading`. `CatalogScreen.jsx`: skeleton loading state, `showCatalogMeta = false`.
 - **Store-aware AI для пилота**: Перед кодом зафиксированы:
 - спецификация: `docs/vault/plans/2026-05-08-store-ai-pilot-spec.md`;
 - поэтапный roadmap: `docs/vault/plans/2026-05-09-store-ai-implementation-roadmap.md`.

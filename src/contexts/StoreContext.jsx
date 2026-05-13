@@ -25,14 +25,40 @@ const StoreContext = createContext(null)
 export const STORE_KEY = 'korset_store_slug'
 const STORE_CACHE_PREFIX = 'korset_store_data_'
 
-const LIGHT_FIELDS =
-  'ean, name, name_kz, brand, category, subcategory, quantity, image_url, allergens_json, diet_tags_json, halal_status, packaging_type, fat_percent, nutriscore, group'
-
 const FULL_FIELDS =
   'ean, name, name_kz, brand, category, subcategory, quantity, description, ingredients_raw, ingredients_kz, allergens_json, diet_tags_json, tags_json, additives_tags_json, traces_json, categories_tags_json, halal_status, packaging_type, fat_percent, nutriscore, nutriments_json, alcohol_100g, saturated_fat_100g, nova_group, image_ingredients_url, image_nutrition_url, image_url, images, manufacturer, country_of_origin, specs_json, data_quality_score, source_primary, source_confidence, is_verified, needs_review, group, alternate_eans'
 
-const INITIAL_PAGE_SIZE = 50
+// Maps a flat RPC row from fn_get_store_catalog to the canonical product shape.
+// JSONB columns (allergens_json, diet_tags_json, alternate_eans) are auto-parsed
+// by supabase-js, so parseJson handles both object and string inputs safely.
+function mapRpcRowToProduct(row) {
+  return enrichQuantity({
+    ean: row.gp_ean || row.ean,
+    name: row.local_name || row.name,
+    nameKz: row.name_kz,
+    brand: row.brand,
+    category: row.category,
+    subcategory: row.subcategory,
+    quantity: row.quantity,
+    group: row.product_group,
+    allergens: parseJson(row.allergens_json, []),
+    dietTags: parseJson(row.diet_tags_json, []),
+    halalStatus: row.halal_status || 'unknown',
+    packagingType: row.packaging_type || null,
+    fatPercent: row.fat_percent ?? null,
+    nutriscore: row.nutriscore,
+    image: getImageUrl(row.image_url),
+    priceKzt: row.price_kzt,
+    shelf: row.shelf_zone,
+    stockStatus: row.stock_status,
+    storeProductId: row.store_product_id,
+    globalProductId: row.global_product_id,
+    source: 'cache',
+    alternateEans: parseJson(row.alternate_eans, []),
+  })
+}
 
+// mapRowToProduct remains for fetchFullProduct (full-fields PostgREST shape).
 function mapRowToProduct(row) {
   const gp = row.global_products || {}
   const result = {
@@ -158,8 +184,8 @@ export function StoreProvider({ children }) {
   const [isStoreLoading, setIsStoreLoading] = useState(() =>
     Boolean(storeSlug && !loadStoreFromCache(storeSlug))
   )
-  const [initialProducts, setInitialProducts] = useState([])
   const [fullCatalog, setFullCatalog] = useState(null)
+  const [isCatalogLoading, setIsCatalogLoading] = useState(false)
   const fetchAbortRef = useRef(null)
 
   useEffect(() => {
@@ -219,69 +245,37 @@ export function StoreProvider({ children }) {
     const storeId = currentStore.id
 
     const aborted = { value: false }
-    setInitialProducts([])
     setFullCatalog(null)
+    setIsCatalogLoading(true)
 
     supabase
-      .from('store_products')
-      .select(
-        `ean, price_kzt, shelf_zone, stock_status, local_name, is_active, global_products!inner(${LIGHT_FIELDS})`
-      )
-      .eq('store_id', storeId)
-      .eq('is_active', true)
-      .eq('global_products.is_active', true)
-      .range(0, INITIAL_PAGE_SIZE - 1)
-      .order('created_at', { ascending: false })
-      .then(({ data }) => {
-        if (aborted.value || !data) return
-        setInitialProducts(data.map(mapRowToProduct))
-      })
-      .catch(() => {})
-
-    async function loadRemaining() {
-      let offset = 0
-      const batchSize = 500
-      let allRows = []
-
-      while (true) {
+      .rpc('fn_get_store_catalog', { p_store_id: storeId })
+      .then(({ data, error }) => {
         if (aborted.value) return
-        const { data, error } = await supabase
-          .from('store_products')
-          .select(
-            `ean, price_kzt, shelf_zone, stock_status, local_name, is_active, global_products!inner(${LIGHT_FIELDS})`
-          )
-          .eq('store_id', storeId)
-          .eq('is_active', true)
-          .eq('global_products.is_active', true)
-          .range(offset, offset + batchSize - 1)
-          .order('created_at', { ascending: false })
-        if (error || !data || data.length === 0) break
-        allRows = allRows.concat(data)
-        if (data.length < batchSize) break
-        offset += batchSize
-      }
-
-      if (aborted.value) return
-      const products = allRows.map(mapRowToProduct)
-      setFullCatalog(products)
-      if (products.length > 0) {
-        saveCatalogToIndexedDB(products, storeId)
-          .then(() => notifyCatalogWarmed(storeId))
-          .catch(() => {})
-      }
-    }
-
-    loadRemaining()
+        if (error || !data) {
+          setIsCatalogLoading(false)
+          return
+        }
+        const products = data.map(mapRpcRowToProduct)
+        setFullCatalog(products)
+        setIsCatalogLoading(false)
+        if (products.length > 0) {
+          saveCatalogToIndexedDB(products, storeId)
+            .then(() => notifyCatalogWarmed(storeId))
+            .catch(() => {})
+        }
+      })
+      .catch(() => {
+        if (aborted.value) return
+        setIsCatalogLoading(false)
+      })
 
     return () => {
       aborted.value = true
     }
   }, [currentStore?.id])
 
-  const catalogProducts = useMemo(() => {
-    if (fullCatalog) return fullCatalog
-    return initialProducts
-  }, [initialProducts, fullCatalog])
+  const catalogProducts = useMemo(() => fullCatalog || [], [fullCatalog])
 
   const isCatalogReady = fullCatalog !== null
 
@@ -320,6 +314,7 @@ export function StoreProvider({ children }) {
       isStoreLoading,
       catalogProducts,
       isCatalogReady,
+      isCatalogLoading,
       isStoreApp,
       isStorePublic,
       isPublicMarketing,
@@ -351,6 +346,7 @@ export function StoreProvider({ children }) {
       isStoreLoading,
       catalogProducts,
       isCatalogReady,
+      isCatalogLoading,
       isStoreApp,
       isStorePublic,
       isPublicMarketing,
