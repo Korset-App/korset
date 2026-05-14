@@ -254,6 +254,7 @@ export default function CatalogScreen() {
   const { storeId, currentStore, catalogProducts, isCatalogReady, isCatalogLoading } = useStore()
   const { isOnline } = useOffline()
   const [q, setQ] = useState(() => sessionStorage.getItem('korset_catalog_q') || '')
+  const [debouncedQuery, setDebouncedQuery] = useState(q)
   const [sort, setSort] = useState(() => sessionStorage.getItem('korset_catalog_sort') || 'fit')
   const [viewMode, setViewMode] = useState(
     () => sessionStorage.getItem('korset_catalog_view') || 'list'
@@ -286,14 +287,20 @@ export default function CatalogScreen() {
   const [isSubMenuOpen, setIsSubMenuOpen] = useState(false)
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false)
 
-  const isSearching = q.trim().length > 0
-  const normalizedQuery = q.trim()
+  const hasQuery = q.trim().length > 0
+  const isSearching = debouncedQuery.trim().length > 0
+  const normalizedQuery = debouncedQuery.trim()
   const searchStoreKey = storeId || currentStore?.slug || storeSlug || 'global'
   const canUseServerSearch =
     isSearching && isOnline && Boolean(storeId) && normalizedQuery.length >= 2
 
   useEffect(() => {
     sessionStorage.setItem('korset_catalog_q', q)
+  }, [q])
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(q), 250)
+    return () => clearTimeout(timer)
   }, [q])
 
   useEffect(() => {
@@ -390,33 +397,38 @@ export default function CatalogScreen() {
     }
 
     if (isSearching) {
-      arr = sortCatalogSearchProducts(arr, q, (product) => {
+      arr = sortCatalogSearchProducts(arr, debouncedQuery, (product) => {
         const fit = checkProductFit(product, profile)
         return FIT_VERDICT_ORDER[fit.verdict] ?? (fit.fits ? 0 : 3)
       })
     }
 
     return sortCatalogProducts(arr, sort, profile, isSearching)
-  }, [baseProducts, selectedCategory, selectedSubcategories, profile, q, sort, isSearching])
+  }, [
+    baseProducts,
+    selectedCategory,
+    selectedSubcategories,
+    profile,
+    debouncedQuery,
+    sort,
+    isSearching,
+  ])
 
   useEffect(() => {
     if (!canUseServerSearch) return undefined
     let cancelled = false
-    const timer = setTimeout(() => {
-      setServerSearch((state) => ({ ...state, status: 'pending' }))
-      searchStoreProductsRPC(storeId, normalizedQuery, { limit: 60 })
-        .then((products) => {
-          if (cancelled) return
-          setServerSearch({ results: products, query: normalizedQuery, status: 'success' })
-        })
-        .catch(() => {
-          if (cancelled) return
-          setServerSearch({ results: [], query: normalizedQuery, status: 'error' })
-        })
-    }, 400)
+    setServerSearch((state) => ({ ...state, status: 'pending' }))
+    searchStoreProductsRPC(storeId, normalizedQuery, { limit: 60 })
+      .then((products) => {
+        if (cancelled) return
+        setServerSearch({ results: products, query: normalizedQuery, status: 'success' })
+      })
+      .catch(() => {
+        if (cancelled) return
+        setServerSearch({ results: [], query: normalizedQuery, status: 'error' })
+      })
     return () => {
       cancelled = true
-      clearTimeout(timer)
     }
   }, [canUseServerSearch, normalizedQuery, storeId])
 
@@ -444,7 +456,7 @@ export default function CatalogScreen() {
     () => readCatalogSearchHistory(searchStoreKey, recentSearchesVersion ? 6 : 6),
     [recentSearchesVersion, searchStoreKey]
   )
-  const showRecentSearches = isSearchFocused && !isSearching && recentSearches.length > 0
+  const showRecentSearches = isSearchFocused && !hasQuery && recentSearches.length > 0
 
   const rememberCatalogSearch = useCallback(() => {
     if (normalizedQuery.length < 2 || isSearchPending) return
@@ -530,8 +542,8 @@ export default function CatalogScreen() {
 
   const searchHint = !isCatalogReady && q.trim() ? t('catalog.loadingSearch') : null
   const showCatalogMeta = false
-  const showCategories = !isSearching && !selectedCategory
-  const showSubcategories = !isSearching && selectedCategory
+  const showCategories = !hasQuery && !selectedCategory
+  const showSubcategories = !hasQuery && selectedCategory
 
   const renderGridItem = useCallback(
     (index, product) => {
@@ -806,13 +818,13 @@ export default function CatalogScreen() {
                 }}
               >
                 {storeTitle}
-                {showCatalogMeta && !isSearching && showSubcategories && (
+                {showCatalogMeta && !hasQuery && showSubcategories && (
                   <>
                     {' '}
                     · {categoryCountMap[selectedCategory] || 0} {t('catalog.productsIn')}
                   </>
                 )}
-                {showCatalogMeta && !isSearching && showCategories && (
+                {showCatalogMeta && !hasQuery && showCategories && (
                   <>
                     {' '}
                     ·{' '}
@@ -821,7 +833,7 @@ export default function CatalogScreen() {
                       : `${baseProducts.length} ${t('catalog.productsCount')}${!isCatalogReady ? ' · ' + t('catalog.loadingMore') : ''}`}
                   </>
                 )}
-                {showCatalogMeta && isSearching && (
+                {showCatalogMeta && hasQuery && (
                   <>
                     {' '}
                     ·{' '}
@@ -1173,13 +1185,13 @@ export default function CatalogScreen() {
       {!showCategories && (
         <div style={{ flex: 1, minHeight: 0 }}>
           {displayList.length === 0 ? (
-            isSearching && isSearchPending ? (
+            hasQuery && isSearchPending ? (
               <div className="catalog-empty-state">
                 <span className="material-symbols-outlined">travel_explore</span>
                 <div className="catalog-empty-state-title">{t('catalog.searchLoadingTitle')}</div>
                 <div className="catalog-empty-state-sub">{t('catalog.searchLoadingSub')}</div>
               </div>
-            ) : isSearching ? (
+            ) : hasQuery ? (
               <div className="catalog-empty-state">
                 <span className="material-symbols-outlined">search_off</span>
                 <div className="catalog-empty-state-title">{t('catalog.emptySearch')}</div>

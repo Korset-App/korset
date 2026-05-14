@@ -50,6 +50,25 @@
 - Migration 030 applied via Supabase Dashboard SQL Editor.
 - **Migration 031 awaiting manual apply.**
 
+## Frontend Fix: Search Input Lag
+
+### Problem
+
+After applying migration 031, search input became extremely laggy. Every keystroke blocked the main thread because `sortCatalogSearchProducts` analyzed and scored the **entire local catalog** synchronously on every `onChange`, before any debounce.
+
+### Fix in `src/screens/CatalogScreen.jsx`
+
+- Added `debouncedQuery` state with 250ms debounce via `setTimeout`/`clearTimeout`.
+- Search computation (`sortCatalogSearchProducts`, RPC call) now uses `debouncedQuery`.
+- Input value `q` remains instant for responsive typing.
+- Separated `hasQuery` (instant UI flag: hides categories, shows empty states) from `isSearching` (debounced search flag: triggers actual sorting and RPC).
+- Removed nested 400ms debounce inside RPC `useEffect`; RPC now fires directly when `canUseServerSearch` + `debouncedQuery` change (total effective debounce = 250ms).
+
+### Fix Verification
+
+- `npx eslint src/screens/CatalogScreen.jsx` — PASS (0 errors, 1 pre-existing warning).
+- `npm run build` — PASS (exit code 0).
+
 ## Next
 
 - Apply migration 031 via Supabase Dashboard SQL Editor.
