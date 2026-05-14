@@ -29,6 +29,7 @@ import { getDisplayQuantity } from '../utils/parseQuantity.js'
 import { CATEGORY_SHOWCASE_ORDER, getCategoryShowcase } from '../domain/product/catalogShowcase.js'
 import { getProductSearchDiagnosticsAttrs } from '../domain/product/searchDiagnostics.js'
 import { searchStoreProductsRPC } from '../domain/product/search.js'
+import { sortCatalogSearchProducts } from '../domain/product/searchQuality.js'
 import {
   appendCatalogSearchQuery,
   readCatalogSearchHistory,
@@ -168,12 +169,15 @@ function sortCatalogProducts(products, sort, profile, isSearching) {
       if (aVal == null && bVal == null) return 0
       return aVal - bVal
     }
+    if (isSearching) {
+      const rankDiff = (b.searchRank || 0) - (a.searchRank || 0)
+      if (rankDiff !== 0) return rankDiff
+    }
     const aFit = checkProductFit(a, profile)
     const bFit = checkProductFit(b, profile)
     const aFitScore = FIT_VERDICT_ORDER[aFit.verdict] ?? (aFit.fits ? 0 : 3)
     const bFitScore = FIT_VERDICT_ORDER[bFit.verdict] ?? (bFit.fits ? 0 : 3)
     if (aFitScore !== bFitScore) return aFitScore - bFitScore
-    if (isSearching) return (b.searchRank || 0) - (a.searchRank || 0)
     return 0
   })
   return arr
@@ -332,7 +336,9 @@ export default function CatalogScreen() {
 
   const baseProducts = useMemo(() => {
     if (storeId && catalogProducts.length > 0) return catalogProducts
-    if (!isOnline && offlineCatalog.length > 0) return offlineCatalog
+    if (!isOnline && offlineCatalog.length > 0) {
+      return offlineCatalog.filter((p) => String(p.store_id || p.storeId) === String(storeId))
+    }
     return []
   }, [storeId, catalogProducts, isOnline, offlineCatalog])
 
@@ -384,11 +390,9 @@ export default function CatalogScreen() {
     }
 
     if (isSearching) {
-      const query = q.trim().toLowerCase()
-      arr = arr.filter((product) => {
-        const haystack =
-          `${product.name} ${product.nameKz || ''} ${product.brand || ''} ${(product.ingredients || '').slice(0, 200)} ${(product.tags || []).join(' ')}`.toLowerCase()
-        return haystack.includes(query)
+      arr = sortCatalogSearchProducts(arr, q, (product) => {
+        const fit = checkProductFit(product, profile)
+        return FIT_VERDICT_ORDER[fit.verdict] ?? (fit.fits ? 0 : 3)
       })
     }
 

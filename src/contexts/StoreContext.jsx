@@ -20,6 +20,7 @@ import {
   buildScanPath,
   buildStorePublicPath,
 } from '../utils/routes.js'
+import { useOffline } from './OfflineContext.jsx'
 
 const StoreContext = createContext(null)
 export const STORE_KEY = 'korset_store_slug'
@@ -173,6 +174,7 @@ export async function fetchFullProduct(storeId, ean) {
 
 export function StoreProvider({ children }) {
   const location = useLocation()
+  const { isOnline } = useOffline()
   const pathStoreSlug = getStoreSlugFromPath(location.pathname)
   const [rememberedStoreSlug, setRememberedStoreSlug] = useState(
     () => localStorage.getItem(STORE_KEY) || null
@@ -240,12 +242,26 @@ export function StoreProvider({ children }) {
     }
   }, [storeSlug])
 
+  const loadedStoreIdRef = useRef(null)
+
   useEffect(() => {
-    if (!currentStore?.id || !navigator.onLine) return
-    const storeId = currentStore.id
+    const storeId = currentStore?.id
+    if (!storeId) {
+      if (loadedStoreIdRef.current !== null) {
+        setFullCatalog(null)
+        loadedStoreIdRef.current = null
+      }
+      return
+    }
+
+    if (loadedStoreIdRef.current !== storeId) {
+      setFullCatalog(null)
+      loadedStoreIdRef.current = storeId
+    }
+
+    if (!isOnline) return
 
     const aborted = { value: false }
-    setFullCatalog(null)
     setIsCatalogLoading(true)
 
     supabase
@@ -273,7 +289,7 @@ export function StoreProvider({ children }) {
     return () => {
       aborted.value = true
     }
-  }, [currentStore?.id])
+  }, [currentStore?.id, isOnline])
 
   const catalogProducts = useMemo(() => fullCatalog || [], [fullCatalog])
 

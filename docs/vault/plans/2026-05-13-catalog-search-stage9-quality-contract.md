@@ -12,6 +12,33 @@ Do not jump directly to a narrow SQL fix for examples like milk. The milk exampl
 
 Before implementation, Stage 9 should preserve the full professional-search contract and build a broad quality matrix. The implementation can still be incremental, but it must be designed around general grocery search, not one category.
 
+## Confirmed Product Decisions
+
+### Search Relevance Before Fit-Check
+
+In catalog search mode, search relevance must rank above Fit-Check suitability.
+
+Reason: shoppers often search for a specific product, brand, price, or volume regardless of whether the product is safe for their profile. Fit-Check remains visible and valuable, but it must not cause a weak or accidental match to outrank a clearly relevant product.
+
+Execution rule:
+
+1. Rank by search relevance tier first.
+2. Use Fit-Check only inside sufficiently relevant tiers.
+3. Use `search_rank`, price, availability, and stable tie-breakers after relevance/Fit-Check.
+4. Do not send user profile data into SQL ranking.
+
+### Attribute Search Must Be Conservative
+
+Queries such as `без сахара`, `без глютена`, `халал`, `без лактозы`, `пальмовое масло`, and `протеин` should rely on explicit product data: name, tags, diet tags, halal status, category tags, ingredients, and other stored product facts. Do not infer sensitive health claims from weak or speculative signals.
+
+### Aliases Start Curated
+
+Stage 9 should start with a curated high-value alias table for common grocery products, Kazakh/Russian terms, and global brands. Do not build a broad transliteration engine before the curated approach is tested against real pilot-store search behavior.
+
+### Stage 9 Must Be Implemented In Substages
+
+Stage 9 is one product-quality upgrade, but implementation must be split into controlled substages with tests and verification after each meaningful change. Avoid a single large SQL/frontend rewrite.
+
 ## Current Gap
 
 Current RPC `public.fn_search_store_products` from migration `028_catalog_search_rpc.sql` mainly scores:
@@ -195,7 +222,27 @@ Do not make offline search dependent on server-only SQL.
 
 ## Suggested Architecture
 
-### Stage 9A: Contract And Fixtures
+### Stage 9.0: Current-Code Inspection
+
+Before implementation, inspect and map:
+
+- `src/domain/product/categoryMap.js`;
+- `supabase/migrations/028_catalog_search_rpc.sql`;
+- `src/domain/product/search.js`;
+- `src/domain/product/searchMapping.js`;
+- `src/domain/product/searchDiagnostics.js`;
+- `src/screens/CatalogScreen.jsx`;
+- existing search tests.
+
+Outcome:
+
+- identify exact product fields available to SQL and frontend;
+- confirm current `match_type` and `search_rank` contracts;
+- confirm merge/dedupe/sort behavior;
+- confirm offline fallback behavior;
+- list implementation risks before editing.
+
+### Stage 9.1: Contract And Fixtures
 
 Create a search quality fixture/test file before changing ranking. It should encode expected relative ordering, not only “has results”.
 
@@ -205,7 +252,9 @@ Possible locations:
 - SQL verification script if local Supabase data is available;
 - Vault QA matrix for manual checks against live pilot store.
 
-### Stage 9B: Shared Query Normalizer
+Minimum coverage should include dairy, sweets/snacks, grocery, drinks, frozen/ready meals, meat/fish/deli, health/attribute queries, barcode/EAN, typo, quantity, token-order, and nonsense queries.
+
+### Stage 9.2: Shared Query Normalizer
 
 Add a pure helper for frontend/offline and tests, for example:
 
@@ -219,7 +268,20 @@ Add a pure helper for frontend/offline and tests, for example:
 
 Keep it JavaScript for frontend/offline. SQL can mirror the same concepts in a migration.
 
-### Stage 9C: RPC Ranking V2
+### Stage 9.3: Offline/Local Fallback Scoring
+
+Replace or strengthen the current simple local fallback with the shared normalizer/scorer so offline search supports:
+
+- meaningful token matching independent of order;
+- curated aliases;
+- quantity boost;
+- brand/product boost;
+- product intent category/subcategory boost where local product fields allow it;
+- conservative attribute/ingredient matching.
+
+Offline search does not need to equal SQL quality, but it must not remain a weak `includes(query)` layer after Stage 9.
+
+### Stage 9.4: RPC Ranking V2
 
 Add a new migration that replaces `public.fn_search_store_products` with a better scorer. Do not edit old migration `028`.
 
@@ -237,19 +299,19 @@ Ranking components should include:
 - attribute/ingredient mode scoring;
 - penalties for wrong-intent matches when query intent is strong.
 
-### Stage 9D: Frontend Merge Policy Review
+### Stage 9.5: Frontend Merge/Sort Policy
 
 Current frontend sorts merged results by Fit-Check verdict first, then `searchRank`. This can be correct for Körset value, but it can also hide search relevance if a weak result has a better Fit verdict.
 
-Review whether search mode should use:
+Confirmed policy for search mode:
 
-1. hard relevance floor first;
-2. then Fit-Check;
-3. then `searchRank`;
+1. hard relevance floor/tier first;
+2. then Fit-Check inside sufficiently relevant tiers;
+3. then `searchRank` and stable tie-breakers.
 
-or current Fit-first behavior. This must be a product decision because Körset’s core value is suitability, but search must still feel accurate.
+Default non-search catalog sorting can keep its existing product behavior unless a direct change is required.
 
-### Stage 9E: Diagnostics Expansion
+### Stage 9.6: Diagnostics Expansion
 
 Stage 7 diagnostics should be expanded with richer `match_type` values such as:
 
@@ -267,6 +329,40 @@ Stage 7 diagnostics should be expanded with richer `match_type` values such as:
 - `offline_fallback`.
 
 Update `searchDiagnostics.js` mapping accordingly.
+
+### Stage 9.7: Real-Data QA And Documentation
+
+After unit-level verification, run a real pilot-store QA pass using the search quality matrix below. Update:
+
+- `docs/CONTEXT.md` with a short durable status;
+- Vault changelog with implementation details;
+- architecture/knowledge notes only if Stage 9 introduces a durable search architecture pattern.
+
+Run `npm run memory:save` after Vault changes when credentials/network are available.
+
+## Execution Checklist
+
+Do not mark Stage 9 complete until all applicable items below are addressed or explicitly deferred with a reason.
+
+- [x] Inspect current search code, SQL RPC, diagnostics, and tests.
+- [x] Add/extend unit fixtures for broad grocery search quality, not only milk.
+- [x] Implement shared JS query normalization.
+- [x] Implement query intent/mode classification.
+- [x] Implement quantity parsing and quantity boost.
+- [x] Implement curated RU/KZ/Latin aliases.
+- [x] Improve offline/local fallback scoring.
+- [x] Add new Supabase migration for RPC ranking v2 without editing migration `028`.
+- [x] Preserve store scoping: current store only, active store products only, active global products only.
+- [x] Preserve security: no profile data in SQL, no service-role exposure, no RLS weakening.
+- [x] Implement relevance-first search sorting in `CatalogScreen.jsx`.
+- [x] Keep Fit-Check visible and secondary inside relevant result tiers.
+- [x] Expand diagnostics `match_type` and diagnostic grouping.
+- [ ] Verify dairy, sweets/snacks, grocery, drinks, frozen/ready meals, meat/fish/deli, attribute, EAN, typo, quantity, and negative queries. (requires real pilot store data — deferred to post-deploy QA)
+- [x] Run relevant unit tests.
+- [x] Run i18n checks if user-facing text changes.
+- [x] Run build/lint or targeted checks appropriate to touched files.
+- [x] Update `docs/CONTEXT.md` and Vault changelog.
+- [x] Apply migration 030 via Supabase Dashboard SQL Editor.
 
 ## Search Quality Matrix
 
