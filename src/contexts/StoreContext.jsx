@@ -262,29 +262,46 @@ export function StoreProvider({ children }) {
     if (!isOnline) return
 
     const aborted = { value: false }
+    setFullCatalog(null)
     setIsCatalogLoading(true)
 
-    supabase
-      .rpc('fn_get_store_catalog', { p_store_id: storeId })
-      .then(({ data, error }) => {
+    async function fetchAll() {
+      let offset = 0
+      const batchSize = 1000
+      let allProducts = []
+
+      while (true) {
         if (aborted.value) return
-        if (error || !data) {
-          setIsCatalogLoading(false)
-          return
+        const { data, error } = await supabase
+          .rpc('fn_get_store_catalog', { p_store_id: storeId })
+          .range(offset, offset + batchSize - 1)
+
+        if (error || !data || data.length === 0) {
+          break
         }
-        const products = data.map(mapRpcRowToProduct)
-        setFullCatalog(products)
-        setIsCatalogLoading(false)
-        if (products.length > 0) {
-          saveCatalogToIndexedDB(products, storeId)
-            .then(() => notifyCatalogWarmed(storeId))
-            .catch(() => {})
+
+        const mapped = data.map(mapRpcRowToProduct)
+        allProducts = allProducts.concat(mapped)
+
+        setFullCatalog([...allProducts])
+
+        if (data.length < batchSize) {
+          break
         }
-      })
-      .catch(() => {
-        if (aborted.value) return
-        setIsCatalogLoading(false)
-      })
+        offset += batchSize
+      }
+
+      if (aborted.value) return
+      setIsCatalogLoading(false)
+
+      if (allProducts.length > 0) {
+        saveCatalogToIndexedDB(allProducts, storeId)
+          .then(() => notifyCatalogWarmed(storeId))
+          .catch(() => {})
+      }
+    }
+
+    fetchAll()
 
     return () => {
       aborted.value = true

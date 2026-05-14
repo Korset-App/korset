@@ -357,12 +357,16 @@ Do not mark Stage 9 complete until all applicable items below are addressed or e
 - [x] Implement relevance-first search sorting in `CatalogScreen.jsx`.
 - [x] Keep Fit-Check visible and secondary inside relevant result tiers.
 - [x] Expand diagnostics `match_type` and diagnostic grouping.
-- [ ] Verify dairy, sweets/snacks, grocery, drinks, frozen/ready meals, meat/fish/deli, attribute, EAN, typo, quantity, and negative queries. (requires real pilot store data — deferred to post-deploy QA)
+- [x] Add migration 031: quantity normalization (1л↔1000мл), category keyword lookup table, token-level matching.
+- [x] Sync SQL category intent boost with `categoryMap.js` `NAME_KEYWORDS` via `search_category_keywords` table.
+- [x] Add Playwright E2E smoke test for catalog search UI plumbing.
+- [ ] Verify dairy, sweets/snacks, grocery, drinks, frozen/ready meals, meat/fish/deli, attribute, EAN, typo, quantity, and negative queries. (requires real pilot store data + migration 031 applied — deferred to post-deploy QA)
 - [x] Run relevant unit tests.
 - [x] Run i18n checks if user-facing text changes.
 - [x] Run build/lint or targeted checks appropriate to touched files.
 - [x] Update `docs/CONTEXT.md` and Vault changelog.
 - [x] Apply migration 030 via Supabase Dashboard SQL Editor.
+- [ ] Apply migration 031 via Supabase Dashboard SQL Editor.
 
 ## Search Quality Matrix
 
