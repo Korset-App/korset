@@ -107,6 +107,22 @@ export default function ProfileAvatar({ avatarId, name = '', rounded = 'circle' 
   }
 
   if (preset) {
+    if (preset.src) {
+      return (
+        <img
+          src={preset.src}
+          alt="Avatar"
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            borderRadius: radius,
+            display: 'block',
+          }}
+        />
+      )
+    }
+
     return (
       <div style={{ width: '100%', height: '100%', borderRadius: radius }}>
         <PresetArtwork preset={preset} />

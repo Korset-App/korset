@@ -1,6 +1,7 @@
 export const AVATAR_PRESETS = [
   {
     id: 'av1',
+    src: '/avatars/avatar-teal-nomad.webp',
     background: 'linear-gradient(135deg, #6D28D9 0%, #4C1D95 100%)',
     skin: '#F2C7A5',
     body: '#E9D5FF',
@@ -9,6 +10,7 @@ export const AVATAR_PRESETS = [
   },
   {
     id: 'av2',
+    src: '/avatars/avatar-dawn-samurai.webp',
     background: 'linear-gradient(135deg, #0F766E 0%, #134E4A 100%)',
     skin: '#EEC3A3',
     body: '#CCFBF1',
@@ -17,6 +19,7 @@ export const AVATAR_PRESETS = [
   },
   {
     id: 'av3',
+    src: '/avatars/avatar-moon-observer.webp',
     background: 'linear-gradient(135deg, #1D4ED8 0%, #1E3A8A 100%)',
     skin: '#8B5A3C',
     body: '#BFDBFE',
