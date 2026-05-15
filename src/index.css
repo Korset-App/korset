@@ -1242,6 +1242,17 @@ body {
   }
 }
 
+@keyframes toastIn {
+  from {
+    transform: translateY(-12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 @keyframes scanPulse {
   from {
     box-shadow: 0 0 20px var(--primary-glow);

@@ -79,7 +79,7 @@
   "profile.edit.saved": "Профиль жаңартылды",
   "profile.edit.nameRequired": "Атыңызды енгізіңіз",
   "profile.edit.nameTooLong": "Аты тым ұзын",
-  "profile.edit.uploadTooLarge": "Файл 5 МБ-дан асады",
+  "profile.edit.uploadTooLarge": "Сурет 5 МБ-дан кіші болуы керек",
   "profile.edit.uploadInvalid": "Тек JPG, PNG немесе WebP",
   "profile.edit.uploadFailed": "Фотосуретті жүктеу мүмкін болмады",
   "profile.edit.offline": "Интернет жоқ — кейінірек көріңіз",

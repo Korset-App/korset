@@ -79,7 +79,7 @@
   "profile.edit.saved": "Профиль обновлён",
   "profile.edit.nameRequired": "Введите имя",
   "profile.edit.nameTooLong": "Имя слишком длинное",
-  "profile.edit.uploadTooLarge": "Файл больше 5 МБ",
+  "profile.edit.uploadTooLarge": "Изображение должно весить меньше 5 МБ",
   "profile.edit.uploadInvalid": "Только JPG, PNG или WebP",
   "profile.edit.uploadFailed": "Не удалось загрузить фото",
   "profile.edit.offline": "Нет интернета — попробуйте позже",

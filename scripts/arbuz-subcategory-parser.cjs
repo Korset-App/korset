@@ -266,6 +266,18 @@ async function main() {
       url: 'https://arbuz.kz/ru/almaty/catalog/cat/20697-voda',
       subcategories: ['water'],
       pages: 8
+    },
+    soda_energy: {
+      title: 'Газировка и энергетики',
+      url: 'https://arbuz.kz/ru/almaty/catalog/cat/20784-gazirovka_i_energetiki',
+      subcategories: ['soda', 'energy', 'lemonade'],
+      pages: 10
+    },
+    cold_tea: {
+      title: 'Холодный чай, компот, морс',
+      url: 'https://arbuz.kz/ru/almaty/catalog/cat/184573-holodnyi_chai_kompot_mors',
+      subcategories: ['juice', 'lemonade'],
+      pages: 6
     }
   }
 
@@ -423,13 +435,51 @@ async function main() {
       } else if (opts.mode === 'water') {
         category = 'water_beverages'
         subcategory = 'water'
+      } else if (opts.mode === 'soda_energy') {
+        category = 'water_beverages'
+        const lowerName = (full.name || '').toLowerCase()
+        const lowerBrand = (full.brand?.name || '').toLowerCase()
+        
+        if (
+          lowerName.includes('энерг') ||
+          lowerName.includes('red bull') ||
+          lowerName.includes('hell ') ||
+          lowerName.includes('flash') ||
+          lowerName.includes('gorilla') ||
+          lowerName.includes('dizzy') ||
+          lowerName.includes('adrenalin') ||
+          lowerName.includes('monster') ||
+          lowerName.includes('genesis') ||
+          lowerName.includes('volt')
+        ) {
+          subcategory = 'energy'
+        } else if (
+          lowerName.includes('лимонад') ||
+          lowerName.includes('квас') ||
+          lowerName.includes('натахтари') ||
+          lowerName.includes('комбуча') ||
+          lowerBrand.includes('настоящий буратино') ||
+          lowerBrand.includes('ascania')
+        ) {
+          subcategory = 'lemonade'
+        } else {
+          subcategory = 'soda'
+        }
+      } else if (opts.mode === 'cold_tea') {
+        category = 'water_beverages'
+        const lowerName = (full.name || '').toLowerCase()
+        if (lowerName.includes('комбуча') || lowerName.includes('квас')) {
+          subcategory = 'lemonade'
+        } else {
+          subcategory = 'juice'
+        }
       }
 
       // Filter to keep only target subcategories
       let expectedCategory = 'dairy_eggs'
       if (opts.mode === 'ice_cream' || opts.mode === 'semi_finished' || opts.mode === 'samsa' || opts.mode === 'frozen_bakery') {
         expectedCategory = 'frozen'
-      } else if (opts.mode === 'water') {
+      } else if (opts.mode === 'water' || opts.mode === 'soda_energy' || opts.mode === 'cold_tea') {
         expectedCategory = 'water_beverages'
       }
 
