@@ -275,9 +275,23 @@ async function main() {
     },
     cold_tea: {
       title: 'Холодный чай, компот, морс',
-      url: 'https://arbuz.kz/ru/almaty/catalog/cat/184573-holodnyi_chai_kompot_mors',
+      url: [
+        'https://arbuz.kz/ru/almaty/catalog/cat/199332-morsy_kompoty',
+        'https://arbuz.kz/ru/almaty/catalog/cat/225367-kombucha_kvas',
+        'https://arbuz.kz/ru/almaty/catalog/cat/25328-holodnyi_chai',
+        'https://arbuz.kz/ru/almaty/catalog/cat/225614-pp-kvas_i_kombucha'
+      ],
       subcategories: ['juice', 'lemonade'],
-      pages: 6
+      pages: 5
+    },
+    juices: {
+      title: 'Соки и нектары',
+      url: [
+        'https://arbuz.kz/ru/almaty/catalog/cat/20741-soki_nektary',
+        'https://arbuz.kz/ru/almaty/catalog/cat/224613-soki_pryamogo_otzhima'
+      ],
+      subcategories: ['juice'],
+      pages: 12
     }
   }
 
@@ -297,34 +311,40 @@ async function main() {
   const uniqueProducts = new Map()
 
   console.log('\n── PHASE 1: Discovering Products via Category Page Scraper ──')
-  const baseCategoryUrl = modeConfig.url
+  const urlsToScrape = Array.isArray(modeConfig.url) ? modeConfig.url : [modeConfig.url]
   
-  for (let page = 1; page <= modeConfig.pages; page++) {
-    const pageUrl = `${baseCategoryUrl}?page=${page}`
-    console.log(`Scraping category page ${page}...`)
-    try {
-      const res = await httpGetHtml(pageUrl)
-      if (res.status === 200) {
-        const html = res.body
-        const itemRe = /\/catalog\/item\/(\d+)-([a-z0-9_]+)/gi
-        let match
-        let pageCount = 0
-        while ((match = itemRe.exec(html)) !== null) {
-          const id = parseInt(match[1], 10)
-          const slug = match[2]
-          if (!uniqueProducts.has(id)) {
-            uniqueProducts.set(id, { id, slug, name: slug.replace(/_/g, ' ') })
-            pageCount++
+  for (const baseUrl of urlsToScrape) {
+    console.log(`\nScraping path: ${baseUrl}`)
+    for (let page = 1; page <= modeConfig.pages; page++) {
+      const pageUrl = `${baseUrl}?page=${page}`
+      console.log(`  Scraping page ${page}...`)
+      try {
+        const res = await httpGetHtml(pageUrl)
+        if (res.status === 200) {
+          const html = res.body
+          const itemRe = /\/catalog\/item\/(\d+)-([a-z0-9_]+)/gi
+          let match
+          let pageCount = 0
+          while ((match = itemRe.exec(html)) !== null) {
+            const id = parseInt(match[1], 10)
+            const slug = match[2]
+            if (!uniqueProducts.has(id)) {
+              uniqueProducts.set(id, { id, slug, name: slug.replace(/_/g, ' ') })
+              pageCount++
+            }
           }
+          console.log(`    Discovered ${pageCount} new products (Total so far: ${uniqueProducts.size})`)
+          if (pageCount === 0 && page > 1) {
+            break // Skip further pages if this page yielded no new items
+          }
+        } else {
+          console.error(`    Page ${page} returned status ${res.status}`)
         }
-        console.log(`  Discovered ${pageCount} new products (Total so far: ${uniqueProducts.size})`)
-      } else {
-        console.error(`  Page ${page} returned status ${res.status}`)
+      } catch (e) {
+        console.error(`    Failed to scrape page ${page}: ${e.message}`)
       }
-    } catch (e) {
-      console.error(`  Failed to scrape page ${page}: ${e.message}`)
+      await sleep(250)
     }
-    await sleep(250)
   }
 
   let productList = Array.from(uniqueProducts.values())
@@ -473,13 +493,16 @@ async function main() {
         } else {
           subcategory = 'juice'
         }
+      } else if (opts.mode === 'juices') {
+        category = 'water_beverages'
+        subcategory = 'juice'
       }
 
       // Filter to keep only target subcategories
       let expectedCategory = 'dairy_eggs'
       if (opts.mode === 'ice_cream' || opts.mode === 'semi_finished' || opts.mode === 'samsa' || opts.mode === 'frozen_bakery') {
         expectedCategory = 'frozen'
-      } else if (opts.mode === 'water' || opts.mode === 'soda_energy' || opts.mode === 'cold_tea') {
+      } else if (opts.mode === 'water' || opts.mode === 'soda_energy' || opts.mode === 'cold_tea' || opts.mode === 'juices') {
         expectedCategory = 'water_beverages'
       }
 

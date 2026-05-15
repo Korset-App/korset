@@ -1,3 +1,21 @@
+const GROUP_TITLES = {
+  dairy: 'Молочные продукты',
+  dairy_eggs: 'Молочные продукты и яйца',
+  sweets: 'Сладости',
+  grains: 'Крупы и гарниры',
+  grocery: 'Бакалея',
+  vegetables: 'Овощи и фрукты',
+  fruits: 'Овощи и фрукты',
+  meat: 'Мясо и птица',
+  water_beverages: 'Напитки',
+  snacks: 'Снеки',
+  other: 'Другие товары',
+}
+
+function getGroupTitle(id) {
+  return GROUP_TITLES[id] || id
+}
+
 export function buildAIProductGroups(products = [], options = {}) {
   const maxGroups = options.maxGroups || 4
   const maxProductsPerGroup = options.maxProductsPerGroup || 4
@@ -9,7 +27,7 @@ export function buildAIProductGroups(products = [], options = {}) {
     let group = groups.find((item) => item.id === id)
     if (!group) {
       if (groups.length >= maxGroups) continue
-      group = { id, title: id, products: [] }
+      group = { id, title: getGroupTitle(id), products: [] }
       groups.push(group)
     }
     if (group.products.length >= maxProductsPerGroup) continue

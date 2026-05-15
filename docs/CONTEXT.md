@@ -153,7 +153,7 @@ Infrastructure:
 - ✅ **Парсинг подкатегории «Хлеб, выпечка, пироги и тесто (замороженное)»**: Успешно завершен боевой импорт (103 уникальных EAN-продукта, 102 EAN-кода получено через Нацкаталог РК, 24 СТМ-позиции Arbuz Select отфильтровано).
 - ✅ **Парсинг подкатегории «Вода»**: Успешно завершен боевой импорт (81 уникальный EAN-продукт, 63 EAN-кода получено через Нацкаталог РК, 70 создано с нуля, 11 обогащено полной информацией — составом, производителем и КБЖУ).
 - ✅ **Парсинг подкатегории «Газировка и энергетики»**: Успешно завершен боевой импорт (118 уникальных EAN-продуктов, 147 EAN-кодов получено через Нацкаталог РК, 92 создано с нуля, 26 обогащено детальной информацией, реализована умная разбивка на категории soda / energy / lemonade).
-- ✅ **Парсинг подкатегории «Холодный чай, компот, морс»**: Успешно завершен боевой импорт (67 уникальных EAN-продуктов, 77 EAN-кодов получено через Нацкаталог РК, 56 создано с нуля, 11 обогащено качественными деталями, реализовано умное распределение по веткам juice / lemonade).
+- ✅ **Парсинг подкатегории «Холодный чай, компот, морс»**: Успешно завершен боевой импорт (91 уникальный EAN-продукт из 134 обнаруженных на глубоких страницах подкатегорий, 115 EAN-кодов получено через Нацкаталог РК, 75 создано с нуля, 72 обогащено детальной информацией, реализован мульти-URL краулер).
 - ✅ **Синхронизация каталога пилотного магазина MARS**: Выполнен скрипт посева `scripts/seed-store-catalog.cjs` — **9266 активных продуктов** успешно пересинхронизированы!
 - ✅ **Каталог и штрихкоды**: Отображение количества продуктов в UX каталога (`showCatalogMeta = true` in `CatalogScreen.jsx` активирована).
 - ✅ **Поддержка нескольких EAN на один товар**: `alternate_eans`, `fn_resolve_product` и обработка в `resolver.js`/`offlineDB.js` полностью поддерживают несколько кодов.
@@ -176,7 +176,7 @@ Infrastructure:
 
   AI contract stabilization (2026-05-15): client/server AI contract re-aligned before further feature work. Product AI now sends EAN, price, stock, store context and same-store alternatives; General AI sends store-scoped catalog candidates and returns normalized structured responses. `/api/ai.js` now explicitly restricts recommendations to products visible in the current store/catalog payload, defaults to `OPENAI_CHAT_MODEL || 'gpt-5.4-nano'`, and uses `max_completion_tokens`. Verification: `npm run check:agent`, targeted AI/API lint, AI unit set 34/34, full unit suite 225/225, `npm run build`. Details: `docs/vault/changelog/2026-05-15-ai-contract-stabilization.md`.
 
-  AI modernization plan (2026-05-15): roadmap split into 5 stages in `docs/vault/plans/2026-05-15-ai-modernization-plan.md`. Stage 1 is complete: General AI follow-up chips are now generated deterministically from query/profile/catalog/lang without extra model calls.
+  AI modernization plan (2026-05-15): roadmap split into 5 stages in `docs/vault/plans/2026-05-15-ai-modernization-plan.md`. Stage 1 is complete: General AI follow-up chips are now generated deterministically from query/profile/catalog/lang without extra model calls. Stage 2 is complete: General AI candidate ranking understands plov/dinner, budget, halal, sugar-free and lactose-free intents before the model call; product card groups use shopper-readable titles. Stage 3 is complete: Product AI prompt guardrails now explicitly handle unknown halal status, incomplete composition data, strong allergy caution, no invented facts, and same-store-only alternatives.
 
 На 2026-05-06:
 

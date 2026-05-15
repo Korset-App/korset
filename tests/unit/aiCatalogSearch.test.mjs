@@ -41,6 +41,41 @@ const products = [
     priceKzt: 1200,
     stockStatus: 'out_of_stock',
   },
+  {
+    ean: '5',
+    name: 'Морковь мытая',
+    brand: '',
+    category: 'vegetables',
+    priceKzt: 340,
+    stockStatus: 'in_stock',
+  },
+  {
+    ean: '6',
+    name: 'Масло подсолнечное',
+    brand: 'Dala',
+    category: 'grocery',
+    subcategory: 'cooking_oil',
+    priceKzt: 980,
+    stockStatus: 'in_stock',
+  },
+  {
+    ean: '7',
+    name: 'Йогурт без лактозы',
+    brand: 'Dairy',
+    category: 'dairy',
+    priceKzt: 690,
+    allergens: ['milk'],
+    dietTags: ['lactose_free'],
+    stockStatus: 'in_stock',
+  },
+  {
+    ean: '8',
+    name: 'Куриное филе',
+    brand: 'Local',
+    category: 'meat',
+    priceKzt: 2300,
+    stockStatus: 'in_stock',
+  },
 ]
 
 test('findCatalogCandidates matches product names and prefers available cheaper items', () => {
@@ -62,6 +97,32 @@ test('findCatalogCandidates excludes user allergens when profile is provided', (
   })
 
   assert.equal(result.some((p) => p.ean === '2'), false)
+})
+
+test('findCatalogCandidates understands recipe intents such as plov', () => {
+  const result = findCatalogCandidates('собери продукты для плова', products, null, { limit: 6 })
+  const resultEans = result.map((product) => product.ean)
+
+  assert.deepEqual(resultEans.slice(0, 3), ['1', '5', '6'])
+  assert.equal(resultEans.includes('3'), false)
+})
+
+test('findCatalogCandidates understands lactose-free intent without excluding matching dairy', () => {
+  const result = findCatalogCandidates('что есть без лактозы', products, {
+    allergens: ['milk'],
+  })
+
+  assert.equal(result[0].ean, '7')
+  assert.equal(result.some((product) => product.ean === '2'), false)
+})
+
+test('findCatalogCandidates applies budget intent before generic cheaper boost', () => {
+  const result = findCatalogCandidates('что купить на ужин до 1000 тенге', products, null, {
+    limit: 8,
+  })
+
+  assert.equal(result.some((product) => product.ean === '8'), false)
+  assert.equal(result[0].priceKzt <= 1000, true)
 })
 
 test('buildCatalogAIContext returns compact candidate facts for prompts', () => {

@@ -36,7 +36,7 @@ test('buildAIProductGroups creates compact grouped products from candidates', ()
   assert.equal(groups.length, 3)
   assert.deepEqual(groups[0], {
     id: 'grains',
-    title: 'grains',
+    title: 'Крупы и гарниры',
     products: [
       {
         ean: '1',
@@ -62,6 +62,14 @@ test('buildAIProductGroups caps product groups and products per group', () => {
 
   assert.equal(groups.length, 3)
   assert.equal(groups[0].products.length, 2)
+})
+
+test('buildAIProductGroups uses shopper-readable titles for common categories', () => {
+  const groups = buildAIProductGroups(candidates)
+
+  assert.equal(groups[0].title, 'Крупы и гарниры')
+  assert.equal(groups[1].title, 'Овощи и фрукты')
+  assert.equal(groups[2].title, 'Сладости')
 })
 
 test('normalizeAIResponse keeps reply and attaches groups/follow ups', () => {
