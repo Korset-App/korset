@@ -28,24 +28,25 @@ function cleanMessages(messages) {
     .slice(-MAX_STORED_MESSAGES)
 }
 
-export function buildStoreAIContext(store) {
-  if (!store) return null
+export function buildStoreAIContext(store, fallback = null) {
+  if (!store && !fallback?.slug) return null
+  const source = store || fallback
 
   return {
-    slug: cleanString(store.slug || store.code, 80),
-    name: cleanString(store.name, 120),
-    city: cleanString(store.city, 80),
-    address: cleanString(store.address, 160),
-    phone: cleanString(store.phone, 80),
-    email: cleanString(store.email, 120),
-    type: cleanString(store.type, 80),
-    shortDescription: cleanString(store.short_description || store.shortDescription, 240),
-    description: cleanString(store.description, 500),
-    whatsappNumber: cleanString(store.whatsapp_number || store.whatsappNumber, 80),
-    twogisUrl: cleanString(store.twogis_url || store.twogisUrl, 240),
-    instagramUrl: cleanString(store.instagram_url || store.instagramUrl, 240),
-    websiteUrl: cleanString(store.website_url || store.websiteUrl, 240),
-    aiStoreNotes: cleanString(store.ai_store_notes || store.aiStoreNotes, MAX_STORE_NOTES_LENGTH),
+    slug: cleanString(source.slug || source.code, 80),
+    name: cleanString(source.name || source.slug || source.code, 120),
+    city: cleanString(source.city, 80),
+    address: cleanString(source.address, 160),
+    phone: cleanString(source.phone, 80),
+    email: cleanString(source.email, 120),
+    type: cleanString(source.type, 80),
+    shortDescription: cleanString(source.short_description || source.shortDescription, 240),
+    description: cleanString(source.description, 500),
+    whatsappNumber: cleanString(source.whatsapp_number || source.whatsappNumber, 80),
+    twogisUrl: cleanString(source.twogis_url || source.twogisUrl, 240),
+    instagramUrl: cleanString(source.instagram_url || source.instagramUrl, 240),
+    websiteUrl: cleanString(source.website_url || source.websiteUrl, 240),
+    aiStoreNotes: cleanString(source.ai_store_notes || source.aiStoreNotes, MAX_STORE_NOTES_LENGTH),
   }
 }
 

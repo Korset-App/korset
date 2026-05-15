@@ -29,7 +29,7 @@ export default function AIScreen() {
   const { currentStore, storeId, catalogProducts = [], isStoreLoading } = useStore()
   const { isOnline } = useOffline()
   const activeStoreSlug = storeSlug || currentStore?.slug || null
-  const storeContext = buildStoreAIContext(currentStore)
+  const storeContext = buildStoreAIContext(currentStore, { slug: activeStoreSlug })
   const chatKey = buildAIChatStorageKey({ mode: 'product', storeSlug: activeStoreSlug, ean })
   const fallbackProduct = location.state?.product || null
   const [product, setProduct] = useState(fallbackProduct)

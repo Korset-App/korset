@@ -47,6 +47,25 @@ test('buildStoreAIContext keeps only compact public store fields', () => {
   })
 })
 
+test('buildStoreAIContext preserves route slug while store details are still loading', () => {
+  assert.deepEqual(buildStoreAIContext(null, { slug: 'store-one' }), {
+    slug: 'store-one',
+    name: 'store-one',
+    city: '',
+    address: '',
+    phone: '',
+    email: '',
+    type: '',
+    shortDescription: '',
+    description: '',
+    whatsappNumber: '',
+    twogisUrl: '',
+    instagramUrl: '',
+    websiteUrl: '',
+    aiStoreNotes: '',
+  })
+})
+
 test('buildStoreAIContext trims long owner notes and strips line noise', () => {
   const longNotes = `  Delivery after 18:00\nFresh bakery every morning\t${'x'.repeat(2500)}`
   const context = buildStoreAIContext({

@@ -150,7 +150,7 @@ export default function AIAssistantScreen() {
   const { storeSlug: routeStoreSlug } = useParams()
   const { currentStore, storeSlug, catalogProducts = [] } = useStore()
   const { profile } = useProfile()
-  const storeContext = buildStoreAIContext(currentStore)
+  const storeContext = buildStoreAIContext(currentStore, { slug: routeStoreSlug || storeSlug })
   const chatKey = buildAIChatStorageKey({
     mode: 'general',
     storeSlug: storeContext?.slug || routeStoreSlug || storeSlug,
