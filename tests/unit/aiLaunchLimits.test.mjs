@@ -36,6 +36,28 @@ test('validateMessages rejects overlong history, messages, and total payloads', 
   )
 })
 
+test('validateMessages strips UI-only message fields before OpenAI payload', () => {
+  const messages = [
+    {
+      role: 'assistant',
+      content: 'Вот товары из магазина.',
+      productGroups: [{ id: 'dairy_eggs', products: [] }],
+      followUps: ['Показать дешевле'],
+      warnings: ['Проверьте цену на кассе'],
+    },
+    {
+      role: 'user',
+      content: 'А есть дешевле?',
+      localDraftId: 'draft-1',
+    },
+  ]
+
+  assert.deepEqual(validateMessages(messages), [
+    { role: 'assistant', content: 'Вот товары из магазина.' },
+    { role: 'user', content: 'А есть дешевле?' },
+  ])
+})
+
 test('catalog candidates are capped consistently on client and server', () => {
   const products = Array.from({ length: 30 }, (_, index) => ({
     ean: `48700000000${index}`,
@@ -56,8 +78,20 @@ test('catalog candidates are capped consistently on client and server', () => {
 })
 
 test('OpenAI completion limits stay mobile-sized by mode', () => {
-  assert.deepEqual(getOpenAICompletionLimits('enrich'), { max_tokens: 260, temperature: 0.3 })
-  assert.deepEqual(getOpenAICompletionLimits('compare'), { max_tokens: 180, temperature: 0.6 })
-  assert.deepEqual(getOpenAICompletionLimits('product'), { max_tokens: 280, temperature: 0.6 })
-  assert.deepEqual(getOpenAICompletionLimits('general'), { max_tokens: 320, temperature: 0.6 })
+  assert.deepEqual(getOpenAICompletionLimits('enrich'), {
+    max_completion_tokens: 260,
+    temperature: 0.3,
+  })
+  assert.deepEqual(getOpenAICompletionLimits('compare'), {
+    max_completion_tokens: 180,
+    temperature: 0.6,
+  })
+  assert.deepEqual(getOpenAICompletionLimits('product'), {
+    max_completion_tokens: 280,
+    temperature: 0.6,
+  })
+  assert.deepEqual(getOpenAICompletionLimits('general'), {
+    max_completion_tokens: 320,
+    temperature: 0.6,
+  })
 })

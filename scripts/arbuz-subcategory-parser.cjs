@@ -248,6 +248,24 @@ async function main() {
       url: 'https://arbuz.kz/ru/almaty/catalog/cat/225184-polufabrikaty',
       subcategories: ['semi_finished'],
       pages: 10
+    },
+    samsa: {
+      title: 'Самса, пирожки, чебуреки',
+      url: 'https://arbuz.kz/ru/almaty/catalog/cat/225187-samsa_pirozhki_chebureki',
+      subcategories: ['semi_finished'],
+      pages: 3
+    },
+    frozen_bakery: {
+      title: 'Хлеб, выпечка, пироги и тесто (замороженное)',
+      url: 'https://arbuz.kz/ru/almaty/catalog/cat/225186-hleb_vypechka_pirogi_i_testo',
+      subcategories: ['semi_finished'],
+      pages: 5
+    },
+    water: {
+      title: 'Вода',
+      url: 'https://arbuz.kz/ru/almaty/catalog/cat/20697-voda',
+      subcategories: ['water'],
+      pages: 8
     }
   }
 
@@ -399,13 +417,22 @@ async function main() {
       } else if (opts.mode === 'ice_cream') {
         category = 'frozen'
         subcategory = 'ice_cream'
-      } else if (opts.mode === 'semi_finished') {
+      } else if (opts.mode === 'semi_finished' || opts.mode === 'samsa' || opts.mode === 'frozen_bakery') {
         category = 'frozen'
         subcategory = 'semi_finished'
+      } else if (opts.mode === 'water') {
+        category = 'water_beverages'
+        subcategory = 'water'
       }
 
       // Filter to keep only target subcategories
-      const expectedCategory = (opts.mode === 'ice_cream' || opts.mode === 'semi_finished') ? 'frozen' : 'dairy_eggs'
+      let expectedCategory = 'dairy_eggs'
+      if (opts.mode === 'ice_cream' || opts.mode === 'semi_finished' || opts.mode === 'samsa' || opts.mode === 'frozen_bakery') {
+        expectedCategory = 'frozen'
+      } else if (opts.mode === 'water') {
+        expectedCategory = 'water_beverages'
+      }
+
       const allowedSubcategories = modeConfig.subcategories
       if (category !== expectedCategory || !allowedSubcategories.includes(subcategory)) {
         console.log(`  [skip] Skipping non-target product: ${full.name} (${category} / ${subcategory})`)

@@ -1,4 +1,5 @@
 import { getImageUrl } from '../../utils/imageUrl.js'
+import { OFF_ALLERGEN_MAP } from '../../constants/allergens.js'
 import {
   createEmptyProduct,
   normalizeStringArray,
@@ -9,6 +10,34 @@ import {
   withProductImage,
 } from './model.js'
 import { enrichQuantity } from '../../utils/parseQuantity.js'
+
+function mapExternalAllergenTags(tags = []) {
+  const extraMap = {
+    'en:soy': 'soy',
+    'en:tree-nuts': 'tree_nuts',
+  }
+  return normalizeStringArray(
+    tags.map((tag) => OFF_ALLERGEN_MAP[tag] || extraMap[tag]).filter(Boolean)
+  )
+}
+
+export function normalizeOFFProduct(ean, row = {}) {
+  return createEmptyProduct({
+    source: 'cache',
+    ean,
+    name: row.product_name || row.product_name_ru || row.generic_name || `Товар ${ean}`,
+    brand: row.brands || null,
+    ingredients: row.ingredients_text_ru || row.ingredients_text || null,
+    allergens: mapExternalAllergenTags(row.allergens_tags),
+    traces: mapExternalAllergenTags(row.traces_tags),
+    sourceMeta: {
+      externalSource: 'openfoodfacts',
+      isVerified: false,
+      needsReview: true,
+      aiEnriched: false,
+    },
+  })
+}
 
 export function normalizeGlobalProduct(row, storeOverlay = null) {
   const product = enrichQuantity(

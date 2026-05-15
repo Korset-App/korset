@@ -1,0 +1,45 @@
+---
+type: changelog
+status: active
+date: 2026-05-15
+area: ai
+---
+
+# AI Contract Stabilization
+
+## Summary
+
+Stabilized the buyer AI contract before continuing feature expansion.
+
+The previous implementation had drift between frontend callers and `/api/ai.js`:
+
+- `askProductAI()` sent store context and alternatives from the screen, but the service/API contract did not preserve all facts.
+- `askGeneralAI()` callers expected a structured response with `reply`, `productGroups`, `followUps`, and `warnings`, while the service returned only a string.
+- General AI could answer without a strong current-store-only recommendation contract.
+- The default chat model was `gpt-4.1-nano`, which was too weak for Körset's product assistant quality target.
+
+## Changes
+
+- `src/services/ai.js` now sends compact product facts, EAN, price, stock status, current store context, profile constraints, and same-store alternatives for Product AI.
+- General AI now sends store context and store-scoped catalog candidates, and normalizes both structured and legacy string replies.
+- `api/ai.js` now exposes explicit AI limits/rate limits, sanitizes store/catalog/product context, builds product card groups from the passed catalog, and warns honestly when no current-store catalog context is available.
+- Server prompts now explicitly restrict recommendations to products visible in the current store/catalog payload.
+- Default model changed from `gpt-4.1-nano` to configurable `OPENAI_CHAT_MODEL || 'gpt-5.4-nano'` after cost/quality review. `gpt-5.4-mini` remains the planned higher-quality override for future model routing or manual production testing.
+- Chat completion limits now use `max_completion_tokens` instead of deprecated `max_tokens`.
+- `validateMessages()` now strips UI-only fields such as `productGroups`, `followUps`, `warnings`, and local draft metadata before passing chat history to OpenAI. UI message state can stay rich, but model payloads remain API-safe `{ role, content }` messages.
+- Stage 1 of the AI modernization plan is complete: General AI now returns deterministic, store-aware follow-up chips via `buildGeneralAIFollowUps()`. Chips are generated without extra model calls from the query, profile, catalog context, and language; RU/KZ outputs are covered by unit tests.
+- `scripts/agent-check.mjs` now runs `npm` correctly on Windows through `cmd.exe`, so `npm run check:agent` works reliably in this workspace.
+- Added minimal compatibility helpers for existing regression tests: `normalizeOFFProduct()` and scanner `scanFlow` pure helpers.
+
+## Verification
+
+- `npm run check:agent` passes.
+- `npm run build` passes.
+- AI-focused unit set passes: 34/34.
+- Full unit suite passes: 225/225.
+- Targeted lint for changed AI/API/script files passes.
+
+## Notes
+
+- `public/ava/` was intentionally not touched; the owner is still changing temporary avatar assets there.
+- This is stabilization only. Next AI work should focus on live UX QA: real product chat, general store assistant prompts, product cards, and response quality under real catalog data.

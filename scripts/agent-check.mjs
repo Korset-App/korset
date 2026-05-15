@@ -1,3 +1,5 @@
+/* global process, console */
+
 import { spawnSync } from 'node:child_process'
 
 const mode = process.argv[2] || 'quick'
@@ -38,13 +40,16 @@ if (!MODES[mode]) {
 }
 
 for (const [command, args] of MODES[mode]) {
-  const executable = process.platform === 'win32' && command === 'npm' ? 'npm.cmd' : command
+  const useCmd = process.platform === 'win32' && command === 'npm'
+  const executable = useCmd ? process.env.ComSpec || 'cmd.exe' : command
+  const spawnArgs = useCmd ? ['/d', '/s', '/c', [command, ...args].join(' ')] : args
   console.log(`\n[agent-check] $ ${command} ${args.join(' ')}`)
-  const result = spawnSync(executable, args, {
+  const result = spawnSync(executable, spawnArgs, {
     stdio: 'inherit',
   })
 
-  if (result.status !== 0) {
+  if (result.error || result.status !== 0) {
+    if (result.error) console.error(`[agent-check] ${result.error.message}`)
     console.error(`[agent-check] Failed in mode "${mode}"`)
     process.exit(result.status || 1)
   }

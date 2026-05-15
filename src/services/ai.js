@@ -1,53 +1,78 @@
-/**
- * Клиентский сервис для AI — единая точка вызова
- * Все запросы идут через серверный прокси /api/ai
- * API ключ НЕ уходит в клиент
- */
+import { normalizeAIResponse } from '../domain/ai/responseShape.js'
 
 const AI_ENDPOINT = '/api/ai'
+const REQUEST_TIMEOUT_MS = 25000
 
-/**
- * Спросить AI о конкретном товаре
- * @param {Array} messages — история сообщений [{role, content}]
- * @param {Object} product — данные товара
- * @param {Object} profile — профиль пользователя
- * @param {string} lang — 'ru' или 'kz'
- * @returns {Promise<string>} — ответ AI
- */
-export async function askProductAI(messages, product, profile, lang) {
-  return callAI({
+function compactProduct(product = {}) {
+  return {
+    ean: product.ean,
+    name: product.name,
+    brand: product.brand,
+    category: product.category,
+    subcategory: product.subcategory,
+    group: product.group,
+    ingredients: product.ingredients,
+    ingredientsKz: product.ingredientsKz,
+    allergens: product.allergens,
+    dietTags: product.dietTags,
+    nutrition: product.nutrition || product.nutritionPer100,
+    halalStatus:
+      product.halalStatus ??
+      (product.halal === true ? 'yes' : product.halal === false ? 'no' : 'unknown'),
+    priceKzt: product.priceKzt,
+    stockStatus: product.stockStatus,
+    quantity: product.quantity,
+    image: product.image || product.imageUrl,
+  }
+}
+
+export async function askProductAI(
+  messages,
+  product,
+  profile,
+  lang,
+  storeContext = null,
+  alternatives = []
+) {
+  const response = await callAI({
     messages,
     mode: 'product',
     product: {
-      name: product.name,
-      brand: product.brand,
-      ingredients: product.ingredients,
-      allergens: product.allergens,
-      nutrition: product.nutrition || product.nutritionPer100,
-      halalStatus:
-        product.halalStatus ??
-        (product.halal === true ? 'yes' : product.halal === false ? 'no' : 'unknown'),
-      priceKzt: product.priceKzt,
+      ...compactProduct(product),
+      alternatives: alternatives.slice(0, 5).map(compactProduct),
     },
     profile: profile
       ? {
           halal: profile.halal || profile.halalOnly,
+          halalOnly: profile.halalOnly,
+          halalStrict: profile.halalStrict,
           allergens: profile.allergens,
           dietGoals: profile.dietGoals,
         }
       : null,
+    storeContext,
     lang,
   })
+  return response.reply
 }
 
-/**
- * Спросить AI общий вопрос (без контекста товара)
- * @param {Array} messages — история сообщений
- * @param {string} lang — 'ru' или 'kz'
- * @returns {Promise<string>} — ответ AI
- */
-export async function askGeneralAI(messages, lang) {
-  return callAI({ messages, mode: 'general', lang })
+export async function askGeneralAI(
+  messages,
+  lang,
+  storeContext = null,
+  profile = null,
+  catalogContext = []
+) {
+  return normalizeAIResponse(
+    await callAI({
+      messages,
+      mode: 'general',
+      lang,
+      storeContext,
+      profile,
+      catalogContext,
+    })
+  )
 }
 
 /**
@@ -73,11 +98,16 @@ export async function enrichProductAI(product) {
 // ── Internal ──
 
 async function callAI(body) {
+  const signal =
+    typeof globalThis.AbortSignal?.timeout === 'function'
+      ? globalThis.AbortSignal.timeout(REQUEST_TIMEOUT_MS)
+      : undefined
+
   const res = await fetch(AI_ENDPOINT, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(15000),
+    signal,
   })
 
   if (!res.ok) {
@@ -87,5 +117,5 @@ async function callAI(body) {
 
   const data = await res.json()
   if (!data.reply) throw new Error('Empty reply')
-  return data.reply
+  return data
 }

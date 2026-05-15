@@ -1,10 +1,13 @@
-// Vercel Serverless Function — серверный прокси для OpenAI GPT-4.1 nano
+/* global process, fetch, console */
+// Vercel Serverless Function — server-side proxy for OpenAI chat models
 // API ключ ТОЛЬКО на сервере (process.env.OPENAI_API_KEY)
 // Клиент вызывает: POST /api/ai { messages, mode, product?, lang }
 // RAG: перед OpenAI-вызовом подтягивает контекст из vault_embeddings (pgvector)
 // Auth: JWT verification + IP-based rate limiting
 
 import { createClient } from '@supabase/supabase-js'
+import { buildGeneralAIFollowUps } from '../src/domain/ai/followUps.js'
+import { buildAIProductGroups } from '../src/domain/ai/responseShape.js'
 
 const CORS_ORIGINS = [
   'https://korset.app',
@@ -13,7 +16,19 @@ const CORS_ORIGINS = [
   'http://localhost:4173',
 ]
 
-const RATE_LIMITS = {
+export const AI_MODEL = process.env.OPENAI_CHAT_MODEL || 'gpt-5.4-nano'
+
+export const AI_LIMITS = {
+  maxMessages: 12,
+  maxMessageLength: 1200,
+  maxTotalMessageLength: 6000,
+  maxCatalogCandidates: 12,
+  maxProductGroups: 4,
+  maxProductsPerGroup: 3,
+  maxStructuredProducts: 12,
+}
+
+export const RATE_LIMITS = {
   authenticated: { maxRequests: 30, windowMs: 60_000 },
   anonymous: { maxRequests: 8, windowMs: 60_000 },
 }
@@ -45,25 +60,27 @@ function corsHeaders(req, res) {
 
 // ── Input validation & sanitization ─────────────────────────────
 
-const MAX_MESSAGES = 20
-const MAX_MESSAGE_LEN = 4000
-const MAX_TOTAL_LEN = 16000
-
-function validateMessages(messages) {
-  if (!Array.isArray(messages) || messages.length === 0 || messages.length > MAX_MESSAGES) {
+export function validateMessages(messages) {
+  if (!Array.isArray(messages) || messages.length === 0 || messages.length > AI_LIMITS.maxMessages) {
     return null
   }
   let total = 0
+  const cleanMessages = []
   for (const m of messages) {
     if (!m || typeof m !== 'object') return null
     if (m.role !== 'user' && m.role !== 'assistant') return null
-    if (typeof m.content !== 'string' || m.content.length === 0 || m.content.length > MAX_MESSAGE_LEN) {
+    if (
+      typeof m.content !== 'string' ||
+      m.content.length === 0 ||
+      m.content.length > AI_LIMITS.maxMessageLength
+    ) {
       return null
     }
     total += m.content.length
-    if (total > MAX_TOTAL_LEN) return null
+    if (total > AI_LIMITS.maxTotalMessageLength) return null
+    cleanMessages.push({ role: m.role, content: m.content })
   }
-  return messages
+  return cleanMessages
 }
 
 function cleanString(value, max = 200) {
@@ -74,9 +91,14 @@ function cleanString(value, max = 200) {
 function sanitizeProduct(product) {
   if (!product || typeof product !== 'object') return null
   return {
+    ean: cleanString(product.ean, 32),
     name: cleanString(product.name, 200),
     brand: cleanString(product.brand, 100),
+    category: cleanString(product.category, 80),
+    subcategory: cleanString(product.subcategory, 80),
+    group: cleanString(product.group, 80),
     ingredients: cleanString(product.ingredients, 1500),
+    ingredientsKz: cleanString(product.ingredientsKz, 1500),
     halalStatus: ['yes', 'no', 'unknown'].includes(product.halalStatus)
       ? product.halalStatus
       : 'unknown',
@@ -92,6 +114,13 @@ function sanitizeProduct(product) {
       product.nutritionPer100 && typeof product.nutritionPer100 === 'object'
         ? product.nutritionPer100
         : null,
+    priceKzt: Number.isFinite(Number(product.priceKzt)) ? Number(product.priceKzt) : null,
+    stockStatus: cleanString(product.stockStatus, 40) || 'unknown',
+    quantity: cleanString(product.quantity, 80),
+    image: cleanString(product.image, 500),
+    alternatives: Array.isArray(product.alternatives)
+      ? sanitizeCatalogContext(product.alternatives, { maxItems: 5 })
+      : [],
   }
 }
 
@@ -113,6 +142,58 @@ function sanitizeProfile(profile) {
           .map((g) => cleanString(g, 50))
       : [],
   }
+}
+
+function sanitizeStoreContext(storeContext) {
+  if (!storeContext || typeof storeContext !== 'object') return null
+  return {
+    slug: cleanString(storeContext.slug, 120),
+    name: cleanString(storeContext.name, 160),
+    city: cleanString(storeContext.city, 120),
+    address: cleanString(storeContext.address, 240),
+    aiStoreNotes: cleanString(storeContext.aiStoreNotes, 2000),
+  }
+}
+
+export function sanitizeCatalogContext(products = [], options = {}) {
+  const maxItems = options.maxItems || AI_LIMITS.maxCatalogCandidates
+  if (!Array.isArray(products)) return []
+
+  return products
+    .filter((product) => product?.ean && product?.name)
+    .slice(0, maxItems)
+    .map((product) => ({
+      ean: cleanString(product.ean, 32),
+      name: cleanString(product.name, 200),
+      brand: cleanString(product.brand, 100),
+      category: cleanString(product.category, 80),
+      priceKzt: Number.isFinite(Number(product.priceKzt)) ? Number(product.priceKzt) : null,
+      stockStatus: cleanString(product.stockStatus, 40) || 'unknown',
+      halalStatus: ['yes', 'no', 'unknown'].includes(product.halalStatus)
+        ? product.halalStatus
+        : 'unknown',
+      dietTags: Array.isArray(product.dietTags)
+        ? product.dietTags.slice(0, 12).map((tag) => cleanString(tag, 50))
+        : [],
+      allergens: Array.isArray(product.allergens)
+        ? product.allergens.slice(0, 12).map((allergen) => cleanString(allergen, 50))
+        : [],
+      image: cleanString(product.image, 500),
+    }))
+}
+
+export function buildProductGroupsFromCatalog(catalogContext = []) {
+  return buildAIProductGroups(catalogContext, {
+    maxGroups: AI_LIMITS.maxProductGroups,
+    maxProductsPerGroup: AI_LIMITS.maxProductsPerGroup,
+  })
+}
+
+export function getOpenAICompletionLimits(mode) {
+  if (mode === 'enrich') return { max_completion_tokens: 260, temperature: 0.3 }
+  if (mode === 'compare') return { max_completion_tokens: 180, temperature: 0.6 }
+  if (mode === 'product') return { max_completion_tokens: 280, temperature: 0.6 }
+  return { max_completion_tokens: 320, temperature: 0.6 }
 }
 
 async function verifyAuth(req) {
@@ -147,7 +228,7 @@ function getRagSupabase() {
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
 }
 
-async function fetchRagContext(product, mode, profile, lang) {
+async function fetchRagContext(product, _mode, profile) {
   const supabase = getRagSupabase()
   if (!supabase) return null
 
@@ -252,33 +333,38 @@ export default async function handler(req, res) {
     const productA = sanitizeProduct(body.productA)
     const productB = sanitizeProduct(body.productB)
     const profile = sanitizeProfile(body.profile)
+    const storeContext = sanitizeStoreContext(body.storeContext)
+    const catalogContext = sanitizeCatalogContext(body.catalogContext)
+    const productGroups = buildProductGroupsFromCatalog(catalogContext)
     const winner = ['A', 'B', 'draw'].includes(body.winner) ? body.winner : null
 
     // ── RAG: подтягиваем релевантный контекст из vault ──
     let ragContext = null
     if (mode === 'product' && product) {
-      ragContext = await fetchRagContext(product, mode, profile, lang)
+      ragContext = await fetchRagContext(product, mode, profile)
     } else if (mode === 'compare' && productA && productB) {
       const combinedProduct = {
         name: `${productA.name} vs ${productB.name}`,
         ingredients: [productA.ingredients, productB.ingredients].filter(Boolean).join('; '),
         allergens: [...(productA.allergens || []), ...(productB.allergens || [])],
       }
-      ragContext = await fetchRagContext(combinedProduct, mode, profile, lang)
+      ragContext = await fetchRagContext(combinedProduct, mode, profile)
     }
 
-    // ── Формируем system prompt на сервере ──
+    // ── Формируем developer prompt на сервере ──
     let systemPrompt
 
     if (mode === 'product' && product) {
-      systemPrompt = buildProductPrompt(product, profile, lang, ragContext)
+      systemPrompt = buildProductPrompt(product, profile, lang, ragContext, storeContext)
     } else if (mode === 'enrich' && product) {
       systemPrompt = buildEnrichPrompt(product)
     } else if (mode === 'compare' && productA && productB) {
       systemPrompt = buildComparePrompt(productA, productB, profile, winner, lang, ragContext)
     } else {
-      systemPrompt = buildGeneralPrompt(lang)
+      systemPrompt = buildGeneralPrompt(lang, storeContext, catalogContext)
     }
+
+    const completionLimits = getOpenAICompletionLimits(mode)
 
     // ── Вызов OpenAI ──
     const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -288,10 +374,9 @@ export default async function handler(req, res) {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-nano',
-        max_tokens: mode === 'enrich' ? 300 : mode === 'compare' ? 200 : 400,
-        temperature: mode === 'enrich' ? 0.3 : 0.7,
-        messages: [{ role: 'system', content: systemPrompt }, ...validMessages],
+        model: AI_MODEL,
+        ...completionLimits,
+        messages: [{ role: 'developer', content: systemPrompt }, ...validMessages],
       }),
     })
 
@@ -303,17 +388,35 @@ export default async function handler(req, res) {
 
     const data = await openaiRes.json()
     const reply = data.choices?.[0]?.message?.content?.trim()
+    const followUps =
+      mode === 'general'
+        ? buildGeneralAIFollowUps({
+            query: validMessages.at(-1)?.content || '',
+            catalogContext,
+            profile,
+            lang,
+          })
+        : []
 
-    return res.status(200).json({ reply: reply || '', ragUsed: !!ragContext })
+    return res.status(200).json({
+      reply: reply || '',
+      productGroups: mode === 'general' ? productGroups : [],
+      followUps,
+      warnings:
+        mode === 'general' && catalogContext.length === 0
+          ? ['Я могу рекомендовать только товары, которые вижу в каталоге текущего магазина.']
+          : [],
+      ragUsed: !!ragContext,
+    })
   } catch (e) {
     console.error('API /ai error:', e)
     return res.status(500).json({ error: 'Internal server error' })
   }
 }
 
-// ── System prompts ──────────────────────────────────────────────
+// ── Developer prompts ───────────────────────────────────────────
 
-function buildProductPrompt(product, profile, lang, ragContext) {
+function buildProductPrompt(product, profile, lang, ragContext, storeContext) {
   const profileParts = []
   if (profile?.halal || profile?.halalOnly) profileParts.push('нужен халал')
   if (profile?.allergens?.length) profileParts.push(`аллергии: ${profile.allergens.join(', ')}`)
@@ -325,22 +428,42 @@ function buildProductPrompt(product, profile, lang, ragContext) {
   const ragSection = ragContext
     ? `\n\nПРОВЕРЕННЫЕ ЗНАНИЯ (используй как факт, приоритет над общими знаниями):\n${ragContext}`
     : ''
+  const storeSection = storeContext?.name
+    ? `\nМАГАЗИН: ${storeContext.name}${storeContext.address ? ` | ${storeContext.address}` : ''}${storeContext.aiStoreNotes ? `\nФАКТЫ МАГАЗИНА: ${storeContext.aiStoreNotes}` : ''}`
+    : ''
+  const alternativesSection = product.alternatives?.length
+    ? `\nАЛЬТЕРНАТИВЫ В ЭТОМ МАГАЗИНЕ: ${product.alternatives
+        .map((item) => `${item.name}${item.priceKzt ? ` (${item.priceKzt} ₸)` : ''}`)
+        .join('; ')}`
+    : ''
 
   return `Ты — Körset AI, умный помощник покупателя в супермаркете Казахстана. Отвечай кратко, по делу. Максимум 3–4 предложения. Без markdown — пиши живым текстом как друг.
 ${langNote}
+Рекомендуй только товары из текущего магазина и только из переданных данных. Если подходящего товара нет в данных, честно скажи, что не видишь его в каталоге этого магазина.
 
-ТОВАР: ${product.name} | Бренд: ${product.brand || '—'}
+ТОВАР: ${product.name} | EAN: ${product.ean || '—'} | Бренд: ${product.brand || '—'}${storeSection}
 КБЖУ: ${nutr} | Состав: ${product.ingredients || '—'}
+Цена: ${product.priceKzt ? `${product.priceKzt} ₸` : '—'} | Наличие: ${product.stockStatus || 'unknown'}
 Халал: ${product.halalStatus === 'yes' ? 'да' : product.halalStatus === 'no' ? 'нет' : 'неизвестно'}
 Аллергены: ${product.allergens?.join(', ') || 'нет'}
-ПРОФИЛЬ: ${profileParts.length ? profileParts.join('; ') : 'не задан'}${ragSection}`
+ПРОФИЛЬ: ${profileParts.length ? profileParts.join('; ') : 'не задан'}${alternativesSection}${ragSection}`
 }
 
-function buildGeneralPrompt(lang) {
+function buildGeneralPrompt(lang, storeContext, catalogContext = []) {
+  const storeName = storeContext?.name || 'текущего магазина'
+  const catalogSection = catalogContext.length
+    ? `\n\nТОВАРЫ, КОТОРЫЕ ВИДНЫ В КАТАЛОГЕ ${storeName}:\n${catalogContext
+        .map(
+          (item) =>
+            `- ${item.name}${item.brand ? `, ${item.brand}` : ''}${item.priceKzt ? `, ${item.priceKzt} ₸` : ''}, наличие: ${item.stockStatus}`
+        )
+        .join('\n')}`
+    : '\n\nВ переданном catalog context нет подходящих товаров.'
+
   if (lang === 'kz') {
-    return 'Сен — Қазақстан супермаркетіндегі Körset AI көмекшісісің. Тауар табуға, рецепт ұсынуға және құрамын түсіндіруге көмектес. Қысқа, түсінікті қазақша жауап бер. Максимум 3-4 сөйлем.'
+    return `Сен — ${storeName} дүкеніндегі Körset AI көмекшісісің. Тек осы дүкеннің берілген каталогындағы тауарларды ұсын. Егер тауар берілген каталогта жоқ болса, оны көрмей тұрғаныңды ашық айт. Қысқа, түсінікті қазақша жауап бер. Максимум 3-4 сөйлем.${catalogSection}`
   }
-  return 'Ты — Körset AI, помощник покупателя в супермаркете Казахстана. Помогаешь найти товары, советуешь рецепты, отвечаешь про состав и аллергены. Кратко, по-русски, как дружелюбный консультант. Максимум 3-4 предложения.'
+  return `Ты — Körset AI, помощник покупателя в магазине ${storeName}. Помогаешь найти товары, советуешь простые покупки и отвечаешь про состав и аллергены. Рекомендуй только товары из переданного каталога текущего магазина. Если товара нет в данных, честно скажи, что не видишь его в этом магазине. Кратко, по-русски, как дружелюбный консультант. Максимум 3-4 предложения.${catalogSection}`
 }
 
 function buildComparePrompt(productA, productB, profile, winner, lang, ragContext) {
