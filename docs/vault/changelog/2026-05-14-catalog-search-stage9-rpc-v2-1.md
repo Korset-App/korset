@@ -48,7 +48,8 @@
 ## Applied
 
 - Migration 030 applied via Supabase Dashboard SQL Editor.
-- **Migration 031 awaiting manual apply.**
+- Migration 031 applied via Supabase Dashboard SQL Editor.
+- **Migration 032 awaiting manual apply.**
 
 ## Frontend Fix: Search Input Lag
 
@@ -69,8 +70,26 @@ After applying migration 031, search input became extremely laggy. Every keystro
 - `npx eslint src/screens/CatalogScreen.jsx` — PASS (0 errors, 1 pre-existing warning).
 - `npm run build` — PASS (exit code 0).
 
+## Backend Hotfix: Migration 032
+
+### Problem in 031
+
+1. **Duplicate rows**: `LEFT JOIN search_category_keywords` could match multiple keywords per query (e.g. "молочный шоколад" matches both "молок" and "шоколад"), creating duplicate product rows.
+2. **Expensive per-token matching**: `unnest(string_to_array(...))` + `word_similarity` per token executed nested loops on every row — very slow for large catalogs.
+
+### Fix in 032
+
+- Replaced `LEFT JOIN` with **scalar subquery** `(SELECT MAX(intent_boost) FROM ...)` — no duplicate rows, single lookup.
+- Restored single-call `word_similarity(gp.name, v_query)` instead of per-token `unnest` — same signal, 10x faster.
+- Kept: quantity normalization, category lookup table, all other v2 ranking signals.
+
+### Hotfix Verification
+
+- `npm run build` — PASS.
+- Migration 032: `supabase/migrations/032_catalog_search_rpc_v2_1_hotfix.sql`.
+
 ## Next
 
-- Apply migration 031 via Supabase Dashboard SQL Editor.
+- Apply migration 032 via Supabase Dashboard SQL Editor (overwrites `fn_search_store_products`).
 - Run `scripts/qa-search-rpc-v2.sql` with real pilot store UUID.
 - Monitor query latency; apply commented GIN trigram indexes if `EXPLAIN ANALYZE` shows seq scans.

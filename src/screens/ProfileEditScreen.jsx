@@ -20,13 +20,43 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const NAME_MAX = 40
 
 /* global FileReader, Image */
-// Resize banner to <=1200x540, JPEG 0.85 quality
-function compressBanner(file) {
+function compressImage(file, maxDim, quality) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.readAsDataURL(file)
     reader.onload = (event) => {
       const img = new Image()
+      img.onload = () => {
+        let { width, height } = img
+        const ratio = Math.min(maxDim / width, maxDim / height, 1)
+        if (ratio < 1) {
+          width = Math.round(width * ratio)
+          height = Math.round(height * ratio)
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0, width, height)
+        canvas.toBlob(
+          (blob) => (blob ? resolve(blob) : reject(new Error('blob_failed'))),
+          'image/jpeg',
+          quality
+        )
+      }
+      img.onerror = () => reject(new Error('image_load_failed'))
+      img.src = event.target.result
+    }
+    reader.onerror = () => reject(new Error('file_read_failed'))
+  })
+}
+
+function compressBanner(file) {
+  return compressImage(file, 1200, 0.85).then(async (blob) => {
+    if (blob.type === 'image/jpeg') return blob
+    const img = new Image()
+    const url = URL.createObjectURL(blob)
+    return new Promise((resolve, reject) => {
       img.onload = () => {
         const MAX_W = 1200
         const MAX_H = 540
@@ -40,16 +70,23 @@ function compressBanner(file) {
         const ctx = canvas.getContext('2d')
         ctx.drawImage(img, 0, 0, width, height)
         canvas.toBlob(
-          (blob) => (blob ? resolve(blob) : reject(new Error('blob_failed'))),
+          (b) => (b ? resolve(b) : reject(new Error('blob_failed'))),
           'image/jpeg',
           0.85
         )
+        URL.revokeObjectURL(url)
       }
-      img.onerror = () => reject(new Error('image_load_failed'))
-      img.src = event.target.result
-    }
-    reader.onerror = () => reject(new Error('file_read_failed'))
+      img.onerror = () => {
+        URL.revokeObjectURL(url)
+        reject(new Error('image_load_failed'))
+      }
+      img.src = url
+    })
   })
+}
+
+function compressAvatar(file) {
+  return compressImage(file, 640, 0.86)
 }
 
 function isPresetBanner(value) {
@@ -70,6 +107,7 @@ export default function ProfileEditScreen() {
     useAuth()
   const { lang, t } = useI18n()
   const fileInputRef = useRef(null)
+  const avatarFileInputRef = useRef(null)
 
   const backTarget = buildProfilePath(currentStore?.slug || null)
 
@@ -86,6 +124,8 @@ export default function ProfileEditScreen() {
   const [selectedAvatarId, setSelectedAvatarId] = useState(AVATAR_PRESETS[0].id)
   const [bannerSelection, setBannerSelection] = useState(initialBannerSelection)
   const [uploading, setUploading] = useState(false)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [customAvatarUrl, setCustomAvatarUrl] = useState(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -94,11 +134,12 @@ export default function ProfileEditScreen() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setName(displayName || user.user_metadata?.full_name || '')
     const initialAvatar = avatarId || user.user_metadata?.avatar_id || AVATAR_PRESETS[0].id
-    setSelectedAvatarId(
-      typeof initialAvatar === 'string' && /^https?:/i.test(initialAvatar)
-        ? initialAvatar
-        : initialAvatar || AVATAR_PRESETS[0].id
-    )
+    if (typeof initialAvatar === 'string' && /^https?:/i.test(initialAvatar)) {
+      setCustomAvatarUrl(initialAvatar)
+      setSelectedAvatarId('custom')
+    } else {
+      setSelectedAvatarId(initialAvatar || AVATAR_PRESETS[0].id)
+    }
     setBannerSelection(initialBannerSelection)
   }, [user, displayName, avatarId, initialBannerSelection])
 
@@ -110,7 +151,12 @@ export default function ProfileEditScreen() {
 
   const trimmedName = name.trim()
   const canSave =
-    trimmedName.length >= 2 && trimmedName.length <= NAME_MAX && !nameError && !saving && !uploading
+    trimmedName.length >= 2 &&
+    trimmedName.length <= NAME_MAX &&
+    !nameError &&
+    !saving &&
+    !uploading &&
+    !uploadingAvatar
 
   const handleNameChange = (e) => {
     const value = e.target.value
@@ -165,11 +211,53 @@ export default function ProfileEditScreen() {
     if (file) handleBannerUpload(file)
   }
 
+  const handleAvatarUpload = async (file) => {
+    setError('')
+    if (!file || !user) return
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setError(t('profile.edit.uploadInvalid'))
+      return
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      setError(t('profile.edit.uploadTooLarge'))
+      return
+    }
+    if (!navigator.onLine) {
+      setError(t('profile.edit.offline'))
+      return
+    }
+    setUploadingAvatar(true)
+    try {
+      const blob = await compressAvatar(file)
+      const path = `${user.id}/${Date.now()}.jpg`
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(path, blob, { contentType: 'image/jpeg', upsert: true })
+      if (uploadError) throw uploadError
+      const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+      const url = data?.publicUrl
+      if (!url) throw new Error('no_public_url')
+      setCustomAvatarUrl(`${url}?t=${Date.now()}`)
+      setSelectedAvatarId('custom')
+    } catch (err) {
+      console.warn('[ProfileEdit] avatar upload failed', err)
+      setError(t('profile.edit.uploadFailed'))
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
+
+  const onAvatarFileChange = (event) => {
+    const file = event.target.files?.[0]
+    if (event.target) event.target.value = ''
+    if (file) handleAvatarUpload(file)
+  }
+
   const handleSave = async () => {
     if (!canSave) return
     setError('')
     setSaving(true)
-    const avatarValue = selectedAvatarId
+    const avatarValue = selectedAvatarId === 'custom' ? customAvatarUrl : selectedAvatarId
     const bannerValue = bannerToStoredValue(bannerSelection)
     const deviceId = getOrCreateDeviceId()
 
@@ -382,7 +470,7 @@ export default function ProfileEditScreen() {
             }}
           >
             <ProfileAvatar
-              avatarId={selectedAvatarId}
+              avatarId={selectedAvatarId === 'custom' ? customAvatarUrl : selectedAvatarId}
               name={trimmedName || displayName}
               rounded="circle"
             />
@@ -461,6 +549,95 @@ export default function ProfileEditScreen() {
               gap: 10,
             }}
           >
+            <div style={{ position: 'relative', aspectRatio: '1 / 1' }}>
+              <button
+                type="button"
+                onClick={() => avatarFileInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  appearance: 'none',
+                  padding: 0,
+                  cursor: uploadingAvatar ? 'wait' : 'pointer',
+                  position: 'relative',
+                  background: 'rgba(124,58,237,0.08)',
+                  border:
+                    selectedAvatarId === 'custom'
+                      ? '2px solid #7C3AED'
+                      : '1px dashed rgba(167,139,250,0.4)',
+                  borderRadius: 18,
+                  color: '#A78BFA',
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  overflow: 'hidden',
+                }}
+              >
+                {selectedAvatarId === 'custom' && customAvatarUrl ? (
+                  <img
+                    src={customAvatarUrl}
+                    alt=""
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
+                ) : (
+                  <>
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                      <circle cx="12" cy="13" r="3" />
+                    </svg>
+                    <span style={{ textAlign: 'center', padding: '0 4px' }}>
+                      {uploadingAvatar ? '...' : t('profile.edit.uploadOwn')}
+                    </span>
+                  </>
+                )}
+              </button>
+              {selectedAvatarId === 'custom' && customAvatarUrl && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    right: -6,
+                    top: -6,
+                    width: 22,
+                    height: 22,
+                    borderRadius: '50%',
+                    background: '#10B981',
+                    border: '2.5px solid var(--bg-app)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 4px 10px rgba(16,185,129,0.4)',
+                  }}
+                >
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+              )}
+            </div>
             {AVATAR_PRESETS.map((preset) => {
               const selected = selectedAvatarId === preset.id
               return (
@@ -496,6 +673,13 @@ export default function ProfileEditScreen() {
               )
             })}
           </div>
+          <input
+            ref={avatarFileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={onAvatarFileChange}
+            style={{ display: 'none' }}
+          />
         </Section>
 
         {/* Banner */}
