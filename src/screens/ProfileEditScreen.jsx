@@ -16,7 +16,12 @@ import { AVATAR_PRESETS } from '../constants/avatarPresets.js'
 import { BANNER_PRESETS, resolveBannerSrc } from '../constants/bannerPresets.js'
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'image/pjpeg', '']
+
+function isAllowedImageType(type) {
+  if (!type) return true
+  return type.startsWith('image/') || ALLOWED_TYPES.includes(type)
+}
 const NAME_MAX = 40
 
 /* global FileReader, Image */
@@ -171,7 +176,7 @@ export default function ProfileEditScreen() {
   const handleBannerUpload = async (file) => {
     setError('')
     if (!file) return
-    if (!ALLOWED_TYPES.includes(file.type)) {
+    if (!isAllowedImageType(file.type)) {
       setError(t('profile.edit.uploadInvalid'))
       return
     }
@@ -214,7 +219,7 @@ export default function ProfileEditScreen() {
   const handleAvatarUpload = async (file) => {
     setError('')
     if (!file || !user) return
-    if (!ALLOWED_TYPES.includes(file.type)) {
+    if (!isAllowedImageType(file.type)) {
       setError(t('profile.edit.uploadInvalid'))
       return
     }
@@ -249,8 +254,10 @@ export default function ProfileEditScreen() {
 
   const onAvatarFileChange = (event) => {
     const file = event.target.files?.[0]
-    if (event.target) event.target.value = ''
     if (file) handleAvatarUpload(file)
+    setTimeout(() => {
+      if (event.target) event.target.value = ''
+    }, 0)
   }
 
   const handleSave = async () => {
@@ -597,33 +604,37 @@ export default function ProfileEditScreen() {
                         bottom: 0,
                         left: 0,
                         right: 0,
-                        padding: '6px 0',
+                        padding: '5px 0',
                         background: 'rgba(0,0,0,0.55)',
                         backdropFilter: 'blur(4px)',
                         WebkitBackdropFilter: 'blur(4px)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: 4,
+                        gap: 5,
                         color: '#fff',
                         fontSize: 10,
                         fontWeight: 600,
+                        lineHeight: 1,
                       }}
                     >
                       <svg
-                        width="12"
-                        height="12"
+                        width="11"
+                        height="11"
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
                         strokeWidth="2.5"
                         strokeLinecap="round"
                         strokeLinejoin="round"
+                        style={{ flexShrink: 0 }}
                       >
                         <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
                         <circle cx="12" cy="13" r="3" />
                       </svg>
-                      {uploadingAvatar ? '...' : t('profile.edit.uploadOwn')}
+                      <span style={{ whiteSpace: 'nowrap' }}>
+                        {uploadingAvatar ? '...' : t('profile.edit.uploadOwn')}
+                      </span>
                     </div>
                   </>
                 ) : (
@@ -717,7 +728,7 @@ export default function ProfileEditScreen() {
           <input
             ref={avatarFileInputRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp"
+            accept="image/*"
             onChange={onAvatarFileChange}
             style={{ display: 'none' }}
           />
