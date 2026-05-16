@@ -336,20 +336,20 @@ Acceptance:
 
 Purpose: define how AI can look beyond the local card when product facts are missing, without becoming unreliable or expensive.
 
-- [ ] Write a short architecture note before implementation:
+- [x] Write a short architecture note before implementation: `docs/vault/architecture/controlled-product-enrichment.md`.
   - request trigger: missing composition, unknown halal, missing nutrition, product not in local cache.
   - allowed lookup keys: EAN, exact product name, brand, package size.
   - source priority and confidence labels.
   - cache/storage policy.
   - review policy for saving facts into `global_products`.
   - user-facing uncertainty copy.
-- [ ] Decide whether enrichment is:
+- [x] Decide whether enrichment is:
   - manual/admin-reviewed first.
   - background job after unknown EAN or weak-data scan.
   - explicit buyer action.
-- [ ] Do not implement uncontrolled live browsing inside `/api/ai.js`.
-- [ ] Keep product recommendation cards store-scoped even when external facts are used for explanation.
-- [ ] Add tests/mocks before enabling network calls.
+- [x] Do not implement uncontrolled live browsing inside `/api/ai.js`.
+- [x] Keep product recommendation cards store-scoped even when external facts are used for explanation.
+- [x] Add tests/mocks before enabling network calls. No network implementation was added in Stage 4.5; future implementation must start with mocked tests.
 
 Acceptance:
 
