@@ -1,7 +1,7 @@
 import { getAvatarPresetById } from '../constants/avatarPresets.js'
 
 export default function ProfileAvatar({ avatarId, name = '', rounded = 'circle' }) {
-  const radius = rounded === 'circle' ? '50%' : 22
+  const radius = rounded === 'circle' ? '50%' : 18
 
   if (avatarId && /^https?:/i.test(avatarId)) {
     return (

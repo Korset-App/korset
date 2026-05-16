@@ -553,7 +553,7 @@ export default function ProfileEditScreen() {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(88px, 1fr))',
                 gap: 10,
               }}
             >
@@ -570,14 +570,16 @@ export default function ProfileEditScreen() {
                     cursor: uploadingAvatar ? 'wait' : 'pointer',
                     position: 'relative',
                     background: 'var(--primary-dim)',
-                    border:
+                    border: '2px solid',
+                    borderColor:
                       selectedAvatarId === 'custom'
-                        ? '2px solid var(--primary-mid)'
-                        : '1px dashed var(--primary-bright)',
+                        ? 'var(--primary-mid)'
+                        : 'var(--primary-bright)',
+                    borderStyle: selectedAvatarId === 'custom' ? 'solid' : 'dashed',
                     borderRadius: 18,
                     color: 'var(--primary-bright)',
                     fontFamily: 'var(--font-display)',
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 600,
                     display: 'flex',
                     flexDirection: 'column',
@@ -687,11 +689,10 @@ export default function ProfileEditScreen() {
                         position: 'relative',
                         borderRadius: 18,
                         overflow: 'hidden',
-                        border: selected
-                          ? '2px solid var(--primary-mid)'
-                          : '1px solid var(--glass-border)',
+                        border: '2px solid',
+                        borderColor: selected ? 'var(--primary-mid)' : 'var(--glass-border)',
                         boxShadow: selected ? '0 6px 18px var(--primary-glow)' : 'none',
-                        transition: 'border 0.15s, box-shadow 0.15s',
+                        transition: 'border-color 0.15s, box-shadow 0.15s',
                       }}
                     >
                       <div style={{ position: 'absolute', inset: 0 }}>
@@ -733,10 +734,12 @@ export default function ProfileEditScreen() {
                     cursor: uploading ? 'wait' : 'pointer',
                     position: 'relative',
                     background: 'var(--primary-dim)',
-                    border:
+                    border: '2px solid',
+                    borderColor:
                       bannerSelection?.type === 'url'
-                        ? '2px solid var(--primary-mid)'
-                        : '1px dashed var(--primary-bright)',
+                        ? 'var(--primary-mid)'
+                        : 'var(--primary-bright)',
+                    borderStyle: bannerSelection?.type === 'url' ? 'solid' : 'dashed',
                     borderRadius: 16,
                     color: 'var(--primary-bright)',
                     fontFamily: 'var(--font-display)',
@@ -811,11 +814,10 @@ export default function ProfileEditScreen() {
                         position: 'relative',
                         borderRadius: 16,
                         overflow: 'hidden',
-                        border: selected
-                          ? '2px solid var(--primary-mid)'
-                          : '1px solid var(--glass-border)',
+                        border: '2px solid',
+                        borderColor: selected ? 'var(--primary-mid)' : 'var(--glass-border)',
                         boxShadow: selected ? '0 6px 18px var(--primary-glow)' : 'none',
-                        transition: 'border 0.15s, box-shadow 0.15s',
+                        transition: 'border-color 0.15s, box-shadow 0.15s',
                       }}
                     >
                       <div style={{ position: 'absolute', inset: 0 }}>

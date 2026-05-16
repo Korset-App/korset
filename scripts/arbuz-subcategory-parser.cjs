@@ -337,8 +337,26 @@ async function main() {
         'https://arbuz.kz/ru/almaty/catalog/cat/225757-finiki_na_iftar',
         'https://arbuz.kz/ru/almaty/catalog/cat/19797-semechki'
       ],
-      subcategories: ['nuts', 'dried_fruits'],
+      subcategories: ['nuts', 'dried_fruits', 'seeds'],
       pages: 10
+    },
+    plant_milk: {
+      title: 'Растительное альтернативное молоко',
+      url: 'https://arbuz.kz/ru/almaty/catalog/cat/224665-moloko_alternativnoe',
+      subcategories: ['milk'],
+      pages: 5
+    },
+    child_drinks: {
+      title: 'Детские соки и вода',
+      url: 'https://arbuz.kz/ru/almaty/catalog/cat/20957-soki_voda',
+      subcategories: ['juice', 'water'],
+      pages: 6
+    },
+    chips: {
+      title: 'Чипсы и попкорн',
+      url: 'https://arbuz.kz/ru/almaty/catalog/cat/225604-chipsy',
+      subcategories: ['chips'],
+      pages: 7
     }
   }
 
@@ -557,6 +575,21 @@ async function main() {
       } else if (opts.mode === 'juices') {
         category = 'water_beverages'
         subcategory = 'juice'
+      } else if (opts.mode === 'plant_milk') {
+        category = 'dairy_eggs'
+        subcategory = 'milk'
+      } else if (opts.mode === 'child_drinks') {
+        const lowerName = (full.name || '').toLowerCase()
+        if (lowerName.includes('вода') || lowerName.includes('водич')) {
+          category = 'water_beverages'
+          subcategory = 'water'
+        } else {
+          category = 'water_beverages'
+          subcategory = 'juice'
+        }
+      } else if (opts.mode === 'chips') {
+        category = 'snacks'
+        subcategory = 'chips'
       } else if (opts.mode === 'sausages' || opts.mode === 'wieners') {
         category = 'deli'
         subcategory = 'sausage'
@@ -574,6 +607,17 @@ async function main() {
         category = 'snacks'
         const lowerName = (full.name || '').toLowerCase()
         if (
+          lowerName.includes('семеч') ||
+          lowerName.includes('семен') ||
+          lowerName.includes('подсолнух') ||
+          lowerName.includes('тыквен') ||
+          lowerName.includes('чиа ') ||
+          lowerName.includes('лен ') ||
+          lowerName.includes('льна') ||
+          lowerName.includes('кунжут')
+        ) {
+          subcategory = 'seeds'
+        } else if (
           lowerName.includes('орех') ||
           lowerName.includes('миндал') ||
           lowerName.includes('фундук') ||
@@ -596,11 +640,11 @@ async function main() {
       let expectedCategory = 'dairy_eggs'
       if (opts.mode === 'ice_cream' || opts.mode === 'semi_finished' || opts.mode === 'samsa' || opts.mode === 'frozen_bakery') {
         expectedCategory = 'frozen'
-      } else if (opts.mode === 'water' || opts.mode === 'soda_energy' || opts.mode === 'cold_tea' || opts.mode === 'juices') {
+      } else if (opts.mode === 'water' || opts.mode === 'soda_energy' || opts.mode === 'cold_tea' || opts.mode === 'juices' || opts.mode === 'child_drinks') {
         expectedCategory = 'water_beverages'
       } else if (opts.mode === 'sausages' || opts.mode === 'wieners' || opts.mode === 'deli_meats') {
         expectedCategory = 'deli'
-      } else if (opts.mode === 'nuts_dried_fruits') {
+      } else if (opts.mode === 'nuts_dried_fruits' || opts.mode === 'chips') {
         expectedCategory = 'snacks'
       }
 

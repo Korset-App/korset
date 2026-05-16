@@ -94,12 +94,13 @@ function AvatarChoice({ selected, onClick, children }) {
           width: '100%',
           paddingTop: '100%',
           position: 'relative',
-          borderRadius: 20,
+          borderRadius: 18,
           background: 'var(--image-bg)',
-          border: selected ? '2px solid var(--primary-mid)' : '1px solid var(--glass-soft-border)',
+          border: '2px solid',
+          borderColor: selected ? 'var(--primary-mid)' : 'var(--glass-soft-border)',
           boxShadow: selected ? '0 8px 20px var(--primary-glow)' : 'none',
           overflow: 'hidden',
-          transition: 'border 0.15s, box-shadow 0.15s',
+          transition: 'border-color 0.15s, box-shadow 0.15s',
         }}
       >
         <div style={{ position: 'absolute', inset: 0 }}>{children}</div>
@@ -132,9 +133,10 @@ function BannerChoice({ selected, onClick, children }) {
           position: 'relative',
           borderRadius: 16,
           overflow: 'hidden',
-          border: selected ? '2px solid var(--primary-mid)' : '1px solid var(--glass-soft-border)',
+          border: '2px solid',
+          borderColor: selected ? 'var(--primary-mid)' : 'var(--glass-soft-border)',
           boxShadow: selected ? '0 6px 18px var(--primary-glow)' : 'none',
-          transition: 'border 0.15s, box-shadow 0.15s',
+          transition: 'border-color 0.15s, box-shadow 0.15s',
         }}
       >
         <div style={{ position: 'absolute', inset: 0 }}>{children}</div>
@@ -951,8 +953,8 @@ export default function SetupProfileScreen() {
                   <div
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
-                      gap: 10,
+                      gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+                      gap: 12,
                     }}
                   >
                     <button
@@ -960,11 +962,14 @@ export default function SetupProfileScreen() {
                       onClick={() => avatarFileInputRef.current?.click()}
                       style={{
                         appearance: 'none',
-                        border:
+                        border: '2px solid',
+                        borderColor:
                           selectedAvatarId === 'custom' && customAvatarUrl
-                            ? '2px solid var(--primary-mid)'
-                            : '1px dashed var(--glass-border)',
-                        background: 'var(--glass-subtle)',
+                            ? 'var(--primary-mid)'
+                            : 'var(--glass-border)',
+                        borderStyle:
+                          selectedAvatarId === 'custom' && customAvatarUrl ? 'solid' : 'dashed',
+                        background: 'var(--primary-dim)',
                         borderRadius: 18,
                         aspectRatio: '1 / 1',
                         cursor: 'pointer',
@@ -992,7 +997,7 @@ export default function SetupProfileScreen() {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            color: 'var(--text-soft)',
+                            color: 'var(--primary-bright)',
                           }}
                         >
                           <svg
@@ -1056,14 +1061,16 @@ export default function SetupProfileScreen() {
                           padding: 0,
                           cursor: uploadingBanner ? 'wait' : 'pointer',
                           position: 'relative',
-                          background: 'var(--glass-subtle)',
-                          border:
+                          background: 'var(--primary-dim)',
+                          border: '2px solid',
+                          borderColor:
                             bannerSelection?.type === 'url'
-                              ? '2px solid var(--primary-mid)'
-                              : '1px dashed var(--glass-border)',
+                              ? 'var(--primary-mid)'
+                              : 'var(--primary-bright)',
+                          borderStyle: bannerSelection?.type === 'url' ? 'solid' : 'dashed',
                           borderRadius: 16,
-                          color: 'var(--text-soft)',
-                          fontSize: 11,
+                          color: 'var(--primary-bright)',
+                          fontSize: 12,
                           fontWeight: 600,
                           fontFamily: 'var(--font-display)',
                           display: 'flex',

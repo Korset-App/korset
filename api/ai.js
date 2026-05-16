@@ -8,6 +8,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { buildGeneralAIFollowUps } from '../src/domain/ai/followUps.js'
 import { buildAIProductGroups } from '../src/domain/ai/responseShape.js'
+import { buildSafetyNotes } from '../src/domain/ai/safetyContract.js'
 
 const CORS_ORIGINS = [
   'https://korset.app',
@@ -537,6 +538,14 @@ export function buildProductPrompt(product, profile, lang, ragContext, storeCont
   const ragSection = ragContext
     ? `\n\nПРОВЕРЕННЫЕ ЗНАНИЯ (используй как факт, приоритет над общими знаниями):\n${ragContext}`
     : ''
+  const safetyNotes = buildSafetyNotes({ product, profile, lang })
+  const safetySection = `\nSAFETY CONTRACT:
+- halalConfidence: ${safetyNotes.halal.level}
+- allergyConfidence: ${safetyNotes.allergy.level}
+- ${safetyNotes.userNotes.join('\n- ')}
+- Если halalConfidence = likely_compatible, объясни это как осторожную практическую оценку по видимому составу: явных запрещённых компонентов не видно, но сертификат не указан.
+- не делай вид, что AI полностью беспомощен при unknown halal, если состав достаточно понятен; помогай, но маркируй уверенность и проси проверить упаковку при строгих требованиях.
+- Если Fit-Check или данные профиля показывают реальный риск, не спорь с ними и не снижай риск.`
   const storeSection = storeContext?.name
     ? `\nМАГАЗИН: ${storeContext.name}${storeContext.address ? ` | ${storeContext.address}` : ''}${storeContext.aiStoreNotes ? `\nФАКТЫ МАГАЗИНА: ${storeContext.aiStoreNotes}` : ''}`
     : ''
@@ -552,7 +561,7 @@ ${langNote}
 Не выдумывай цену, наличие, состав, сертификаты, халал-статус, аллергены или свойства товара.
 Не называй товар безопасным, если данных мало, состав отсутствует, есть совпадение с аллергенами профиля или есть только неполные сведения.
 При сильных аллергиях всегда советуй сверить состав, следы аллергенов и маркировку на упаковке; не заменяй медицинскую консультацию.
-Халал-статус unknown означает "неизвестно": не называй товар халал, пока нет сертификата или явных проверенных данных.
+Халал-статус unknown означает, что сертификат не подтверждён. Не называй товар "подтверждённо халал", но используй halalConfidence из SAFETY CONTRACT: confirmed_halal / likely_compatible / questionable / not_halal / insufficient_data.
 Если состав отсутствует, прямо скажи, что данных о составе нет, и перечисли, что проверить на упаковке.
 Альтернативы предлагай только из блока "АЛЬТЕРНАТИВЫ В ЭТОМ МАГАЗИНЕ"; если блока нет, скажи, что не видишь подходящих альтернатив в текущем магазине.
 
@@ -561,7 +570,7 @@ ${langNote}
 Цена: ${product.priceKzt ? `${product.priceKzt} ₸` : '—'} | Наличие: ${product.stockStatus || 'unknown'}
 Халал: ${product.halalStatus === 'yes' ? 'да' : product.halalStatus === 'no' ? 'нет' : 'неизвестно'}
 Аллергены: ${product.allergens?.join(', ') || 'нет'}
-ПРОФИЛЬ: ${profileParts.length ? profileParts.join('; ') : 'не задан'}${alternativesSection}${ragSection}`
+ПРОФИЛЬ: ${profileParts.length ? profileParts.join('; ') : 'не задан'}${safetySection}${alternativesSection}${ragSection}`
 }
 
 function buildGeneralPrompt(lang, storeContext, catalogContext = []) {

@@ -29,6 +29,11 @@ area: ai
 - RU/KZ: both languages must be supported; RU can lead QA depth, but KZ must not feel abandoned.
 - Store notes/shelf navigation: do not expand shelf/aisle navigation now. Revisit when the product has real shelf/section data.
 - Retail AI value: prioritize assortment recommendations and analytics over owner chat.
+- Voice: the assistant should sit between "store consultant" and "personal shopper". It should sound like a calm store expert who understands the buyer's profile and can guide the next useful step.
+- Initiative: AI should proactively offer next steps such as cheaper options, allergy-safe alternatives, halal-focused filtering, package checks, or a complete shopping set.
+- Answer length: use adaptive formats. Keep answers compact, but not so short that they feel generic or evasive.
+- "Best product" means a balanced fit across profile safety, halal/diet match, stock, request relevance, price, data completeness, and same-store alternatives. Avoid public magic scores unless the score system is deliberately redesigned.
+- External product data: if local product data is missing, the desired product direction is controlled web enrichment, not helpless refusal. External results must be clearly marked as less certain than package/store data.
 
 ## Updated Safety Position
 
@@ -65,6 +70,96 @@ Recommended user wording:
 - Avoid age-specific nutrition claims unless the product data has explicit age/category information.
 - For baby food, allergies, caffeine, high sugar, or unclear ingredients, ask the user to check package age markers and composition.
 
+## Adaptive Answer Formats
+
+Do not force every answer into one rigid template. Use three premium patterns.
+
+### Simple Product Fit
+
+Use when the buyer asks if a product fits them.
+
+```text
+Да, по данным карточки этот товар вам скорее подходит.
+
+Почему: не вижу ваших аллергенов в составе, цена сейчас 890 ₸, товар есть в наличии. Halal-сертификат не указан, но по видимому составу явных спорных компонентов нет.
+
+Проверьте на упаковке: следы аллергенов и маркировку halal, если для вас это строго.
+```
+
+### Shopping Set
+
+Use when the buyer asks for a meal, budget, family snack, or bundle.
+
+```text
+Для ужина до 5000 ₸ я бы собрал простой набор из товаров этого магазина: основа, белок и напиток.
+
+Лучшие варианты ниже. Я выбрал их по цене, наличию и совместимости с вашим профилем.
+```
+
+### Risk Or Caution
+
+Use when the buyer has allergies, strict halal needs, missing composition, child-related questions, or other sensitive context.
+
+```text
+Я бы был осторожен с этим товаром.
+
+В карточке есть совпадение с вашим аллергеном: молоко. Если аллергия сильная, лучше не брать и выбрать альтернативу. Могу показать варианты без молочных аллергенов в этом магазине.
+```
+
+## Fit Priority Score Direction
+
+Do not expose a universal numeric "87/100" score in the buyer UI yet. It can look precise while relying on incomplete product data.
+
+Use internal ranking instead:
+
+1. Profile safety: allergens, traces, hard restrictions.
+2. Halal/diet match through confidence labels.
+3. Stock in the current store.
+4. Request relevance: meal, budget, category, family use, cheaper, no sugar, no lactose.
+5. Price and budget fit.
+6. Data completeness: composition, nutrition, image, source confidence.
+7. Alternative quality inside the same store.
+
+Buyer-facing labels should be human:
+
+- `best_choice`: Лучший выбор.
+- `good_option`: Хороший вариант.
+- `fits_but_check`: Подходит, но проверьте.
+- `choose_another`: Лучше выбрать другое.
+- `insufficient_data`: Недостаточно данных.
+
+If the existing compare rating/scoring is touched, treat it as a separate quality task. Either redesign it deliberately around the same priorities or simplify the visible UI instead of exposing a misleading precise score.
+
+## Controlled Web Enrichment Direction
+
+The buyer AI should not be helpless when local product data is missing. However, live open web search from every chat message is risky.
+
+Target behavior:
+
+1. First use store catalog, product card facts, Fit-Check, and Vault knowledge.
+2. If important product facts are missing, offer or trigger controlled enrichment for a specific product/EAN/brand.
+3. Mark external data as lower-confidence:
+
+```text
+В карточке состава нет. Я могу попробовать найти информацию во внешних источниках, но она может отличаться от вашей упаковки. Для аллергий и halal всё равно лучше сверить маркировку на товаре.
+```
+
+4. Cache or save enrichment results as reviewable product-data signals where possible, rather than searching again on every request.
+5. Do not let external data override a deterministic red Fit-Check, confirmed allergen match, or trusted store/product fact.
+6. If external data is unavailable or weak, say that directly.
+
+Implementation note: this likely needs a separate endpoint/job and owner approval before coding, because it affects network access, cost, data provenance, caching, and safety wording.
+
+## Fit-Check Boundary
+
+Fit-Check remains the deterministic verdict layer. AI explains it; it does not overrule it.
+
+- Fit-Check decides `fits`, `caution`, `avoid`, or `insufficient_data`.
+- AI may explain why and suggest same-store alternatives.
+- AI may add external-data context only as "additional reference", not as an official product fact until reviewed/saved.
+- AI must not downgrade allergy risk or halal caution when deterministic product/profile data says there is a real risk.
+- If Fit-Check and AI context appear to conflict, the answer should name the conflict and prefer Fit-Check.
+
 ## Current System Baseline
 
 Already implemented:
@@ -99,12 +194,16 @@ Known gaps:
   - Unit coverage for halal ladder and allergy wording inputs.
 - Modify: `src/domain/ai/catalogSearch.js`
   - Improve grocery intents and candidate scoring for meal sets, budget, children, halal, and missing-product alternatives.
+- Modify/Create: `src/domain/ai/fitPriority.js`
+  - Internal ranking helpers for best-choice labels without exposing misleading numeric scores.
 - Modify tests: `tests/unit/aiCatalogSearch.test.mjs`
   - Lock candidate behavior for common store-assistant prompts.
 - Modify: `src/domain/ai/responseShape.js`
   - Preserve product-card grounding and add group reasons if needed.
 - Modify: `src/services/ai.js`
   - Preserve backward compatibility while accepting structured product AI response later.
+- Modify/Create later: `api/product-enrichment.js` or a dedicated enrichment job
+  - Controlled web enrichment for missing product facts, only after explicit owner approval.
 - Modify: `src/screens/AIAssistantScreen.jsx`
   - UX polish and design-token cleanup after behavior is stable.
 - Modify: `src/screens/AIScreen.jsx`
@@ -123,7 +222,7 @@ Known gaps:
 
 Purpose: make the new owner decisions executable before touching UX.
 
-- [ ] Write failing tests in `tests/unit/aiSafetyContract.test.mjs` for:
+- [x] Write failing tests in `tests/unit/aiSafetyContract.test.mjs` for:
   - confirmed halal product.
   - likely compatible product without certificate.
   - questionable product with gelatin/flavors/enzymes.
@@ -131,14 +230,14 @@ Purpose: make the new owner decisions executable before touching UX.
   - insufficient product data.
   - direct allergen match.
   - missing ingredient data with allergy profile.
-- [ ] Create `src/domain/ai/safetyContract.js` with pure helpers:
+- [x] Create `src/domain/ai/safetyContract.js` with pure helpers:
   - `getHalalConfidence(product)`.
   - `getAllergyConfidence(product, profile)`.
   - `buildSafetyNotes({ product, profile, lang })`.
-- [ ] Run `node --test tests/unit/aiSafetyContract.test.mjs`.
-- [ ] Update `api/ai.js` product prompt to use the ladder wording, not only "unknown means unknown".
-- [ ] Add RU/KZ i18n keys for visible labels if UI will display the ladder in later stages.
-- [ ] Run `node scripts/check-i18n.mjs` and AI-focused tests.
+- [x] Run `node --test tests/unit/aiSafetyContract.test.mjs`.
+- [x] Update `api/ai.js` product prompt to use the ladder wording, not only "unknown means unknown".
+- [x] Add RU/KZ i18n keys for visible labels if UI will display the ladder in later stages. No visible UI labels were added in Stage 1, so no locale keys were needed yet.
+- [x] Run `node scripts/check-i18n.mjs` and AI-focused tests. Stage 1 changed no locale files; targeted AI safety/product prompt tests passed. Broader checks are tracked in the session changelog.
 
 Acceptance:
 
@@ -179,6 +278,11 @@ Acceptance:
 
 Purpose: make the store assistant feel like a competent in-store consultant.
 
+- [ ] Add or update internal ranking tests for best-choice labels:
+  - allergy risk outranks price.
+  - confirmed/likely halal outranks unknown for halal requests.
+  - in-stock outranks out-of-stock when relevance is similar.
+  - lower price matters only after safety and relevance.
 - [ ] Add tests for meal-set and budget candidate selection in `tests/unit/aiCatalogSearch.test.mjs`.
 - [ ] Improve `findCatalogCandidates()` for:
   - meal sets: plov, dinner, breakfast, snack.
@@ -198,6 +302,7 @@ Acceptance:
 - Broad shopping requests return useful grouped product cards.
 - Text answer and cards agree with each other.
 - Missing products produce honest same-store fallback behavior.
+- AI proactively offers useful next steps without becoming verbose.
 
 ## Stage 4: Product AI Premium Response
 
@@ -225,6 +330,32 @@ Acceptance:
 - Product AI answers feel structured and premium.
 - It distinguishes known facts, likely guidance, unknown data, and package checks.
 - Alternatives remain same-store only.
+- Product AI explains Fit-Check but does not overrule it.
+
+## Stage 4.5: Controlled Web Enrichment Design
+
+Purpose: define how AI can look beyond the local card when product facts are missing, without becoming unreliable or expensive.
+
+- [ ] Write a short architecture note before implementation:
+  - request trigger: missing composition, unknown halal, missing nutrition, product not in local cache.
+  - allowed lookup keys: EAN, exact product name, brand, package size.
+  - source priority and confidence labels.
+  - cache/storage policy.
+  - review policy for saving facts into `global_products`.
+  - user-facing uncertainty copy.
+- [ ] Decide whether enrichment is:
+  - manual/admin-reviewed first.
+  - background job after unknown EAN or weak-data scan.
+  - explicit buyer action.
+- [ ] Do not implement uncontrolled live browsing inside `/api/ai.js`.
+- [ ] Keep product recommendation cards store-scoped even when external facts are used for explanation.
+- [ ] Add tests/mocks before enabling network calls.
+
+Acceptance:
+
+- AI can become more helpful on missing data without inventing facts.
+- External data is visibly lower-confidence than product/package/store facts.
+- Cost and safety boundaries are explicit.
 
 ## Stage 5: AI UI Premium Polish
 
@@ -256,6 +387,8 @@ Purpose: increase B2B value without building owner chat.
   - categories with high scans and weak catalog coverage.
   - products often scanned but out of stock.
   - weak data quality: missing composition, image, halal status, nutrition.
+  - personalized store opportunities, such as "people ask for halal sweets but halal coverage is weak".
+  - assortment recommendations based on repeated no-match searches/scans.
 - [ ] Keep all insights aggregate-only; no user-level analytics.
 - [ ] Render 3-5 owner-readable insights with practical next action.
 - [ ] Use RU/KZ locale keys.
@@ -265,6 +398,7 @@ Acceptance:
 
 - Retail owner sees practical assortment and analytics signals.
 - Empty state is honest when data is sparse.
+- The owner sees store-specific opportunities, not generic dashboard decoration.
 
 ## Stage 7: Observability And Cost Control
 
@@ -316,8 +450,9 @@ Ask the owner before:
 - Turning on automatic high-quality model routing.
 - Adding shelf/aisle navigation.
 - Redesigning AI screens beyond focused premium polish.
-- Allowing live internet search in buyer chat.
+- Allowing uncontrolled live internet search in buyer chat.
+- Implementing controlled web enrichment, because it affects cost, provenance, and safety.
 
 ## Current Recommended Next Action
 
-Start with Stage 1, then Stage 2. Do not jump straight to UI polish; the product needs the quality contract and real-catalog QA first.
+Start with Stage 1, then Stage 2. Do not jump straight to UI polish; the product needs the quality contract and real-catalog QA first. Treat controlled web enrichment as a design task before implementation.

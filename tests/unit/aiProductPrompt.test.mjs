@@ -30,6 +30,30 @@ test('buildProductPrompt includes strict product safety and uncertainty guardrai
   assert.match(prompt, /АЛЬТЕРНАТИВЫ В ЭТОМ МАГАЗИНЕ/)
 })
 
+test('buildProductPrompt includes balanced halal confidence guidance instead of helpless unknown-only wording', () => {
+  const prompt = buildProductPrompt(
+    {
+      ean: '4870000000001',
+      name: 'Шоколад молочный',
+      brand: 'Demo',
+      ingredients: 'молоко, сахар, какао-масло',
+      halalStatus: 'unknown',
+      allergens: ['milk'],
+      stockStatus: 'in_stock',
+      priceKzt: 990,
+    },
+    { halalOnly: true, allergens: [] },
+    'ru',
+    null,
+    { name: 'MARS' }
+  )
+
+  assert.match(prompt, /likely_compatible/)
+  assert.match(prompt, /явных запрещённых компонентов не видно/)
+  assert.match(prompt, /сертификат не указан/)
+  assert.match(prompt, /не делай вид, что AI полностью беспомощен/)
+})
+
 test('buildProductPrompt localizes the answer language instruction', () => {
   const prompt = buildProductPrompt(
     {
