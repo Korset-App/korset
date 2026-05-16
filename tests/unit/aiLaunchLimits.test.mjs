@@ -3,10 +3,14 @@ import test from 'node:test'
 
 import {
   AI_LIMITS,
+  AI_MODELS,
   RATE_LIMITS,
+  buildAIUsageEvent,
   buildProductGroupsFromCatalog,
+  classifyOpenAIError,
   getOpenAICompletionLimits,
   sanitizeCatalogContext,
+  selectOpenAIModel,
   validateMessages,
 } from '../../api/ai.js'
 import { buildCatalogAIContext } from '../../src/domain/ai/catalogSearch.js'
@@ -94,4 +98,72 @@ test('OpenAI completion limits stay mobile-sized by mode', () => {
     max_completion_tokens: 320,
     temperature: 0.6,
   })
+})
+
+test('OpenAI model routing defaults to nano without automatic premium routing', () => {
+  assert.equal(AI_MODELS.default, 'gpt-5.4-nano')
+  assert.equal(AI_MODELS.highQuality, 'gpt-5.4-mini')
+  assert.deepEqual(selectOpenAIModel({ mode: 'general' }), {
+    model: 'gpt-5.4-nano',
+    route: 'default',
+    reason: 'general:default',
+  })
+  assert.deepEqual(selectOpenAIModel({ mode: 'product', profile: { allergens: ['milk'] } }), {
+    model: 'gpt-5.4-nano',
+    route: 'default',
+    reason: 'product:default',
+  })
+})
+
+test('OpenAI error classification keeps provider failures actionable', () => {
+  assert.equal(classifyOpenAIError(401), 'auth')
+  assert.equal(classifyOpenAIError(429, { code: 'insufficient_quota' }), 'quota')
+  assert.equal(classifyOpenAIError(429), 'rate_limited')
+  assert.equal(classifyOpenAIError(404, { code: 'model_not_found' }), 'model_not_found')
+  assert.equal(classifyOpenAIError(400), 'bad_request')
+  assert.equal(classifyOpenAIError(503), 'provider_error')
+  assert.equal(classifyOpenAIError(418), 'unknown')
+})
+
+test('AI usage event is compact and excludes user message content', () => {
+  const originalNow = Date.now
+  Date.now = () => 1_500
+  try {
+    assert.deepEqual(
+      buildAIUsageEvent({
+        mode: 'general',
+        modelRoute: 'default',
+        model: 'gpt-5.4-nano',
+        completionLimits: { max_completion_tokens: 320 },
+        usage: {
+          prompt_tokens: 240,
+          completion_tokens: 80,
+          total_tokens: 320,
+        },
+        startedAt: 1_000,
+        status: 'ok',
+        storeContext: { slug: 'store-one', name: 'Store One' },
+        catalogContext: [{ ean: '1', name: 'A' }, { ean: '2', name: 'B' }],
+        ragUsed: true,
+      }),
+      {
+        event: 'ai_completion',
+        mode: 'general',
+        model: 'gpt-5.4-nano',
+        modelRoute: 'default',
+        status: 'ok',
+        errorType: null,
+        durationMs: 500,
+        promptTokens: 240,
+        completionTokens: 80,
+        totalTokens: 320,
+        maxCompletionTokens: 320,
+        catalogCandidates: 2,
+        ragUsed: true,
+        storeSlug: 'store-one',
+      }
+    )
+  } finally {
+    Date.now = originalNow
+  }
 })

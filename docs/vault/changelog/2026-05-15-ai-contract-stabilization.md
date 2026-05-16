@@ -32,6 +32,8 @@ The previous implementation had drift between frontend callers and `/api/ai.js`:
 - Stage 3 is complete: Product AI prompt guardrails were strengthened and covered by tests. The server-side product prompt now explicitly forbids inventing price, stock, composition, certificates, halal status, allergens, or product properties; treats `halalStatus: unknown` as unknown; avoids calling products safe when data is incomplete or profile allergens match; requires package checks for strong allergies; and limits alternatives to the same-store alternatives block.
 - Stage 4 is complete: AI browser QA now has a manual prompt pack plus a mocked Playwright smoke test for `/s/:storeSlug/ai`. The smoke intercepts `/api/ai`, verifies the assistant reply, product cards, follow-up chips, product-card routing, `mode: general`, and preserved `storeContext.slug` without spending OpenAI tokens.
 - Stage 4 also fixed a real race found by the smoke path: General/Product AI requests could lose store context when the user submitted before full store details finished loading. `buildStoreAIContext()` now accepts a route-slug fallback, and both `AIAssistantScreen` and `AIScreen` pass it.
+- Stage 5 is complete: model selection is now an explicit contract. Default remains `gpt-5.4-nano`; `gpt-5.4-mini` is registered only as a high-quality/manual future option, with no automatic premium routing enabled.
+- Stage 5 also adds lightweight AI observability. `/api/ai.js` logs compact usage events with mode, model, route, status, duration, token counts, catalog candidate count, store slug, and RAG usage; it excludes user message content and profile details. OpenAI failures are classified as `auth`, `quota`, `rate_limited`, `model_not_found`, `bad_request`, `provider_error`, or `unknown`.
 - `scripts/agent-check.mjs` now runs `npm` correctly on Windows through `cmd.exe`, so `npm run check:agent` works reliably in this workspace.
 - Added minimal compatibility helpers for existing regression tests: `normalizeOFFProduct()` and scanner `scanFlow` pure helpers.
 
@@ -39,9 +41,10 @@ The previous implementation had drift between frontend callers and `/api/ai.js`:
 
 - `npm run check:agent` passes.
 - `npm test -- tests/e2e/aiGeneralMocked.spec.js --reporter=list` passes.
+- `node --test tests/unit/aiLaunchLimits.test.mjs` passes: 8/8.
 - `npm run build` passes.
 - AI-focused unit set passes: 34/34.
-- Full unit suite passes: 237/237.
+- Full unit suite passes: 240/240.
 - Targeted lint for changed AI/API/script files passes.
 
 ## Notes

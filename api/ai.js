@@ -16,7 +16,12 @@ const CORS_ORIGINS = [
   'http://localhost:4173',
 ]
 
-export const AI_MODEL = process.env.OPENAI_CHAT_MODEL || 'gpt-5.4-nano'
+export const AI_MODELS = {
+  default: process.env.OPENAI_CHAT_MODEL || 'gpt-5.4-nano',
+  highQuality: process.env.OPENAI_CHAT_MODEL_HIGH_QUALITY || 'gpt-5.4-mini',
+}
+
+export const AI_MODEL = AI_MODELS.default
 
 export const AI_LIMITS = {
   maxMessages: 12,
@@ -31,6 +36,70 @@ export const AI_LIMITS = {
 export const RATE_LIMITS = {
   authenticated: { maxRequests: 30, windowMs: 60_000 },
   anonymous: { maxRequests: 8, windowMs: 60_000 },
+}
+
+export function selectOpenAIModel({ mode } = {}) {
+  return {
+    model: AI_MODELS.default,
+    route: 'default',
+    reason: mode ? `${mode}:default` : 'default',
+  }
+}
+
+export function classifyOpenAIError(status, error = {}) {
+  const code = typeof error.code === 'string' ? error.code : ''
+  const type = typeof error.type === 'string' ? error.type : ''
+
+  if (status === 401 || status === 403) return 'auth'
+  if (status === 429 && code === 'insufficient_quota') return 'quota'
+  if (status === 429) return 'rate_limited'
+  if (status === 404 || code === 'model_not_found') return 'model_not_found'
+  if (status === 400) return 'bad_request'
+  if (status >= 500) return 'provider_error'
+  if (type === 'invalid_request_error') return 'bad_request'
+  return 'unknown'
+}
+
+export function buildAIUsageEvent({
+  mode,
+  modelRoute,
+  model,
+  completionLimits = {},
+  usage = null,
+  startedAt,
+  status = 'ok',
+  errorType = null,
+  storeContext = null,
+  catalogContext = [],
+  ragUsed = false,
+}) {
+  const safeUsage = usage && typeof usage === 'object' ? usage : {}
+  return {
+    event: 'ai_completion',
+    mode,
+    model,
+    modelRoute,
+    status,
+    errorType,
+    durationMs: startedAt ? Math.max(0, Date.now() - startedAt) : null,
+    promptTokens: Number.isFinite(Number(safeUsage.prompt_tokens))
+      ? Number(safeUsage.prompt_tokens)
+      : null,
+    completionTokens: Number.isFinite(Number(safeUsage.completion_tokens))
+      ? Number(safeUsage.completion_tokens)
+      : null,
+    totalTokens: Number.isFinite(Number(safeUsage.total_tokens))
+      ? Number(safeUsage.total_tokens)
+      : null,
+    maxCompletionTokens: completionLimits.max_completion_tokens || null,
+    catalogCandidates: Array.isArray(catalogContext) ? catalogContext.length : 0,
+    ragUsed: !!ragUsed,
+    storeSlug: storeContext?.slug || null,
+  }
+}
+
+function logAIUsage(event) {
+  console.info('[ai] usage', event)
 }
 
 const rateLimitStore = new Map()
@@ -296,6 +365,7 @@ async function fetchRagContext(product, _mode, profile) {
 }
 
 export default async function handler(req, res) {
+  const requestStartedAt = Date.now()
   corsHeaders(req, res)
 
   if (req.method === 'OPTIONS') return res.status(200).end()
@@ -365,6 +435,7 @@ export default async function handler(req, res) {
     }
 
     const completionLimits = getOpenAICompletionLimits(mode)
+    const modelSelection = selectOpenAIModel({ mode, product, profile, catalogContext })
 
     // ── Вызов OpenAI ──
     const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -374,7 +445,7 @@ export default async function handler(req, res) {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: AI_MODEL,
+        model: modelSelection.model,
         ...completionLimits,
         messages: [{ role: 'developer', content: systemPrompt }, ...validMessages],
       }),
@@ -382,7 +453,22 @@ export default async function handler(req, res) {
 
     if (!openaiRes.ok) {
       const err = await openaiRes.json().catch(() => ({}))
-      console.error('[ai] OpenAI error', err)
+      const errorType = classifyOpenAIError(openaiRes.status, err?.error || err)
+      console.error('[ai] OpenAI error', { type: errorType, status: openaiRes.status, error: err })
+      logAIUsage(
+        buildAIUsageEvent({
+          mode,
+          modelRoute: modelSelection.route,
+          model: modelSelection.model,
+          completionLimits,
+          startedAt: requestStartedAt,
+          status: 'error',
+          errorType,
+          storeContext,
+          catalogContext,
+          ragUsed: !!ragContext,
+        })
+      )
       return res.status(502).json({ error: 'AI service unavailable' })
     }
 
@@ -397,6 +483,21 @@ export default async function handler(req, res) {
             lang,
           })
         : []
+
+    logAIUsage(
+      buildAIUsageEvent({
+        mode,
+        modelRoute: modelSelection.route,
+        model: modelSelection.model,
+        completionLimits,
+        usage: data.usage,
+        startedAt: requestStartedAt,
+        status: 'ok',
+        storeContext,
+        catalogContext,
+        ragUsed: !!ragContext,
+      })
+    )
 
     return res.status(200).json({
       reply: reply || '',
