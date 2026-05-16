@@ -36,6 +36,7 @@ The previous implementation had drift between frontend callers and `/api/ai.js`:
 - Stage 5 also adds lightweight AI observability. `/api/ai.js` logs compact usage events with mode, model, route, status, duration, token counts, catalog candidate count, store slug, and RAG usage; it excludes user message content and profile details. OpenAI failures are classified as `auth`, `quota`, `rate_limited`, `model_not_found`, `bad_request`, `provider_error`, or `unknown`.
 - Post-QA fix pass: General AI candidate selection now removes generic stop words such as "есть", keeps halal-sweets requests inside the sweets category, prevents plov oil/rice intents from matching chips or household items, and excludes snack/healthy/household noise from broad dinner suggestions. Catalog context now carries image, subcategory, group, and quantity into `/api/ai.js`.
 - Post-QA UI fix pass: General AI product cards now use subcategory group titles instead of raw category ids, render images when available, show localized stock labels instead of `in_stock`, allow expanding and collapsing product groups, render simple markdown emphasis cleanly, and persist product cards/follow-ups in chat history so returning from a product page does not leave text-only answers.
+- Follow-up quality pass: General AI product cards are now built after the model reply and can align with explicit product/brand mentions in the assistant text. When the reply names specific products, unrelated candidates are filtered out of the returned cards; if the reply is generic, the previous candidate-card behavior is preserved.
 - `scripts/agent-check.mjs` now runs `npm` correctly on Windows through `cmd.exe`, so `npm run check:agent` works reliably in this workspace.
 - Added minimal compatibility helpers for existing regression tests: `normalizeOFFProduct()` and scanner `scanFlow` pure helpers.
 
@@ -43,11 +44,11 @@ The previous implementation had drift between frontend callers and `/api/ai.js`:
 
 - `npm run check:agent` passes.
 - `npm test -- tests/e2e/aiGeneralMocked.spec.js --reporter=list` passes.
-- `node --test tests/unit/aiLaunchLimits.test.mjs` passes: 8/8.
+- `node --test tests/unit/aiLaunchLimits.test.mjs` passes: 9/9.
 - `node scripts/check-i18n.mjs` passes with 0 missing KZ keys.
 - `npm run build` passes.
 - AI-focused unit set passes: 34/34.
-- Full unit suite passes: 243/243.
+- Full unit suite passes: 245/245.
 - Targeted lint for changed AI/API/script files passes.
 
 ## Notes

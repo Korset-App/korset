@@ -313,6 +313,18 @@ async function main() {
       url: 'https://arbuz.kz/ru/almaty/catalog/cat/225180-sosiski_sardelki',
       subcategories: ['sausage'],
       pages: 5
+    },
+    deli_meats: {
+      title: 'Мясные деликатесы',
+      url: [
+        'https://arbuz.kz/ru/almaty/catalog/cat/224902-vetchina',
+        'https://arbuz.kz/ru/almaty/catalog/cat/224910-bekon',
+        'https://arbuz.kz/ru/almaty/catalog/cat/224911-myaso_kopch_noe_vyalenoe',
+        'https://arbuz.kz/ru/almaty/catalog/cat/224912-iz_pticy',
+        'https://arbuz.kz/ru/almaty/catalog/cat/80314-pashtety_namazki_riety'
+      ],
+      subcategories: ['deli_meat', 'smoked', 'pate'],
+      pages: 10
     }
   }
 
@@ -520,6 +532,16 @@ async function main() {
       } else if (opts.mode === 'sausages' || opts.mode === 'wieners') {
         category = 'deli'
         subcategory = 'sausage'
+      } else if (opts.mode === 'deli_meats') {
+        category = 'deli'
+        const lowerName = (full.name || '').toLowerCase()
+        if (lowerName.includes('паштет') || lowerName.includes('риет') || lowerName.includes('намазк')) {
+          subcategory = 'pate'
+        } else if (lowerName.includes('копчен') || lowerName.includes('вялен') || lowerName.includes('бекон') || lowerName.includes('грудинка') || lowerName.includes('казы') || lowerName.includes('балык')) {
+          subcategory = 'smoked'
+        } else {
+          subcategory = 'deli_meat'
+        }
       }
 
       // Filter to keep only target subcategories
@@ -528,7 +550,7 @@ async function main() {
         expectedCategory = 'frozen'
       } else if (opts.mode === 'water' || opts.mode === 'soda_energy' || opts.mode === 'cold_tea' || opts.mode === 'juices') {
         expectedCategory = 'water_beverages'
-      } else if (opts.mode === 'sausages' || opts.mode === 'wieners') {
+      } else if (opts.mode === 'sausages' || opts.mode === 'wieners' || opts.mode === 'deli_meats') {
         expectedCategory = 'deli'
       }
 

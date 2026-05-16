@@ -677,12 +677,14 @@ export default function ProfileEditScreen() {
                       width: '100%',
                       cursor: 'pointer',
                       position: 'relative',
+                      display: 'block',
                     }}
                   >
                     <div
                       style={{
                         width: '100%',
-                        aspectRatio: '1 / 1',
+                        paddingTop: '100%',
+                        position: 'relative',
                         borderRadius: 18,
                         overflow: 'hidden',
                         border: selected
@@ -692,7 +694,9 @@ export default function ProfileEditScreen() {
                         transition: 'border 0.15s, box-shadow 0.15s',
                       }}
                     >
-                      <ProfileAvatar avatarId={preset.id} name="" rounded="square" />
+                      <div style={{ position: 'absolute', inset: 0 }}>
+                        <ProfileAvatar avatarId={preset.id} name="" rounded="square" />
+                      </div>
                     </div>
                     {selected && <SelectedDot />}
                   </button>
@@ -797,12 +801,14 @@ export default function ProfileEditScreen() {
                       width: '100%',
                       cursor: 'pointer',
                       position: 'relative',
+                      display: 'block',
                     }}
                   >
                     <div
                       style={{
                         width: '100%',
-                        aspectRatio: '16 / 8',
+                        paddingTop: '50%',
+                        position: 'relative',
                         borderRadius: 16,
                         overflow: 'hidden',
                         border: selected
@@ -812,16 +818,18 @@ export default function ProfileEditScreen() {
                         transition: 'border 0.15s, box-shadow 0.15s',
                       }}
                     >
-                      <img
-                        src={preset.thumb || preset.src}
-                        alt={preset.label[lang] || preset.label.ru}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                          display: 'block',
-                        }}
-                      />
+                      <div style={{ position: 'absolute', inset: 0 }}>
+                        <img
+                          src={preset.thumb || preset.src}
+                          alt={preset.label[lang] || preset.label.ru}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            display: 'block',
+                          }}
+                        />
+                      </div>
                     </div>
                     {selected && <SelectedDot />}
                   </button>

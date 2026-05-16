@@ -81,6 +81,33 @@ test('catalog candidates are capped consistently on client and server', () => {
   assert.ok(groupItems <= AI_LIMITS.maxStructuredProducts)
 })
 
+test('server product groups can prioritize a single explicit product mention', () => {
+  const groups = buildProductGroupsFromCatalog(
+    sanitizeCatalogContext([
+      {
+        ean: '1',
+        name: 'Гранола манго-ананас',
+        brand: 'granolife',
+        category: 'grocery',
+        subcategory: 'breakfast',
+      },
+      {
+        ean: '2',
+        name: 'Напиток манго-тропиканго',
+        brand: 'Моя семья',
+        category: 'water_beverages',
+        subcategory: 'juice',
+      },
+    ]),
+    { replyText: 'Могу предложить напиток манго-тропиканго «Моя семья».' }
+  )
+
+  assert.deepEqual(
+    groups.flatMap((group) => group.products.map((product) => product.ean)),
+    ['2', '1']
+  )
+})
+
 test('OpenAI completion limits stay mobile-sized by mode', () => {
   assert.deepEqual(getOpenAICompletionLimits('enrich'), {
     max_completion_tokens: 260,

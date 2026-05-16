@@ -876,8 +876,10 @@ export default function ProfileScreen() {
                 minHeight: 190,
                 borderRadius: 24,
                 overflow: 'hidden',
-                background: user ? 'var(--bg-card)' : 'var(--bg-card)',
-                boxShadow: user ? 'var(--shadow-card)' : 'var(--shadow-card)',
+                background: user
+                  ? 'linear-gradient(135deg, #1E0A3C 0%, #6D28D9 100%)'
+                  : 'var(--bg-card)',
+                boxShadow: user ? '0 12px 40px rgba(0,0,0,0.35)' : '0 8px 24px rgba(0,0,0,0.10)',
                 border: user ? 'none' : '1px solid var(--glass-border)',
               }}
             >

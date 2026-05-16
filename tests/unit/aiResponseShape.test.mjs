@@ -78,6 +78,51 @@ test('buildAIProductGroups uses shopper-readable titles for common categories', 
   assert.equal(groups[2].title, 'Шоколад')
 })
 
+test('buildAIProductGroups prioritizes products explicitly mentioned in assistant reply', () => {
+  const groups = buildAIProductGroups(
+    [
+      {
+        ean: '1',
+        name: 'Гранола манго-ананас',
+        brand: 'granolife',
+        category: 'grocery',
+        subcategory: 'breakfast',
+        priceKzt: 1200,
+      },
+      {
+        ean: '2',
+        name: 'Доместос цитрусовая свежесть',
+        brand: 'Domestos',
+        category: 'household',
+        subcategory: 'cleaning',
+        priceKzt: 300,
+      },
+      {
+        ean: '3',
+        name: 'Напиток манго-тропиканго',
+        brand: 'Моя семья',
+        category: 'water_beverages',
+        subcategory: 'juice',
+        priceKzt: 300,
+      },
+      {
+        ean: '4',
+        name: 'Нектар манго',
+        brand: 'ABC',
+        category: 'water_beverages',
+        subcategory: 'juice',
+        priceKzt: 350,
+      },
+    ],
+    {
+      replyText: 'Вижу напиток манго-тропиканго «Моя семья» и нектар манго ABC.',
+    }
+  )
+
+  const eans = groups.flatMap((group) => group.products.map((product) => product.ean))
+  assert.deepEqual(eans, ['3', '4'])
+})
+
 test('normalizeAIResponse keeps reply and attaches groups/follow ups', () => {
   const response = normalizeAIResponse({
     reply: 'Нашёл товары в каталоге.',

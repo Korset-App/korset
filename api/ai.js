@@ -259,6 +259,7 @@ export function buildProductGroupsFromCatalog(catalogContext = [], options = {})
     maxGroups: AI_LIMITS.maxProductGroups,
     maxProductsPerGroup: AI_LIMITS.maxProductsPerGroup,
     lang: options.lang || 'ru',
+    replyText: options.replyText || '',
   })
 }
 
@@ -409,7 +410,6 @@ export default async function handler(req, res) {
     const profile = sanitizeProfile(body.profile)
     const storeContext = sanitizeStoreContext(body.storeContext)
     const catalogContext = sanitizeCatalogContext(body.catalogContext)
-    const productGroups = buildProductGroupsFromCatalog(catalogContext, { lang })
     const winner = ['A', 'B', 'draw'].includes(body.winner) ? body.winner : null
 
     // ── RAG: подтягиваем релевантный контекст из vault ──
@@ -478,6 +478,10 @@ export default async function handler(req, res) {
 
     const data = await openaiRes.json()
     const reply = data.choices?.[0]?.message?.content?.trim()
+    const responseProductGroups =
+      mode === 'general'
+        ? buildProductGroupsFromCatalog(catalogContext, { lang, replyText: reply || '' })
+        : []
     const followUps =
       mode === 'general'
         ? buildGeneralAIFollowUps({
@@ -505,7 +509,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       reply: reply || '',
-      productGroups: mode === 'general' ? productGroups : [],
+      productGroups: responseProductGroups,
       followUps,
       warnings:
         mode === 'general' && catalogContext.length === 0

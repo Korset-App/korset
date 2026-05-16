@@ -33,13 +33,83 @@ function getProductGroupTitle(product, lang = 'ru') {
   return getGroupTitle('other')
 }
 
+const MENTION_STOP_WORDS = new Set([
+  'товар',
+  'товары',
+  'вариант',
+  'варианты',
+  'есть',
+  'вижу',
+  'могу',
+  'предложить',
+  'магазине',
+  'напиток',
+  'нектар',
+  'масло',
+  'рис',
+])
+
+function normalizeMentionText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/ё/g, 'е')
+    .replace(/[^a-zа-я0-9]+/gi, ' ')
+    .trim()
+}
+
+function getMentionTokens(value) {
+  return normalizeMentionText(value)
+    .split(/\s+/)
+    .filter((token) => token.length >= 4 && !MENTION_STOP_WORDS.has(token))
+}
+
+function getReplyMentionScore(product, replyText) {
+  const reply = normalizeMentionText(replyText)
+  if (!reply) return 0
+
+  let score = 0
+  const name = normalizeMentionText(product.name)
+  const brand = normalizeMentionText(product.brand)
+  const quantity = normalizeMentionText(product.quantity)
+
+  if (name.length >= 8 && reply.includes(name)) score += 24
+  if (brand.length >= 3 && reply.includes(brand)) score += 14
+  if (quantity.length >= 2 && reply.includes(quantity)) score += 4
+
+  const tokens = getMentionTokens(product.name)
+  const matchedTokens = tokens.filter((token) => reply.includes(token))
+  score += matchedTokens.length * 4
+  if (matchedTokens.length >= Math.min(2, tokens.length) && matchedTokens.length > 0) {
+    score += 8
+  }
+
+  return score
+}
+
+function alignProductsWithReply(products, replyText) {
+  if (!replyText) return products
+
+  const ranked = products
+    .map((product, index) => ({
+      product,
+      index,
+      mentionScore: getReplyMentionScore(product, replyText),
+    }))
+    .sort((a, b) => b.mentionScore - a.mentionScore || a.index - b.index)
+
+  const mentioned = ranked.filter((item) => item.mentionScore >= 8)
+  if (mentioned.length >= 2) return mentioned.map((item) => item.product)
+  return ranked.map((item) => item.product)
+}
+
 export function buildAIProductGroups(products = [], options = {}) {
   const maxGroups = options.maxGroups || 4
   const maxProductsPerGroup = options.maxProductsPerGroup || 4
   const lang = options.lang || 'ru'
+  const alignedProducts = alignProductsWithReply(products, options.replyText)
   const groups = []
 
-  for (const product of products) {
+  for (const product of alignedProducts) {
     if (!product?.ean) continue
     const id = getProductGroupId(product)
     let group = groups.find((item) => item.id === id)

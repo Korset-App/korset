@@ -86,12 +86,14 @@ function AvatarChoice({ selected, onClick, children }) {
         width: '100%',
         cursor: 'pointer',
         position: 'relative',
+        display: 'block',
       }}
     >
       <div
         style={{
           width: '100%',
-          aspectRatio: '1 / 1',
+          paddingTop: '100%',
+          position: 'relative',
           borderRadius: 20,
           background: 'var(--image-bg)',
           border: selected ? '2px solid var(--primary-mid)' : '1px solid var(--glass-soft-border)',
@@ -100,7 +102,7 @@ function AvatarChoice({ selected, onClick, children }) {
           transition: 'border 0.15s, box-shadow 0.15s',
         }}
       >
-        {children}
+        <div style={{ position: 'absolute', inset: 0 }}>{children}</div>
       </div>
       {selected && <SelectionDot />}
     </button>
@@ -120,12 +122,14 @@ function BannerChoice({ selected, onClick, children }) {
         width: '100%',
         cursor: 'pointer',
         position: 'relative',
+        display: 'block',
       }}
     >
       <div
         style={{
           width: '100%',
-          aspectRatio: '16 / 8',
+          paddingTop: '50%',
+          position: 'relative',
           borderRadius: 16,
           overflow: 'hidden',
           border: selected ? '2px solid var(--primary-mid)' : '1px solid var(--glass-soft-border)',
@@ -133,7 +137,7 @@ function BannerChoice({ selected, onClick, children }) {
           transition: 'border 0.15s, box-shadow 0.15s',
         }}
       >
-        {children}
+        <div style={{ position: 'absolute', inset: 0 }}>{children}</div>
       </div>
       {selected && <SelectionDot />}
     </button>
