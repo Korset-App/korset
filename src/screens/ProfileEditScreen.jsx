@@ -11,88 +11,16 @@ import {
   writeCachedProfileBanner,
   writeCachedProfileName,
 } from '../utils/userIdentity.js'
+import { compressAvatar, compressBanner, validateImageFile } from '../utils/imageCompress.js'
+import {
+  NAME_MAX,
+  canSaveName,
+  withTimeout,
+  updateAuthUserWithRetry,
+} from '../utils/profileHelpers.js'
 import ProfileAvatar from '../components/ProfileAvatar.jsx'
 import { AVATAR_PRESETS } from '../constants/avatarPresets.js'
 import { BANNER_PRESETS, resolveBannerSrc } from '../constants/bannerPresets.js'
-
-const MAX_FILE_BYTES = 5 * 1024 * 1024
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'image/pjpeg', '']
-
-function isAllowedImageType(type) {
-  if (!type) return true
-  return type.startsWith('image/') || ALLOWED_TYPES.includes(type)
-}
-const NAME_MAX = 40
-
-/* global FileReader, Image */
-function compressImage(file, maxDim, quality) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.readAsDataURL(file)
-    reader.onload = (event) => {
-      const img = new Image()
-      img.onload = () => {
-        let { width, height } = img
-        const ratio = Math.min(maxDim / width, maxDim / height, 1)
-        if (ratio < 1) {
-          width = Math.round(width * ratio)
-          height = Math.round(height * ratio)
-        }
-        const canvas = document.createElement('canvas')
-        canvas.width = width
-        canvas.height = height
-        const ctx = canvas.getContext('2d')
-        ctx.drawImage(img, 0, 0, width, height)
-        canvas.toBlob(
-          (blob) => (blob ? resolve(blob) : reject(new Error('blob_failed'))),
-          'image/jpeg',
-          quality
-        )
-      }
-      img.onerror = () => reject(new Error('image_load_failed'))
-      img.src = event.target.result
-    }
-    reader.onerror = () => reject(new Error('file_read_failed'))
-  })
-}
-
-function compressBanner(file) {
-  return compressImage(file, 1200, 0.85).then(async (blob) => {
-    if (blob.type === 'image/jpeg') return blob
-    const img = new Image()
-    const url = URL.createObjectURL(blob)
-    return new Promise((resolve, reject) => {
-      img.onload = () => {
-        const MAX_W = 1200
-        const MAX_H = 540
-        let { width, height } = img
-        const ratio = Math.min(MAX_W / width, MAX_H / height, 1)
-        width = Math.round(width * ratio)
-        height = Math.round(height * ratio)
-        const canvas = document.createElement('canvas')
-        canvas.width = width
-        canvas.height = height
-        const ctx = canvas.getContext('2d')
-        ctx.drawImage(img, 0, 0, width, height)
-        canvas.toBlob(
-          (b) => (b ? resolve(b) : reject(new Error('blob_failed'))),
-          'image/jpeg',
-          0.85
-        )
-        URL.revokeObjectURL(url)
-      }
-      img.onerror = () => {
-        URL.revokeObjectURL(url)
-        reject(new Error('image_load_failed'))
-      }
-      img.src = url
-    })
-  })
-}
-
-function compressAvatar(file) {
-  return compressImage(file, 640, 0.86)
-}
 
 function isPresetBanner(value) {
   return typeof value === 'string' && value.startsWith('preset:')
@@ -103,6 +31,67 @@ function bannerToStoredValue(selection) {
   if (selection.type === 'preset') return `preset:${selection.id}`
   if (selection.type === 'url') return selection.url
   return null
+}
+
+function Section({ label, children }) {
+  return (
+    <div>
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: '0.1em',
+          color: 'var(--text-dim)',
+          textTransform: 'uppercase',
+          marginBottom: 10,
+          paddingLeft: 4,
+        }}
+      >
+        {label}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+function SelectedDot() {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        right: -6,
+        top: -6,
+        width: 22,
+        height: 22,
+        borderRadius: '50%',
+        background: 'var(--success-bright)',
+        border: '2.5px solid var(--bg-app)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxShadow: '0 4px 10px var(--success-glow)',
+      }}
+    >
+      <svg
+        width="10"
+        height="10"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="var(--text-inverse)"
+        strokeWidth="3.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <polyline points="20 6 9 17 4 12" />
+      </svg>
+    </div>
+  )
+}
+
+const TOAST_ERR_KEYS = {
+  invalid_type: 'profile.edit.uploadInvalid',
+  too_large: 'profile.edit.uploadTooLarge',
+  offline: 'profile.edit.offline',
 }
 
 export default function ProfileEditScreen() {
@@ -149,7 +138,6 @@ export default function ProfileEditScreen() {
   }, [user, displayName, avatarId, initialBannerSelection])
 
   if (!user) {
-    // Not authenticated — bounce back.
     navigate('/auth', { replace: true })
     return null
   }
@@ -160,36 +148,29 @@ export default function ProfileEditScreen() {
   }
 
   const trimmedName = name.trim()
-  const canSave =
-    trimmedName.length >= 2 &&
-    trimmedName.length <= NAME_MAX &&
-    !nameError &&
-    !saving &&
-    !uploading &&
-    !uploadingAvatar
+  const canSave = canSaveName(name) && !nameError && !saving && !uploading && !uploadingAvatar
 
   const handleNameChange = (e) => {
     const value = e.target.value
     setName(value)
     if (value.trim().length > NAME_MAX) {
-      setNameError(t('profile.edit.nameTooLong'))
+      setNameError(t('profileSetup.nameTooLong', { max: NAME_MAX }))
     } else {
       setNameError('')
     }
   }
 
+  const handleFileValidationError = (code) => {
+    const key = TOAST_ERR_KEYS[code]
+    if (key) showToast(t(key))
+    else showToast(t('profile.edit.uploadFailed'))
+  }
+
   const handleBannerUpload = async (file) => {
     if (!file) return
-    if (!isAllowedImageType(file.type)) {
-      showToast(t('profile.edit.uploadInvalid'))
-      return
-    }
-    if (file.size > MAX_FILE_BYTES) {
-      showToast(t('profile.edit.uploadTooLarge'))
-      return
-    }
-    if (!navigator.onLine) {
-      showToast(t('profile.edit.offline'))
+    const validation = validateImageFile(file)
+    if (validation) {
+      handleFileValidationError(validation)
       return
     }
     setUploading(true)
@@ -203,11 +184,8 @@ export default function ProfileEditScreen() {
       const { data } = supabase.storage.from('profile-banners').getPublicUrl(path)
       const url = data?.publicUrl
       if (!url) throw new Error('no_public_url')
-      // Cache-bust to force refresh
-      const cacheBusted = `${url}?t=${Date.now()}`
-      setBannerSelection({ type: 'url', url: cacheBusted })
+      setBannerSelection({ type: 'url', url: `${url}?t=${Date.now()}` })
     } catch (err) {
-      console.warn('[ProfileEdit] banner upload failed', err)
       showToast(t('profile.edit.uploadFailed'))
     } finally {
       setUploading(false)
@@ -222,16 +200,9 @@ export default function ProfileEditScreen() {
 
   const handleAvatarUpload = async (file) => {
     if (!file || !user) return
-    if (!isAllowedImageType(file.type)) {
-      showToast(t('profile.edit.uploadInvalid'))
-      return
-    }
-    if (file.size > MAX_FILE_BYTES) {
-      showToast(t('profile.edit.uploadTooLarge'))
-      return
-    }
-    if (!navigator.onLine) {
-      showToast(t('profile.edit.offline'))
+    const validation = validateImageFile(file)
+    if (validation) {
+      handleFileValidationError(validation)
       return
     }
     setUploadingAvatar(true)
@@ -248,7 +219,6 @@ export default function ProfileEditScreen() {
       setCustomAvatarUrl(`${url}?t=${Date.now()}`)
       setSelectedAvatarId('custom')
     } catch (err) {
-      console.warn('[ProfileEdit] avatar upload failed', err)
       showToast(t('profile.edit.uploadFailed'))
     } finally {
       setUploadingAvatar(false)
@@ -271,8 +241,6 @@ export default function ProfileEditScreen() {
     const deviceId = getOrCreateDeviceId()
 
     try {
-      // Upsert into public.users (cross-device sync). Includes avatar_id + banner_url
-      // — gracefully degrades if migration 016 not applied yet.
       const userPayload = {
         auth_id: user.id,
         device_id: deviceId,
@@ -280,33 +248,30 @@ export default function ProfileEditScreen() {
         avatar_id: avatarValue,
         banner_url: bannerValue,
       }
-      let { error: dbError } = await supabase
-        .from('users')
-        .upsert(userPayload, { onConflict: 'auth_id' })
+      const { error: dbError } = await withTimeout(
+        supabase.from('users').upsert(userPayload, { onConflict: 'auth_id' }),
+        8000
+      )
       if (dbError && /column .* does not exist/i.test(dbError.message || '')) {
-        // Fallback for stores without migration 016
         const fallback = await supabase
           .from('users')
           .upsert(
             { auth_id: user.id, device_id: deviceId, name: trimmedName },
             { onConflict: 'auth_id' }
           )
-        dbError = fallback.error
+        if (fallback.error) throw fallback.error
+      } else if (dbError) {
+        throw dbError
       }
-      if (dbError) throw dbError
 
-      // Mirror to auth.user_metadata so other devices see banner immediately on login.
-      try {
-        await supabase.auth.updateUser({
-          data: {
-            full_name: trimmedName,
-            avatar_id: avatarValue,
-            banner_url: bannerValue,
-          },
-        })
-      } catch (metaErr) {
-        console.warn('[ProfileEdit] auth metadata update failed', metaErr)
-      }
+      await withTimeout(
+        updateAuthUserWithRetry({
+          full_name: trimmedName,
+          avatar_id: avatarValue,
+          banner_url: bannerValue,
+        }),
+        8000
+      )
 
       writeCachedProfileName(user.id, trimmedName)
       writeCachedProfileAvatar(user.id, avatarValue)
@@ -319,7 +284,6 @@ export default function ProfileEditScreen() {
       refreshAccountProfile(user).catch(() => {})
       navigate(backTarget, { replace: true })
     } catch (err) {
-      console.error('[ProfileEdit] save failed', err)
       showToast(err?.message || t('profile.edit.uploadFailed'))
     } finally {
       setSaving(false)
@@ -333,7 +297,8 @@ export default function ProfileEditScreen() {
 
   return (
     <>
-      {/* Toast */}
+      <style>{`@keyframes profileToastIn{0%{opacity:0;transform:translateY(-8px)}100%{opacity:1;transform:translateY(0)}}`}</style>
+
       {toast && (
         <div
           style={{
@@ -344,8 +309,8 @@ export default function ProfileEditScreen() {
             zIndex: 100,
             padding: '14px 18px',
             borderRadius: 16,
-            background: 'rgba(239,68,68,0.15)',
-            border: '1px solid rgba(239,68,68,0.35)',
+            background: 'var(--error-dim)',
+            border: '1px solid var(--error-border)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
             color: 'var(--error-bright)',
@@ -353,8 +318,8 @@ export default function ProfileEditScreen() {
             fontWeight: 600,
             fontFamily: 'var(--font-display)',
             textAlign: 'center',
-            boxShadow: '0 8px 32px rgba(239,68,68,0.2)',
-            animation: 'toastIn 0.3s ease',
+            boxShadow: 'var(--shadow-glass)',
+            animation: 'profileToastIn 0.3s ease',
           }}
         >
           {toast}
@@ -369,7 +334,6 @@ export default function ProfileEditScreen() {
           minHeight: '100vh',
         }}
       >
-        {/* Header */}
         <div
           style={{
             position: 'sticky',
@@ -437,9 +401,7 @@ export default function ProfileEditScreen() {
               padding: '9px 16px',
               borderRadius: 12,
               border: 'none',
-              background: canSave
-                ? 'linear-gradient(135deg, #7C3AED, #6D28D9)'
-                : 'rgba(124,58,237,0.25)',
+              background: canSave ? 'var(--primary)' : 'var(--primary-dim)',
               color: 'var(--text-inverse)',
               fontFamily: 'var(--font-display)',
               fontSize: 13,
@@ -447,16 +409,14 @@ export default function ProfileEditScreen() {
               cursor: canSave ? 'pointer' : 'not-allowed',
               opacity: canSave ? 1 : 0.6,
               flexShrink: 0,
-              boxShadow: canSave ? '0 6px 18px rgba(124,58,237,0.35)' : 'none',
+              boxShadow: canSave ? '0 6px 18px var(--primary-glow)' : 'none',
             }}
           >
             {saving ? t('profile.edit.saving') : t('profile.edit.save')}
           </button>
         </div>
 
-        {/* Content */}
         <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 22 }}>
-          {/* Banner preview */}
           <div
             style={{
               position: 'relative',
@@ -466,8 +426,9 @@ export default function ProfileEditScreen() {
               minHeight: 190,
               borderRadius: 24,
               overflow: 'hidden',
-              background: 'linear-gradient(135deg, #1E0A3C 0%, #6D28D9 100%)',
-              boxShadow: '0 12px 40px rgba(0,0,0,0.35)',
+              background: 'var(--bg-card)',
+              boxShadow: 'var(--shadow-card)',
+              border: '1px solid var(--glass-soft-border)',
             }}
           >
             <img
@@ -500,10 +461,10 @@ export default function ProfileEditScreen() {
                 width: 115,
                 height: 115,
                 borderRadius: '50%',
-                border: '3px solid #7C3AED',
+                border: '3px solid var(--avatar-ring-color)',
                 padding: 3,
-                background: 'rgba(12,10,30,0.55)',
-                boxShadow: '0 6px 24px rgba(124,58,237,0.45)',
+                background: 'var(--avatar-ring-bg)',
+                boxShadow: 'var(--avatar-ring-shadow)',
                 boxSizing: 'border-box',
               }}
             >
@@ -537,6 +498,7 @@ export default function ProfileEditScreen() {
                   fontFamily: 'var(--font-display)',
                   fontSize: 22,
                   fontWeight: 600,
+                  color: 'var(--text)',
                   textTransform: 'uppercase',
                   letterSpacing: 1,
                   lineHeight: 1.1,
@@ -545,12 +507,11 @@ export default function ProfileEditScreen() {
                   textOverflow: 'ellipsis',
                 }}
               >
-                {trimmedName || displayName || 'Körset User'}
+                {trimmedName || displayName || t('profileSetup.defaultName')}
               </div>
             </div>
           </div>
 
-          {/* Name */}
           <Section label={t('profile.edit.nameLabel')}>
             <input
               type="text"
@@ -563,7 +524,7 @@ export default function ProfileEditScreen() {
                 padding: '14px 16px',
                 borderRadius: 14,
                 background: 'var(--glass-bg)',
-                border: `1px solid ${nameError ? 'var(--error-bright)' : 'var(--glass-border)'}`,
+                border: `1px solid ${nameError ? 'var(--error-border)' : 'var(--glass-border)'}`,
                 color: 'var(--text)',
                 fontSize: 15,
                 fontFamily: 'var(--font-display)',
@@ -571,14 +532,18 @@ export default function ProfileEditScreen() {
                 boxSizing: 'border-box',
               }}
             />
-            {nameError && (
-              <div style={{ fontSize: 12, color: 'var(--error-bright)', marginTop: 6 }}>
-                {nameError}
-              </div>
-            )}
+            <div
+              style={{
+                minHeight: 18,
+                paddingTop: 6,
+                fontSize: 12,
+                color: nameError ? 'var(--error-bright)' : 'var(--text-disabled)',
+              }}
+            >
+              {nameError || `${trimmedName.length}/${NAME_MAX}`}
+            </div>
           </Section>
 
-          {/* Avatar */}
           <Section label={t('profile.edit.avatarLabel')}>
             <div
               style={{
@@ -599,13 +564,13 @@ export default function ProfileEditScreen() {
                     padding: 0,
                     cursor: uploadingAvatar ? 'wait' : 'pointer',
                     position: 'relative',
-                    background: 'rgba(124,58,237,0.08)',
+                    background: 'var(--primary-dim)',
                     border:
                       selectedAvatarId === 'custom'
-                        ? '2px solid #7C3AED'
-                        : '1px dashed rgba(167,139,250,0.4)',
+                        ? '2px solid var(--primary-mid)'
+                        : '1px dashed var(--primary-bright)',
                     borderRadius: 18,
-                    color: '#A78BFA',
+                    color: 'var(--primary-bright)',
                     fontFamily: 'var(--font-display)',
                     fontSize: 11,
                     fontWeight: 600,
@@ -636,14 +601,14 @@ export default function ProfileEditScreen() {
                           left: 0,
                           right: 0,
                           padding: '5px 0',
-                          background: 'rgba(0,0,0,0.55)',
+                          background: 'var(--avatar-ring-bg)',
                           backdropFilter: 'blur(4px)',
                           WebkitBackdropFilter: 'blur(4px)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           gap: 5,
-                          color: '#fff',
+                          color: 'var(--text-inverse)',
                           fontSize: 10,
                           fontWeight: 600,
                           lineHeight: 1,
@@ -689,37 +654,7 @@ export default function ProfileEditScreen() {
                     </>
                   )}
                 </button>
-                {selectedAvatarId === 'custom' && customAvatarUrl && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      right: -6,
-                      top: -6,
-                      width: 22,
-                      height: 22,
-                      borderRadius: '50%',
-                      background: '#10B981',
-                      border: '2.5px solid var(--bg-app)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: '0 4px 10px rgba(16,185,129,0.4)',
-                    }}
-                  >
-                    <svg
-                      width="10"
-                      height="10"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="3.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  </div>
-                )}
+                {selectedAvatarId === 'custom' && customAvatarUrl && <SelectedDot />}
               </div>
               {AVATAR_PRESETS.map((preset) => {
                 const selected = selectedAvatarId === preset.id
@@ -745,8 +680,11 @@ export default function ProfileEditScreen() {
                         height: '100%',
                         borderRadius: 18,
                         overflow: 'hidden',
-                        border: selected ? '2px solid #7C3AED' : '1px solid var(--glass-border)',
-                        boxShadow: selected ? '0 6px 18px rgba(124,58,237,0.35)' : 'none',
+                        border: selected
+                          ? '2px solid var(--primary-mid)'
+                          : '1px solid var(--glass-border)',
+                        boxShadow: selected ? '0 6px 18px var(--primary-glow)' : 'none',
+                        transition: 'border 0.15s, box-shadow 0.15s',
                       }}
                     >
                       <ProfileAvatar avatarId={preset.id} name="" rounded="square" />
@@ -765,7 +703,6 @@ export default function ProfileEditScreen() {
             />
           </Section>
 
-          {/* Banner */}
           <Section label={t('profile.edit.bannerLabel')}>
             <div
               style={{
@@ -799,12 +736,15 @@ export default function ProfileEditScreen() {
                         height: '100%',
                         borderRadius: 16,
                         overflow: 'hidden',
-                        border: selected ? '2px solid #7C3AED' : '1px solid var(--glass-border)',
-                        boxShadow: selected ? '0 6px 18px rgba(124,58,237,0.35)' : 'none',
+                        border: selected
+                          ? '2px solid var(--primary-mid)'
+                          : '1px solid var(--glass-border)',
+                        boxShadow: selected ? '0 6px 18px var(--primary-glow)' : 'none',
+                        transition: 'border 0.15s, box-shadow 0.15s',
                       }}
                     >
                       <img
-                        src={preset.src}
+                        src={preset.thumb || preset.src}
                         alt={preset.label[lang] || preset.label.ru}
                         style={{
                           width: '100%',
@@ -819,10 +759,6 @@ export default function ProfileEditScreen() {
                 )
               })}
 
-              {/* Upload tile — wrapped in a positioned div so SelectedDot
-                can sit OUTSIDE the button's overflow:hidden boundary. This
-                mirrors the preset-tile pattern where the dot is rendered
-                outside the inner overflow-hidden wrapper. */}
               <div style={{ position: 'relative', aspectRatio: '16 / 8' }}>
                 <button
                   type="button"
@@ -835,13 +771,13 @@ export default function ProfileEditScreen() {
                     padding: 0,
                     cursor: uploading ? 'wait' : 'pointer',
                     position: 'relative',
-                    background: 'rgba(124,58,237,0.08)',
+                    background: 'var(--primary-dim)',
                     border:
                       bannerSelection?.type === 'url'
-                        ? '2px solid #7C3AED'
-                        : '1px dashed rgba(167,139,250,0.4)',
+                        ? '2px solid var(--primary-mid)'
+                        : '1px dashed var(--primary-bright)',
                     borderRadius: 16,
-                    color: '#A78BFA',
+                    color: 'var(--primary-bright)',
                     fontFamily: 'var(--font-display)',
                     fontSize: 12,
                     fontWeight: 600,
@@ -898,60 +834,5 @@ export default function ProfileEditScreen() {
         </div>
       </div>
     </>
-  )
-}
-
-function Section({ label, children }) {
-  return (
-    <div>
-      <div
-        style={{
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: '0.1em',
-          color: 'var(--text-dim)',
-          textTransform: 'uppercase',
-          marginBottom: 10,
-          paddingLeft: 4,
-        }}
-      >
-        {label}
-      </div>
-      {children}
-    </div>
-  )
-}
-
-function SelectedDot() {
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        right: -6,
-        top: -6,
-        width: 22,
-        height: 22,
-        borderRadius: '50%',
-        background: '#10B981',
-        border: '2.5px solid var(--bg-app)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        boxShadow: '0 4px 10px rgba(16,185,129,0.4)',
-      }}
-    >
-      <svg
-        width="10"
-        height="10"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="3.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <polyline points="20 6 9 17 4 12" />
-      </svg>
-    </div>
   )
 }

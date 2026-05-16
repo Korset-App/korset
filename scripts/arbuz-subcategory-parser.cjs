@@ -292,6 +292,21 @@ async function main() {
       ],
       subcategories: ['juice'],
       pages: 12
+    },
+    sausages: {
+      title: 'Колбасы и сосиски',
+      url: [
+        'https://arbuz.kz/ru/almaty/catalog/cat/224903-var_nye_halal',
+        'https://arbuz.kz/ru/almaty/catalog/cat/224909-kopchenye_halal',
+        'https://arbuz.kz/ru/almaty/catalog/cat/19860-var_nye',
+        'https://arbuz.kz/ru/almaty/catalog/cat/224906-var_no-kopch_nye',
+        'https://arbuz.kz/ru/almaty/catalog/cat/19873-kopchenye_kolbasy',
+        'https://arbuz.kz/ru/almaty/catalog/cat/224907-polukopch_nye',
+        'https://arbuz.kz/ru/almaty/catalog/cat/224908-syrokopch_nye_i_syrovyalenye',
+        'https://arbuz.kz/ru/almaty/catalog/cat/19899-narezki'
+      ],
+      subcategories: ['sausage'],
+      pages: 10
     }
   }
 
@@ -496,6 +511,9 @@ async function main() {
       } else if (opts.mode === 'juices') {
         category = 'water_beverages'
         subcategory = 'juice'
+      } else if (opts.mode === 'sausages') {
+        category = 'deli'
+        subcategory = 'sausage'
       }
 
       // Filter to keep only target subcategories
@@ -504,6 +522,8 @@ async function main() {
         expectedCategory = 'frozen'
       } else if (opts.mode === 'water' || opts.mode === 'soda_energy' || opts.mode === 'cold_tea' || opts.mode === 'juices') {
         expectedCategory = 'water_beverages'
+      } else if (opts.mode === 'sausages') {
+        expectedCategory = 'deli'
       }
 
       const allowedSubcategories = modeConfig.subcategories

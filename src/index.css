@@ -95,6 +95,10 @@
   --radius: 14px;
   --radius-lg: 20px;
   --radius-xl: 24px;
+  --avatar-fallback-bg: linear-gradient(135deg, #7C3AED 0%, #4C1D95 100%);
+  --avatar-ring-bg: rgba(12,10,30,0.55);
+  --avatar-ring-color: #7C3AED;
+  --avatar-ring-shadow: 0 6px 24px rgba(124,58,237,0.45);
 }
 
 :root[data-theme='light'] {
@@ -178,6 +182,10 @@
   --theme-toggle-thumb: linear-gradient(145deg, rgba(238, 247, 255, 0.88), rgba(201, 226, 255, 0.96));
   --theme-toggle-icon-a: #ffc400;
   --theme-toggle-icon-b: rgba(255, 255, 255, 0.88);
+  --avatar-fallback-bg: linear-gradient(135deg, #6d5dfc 0%, #4338ca 100%);
+  --avatar-ring-bg: rgba(255,255,255,0.72);
+  --avatar-ring-color: #6d5dfc;
+  --avatar-ring-shadow: 0 4px 18px rgba(109,93,252,0.3);
 }
 
 *,

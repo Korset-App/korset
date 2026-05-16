@@ -34,7 +34,6 @@ import AuthPromptModal from '../components/AuthPromptModal.jsx'
 import SegmentedToggle from '../components/SegmentedToggle.jsx'
 import Toggle from '../components/Toggle.jsx'
 import SupportBottomSheet from '../components/SupportBottomSheet.jsx'
-import { resetTermsAccepted } from '../components/TermsConsentSheet.jsx'
 import { ALLERGENS } from '../constants/allergens.js'
 import { DIET_GOALS } from '../constants/dietGoals.js'
 import { buildAuthNavigateState } from '../utils/authFlow.js'
@@ -831,6 +830,25 @@ export default function ProfileScreen() {
                 </svg>
               </button>
             )}
+            {user && new URLSearchParams(window.location.search).has('dev') && (
+              <button
+                onClick={() => navigate('/setup-profile')}
+                style={{
+                  marginLeft: 4,
+                  padding: '4px 10px',
+                  borderRadius: 8,
+                  background: 'var(--error-dim)',
+                  border: '1px solid var(--error-border)',
+                  color: 'var(--error-bright)',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  fontFamily: 'var(--font-display)',
+                  cursor: 'pointer',
+                }}
+              >
+                DEV: Wizard
+              </button>
+            )}
           </div>
 
           {/* ── BANNER CARD ──────────────────────────────────────────────
@@ -1022,7 +1040,7 @@ export default function ProfileScreen() {
                       textOverflow: 'ellipsis',
                     }}
                   >
-                    {displayName || user?.user_metadata?.full_name || 'Körset User'}
+                    {displayName || user?.user_metadata?.full_name || t('profileSetup.defaultName')}
                   </div>
                 ) : (
                   /* "Войти" CTA — same behaviour as before: navigates
@@ -1740,11 +1758,8 @@ export default function ProfileScreen() {
                       <path d="M3 3v5h5" />
                     </svg>
                   ),
-                  label: 'Сбросить согласие (Test)',
-                  onClick: () => {
-                    resetTermsAccepted()
-                    navigate('/') // To trigger scan screen
-                  },
+                  label: t('profile.policy'),
+                  onClick: () => navigate('/privacy-policy'),
                 },
               ],
             },
