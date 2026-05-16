@@ -8,7 +8,8 @@ const candidates = [
     ean: '1',
     name: 'Рис Лидер',
     brand: 'Лидер',
-    category: 'grains',
+    category: 'grocery',
+    subcategory: 'rice',
     priceKzt: 890,
     stockStatus: 'in_stock',
     image: 'rice.webp',
@@ -17,7 +18,8 @@ const candidates = [
     ean: '2',
     name: 'Морковь мытая',
     brand: '',
-    category: 'vegetables',
+    category: 'fruits_veg',
+    subcategory: 'vegetables',
     priceKzt: 350,
     stockStatus: 'low_stock',
   },
@@ -25,6 +27,7 @@ const candidates = [
     ean: '3',
     name: 'Шоколад халал',
     category: 'sweets',
+    subcategory: 'chocolate',
     priceKzt: 760,
     stockStatus: 'in_stock',
   },
@@ -35,17 +38,20 @@ test('buildAIProductGroups creates compact grouped products from candidates', ()
 
   assert.equal(groups.length, 3)
   assert.deepEqual(groups[0], {
-    id: 'grains',
-    title: 'Крупы и гарниры',
+    id: 'grocery:rice',
+    title: 'Рис',
     products: [
       {
         ean: '1',
         name: 'Рис Лидер',
         brand: 'Лидер',
-        category: 'grains',
+        category: 'grocery',
+        subcategory: 'rice',
+        group: '',
         priceKzt: 890,
         stockStatus: 'in_stock',
         image: 'rice.webp',
+        quantity: '',
       },
     ],
   })
@@ -67,9 +73,9 @@ test('buildAIProductGroups caps product groups and products per group', () => {
 test('buildAIProductGroups uses shopper-readable titles for common categories', () => {
   const groups = buildAIProductGroups(candidates)
 
-  assert.equal(groups[0].title, 'Крупы и гарниры')
-  assert.equal(groups[1].title, 'Овощи и фрукты')
-  assert.equal(groups[2].title, 'Сладости')
+  assert.equal(groups[0].title, 'Рис')
+  assert.equal(groups[1].title, 'Овощи')
+  assert.equal(groups[2].title, 'Шоколад')
 })
 
 test('normalizeAIResponse keeps reply and attaches groups/follow ups', () => {

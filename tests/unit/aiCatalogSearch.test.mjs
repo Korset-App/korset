@@ -59,6 +59,15 @@ const products = [
     stockStatus: 'in_stock',
   },
   {
+    ean: '6b',
+    name: 'Чипсы кукурузно-рисовые со вкусом оливкового масла',
+    brand: 'Snack',
+    category: 'snacks',
+    subcategory: 'chips',
+    priceKzt: 1250,
+    stockStatus: 'in_stock',
+  },
+  {
     ean: '7',
     name: 'Йогурт без лактозы',
     brand: 'Dairy',
@@ -75,6 +84,25 @@ const products = [
     category: 'meat',
     priceKzt: 2300,
     stockStatus: 'in_stock',
+  },
+  {
+    ean: '9',
+    name: 'Доместос цитрусовая свежесть',
+    brand: 'Domestos',
+    category: 'household',
+    subcategory: 'cleaning',
+    priceKzt: 300,
+    stockStatus: 'in_stock',
+  },
+  {
+    ean: '10',
+    name: 'Пастила яблочная',
+    brand: 'Sweet',
+    category: 'sweets',
+    subcategory: 'candy',
+    priceKzt: 900,
+    stockStatus: 'in_stock',
+    halalStatus: 'unknown',
   },
 ]
 
@@ -105,6 +133,7 @@ test('findCatalogCandidates understands recipe intents such as plov', () => {
 
   assert.deepEqual(resultEans.slice(0, 3), ['1', '5', '6'])
   assert.equal(resultEans.includes('3'), false)
+  assert.equal(resultEans.includes('6b'), false)
 })
 
 test('findCatalogCandidates understands lactose-free intent without excluding matching dairy', () => {
@@ -123,6 +152,39 @@ test('findCatalogCandidates applies budget intent before generic cheaper boost',
 
   assert.equal(result.some((product) => product.ean === '8'), false)
   assert.equal(result[0].priceKzt <= 1000, true)
+  assert.equal(result.some((product) => product.category === 'snacks'), false)
+  assert.equal(result.some((product) => product.category === 'healthy'), false)
+})
+
+test('findCatalogCandidates keeps halal sweets inside sweets category when certification is missing', () => {
+  const result = findCatalogCandidates('покажите халал-сладости', products, null, { limit: 8 })
+
+  assert.ok(result.length > 0)
+  assert.equal(result.every((product) => product.category === 'sweets'), true)
+  assert.equal(result.some((product) => product.ean === '1'), false)
+})
+
+test('findCatalogCandidates ignores generic stop words for mango queries', () => {
+  const result = findCatalogCandidates(
+    'есть манго?',
+    [
+      ...products,
+      {
+        ean: '11',
+        name: 'Напиток манго-тропиканго',
+        brand: 'Моя семья',
+        category: 'water_beverages',
+        subcategory: 'juice',
+        priceKzt: 300,
+        stockStatus: 'in_stock',
+      },
+    ],
+    null,
+    { limit: 8 }
+  )
+
+  assert.equal(result[0].ean, '11')
+  assert.equal(result.some((product) => product.ean === '9'), false)
 })
 
 test('buildCatalogAIContext returns compact candidate facts for prompts', () => {
@@ -134,11 +196,15 @@ test('buildCatalogAIContext returns compact candidate facts for prompts', () => 
       name: 'Рис Лидер круглозерный',
       brand: 'Лидер',
       category: 'grains',
+      subcategory: '',
+      group: '',
       priceKzt: 890,
       stockStatus: 'in_stock',
       halalStatus: 'yes',
       dietTags: ['vegan'],
       allergens: [],
+      image: null,
+      quantity: '',
     },
   ])
 })

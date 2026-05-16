@@ -9,12 +9,42 @@ function normalizeText(value) {
 function tokenize(value) {
   return normalizeText(value)
     .split(/\s+/)
-    .filter((token) => token.length >= 3)
+    .filter((token) => token.length >= 3 && !STOP_WORDS.has(token))
 }
 
 function hasAny(text, words) {
   return words.some((word) => text.includes(word))
 }
+
+const STOP_WORDS = new Set([
+  'есть',
+  'что',
+  'для',
+  'мне',
+  'могу',
+  'можно',
+  'покажи',
+  'покажите',
+  'собери',
+  'продукты',
+  'товары',
+  'магазине',
+  'купить',
+  'какие',
+  'какой',
+  'какая',
+  'бар',
+  'барма',
+])
+
+const DINNER_EXCLUDED_CATEGORIES = new Set(['snacks', 'healthy', 'household', 'personal_care'])
+const RECIPE_EXCLUDED_CATEGORIES = new Set([
+  'snacks',
+  'healthy',
+  'household',
+  'personal_care',
+  'bread',
+])
 
 function extractBudget(text) {
   const match = text.match(/(?:до|дейін|under)\s*(\d[\d\s]{1,8})/)
@@ -28,24 +58,54 @@ function getQueryIntent(query) {
   const recipeKeywords = []
   if (hasAny(text, ['плов', 'палау'])) {
     recipeKeywords.push(
-      { terms: ['рис', 'rice'], score: 10 },
-      { terms: ['морковь', 'сәбіз'], score: 8 },
-      { terms: ['масло', 'oil'], score: 6 }
+      { id: 'rice', terms: ['рис', 'rice'], subcategories: ['rice'], score: 14 },
+      { id: 'carrot', terms: ['морковь', 'сәбіз'], subcategories: ['vegetables'], score: 10 },
+      { id: 'oil', terms: ['масло', 'oil'], subcategories: ['cooking_oil'], score: 9 },
+      {
+        id: 'meat',
+        terms: ['мясо', 'говядина', 'баранина', 'курица'],
+        categories: ['meat'],
+        score: 8,
+      }
     )
   }
   if (hasAny(text, ['ужин', 'кешкі ас'])) {
     recipeKeywords.push(
-      { terms: ['кур', 'meat'], score: 8 },
-      { terms: ['рис', 'гречка', 'grains'], score: 6 },
-      { terms: ['овощ', 'көкөніс'], score: 5 }
+      {
+        id: 'ready',
+        terms: ['готов', 'разогреть'],
+        categories: ['ready_meals', 'frozen'],
+        score: 10,
+      },
+      {
+        id: 'protein',
+        terms: ['кур', 'говядин', 'мяс', 'рыб', 'meat'],
+        categories: ['meat', 'fish', 'deli'],
+        score: 8,
+      },
+      {
+        id: 'side',
+        terms: ['рис', 'гречка', 'круп', 'grains'],
+        subcategories: ['rice', 'cereals'],
+        score: 6,
+      },
+      { id: 'veg', terms: ['овощ', 'көкөніс'], categories: ['fruits_veg'], score: 5 }
     )
   }
+
+  const category = hasAny(text, ['сладост', 'конфет', 'шоколад', 'печень', 'десерт'])
+    ? 'sweets'
+    : null
+  const freshFruitOnly = hasAny(text, ['фрукт манго', 'свежий манго', 'свежее манго'])
 
   return {
     budget: extractBudget(text),
     halal: hasAny(text, ['халал', 'halal']),
     lactoseFree: hasAny(text, ['без лактоз', 'лактозасыз', 'lactose free']),
     sugarFree: hasAny(text, ['без сахар', 'без сахара', 'қантсыз', 'sugar free']),
+    category,
+    freshFruitOnly,
+    dinner: hasAny(text, ['ужин', 'кешкі ас']),
     recipeKeywords,
   }
 }
@@ -70,10 +130,18 @@ function productSearchText(product) {
       product.category,
       product.subcategory,
       product.group,
+      product.quantity,
       product.halalStatus === 'yes' ? 'halal халал' : '',
       ...(product.dietTags || []),
     ].join(' ')
   )
+}
+
+function matchesRecipeKeyword(product, text, keywordGroup) {
+  if (RECIPE_EXCLUDED_CATEGORIES.has(product.category)) return false
+  if (keywordGroup.categories?.includes(product.category)) return true
+  if (keywordGroup.subcategories?.includes(product.subcategory)) return true
+  return keywordGroup.terms.some((term) => text.includes(normalizeText(term)))
 }
 
 export function findCatalogCandidates(query, products = [], profile = null, options = {}) {
@@ -88,22 +156,26 @@ export function findCatalogCandidates(query, products = [], profile = null, opti
     .filter((product) => {
       if (!product?.ean || hasUserAllergen(product, profile, intent)) return false
       if (intent.budget && product.priceKzt && product.priceKzt > intent.budget) return false
+      if (intent.category && product.category !== intent.category) return false
+      if (intent.freshFruitOnly && product.subcategory !== 'fruits') return false
+      if (intent.dinner && DINNER_EXCLUDED_CATEGORIES.has(product.category)) return false
       return true
     })
     .map((product) => {
       const text = productSearchText(product)
-      const matchScore = tokens.reduce((sum, token) => sum + (text.includes(token) ? 4 : 0), 0)
+      const matchScore = tokens.reduce((sum, token) => sum + (text.includes(token) ? 6 : 0), 0)
       const recipeScore = intent.recipeKeywords.reduce((sum, keywordGroup) => {
-        const matched = keywordGroup.terms.some((term) => text.includes(normalizeText(term)))
+        const matched = matchesRecipeKeyword(product, text, keywordGroup)
         return sum + (matched ? keywordGroup.score : 0)
       }, 0)
+      const categoryScore = intent.category && product.category === intent.category ? 8 : 0
       const dietScore =
         (intent.halal && product.halalStatus === 'yes' ? 6 : 0) +
         (intent.lactoseFree && product.dietTags?.includes('lactose_free') ? 8 : 0) +
         (intent.sugarFree && product.dietTags?.includes('sugar_free') ? 6 : 0)
-      const availableBoost = product.stockStatus === 'out_of_stock' ? -2 : 2
+      const availableBoost = product.stockStatus === 'out_of_stock' ? -6 : 2
       const priceBoost = product.priceKzt ? Math.max(0, 1500 - product.priceKzt) / 1000 : 0
-      const intentScore = recipeScore + dietScore
+      const intentScore = recipeScore + dietScore + categoryScore
       return {
         product,
         matchScore,
@@ -127,10 +199,14 @@ export function buildCatalogAIContext(products = [], options = {}) {
     name: product.name,
     brand: product.brand || '',
     category: product.category || '',
+    subcategory: product.subcategory || '',
+    group: product.group || '',
     priceKzt: product.priceKzt ?? null,
     stockStatus: product.stockStatus || 'unknown',
     halalStatus: product.halalStatus || 'unknown',
     dietTags: Array.isArray(product.dietTags) ? product.dietTags : [],
     allergens: Array.isArray(product.allergens) ? product.allergens : [],
+    image: product.image || product.imageUrl || null,
+    quantity: product.quantity || '',
   }))
 }

@@ -1,3 +1,5 @@
+import { getCategoryLabel, getSubcategoryLabel } from '../product/categoryMap.js'
+
 const GROUP_TITLES = {
   dairy: 'Молочные продукты',
   dairy_eggs: 'Молочные продукты и яйца',
@@ -16,18 +18,34 @@ function getGroupTitle(id) {
   return GROUP_TITLES[id] || id
 }
 
+function getProductGroupId(product) {
+  if (product.category && product.subcategory) return `${product.category}:${product.subcategory}`
+  return product.category || 'other'
+}
+
+function getProductGroupTitle(product, lang = 'ru') {
+  if (product.category && product.subcategory) {
+    const title = getSubcategoryLabel(product.category, product.subcategory, lang)
+    if (title) return title
+  }
+  if (product.category)
+    return getCategoryLabel(product.category, lang) || getGroupTitle(product.category)
+  return getGroupTitle('other')
+}
+
 export function buildAIProductGroups(products = [], options = {}) {
   const maxGroups = options.maxGroups || 4
   const maxProductsPerGroup = options.maxProductsPerGroup || 4
+  const lang = options.lang || 'ru'
   const groups = []
 
   for (const product of products) {
     if (!product?.ean) continue
-    const id = product.category || 'other'
+    const id = getProductGroupId(product)
     let group = groups.find((item) => item.id === id)
     if (!group) {
       if (groups.length >= maxGroups) continue
-      group = { id, title: getGroupTitle(id), products: [] }
+      group = { id, title: getProductGroupTitle(product, lang), products: [] }
       groups.push(group)
     }
     if (group.products.length >= maxProductsPerGroup) continue
@@ -36,9 +54,12 @@ export function buildAIProductGroups(products = [], options = {}) {
       name: product.name,
       brand: product.brand || '',
       category: product.category || '',
+      subcategory: product.subcategory || '',
+      group: product.group || '',
       priceKzt: product.priceKzt ?? null,
       stockStatus: product.stockStatus || 'unknown',
       image: product.image || product.imageUrl || null,
+      quantity: product.quantity || '',
     })
   }
 

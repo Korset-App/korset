@@ -116,6 +116,61 @@ test('saveAIChatSession stores only recent valid messages and loadAIChatSession 
   assert.equal(restored.updatedAt, 1000)
 })
 
+test('saveAIChatSession preserves assistant product cards and follow ups', () => {
+  const storage = new Map()
+  const adapter = {
+    getItem: (key) => storage.get(key) || null,
+    setItem: (key, value) => storage.set(key, value),
+  }
+
+  saveAIChatSession({
+    storage: adapter,
+    key: 'chat-key',
+    messages: [
+      {
+        role: 'assistant',
+        content: 'Нашёл товары.',
+        productGroups: [
+          {
+            id: 'grocery:rice',
+            title: 'Рис',
+            products: [
+              {
+                ean: '4870204070018',
+                name: 'Рис для плова',
+                brand: 'Salus',
+                category: 'grocery',
+                subcategory: 'rice',
+                priceKzt: 250,
+                stockStatus: 'in_stock',
+                image: '/rice.webp',
+              },
+            ],
+          },
+        ],
+        followUps: ['Показать дешевле'],
+        warnings: ['Проверьте цену на кассе'],
+      },
+    ],
+    now: 1000,
+  })
+
+  const restored = loadAIChatSession({ storage: adapter, key: 'chat-key', now: 1000 })
+
+  assert.deepEqual(restored.messages[0].productGroups[0].products[0], {
+    ean: '4870204070018',
+    name: 'Рис для плова',
+    brand: 'Salus',
+    category: 'grocery',
+    subcategory: 'rice',
+    priceKzt: 250,
+    stockStatus: 'in_stock',
+    image: '/rice.webp',
+  })
+  assert.deepEqual(restored.messages[0].followUps, ['Показать дешевле'])
+  assert.deepEqual(restored.messages[0].warnings, ['Проверьте цену на кассе'])
+})
+
 test('loadAIChatSession drops expired sessions', () => {
   const storage = new Map()
   const adapter = {

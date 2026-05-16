@@ -26,6 +26,13 @@ test.describe('general AI mocked smoke', () => {
                   priceKzt: 760,
                   stockStatus: 'in_stock',
                 },
+                {
+                  ean: '4870204070019',
+                  name: 'Пастила яблочная',
+                  brand: 'Sweet',
+                  priceKzt: 900,
+                  stockStatus: 'in_stock',
+                },
               ],
             },
           ],
@@ -45,6 +52,11 @@ test.describe('general AI mocked smoke', () => {
 
     await expect(page.getByText('Нашёл варианты в этом магазине.')).toBeVisible()
     await expect(page.getByText('Шоколад халал без сахара')).toBeVisible()
+    await expect(page.getByText('Пастила яблочная')).toBeHidden()
+    await page.getByText('Показать ещё 1').click()
+    await expect(page.getByText('Пастила яблочная')).toBeVisible()
+    await page.getByText('Скрыть').click()
+    await expect(page.getByText('Пастила яблочная')).toBeHidden()
     await expect(page.getByText('Показать дешевле')).toBeVisible()
     await expect(page.getByText('Сравнить варианты')).toBeVisible()
     await expect(page.locator('a[href="/s/store-one/product/4870204070018"]')).toBeVisible()

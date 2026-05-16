@@ -21,10 +21,49 @@ function cleanMessages(messages) {
         typeof message.content === 'string' &&
         message.content.trim()
     )
-    .map((message) => ({
-      role: message.role,
-      content: message.content.trim(),
-    }))
+    .map((message) => {
+      const cleanMessage = {
+        role: message.role,
+        content: message.content.trim(),
+      }
+
+      if (message.role === 'assistant') {
+        if (Array.isArray(message.productGroups)) {
+          cleanMessage.productGroups = message.productGroups.slice(0, 4).map((group) => ({
+            id: cleanString(group.id, 120),
+            title: cleanString(group.title, 120),
+            products: Array.isArray(group.products)
+              ? group.products.slice(0, 4).map((product) => ({
+                  ean: cleanString(product.ean, 40),
+                  name: cleanString(product.name, 220),
+                  brand: cleanString(product.brand, 120),
+                  category: cleanString(product.category, 80),
+                  subcategory: cleanString(product.subcategory, 80),
+                  priceKzt: Number.isFinite(Number(product.priceKzt))
+                    ? Number(product.priceKzt)
+                    : null,
+                  stockStatus: cleanString(product.stockStatus, 40),
+                  image: cleanString(product.image, 500),
+                }))
+              : [],
+          }))
+        }
+        if (Array.isArray(message.followUps)) {
+          cleanMessage.followUps = message.followUps
+            .filter((item) => typeof item === 'string')
+            .slice(0, 4)
+            .map((item) => cleanString(item, 80))
+        }
+        if (Array.isArray(message.warnings)) {
+          cleanMessage.warnings = message.warnings
+            .filter((item) => typeof item === 'string')
+            .slice(0, 3)
+            .map((item) => cleanString(item, 180))
+        }
+      }
+
+      return cleanMessage
+    })
     .slice(-MAX_STORED_MESSAGES)
 }
 

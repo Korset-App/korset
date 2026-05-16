@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/index.js'
 import KorsetAvatar from '../components/KorsetAvatar.jsx'
 import { askGeneralAI } from '../services/ai.js'
@@ -14,6 +14,34 @@ import {
 } from '../domain/ai/context.js'
 import { buildCatalogAIContext, findCatalogCandidates } from '../domain/ai/catalogSearch.js'
 import { buildProductPath } from '../utils/routes.js'
+
+function renderMessageText(text) {
+  const paragraphs = String(text || '')
+    .split(/\n+/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+
+  return paragraphs.map((paragraph, paragraphIndex) => (
+    <p key={paragraphIndex} style={{ margin: paragraphIndex === 0 ? 0 : '8px 0 0' }}>
+      {paragraph.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g).map((part, index) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return <strong key={index}>{part.slice(2, -2)}</strong>
+        }
+        if (part.startsWith('*') && part.endsWith('*')) {
+          return <strong key={index}>{part.slice(1, -1)}</strong>
+        }
+        return part
+      })}
+    </p>
+  ))
+}
+
+function getStockLabel(status, t) {
+  if (status === 'in_stock') return t('ai.stock.inStock')
+  if (status === 'low_stock') return t('ai.stock.lowStock')
+  if (status === 'out_of_stock') return t('ai.stock.outOfStock')
+  return ''
+}
 
 function MessageProductGroups({ groups, storeSlug, t }) {
   const [expanded, setExpanded] = useState({})
@@ -37,23 +65,22 @@ function MessageProductGroups({ groups, storeSlug, t }) {
           >
             <div
               style={{
-                fontSize: 12,
+                fontSize: 13,
                 fontWeight: 800,
-                color: 'var(--text-sub)',
+                color: 'var(--text)',
                 marginBottom: 8,
-                textTransform: 'uppercase',
               }}
             >
               {group.title}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {visible.map((product) => (
-                <a
+                <Link
                   key={product.ean}
-                  href={buildProductPath(storeSlug, product.ean)}
+                  to={buildProductPath(storeSlug, product.ean)}
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: '46px 1fr auto',
+                    gridTemplateColumns: '54px minmax(0, 1fr) auto',
                     gap: 10,
                     alignItems: 'center',
                     textDecoration: 'none',
@@ -67,8 +94,8 @@ function MessageProductGroups({ groups, storeSlug, t }) {
                   <div
                     className="catalog-img-box"
                     style={{
-                      width: 46,
-                      height: 46,
+                      width: 54,
+                      height: 54,
                       borderRadius: 10,
                       overflow: 'hidden',
                       display: 'flex',
@@ -81,7 +108,7 @@ function MessageProductGroups({ groups, storeSlug, t }) {
                         src={product.image}
                         alt=""
                         className="product-img-blend"
-                        style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }}
+                        style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 5 }}
                       />
                     ) : (
                       <span className="material-symbols-outlined" style={{ fontSize: 22 }}>
@@ -96,7 +123,10 @@ function MessageProductGroups({ groups, storeSlug, t }) {
                         fontWeight: 800,
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        lineHeight: 1.25,
                       }}
                     >
                       {product.name}
@@ -111,19 +141,21 @@ function MessageProductGroups({ groups, storeSlug, t }) {
                         marginTop: 2,
                       }}
                     >
-                      {[product.brand, product.stockStatus].filter(Boolean).join(' · ')}
+                      {[product.brand, getStockLabel(product.stockStatus, t)]
+                        .filter(Boolean)
+                        .join(' · ')}
                     </div>
                   </div>
                   <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--primary)' }}>
                     {product.priceKzt ? `${product.priceKzt} ₸` : ''}
                   </div>
-                </a>
+                </Link>
               ))}
             </div>
-            {hiddenCount > 0 && (
+            {group.products.length > 1 && (
               <button
                 type="button"
-                onClick={() => setExpanded((prev) => ({ ...prev, [group.id]: true }))}
+                onClick={() => setExpanded((prev) => ({ ...prev, [group.id]: !isExpanded }))}
                 style={{
                   marginTop: 8,
                   border: 'none',
@@ -135,7 +167,9 @@ function MessageProductGroups({ groups, storeSlug, t }) {
                   padding: 0,
                 }}
               >
-                {t('ai.showMoreProducts', { count: hiddenCount })}
+                {isExpanded
+                  ? t('ai.hideProducts')
+                  : t('ai.showMoreProducts', { count: hiddenCount })}
               </button>
             )}
           </div>
@@ -350,7 +384,7 @@ export default function AIAssistantScreen() {
                     }
               }
             >
-              {msg.content}
+              {renderMessageText(msg.content)}
               {msg.role === 'assistant' && msg.warnings?.length > 0 && (
                 <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-faint)' }}>
                   {msg.warnings[0]}

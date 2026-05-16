@@ -236,6 +236,8 @@ export function sanitizeCatalogContext(products = [], options = {}) {
       name: cleanString(product.name, 200),
       brand: cleanString(product.brand, 100),
       category: cleanString(product.category, 80),
+      subcategory: cleanString(product.subcategory, 80),
+      group: cleanString(product.group, 80),
       priceKzt: Number.isFinite(Number(product.priceKzt)) ? Number(product.priceKzt) : null,
       stockStatus: cleanString(product.stockStatus, 40) || 'unknown',
       halalStatus: ['yes', 'no', 'unknown'].includes(product.halalStatus)
@@ -248,13 +250,15 @@ export function sanitizeCatalogContext(products = [], options = {}) {
         ? product.allergens.slice(0, 12).map((allergen) => cleanString(allergen, 50))
         : [],
       image: cleanString(product.image, 500),
+      quantity: cleanString(product.quantity, 80),
     }))
 }
 
-export function buildProductGroupsFromCatalog(catalogContext = []) {
+export function buildProductGroupsFromCatalog(catalogContext = [], options = {}) {
   return buildAIProductGroups(catalogContext, {
     maxGroups: AI_LIMITS.maxProductGroups,
     maxProductsPerGroup: AI_LIMITS.maxProductsPerGroup,
+    lang: options.lang || 'ru',
   })
 }
 
@@ -405,7 +409,7 @@ export default async function handler(req, res) {
     const profile = sanitizeProfile(body.profile)
     const storeContext = sanitizeStoreContext(body.storeContext)
     const catalogContext = sanitizeCatalogContext(body.catalogContext)
-    const productGroups = buildProductGroupsFromCatalog(catalogContext)
+    const productGroups = buildProductGroupsFromCatalog(catalogContext, { lang })
     const winner = ['A', 'B', 'draw'].includes(body.winner) ? body.winner : null
 
     // ── RAG: подтягиваем релевантный контекст из vault ──
@@ -562,15 +566,15 @@ function buildGeneralPrompt(lang, storeContext, catalogContext = []) {
     ? `\n\nТОВАРЫ, КОТОРЫЕ ВИДНЫ В КАТАЛОГЕ ${storeName}:\n${catalogContext
         .map(
           (item) =>
-            `- ${item.name}${item.brand ? `, ${item.brand}` : ''}${item.priceKzt ? `, ${item.priceKzt} ₸` : ''}, наличие: ${item.stockStatus}`
+            `- ${item.name}${item.brand ? `, ${item.brand}` : ''}${item.priceKzt ? `, ${item.priceKzt} ₸` : ''}${item.category ? `, категория: ${item.category}` : ''}${item.subcategory ? `/${item.subcategory}` : ''}, наличие: ${item.stockStatus}`
         )
         .join('\n')}`
     : '\n\nВ переданном catalog context нет подходящих товаров.'
 
   if (lang === 'kz') {
-    return `Сен — ${storeName} дүкеніндегі Körset AI көмекшісісің. Тек осы дүкеннің берілген каталогындағы тауарларды ұсын. Егер тауар берілген каталогта жоқ болса, оны көрмей тұрғаныңды ашық айт. Қысқа, түсінікті қазақша жауап бер. Максимум 3-4 сөйлем.${catalogSection}`
+    return `Сен — ${storeName} дүкеніндегі Körset AI көмекшісісің. Тек осы дүкеннің берілген каталогындағы тауарларды ұсын. Егер тауар берілген каталогта жоқ болса, оны көрмей тұрғаныңды ашық айт. Қысқа, түсінікті қазақша жауап бер. Максимум 3-4 сөйлем. Markdown, жұлдызша және ұзын тізім қолданба; карточкалардағы тауарларды мәтінде толық қайталама.${catalogSection}`
   }
-  return `Ты — Körset AI, помощник покупателя в магазине ${storeName}. Помогаешь найти товары, советуешь простые покупки и отвечаешь про состав и аллергены. Рекомендуй только товары из переданного каталога текущего магазина. Если товара нет в данных, честно скажи, что не видишь его в этом магазине. Кратко, по-русски, как дружелюбный консультант. Максимум 3-4 предложения.${catalogSection}`
+  return `Ты — Körset AI, помощник покупателя в магазине ${storeName}. Помогаешь найти товары, советуешь простые покупки и отвечаешь про состав и аллергены. Рекомендуй только товары из переданного каталога текущего магазина. Если товара нет в данных, честно скажи, что не видишь его в этом магазине. Кратко, по-русски, как дружелюбный консультант. Максимум 3-4 предложения. Не используй markdown, звёздочки и длинные списки; не дублируй в тексте весь список товаров, который уже показан карточками.${catalogSection}`
 }
 
 function buildComparePrompt(productA, productB, profile, winner, lang, ragContext) {
