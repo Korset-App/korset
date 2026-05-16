@@ -319,7 +319,7 @@ function ProgressBar({ progress }) {
           width: `${progress}%`,
           height: '100%',
           background: 'var(--primary-mid)',
-          transition: 'width 0.25s ease',
+          transition: 'width 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       />
     </div>
@@ -357,6 +357,7 @@ export default function SetupProfileScreen() {
   const { lang, t } = useI18n()
   const avatarFileInputRef = useRef(null)
   const bannerFileInputRef = useRef(null)
+  const initializedRef = useRef(false)
 
   const editMode = searchParams.get('mode') === 'edit'
   const [step, setStep] = useState(1)
@@ -368,18 +369,15 @@ export default function SetupProfileScreen() {
   const [profileError, setProfileError] = useState(null)
   const [selectedAvatarId, setSelectedAvatarId] = useState(AVATAR_PRESETS[0].id)
   const [customAvatarUrl, setCustomAvatarUrl] = useState(null)
-
-  const initialBannerSelection = (() => {
-    const value = bannerUrl || user?.user_metadata?.banner_url || null
-    if (!value) return { type: 'preset', id: BANNER_PRESETS[0].id }
-    if (isPresetBanner(value)) return { type: 'preset', id: value.slice(7) }
-    if (/^https?:/i.test(value)) return { type: 'url', url: value }
-    return { type: 'preset', id: BANNER_PRESETS[0].id }
-  })()
-  const [bannerSelection, setBannerSelection] = useState(initialBannerSelection)
+  const [bannerSelection, setBannerSelection] = useState({
+    type: 'preset',
+    id: BANNER_PRESETS[0].id,
+  })
+  const [stepDirection, setStepDirection] = useState('forward')
 
   useEffect(() => {
-    if (!user) return
+    if (!user || initializedRef.current) return
+    initializedRef.current = true
     const currentName =
       displayName || user.user_metadata?.full_name || user.user_metadata?.name || ''
     const currentAvatar =
@@ -388,17 +386,24 @@ export default function SetupProfileScreen() {
       user.user_metadata?.avatar_url ||
       user.user_metadata?.picture ||
       AVATAR_PRESETS[0].id
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (currentName !== name) setName(currentName)
+    setName(currentName)
     if (typeof currentAvatar === 'string' && /^https?:/i.test(currentAvatar)) {
       setCustomAvatarUrl(currentAvatar)
-      if (selectedAvatarId !== 'custom') setSelectedAvatarId('custom')
+      setSelectedAvatarId('custom')
     } else {
-      const targetId = currentAvatar || AVATAR_PRESETS[0].id
-      if (selectedAvatarId !== targetId) setSelectedAvatarId(targetId)
+      setSelectedAvatarId(currentAvatar || AVATAR_PRESETS[0].id)
     }
-    setBannerSelection(initialBannerSelection)
-  }, [user, displayName, avatarId, initialBannerSelection])
+    const bannerValue = bannerUrl || user.user_metadata?.banner_url || null
+    if (!bannerValue) {
+      setBannerSelection({ type: 'preset', id: BANNER_PRESETS[0].id })
+    } else if (isPresetBanner(bannerValue)) {
+      setBannerSelection({ type: 'preset', id: bannerValue.slice(7) })
+    } else if (/^https?:/i.test(bannerValue)) {
+      setBannerSelection({ type: 'url', url: bannerValue })
+    } else {
+      setBannerSelection({ type: 'preset', id: BANNER_PRESETS[0].id })
+    }
+  }, [user])
 
   const backTarget = currentStore ? `/s/${currentStore.slug}/profile` : '/profile'
   const trimmedName = name.trim()
@@ -417,8 +422,12 @@ export default function SetupProfileScreen() {
       navigate(backTarget)
       return
     }
-    if (step > 1) setStep((s) => s - 1)
-    else navigate(backTarget)
+    if (step > 1) {
+      setStepDirection('backward')
+      setStep((s) => s - 1)
+    } else {
+      navigate(backTarget)
+    }
   }
 
   const handleNameChange = (event) => {
@@ -458,8 +467,8 @@ export default function SetupProfileScreen() {
       if (!url) throw new Error('no_public_url')
       setCustomAvatarUrl(`${url}?t=${Date.now()}`)
       setSelectedAvatarId('custom')
-    } catch (error) {
-      setProfileError(error.message || t('profileSetup.saveError'))
+    } catch (_e) {
+      setProfileError(t('profileSetup.saveError'))
     } finally {
       setUploadingAvatar(false)
       if (event.target) event.target.value = ''
@@ -486,8 +495,8 @@ export default function SetupProfileScreen() {
       const url = data?.publicUrl
       if (!url) throw new Error('no_public_url')
       setBannerSelection({ type: 'url', url: `${url}?t=${Date.now()}` })
-    } catch (error) {
-      setProfileError(error.message || t('profileSetup.saveError'))
+    } catch (_e) {
+      setProfileError(t('profileSetup.saveError'))
     } finally {
       setUploadingBanner(false)
       if (event.target) event.target.value = ''
@@ -549,8 +558,8 @@ export default function SetupProfileScreen() {
 
       refreshAccountProfile(user).catch(() => {})
       navigate(backTarget, { replace: true })
-    } catch (error) {
-      setProfileError(error.message || t('profileSetup.saveError'))
+    } catch (_e) {
+      setProfileError(t('profileSetup.saveError'))
     } finally {
       setLoading(false)
     }
@@ -563,326 +572,140 @@ export default function SetupProfileScreen() {
     }
     if (step === 1) {
       if (!canContinueName) return
+      setStepDirection('forward')
       setStep(2)
       return
     }
     saveProfile()
   }
 
-  if (editMode) {
-    return (
-      <div
-        className="screen"
-        style={{
-          background: 'var(--bg-app)',
-          paddingTop: 0,
-          paddingBottom: 'max(28px, env(safe-area-inset-bottom))',
-        }}
-      >
-        <div style={{ padding: 'max(20px, env(safe-area-inset-top)) 20px 28px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 22 }}>
-            <button
-              onClick={goBack}
-              style={{
-                width: 42,
-                height: 42,
-                borderRadius: 14,
-                background: 'var(--glass-muted)',
-                border: '1px solid var(--glass-soft-border)',
-                color: 'var(--text)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-              }}
-            >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
-            </button>
-            <h1
-              style={{
-                margin: 0,
-                fontSize: 24,
-                fontWeight: 700,
-                color: 'var(--text)',
-                letterSpacing: '-0.02em',
-              }}
-            >
-              {t('profileSetup.editTitle')}
-            </h1>
-          </div>
-
-          <SurfaceCard style={{ padding: 22, marginBottom: 18 }}>
-            <div
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: 'var(--primary-bright)',
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                marginBottom: 12,
-              }}
-            >
-              {t('profileSetup.nameLabel')}
-            </div>
-            <div
-              style={{
-                background: 'var(--input-bg)',
-                border: `1px solid ${nameError ? 'var(--error-border)' : 'var(--input-border)'}`,
-                borderRadius: 18,
-                padding: '15px 16px',
-              }}
-            >
-              <input
-                value={name}
-                onChange={handleNameChange}
-                maxLength={NAME_MAX + 5}
-                placeholder={t('profileSetup.namePlaceholder')}
-                style={{
-                  width: '100%',
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  color: 'var(--text)',
-                  fontSize: 18,
-                  fontWeight: 700,
-                  letterSpacing: '-0.02em',
-                }}
-              />
-            </div>
-            <div
-              style={{
-                minHeight: 20,
-                paddingTop: 10,
-                fontSize: 12,
-                color: nameError ? 'var(--error-bright)' : 'var(--text-disabled)',
-              }}
-            >
-              {nameError || `${trimmedName.length}/${NAME_MAX}`}
-            </div>
-          </SurfaceCard>
-
-          <SurfaceCard style={{ padding: 22, marginBottom: 22 }}>
-            <div
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: 'var(--primary-bright)',
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                marginBottom: 12,
-              }}
-            >
-              {t('profileSetup.avatarTitle')}
-            </div>
-            <div
-              style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14 }}
-            >
-              <button
-                type="button"
-                onClick={() => avatarFileInputRef.current?.click()}
-                style={{
-                  appearance: 'none',
-                  border: '1px dashed var(--glass-border)',
-                  background: 'var(--glass-subtle)',
-                  borderRadius: 20,
-                  aspectRatio: '1 / 1',
-                  cursor: 'pointer',
-                  position: 'relative',
-                  padding: 0,
-                }}
-              >
-                <div
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexDirection: 'column',
-                    gap: 8,
-                    color: 'var(--text-soft)',
-                  }}
-                >
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
-                    <circle cx="12" cy="13" r="3" />
-                  </svg>
-                  <div style={{ fontSize: 11, fontWeight: 600 }}>
-                    {uploadingAvatar ? '...' : t('profileSetup.gallery')}
-                  </div>
-                </div>
-              </button>
-              {customAvatarUrl && (
-                <AvatarChoice
-                  selected={selectedAvatarId === 'custom'}
-                  onClick={() => setSelectedAvatarId('custom')}
-                >
-                  <ProfileAvatar avatarId={customAvatarUrl} name={name} rounded="square" />
-                </AvatarChoice>
-              )}
-              {AVATAR_PRESETS.map((avatar) => (
-                <AvatarChoice
-                  key={avatar.id}
-                  selected={selectedAvatarId === avatar.id}
-                  onClick={() => setSelectedAvatarId(avatar.id)}
-                >
-                  <ProfileAvatar avatarId={avatar.id} name={name} rounded="square" />
-                </AvatarChoice>
-              ))}
-            </div>
-            <input
-              ref={avatarFileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleAvatarUpload}
-              style={{ display: 'none' }}
-            />
-          </SurfaceCard>
-
-          <ErrorBlock error={profileError} />
-          <button
-            onClick={onPrimaryAction}
-            disabled={loading || !canContinueName || !hasAvatar}
-            style={{
-              width: '100%',
-              height: 56,
-              borderRadius: 18,
-              border: 'none',
-              cursor: loading ? 'default' : 'pointer',
-              background:
-                loading || !canContinueName || !hasAvatar ? 'var(--primary-dim)' : 'var(--primary)',
-              color: 'var(--text-inverse)',
-              fontSize: 16,
-              fontWeight: 700,
-              boxShadow: loading ? 'none' : '0 18px 36px var(--primary-glow)',
-            }}
-          >
-            {loading ? '...' : t('profileSetup.save')}
-          </button>
-        </div>
-      </div>
-    )
+  const slideIn = {
+    animation:
+      stepDirection === 'forward'
+        ? 'stepSlideIn 0.38s cubic-bezier(0.22, 1, 0.36, 1)'
+        : 'stepSlideBack 0.32s cubic-bezier(0.22, 1, 0.36, 1)',
   }
 
-  return (
-    <div
-      className="screen"
-      style={{
-        background: 'var(--bg-app)',
-        paddingTop: 0,
-        paddingBottom: 'max(32px, env(safe-area-inset-bottom))',
-      }}
-    >
-      <div style={{ padding: 'max(20px, env(safe-area-inset-top)) 20px 24px' }}>
-        <StepHeader onBack={goBack} step={step} stepCount={stepCount} t={t} />
-        <ProgressBar progress={progress} />
-
-        {step === 1 ? (
-          <SurfaceCard style={{ padding: 24, marginBottom: 18 }}>
-            <div
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: 'var(--primary-bright)',
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                marginBottom: 14,
-              }}
-            >
-              {t('profileSetup.nameLabel')}
-            </div>
-            <div
-              style={{
-                fontSize: 28,
-                fontWeight: 800,
-                color: 'var(--text)',
-                lineHeight: 1.15,
-                marginBottom: 10,
-              }}
-            >
-              {t('profileSetup.setupTitle')}
-            </div>
-            <div
-              style={{
-                fontSize: 14,
-                color: 'var(--text-faint)',
-                lineHeight: 1.5,
-                marginBottom: 18,
-              }}
-            >
-              {t('profileSetup.setupSubtitle')}
-            </div>
-            <div
-              style={{
-                background: 'var(--input-bg)',
-                border: `1px solid ${nameError ? 'var(--error-border)' : 'var(--input-border)'}`,
-                borderRadius: 18,
-                padding: '16px 18px',
-              }}
-            >
-              <input
-                value={name}
-                onChange={handleNameChange}
-                maxLength={NAME_MAX + 5}
-                placeholder={t('profileSetup.namePlaceholder')}
+  if (editMode) {
+    return (
+      <>
+        <style>{`
+          @keyframes stepSlideIn {
+            from { opacity: 0; transform: translateX(40px); }
+            to { opacity: 1; transform: translateX(0); }
+          }
+          @keyframes stepSlideBack {
+            from { opacity: 0; transform: translateX(-40px); }
+            to { opacity: 1; transform: translateX(0); }
+          }
+        `}</style>
+        <div
+          className="screen"
+          style={{
+            background: 'var(--bg-app)',
+            paddingTop: 0,
+            paddingBottom: 'max(28px, env(safe-area-inset-bottom))',
+          }}
+        >
+          <div style={{ padding: 'max(20px, env(safe-area-inset-top)) 20px 28px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 22 }}>
+              <button
+                onClick={goBack}
                 style={{
-                  width: '100%',
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
+                  width: 42,
+                  height: 42,
+                  borderRadius: 14,
+                  background: 'var(--glass-muted)',
+                  border: '1px solid var(--glass-soft-border)',
                   color: 'var(--text)',
-                  fontSize: 20,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M15 18l-6-6 6-6" />
+                </svg>
+              </button>
+              <h1
+                style={{
+                  margin: 0,
+                  fontSize: 24,
                   fontWeight: 700,
+                  color: 'var(--text)',
                   letterSpacing: '-0.02em',
                 }}
-              />
+              >
+                {t('profileSetup.editTitle')}
+              </h1>
             </div>
-            <div
-              style={{
-                minHeight: 22,
-                paddingTop: 10,
-                fontSize: 12,
-                color: nameError ? 'var(--error-bright)' : 'var(--text-disabled)',
-              }}
-            >
-              {nameError || `${trimmedName.length}/${NAME_MAX}`}
-            </div>
-          </SurfaceCard>
-        ) : (
-          <>
-            <LivePreview
-              avatarValue={avatarValue}
-              bannerSrc={previewBannerSrc}
-              trimmedName={trimmedName}
-              displayName={displayName}
-            />
 
-            <SurfaceCard style={{ padding: 20, marginTop: 18, marginBottom: 14 }}>
+            <SurfaceCard style={{ padding: 22, marginBottom: 18 }}>
               <div
                 style={{
-                  fontSize: 11,
+                  fontSize: 13,
                   fontWeight: 700,
-                  color: 'var(--text-dim)',
+                  color: 'var(--primary-bright)',
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  marginBottom: 12,
+                }}
+              >
+                {t('profileSetup.nameLabel')}
+              </div>
+              <div
+                style={{
+                  background: 'var(--input-bg)',
+                  border: `1px solid ${nameError ? 'var(--error-border)' : 'var(--input-border)'}`,
+                  borderRadius: 18,
+                  padding: '15px 16px',
+                }}
+              >
+                <input
+                  value={name}
+                  onChange={handleNameChange}
+                  maxLength={NAME_MAX + 5}
+                  placeholder={t('profileSetup.namePlaceholder')}
+                  style={{
+                    width: '100%',
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    color: 'var(--text)',
+                    fontSize: 18,
+                    fontWeight: 700,
+                    letterSpacing: '-0.02em',
+                  }}
+                />
+              </div>
+              <div
+                style={{
+                  minHeight: 20,
+                  paddingTop: 10,
+                  fontSize: 12,
+                  color: nameError ? 'var(--error-bright)' : 'var(--text-disabled)',
+                }}
+              >
+                {nameError || `${trimmedName.length}/${NAME_MAX}`}
+              </div>
+            </SurfaceCard>
+
+            <SurfaceCard style={{ padding: 22, marginBottom: 22 }}>
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: 'var(--primary-bright)',
                   letterSpacing: '0.08em',
                   textTransform: 'uppercase',
                   marginBottom: 12,
@@ -893,8 +716,8 @@ export default function SetupProfileScreen() {
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
-                  gap: 10,
+                  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                  gap: 14,
                 }}
               >
                 <button
@@ -902,48 +725,62 @@ export default function SetupProfileScreen() {
                   onClick={() => avatarFileInputRef.current?.click()}
                   style={{
                     appearance: 'none',
-                    border: '1px dashed var(--glass-border)',
+                    border:
+                      selectedAvatarId === 'custom' && customAvatarUrl
+                        ? '2px solid var(--primary-mid)'
+                        : '1px dashed var(--glass-border)',
                     background: 'var(--glass-subtle)',
-                    borderRadius: 18,
+                    borderRadius: 20,
                     aspectRatio: '1 / 1',
                     cursor: 'pointer',
                     position: 'relative',
                     padding: 0,
+                    overflow: 'hidden',
                   }}
                 >
-                  <div
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'var(--text-soft)',
-                    }}
-                  >
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+                  {selectedAvatarId === 'custom' && customAvatarUrl ? (
+                    <img
+                      src={customAvatarUrl}
+                      alt=""
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: 'block',
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexDirection: 'column',
+                        gap: 8,
+                        color: 'var(--text-soft)',
+                      }}
                     >
-                      <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
-                      <circle cx="12" cy="13" r="3" />
-                    </svg>
-                  </div>
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                        <circle cx="12" cy="13" r="3" />
+                      </svg>
+                      <div style={{ fontSize: 11, fontWeight: 600 }}>
+                        {uploadingAvatar ? '...' : t('profileSetup.gallery')}
+                      </div>
+                    </div>
+                  )}
                 </button>
-                {customAvatarUrl && (
-                  <AvatarChoice
-                    selected={selectedAvatarId === 'custom'}
-                    onClick={() => setSelectedAvatarId('custom')}
-                  >
-                    <ProfileAvatar avatarId={customAvatarUrl} name={name} rounded="square" />
-                  </AvatarChoice>
-                )}
                 {AVATAR_PRESETS.map((avatar) => (
                   <AvatarChoice
                     key={avatar.id}
@@ -963,138 +800,369 @@ export default function SetupProfileScreen() {
               />
             </SurfaceCard>
 
-            <SurfaceCard style={{ padding: 20, marginBottom: 18 }}>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: 'var(--text-dim)',
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                  marginBottom: 12,
-                }}
-              >
-                {t('profile.edit.bannerLabel')}
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-                {BANNER_PRESETS.map((preset) => {
-                  const selected =
-                    bannerSelection?.type === 'preset' && bannerSelection.id === preset.id
-                  return (
-                    <BannerChoice
-                      key={preset.id}
-                      selected={selected}
-                      onClick={() => setBannerSelection({ type: 'preset', id: preset.id })}
-                    >
-                      <img
-                        src={preset.thumb || preset.src}
-                        alt={preset.label[lang] || preset.label.ru}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                          display: 'block',
-                        }}
-                      />
-                    </BannerChoice>
-                  )
-                })}
-                <div style={{ position: 'relative', aspectRatio: '16 / 8' }}>
-                  <button
-                    type="button"
-                    onClick={() => bannerFileInputRef.current?.click()}
-                    disabled={uploadingBanner}
+            <ErrorBlock error={profileError} />
+            <button
+              onClick={onPrimaryAction}
+              disabled={loading || !canContinueName || !hasAvatar}
+              style={{
+                width: '100%',
+                height: 56,
+                borderRadius: 18,
+                border: 'none',
+                cursor: loading ? 'default' : 'pointer',
+                background:
+                  loading || !canContinueName || !hasAvatar
+                    ? 'var(--primary-dim)'
+                    : 'var(--primary)',
+                color: 'var(--text-inverse)',
+                fontSize: 16,
+                fontWeight: 700,
+                boxShadow: loading ? 'none' : '0 18px 36px var(--primary-glow)',
+              }}
+            >
+              {loading ? '...' : t('profileSetup.save')}
+            </button>
+          </div>
+        </div>
+      </>
+    )
+  }
+
+  return (
+    <>
+      <style>{`
+        @keyframes stepSlideIn {
+          from { opacity: 0; transform: translateX(40px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes stepSlideBack {
+          from { opacity: 0; transform: translateX(-40px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+      `}</style>
+      <div
+        className="screen"
+        style={{
+          background: 'var(--bg-app)',
+          paddingTop: 0,
+          paddingBottom: 'max(32px, env(safe-area-inset-bottom))',
+        }}
+      >
+        <div style={{ padding: 'max(20px, env(safe-area-inset-top)) 20px 24px' }}>
+          <StepHeader onBack={goBack} step={step} stepCount={stepCount} t={t} />
+          <ProgressBar progress={progress} />
+
+          <div key={step} style={slideIn}>
+            {step === 1 ? (
+              <SurfaceCard style={{ padding: 24, marginBottom: 18 }}>
+                <div
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: 'var(--primary-bright)',
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    marginBottom: 14,
+                  }}
+                >
+                  {t('profileSetup.nameLabel')}
+                </div>
+                <div
+                  style={{
+                    fontSize: 28,
+                    fontWeight: 800,
+                    color: 'var(--text)',
+                    lineHeight: 1.15,
+                    marginBottom: 10,
+                  }}
+                >
+                  {t('profileSetup.setupTitle')}
+                </div>
+                <div
+                  style={{
+                    fontSize: 14,
+                    color: 'var(--text-faint)',
+                    lineHeight: 1.5,
+                    marginBottom: 18,
+                  }}
+                >
+                  {t('profileSetup.setupSubtitle')}
+                </div>
+                <div
+                  style={{
+                    background: 'var(--input-bg)',
+                    border: `1px solid ${nameError ? 'var(--error-border)' : 'var(--input-border)'}`,
+                    borderRadius: 18,
+                    padding: '16px 18px',
+                  }}
+                >
+                  <input
+                    value={name}
+                    onChange={handleNameChange}
+                    maxLength={NAME_MAX + 5}
+                    placeholder={t('profileSetup.namePlaceholder')}
                     style={{
                       width: '100%',
-                      height: '100%',
-                      appearance: 'none',
-                      padding: 0,
-                      cursor: uploadingBanner ? 'wait' : 'pointer',
-                      position: 'relative',
-                      background: 'var(--glass-subtle)',
-                      border:
-                        bannerSelection?.type === 'url'
-                          ? '2px solid var(--primary-mid)'
-                          : '1px dashed var(--glass-border)',
-                      borderRadius: 16,
-                      color: 'var(--text-soft)',
+                      background: 'transparent',
+                      border: 'none',
+                      outline: 'none',
+                      color: 'var(--text)',
+                      fontSize: 20,
+                      fontWeight: 700,
+                      letterSpacing: '-0.02em',
+                    }}
+                  />
+                </div>
+                <div
+                  style={{
+                    minHeight: 22,
+                    paddingTop: 10,
+                    fontSize: 12,
+                    color: nameError ? 'var(--error-bright)' : 'var(--text-disabled)',
+                  }}
+                >
+                  {nameError || `${trimmedName.length}/${NAME_MAX}`}
+                </div>
+              </SurfaceCard>
+            ) : (
+              <>
+                <LivePreview
+                  avatarValue={avatarValue}
+                  bannerSrc={previewBannerSrc}
+                  trimmedName={trimmedName}
+                  displayName={displayName}
+                />
+
+                <SurfaceCard style={{ padding: 20, marginTop: 18, marginBottom: 14 }}>
+                  <div
+                    style={{
                       fontSize: 11,
-                      fontWeight: 600,
-                      fontFamily: 'var(--font-display)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 5,
-                      overflow: 'hidden',
+                      fontWeight: 700,
+                      color: 'var(--text-dim)',
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                      marginBottom: 12,
                     }}
                   >
-                    {bannerSelection?.type === 'url' ? (
-                      <img
-                        src={bannerSelection.url}
-                        alt=""
+                    {t('profileSetup.avatarTitle')}
+                  </div>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+                      gap: 10,
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => avatarFileInputRef.current?.click()}
+                      style={{
+                        appearance: 'none',
+                        border:
+                          selectedAvatarId === 'custom' && customAvatarUrl
+                            ? '2px solid var(--primary-mid)'
+                            : '1px dashed var(--glass-border)',
+                        background: 'var(--glass-subtle)',
+                        borderRadius: 18,
+                        aspectRatio: '1 / 1',
+                        cursor: 'pointer',
+                        position: 'relative',
+                        padding: 0,
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {selectedAvatarId === 'custom' && customAvatarUrl ? (
+                        <img
+                          src={customAvatarUrl}
+                          alt=""
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            display: 'block',
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'var(--text-soft)',
+                          }}
+                        >
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                            <circle cx="12" cy="13" r="3" />
+                          </svg>
+                        </div>
+                      )}
+                    </button>
+                    {AVATAR_PRESETS.map((avatar) => (
+                      <AvatarChoice
+                        key={avatar.id}
+                        selected={selectedAvatarId === avatar.id}
+                        onClick={() => setSelectedAvatarId(avatar.id)}
+                      >
+                        <ProfileAvatar avatarId={avatar.id} name={name} rounded="square" />
+                      </AvatarChoice>
+                    ))}
+                  </div>
+                  <input
+                    ref={avatarFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    style={{ display: 'none' }}
+                  />
+                </SurfaceCard>
+
+                <SurfaceCard style={{ padding: 20, marginBottom: 18 }}>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: 'var(--text-dim)',
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                      marginBottom: 12,
+                    }}
+                  >
+                    {t('profile.edit.bannerLabel')}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+                    <div style={{ position: 'relative', aspectRatio: '16 / 8' }}>
+                      <button
+                        type="button"
+                        onClick={() => bannerFileInputRef.current?.click()}
+                        disabled={uploadingBanner}
                         style={{
                           width: '100%',
                           height: '100%',
-                          objectFit: 'cover',
-                          display: 'block',
+                          appearance: 'none',
+                          padding: 0,
+                          cursor: uploadingBanner ? 'wait' : 'pointer',
+                          position: 'relative',
+                          background: 'var(--glass-subtle)',
+                          border:
+                            bannerSelection?.type === 'url'
+                              ? '2px solid var(--primary-mid)'
+                              : '1px dashed var(--glass-border)',
+                          borderRadius: 16,
+                          color: 'var(--text-soft)',
+                          fontSize: 11,
+                          fontWeight: 600,
+                          fontFamily: 'var(--font-display)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 5,
+                          overflow: 'hidden',
                         }}
-                      />
-                    ) : (
-                      <>
-                        <svg
-                          width="18"
-                          height="18"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
+                      >
+                        {bannerSelection?.type === 'url' ? (
+                          <img
+                            src={bannerSelection.url}
+                            alt=""
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
+                              display: 'block',
+                            }}
+                          />
+                        ) : (
+                          <>
+                            <svg
+                              width="18"
+                              height="18"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                              <circle cx="12" cy="13" r="3" />
+                            </svg>
+                            <span>{uploadingBanner ? '...' : t('profile.edit.uploadOwn')}</span>
+                          </>
+                        )}
+                      </button>
+                      {bannerSelection?.type === 'url' && <SelectionDot />}
+                    </div>
+                    {BANNER_PRESETS.map((preset) => {
+                      const selected =
+                        bannerSelection?.type === 'preset' && bannerSelection.id === preset.id
+                      return (
+                        <BannerChoice
+                          key={preset.id}
+                          selected={selected}
+                          onClick={() => setBannerSelection({ type: 'preset', id: preset.id })}
                         >
-                          <path d="M12 4v16M4 12h16" />
-                        </svg>
-                        <span>{uploadingBanner ? '...' : t('profile.edit.uploadOwn')}</span>
-                      </>
-                    )}
-                  </button>
-                  {bannerSelection?.type === 'url' && <SelectionDot />}
-                </div>
-              </div>
-              <input
-                ref={bannerFileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={handleBannerUpload}
-                style={{ display: 'none' }}
-              />
-            </SurfaceCard>
-          </>
-        )}
+                          <img
+                            src={preset.thumb || preset.src}
+                            alt={preset.label[lang] || preset.label.ru}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
+                              display: 'block',
+                            }}
+                          />
+                        </BannerChoice>
+                      )
+                    })}
+                  </div>
+                  <input
+                    ref={bannerFileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleBannerUpload}
+                    style={{ display: 'none' }}
+                  />
+                </SurfaceCard>
+              </>
+            )}
+          </div>
 
-        <ErrorBlock />
-        <button
-          onClick={onPrimaryAction}
-          disabled={loading || (step === 1 ? !canContinueName : !hasAvatar)}
-          style={{
-            width: '100%',
-            height: 56,
-            borderRadius: 18,
-            border: 'none',
-            cursor: loading ? 'default' : 'pointer',
-            background:
-              loading || (step === 1 ? !canContinueName : !hasAvatar)
-                ? 'var(--primary-dim)'
-                : 'var(--primary)',
-            color: 'var(--text-inverse)',
-            fontSize: 16,
-            fontWeight: 700,
-            boxShadow: loading ? 'none' : '0 18px 36px var(--primary-glow)',
-          }}
-        >
-          {loading ? '...' : step === 1 ? t('profileSetup.continue') : t('profileSetup.finish')}
-        </button>
+          <ErrorBlock error={profileError} />
+          <button
+            onClick={onPrimaryAction}
+            disabled={loading || (step === 1 ? !canContinueName : !hasAvatar)}
+            style={{
+              width: '100%',
+              height: 56,
+              borderRadius: 18,
+              border: 'none',
+              cursor: loading ? 'default' : 'pointer',
+              background:
+                loading || (step === 1 ? !canContinueName : !hasAvatar)
+                  ? 'var(--primary-dim)'
+                  : 'var(--primary)',
+              color: 'var(--text-inverse)',
+              fontSize: 16,
+              fontWeight: 700,
+              boxShadow: loading ? 'none' : '0 18px 36px var(--primary-glow)',
+            }}
+          >
+            {loading ? '...' : step === 1 ? t('profileSetup.continue') : t('profileSetup.finish')}
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   )
 }

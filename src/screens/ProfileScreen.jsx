@@ -406,7 +406,7 @@ export default function ProfileScreen() {
   const { lang, t } = useI18n()
   const allergenInputRef = useRef(null)
   const { profile, updateProfile: setProfile } = useProfile()
-  const { user, displayName, avatarId, bannerUrl, internalUserId } = useAuth()
+  const { user, displayName, avatarId, bannerUrl, internalUserId, logout } = useAuth()
   const { favoritesCount, scanCount } = useUserData()
   const { currentStore } = useStore()
   const { theme, toggleTheme } = useTheme()
@@ -876,10 +876,8 @@ export default function ProfileScreen() {
                 minHeight: 190,
                 borderRadius: 24,
                 overflow: 'hidden',
-                background: user
-                  ? 'linear-gradient(135deg, #1E0A3C 0%, #6D28D9 100%)'
-                  : 'var(--bg-card)',
-                boxShadow: user ? '0 12px 40px rgba(0,0,0,0.35)' : '0 8px 24px rgba(0,0,0,0.10)',
+                background: user ? 'var(--bg-card)' : 'var(--bg-card)',
+                boxShadow: user ? 'var(--shadow-card)' : 'var(--shadow-card)',
                 border: user ? 'none' : '1px solid var(--glass-border)',
               }}
             >
@@ -946,11 +944,10 @@ export default function ProfileScreen() {
                     width: 115,
                     height: 115,
                     borderRadius: '50%',
-                    border: '3px solid #7C3AED',
+                    border: '3px solid var(--avatar-ring-color)',
                     padding: 3,
-                    background: 'rgba(12,10,30,0.55)',
-                    boxShadow:
-                      '0 6px 24px rgba(124,58,237,0.45), inset 0 0 14px rgba(124,58,237,0.18)',
+                    background: 'var(--avatar-ring-bg)',
+                    boxShadow: 'var(--avatar-ring-shadow)',
                     boxSizing: 'border-box',
                   }}
                 >
@@ -1059,9 +1056,9 @@ export default function ProfileScreen() {
                     }}
                     style={{
                       pointerEvents: 'auto',
-                      background: 'linear-gradient(135deg, #7C3AED 0%, #A78BFA 100%)',
+                      background: 'var(--primary)',
                       border: 'none',
-                      color: '#fff',
+                      color: 'var(--text-inverse)',
                       fontSize: 14,
                       fontFamily: 'var(--font-display)',
                       fontWeight: 700,
@@ -1069,7 +1066,7 @@ export default function ProfileScreen() {
                       borderRadius: 12,
                       cursor: 'pointer',
                       letterSpacing: 0.4,
-                      boxShadow: '0 6px 18px rgba(124,58,237,0.32)',
+                      boxShadow: '0 6px 18px var(--primary-glow)',
                     }}
                   >
                     {t('profile.loginBtn')}
@@ -1115,7 +1112,7 @@ export default function ProfileScreen() {
                           width: 6,
                           height: 6,
                           borderRadius: '50%',
-                          background: '#34D399',
+                          background: 'var(--success-bright)',
                         }}
                       />
                       <span
@@ -1123,7 +1120,7 @@ export default function ProfileScreen() {
                           fontFamily: 'var(--font-display)',
                           fontSize: 13,
                           fontWeight: 600,
-                          color: '#34D399',
+                          color: 'var(--success-bright)',
                           textTransform: 'uppercase',
                           letterSpacing: 1,
                         }}
@@ -1141,10 +1138,8 @@ export default function ProfileScreen() {
                           gap: 7,
                           padding: '8px 14px',
                           borderRadius: 14,
-                          background: profile.halal
-                            ? 'rgba(124,58,237,0.2)'
-                            : 'var(--glass-subtle)',
-                          border: `1px solid ${profile.halal ? 'rgba(124,58,237,0.4)' : 'var(--glass-soft-border)'}`,
+                          background: profile.halal ? 'var(--primary-dim)' : 'var(--glass-subtle)',
+                          border: `1px solid ${profile.halal ? 'var(--primary-mid)' : 'var(--glass-soft-border)'}`,
                         }}
                       >
                         <svg
@@ -1163,7 +1158,7 @@ export default function ProfileScreen() {
                             fontFamily: 'var(--font-display)',
                             fontSize: 13,
                             fontWeight: 500,
-                            color: profile.halal ? '#10B981' : 'var(--text-disabled)',
+                            color: profile.halal ? 'var(--success-bright)' : 'var(--text-disabled)',
                             transition: 'color 0.2s ease',
                           }}
                         >
@@ -1183,8 +1178,8 @@ export default function ProfileScreen() {
                               gap: 7,
                               padding: '8px 14px',
                               borderRadius: 14,
-                              background: a ? 'rgba(124,58,237,0.2)' : 'var(--glass-subtle)',
-                              border: `1px solid ${a ? 'rgba(124,58,237,0.4)' : 'var(--glass-soft-border)'}`,
+                              background: a ? 'var(--primary-dim)' : 'var(--glass-subtle)',
+                              border: `1px solid ${a ? 'var(--primary-mid)' : 'var(--glass-soft-border)'}`,
                             }}
                           >
                             <DietIcon name={d.icon} size={24} />
@@ -1222,7 +1217,7 @@ export default function ProfileScreen() {
                           width: 6,
                           height: 6,
                           borderRadius: '50%',
-                          background: '#F87171',
+                          background: 'var(--error-bright)',
                         }}
                       />
                       <span
@@ -1230,7 +1225,7 @@ export default function ProfileScreen() {
                           fontFamily: 'var(--font-display)',
                           fontSize: 13,
                           fontWeight: 600,
-                          color: '#F87171',
+                          color: 'var(--error-bright)',
                           textTransform: 'uppercase',
                           letterSpacing: 1,
                         }}
@@ -1252,8 +1247,9 @@ export default function ProfileScreen() {
                               gap: 7,
                               padding: '8px 12px',
                               borderRadius: 14,
-                              background: a ? 'rgba(239,68,68,0.15)' : 'var(--glass-subtle)',
-                              border: `1px solid ${a ? 'rgba(239,68,68,0.3)' : 'var(--glass-soft-border)'}`,
+                              background: 'var(--error-dim)',
+                              border: '1px solid var(--error-border)',
+                              color: a ? 'var(--error-bright)' : 'var(--text-disabled)',
                             }}
                           >
                             <DietIcon name={al.icon} size={14} />
@@ -1262,7 +1258,7 @@ export default function ProfileScreen() {
                                 fontFamily: 'var(--font-display)',
                                 fontSize: 12,
                                 fontWeight: 500,
-                                color: a ? '#EF4444' : 'var(--text-disabled)',
+                                color: a ? 'var(--error-bright)' : 'var(--text-disabled)',
                               }}
                             >
                               {tr(al.label)}
@@ -1297,7 +1293,7 @@ export default function ProfileScreen() {
                           borderRadius: 12,
                           background: 'var(--primary)',
                           border: 'none',
-                          color: '#fff',
+                          color: 'var(--text-inverse)',
                           fontSize: 12,
                           fontWeight: 600,
                           fontFamily: 'var(--font-display)',
@@ -1318,9 +1314,9 @@ export default function ProfileScreen() {
                               gap: 5,
                               padding: '5px 10px',
                               borderRadius: 12,
-                              background: 'rgba(239,68,68,0.1)',
-                              color: '#FCA5A5',
-                              border: '1px solid rgba(239,68,68,0.2)',
+                              background: 'var(--error-dim)',
+                              color: 'var(--error-bright)',
+                              border: '1px solid var(--error-border)',
                               fontSize: 11,
                               fontFamily: 'var(--font-display)',
                             }}
@@ -1359,7 +1355,7 @@ export default function ProfileScreen() {
                       height="18"
                       viewBox="0 0 24 24"
                       fill="none"
-                      stroke="#A78BFA"
+                      stroke="var(--primary)"
                       strokeWidth="2"
                       strokeLinecap="round"
                     >
@@ -1385,7 +1381,7 @@ export default function ProfileScreen() {
                       height="18"
                       viewBox="0 0 24 24"
                       fill="none"
-                      stroke="#A78BFA"
+                      stroke="var(--primary)"
                       strokeWidth="2"
                       strokeLinecap="round"
                     >
@@ -1408,7 +1404,7 @@ export default function ProfileScreen() {
                       height="18"
                       viewBox="0 0 24 24"
                       fill="none"
-                      stroke="#A78BFA"
+                      stroke="var(--primary)"
                       strokeWidth="2"
                       strokeLinecap="round"
                     >
@@ -1479,7 +1475,7 @@ export default function ProfileScreen() {
                         />
                       </div>
                       {pushSettings.status === 'denied' && (
-                        <div style={{ fontSize: 11, color: '#FCA5A5' }}>
+                        <div style={{ fontSize: 11, color: 'var(--error-bright)' }}>
                           {t('notification.permissionDenied')}
                         </div>
                       )}
@@ -1506,7 +1502,7 @@ export default function ProfileScreen() {
                       height="18"
                       viewBox="0 0 24 24"
                       fill="none"
-                      stroke="#A78BFA"
+                      stroke="var(--primary)"
                       strokeWidth="2"
                       strokeLinecap="round"
                     >
@@ -1535,7 +1531,7 @@ export default function ProfileScreen() {
                       height="18"
                       viewBox="0 0 24 24"
                       fill="none"
-                      stroke="#A78BFA"
+                      stroke="var(--primary)"
                       strokeWidth="2"
                       strokeLinecap="round"
                     >
@@ -1560,7 +1556,7 @@ export default function ProfileScreen() {
                       height="18"
                       viewBox="0 0 24 24"
                       fill="none"
-                      stroke="#A78BFA"
+                      stroke="var(--primary)"
                       strokeWidth="2"
                       strokeLinecap="round"
                     >
@@ -1649,7 +1645,7 @@ export default function ProfileScreen() {
                       height="18"
                       viewBox="0 0 24 24"
                       fill="none"
-                      stroke="#A78BFA"
+                      stroke="var(--primary)"
                       strokeWidth="2"
                       strokeLinecap="round"
                     >
@@ -1670,7 +1666,7 @@ export default function ProfileScreen() {
                       height="18"
                       viewBox="0 0 24 24"
                       fill="none"
-                      stroke="#A78BFA"
+                      stroke="var(--primary)"
                       strokeWidth="2"
                       strokeLinecap="round"
                     >
@@ -1692,7 +1688,7 @@ export default function ProfileScreen() {
                       height="18"
                       viewBox="0 0 24 24"
                       fill="none"
-                      stroke="#A78BFA"
+                      stroke="var(--primary)"
                       strokeWidth="2"
                       strokeLinecap="round"
                     >
@@ -1711,7 +1707,7 @@ export default function ProfileScreen() {
                       height="18"
                       viewBox="0 0 24 24"
                       fill="none"
-                      stroke="#A78BFA"
+                      stroke="var(--primary)"
                       strokeWidth="2"
                       strokeLinecap="round"
                     >
@@ -1732,7 +1728,7 @@ export default function ProfileScreen() {
                       height="18"
                       viewBox="0 0 24 24"
                       fill="none"
-                      stroke="#A78BFA"
+                      stroke="var(--primary)"
                       strokeWidth="2"
                       strokeLinecap="round"
                     >
@@ -1750,7 +1746,7 @@ export default function ProfileScreen() {
                       height="18"
                       viewBox="0 0 24 24"
                       fill="none"
-                      stroke="#F87171"
+                      stroke="var(--error-bright)"
                       strokeWidth="2"
                       strokeLinecap="round"
                     >
@@ -1758,8 +1754,8 @@ export default function ProfileScreen() {
                       <path d="M3 3v5h5" />
                     </svg>
                   ),
-                  label: t('profile.policy'),
-                  onClick: () => navigate('/privacy-policy'),
+                  label: t('profile.logout'),
+                  onClick: () => logout(),
                 },
               ],
             },
@@ -1775,7 +1771,7 @@ export default function ProfileScreen() {
                             height="18"
                             viewBox="0 0 24 24"
                             fill="none"
-                            stroke="#38BDF8"
+                            stroke="var(--primary)"
                             strokeWidth="2"
                             strokeLinecap="round"
                           >
@@ -1786,8 +1782,8 @@ export default function ProfileScreen() {
                           </svg>
                         ),
                         label: t('profile.retailManage'),
-                        labelStyle: { color: '#38BDF8', fontWeight: 600 },
-                        iconStyle: { background: 'rgba(56,189,248,0.1)' },
+                        labelStyle: { color: 'var(--primary)', fontWeight: 600 },
+                        iconStyle: { background: 'var(--primary-dim)' },
                         onClick: () => navigate(`/retail/${currentStore?.slug || 'store-one'}`),
                       },
                     ],

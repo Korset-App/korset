@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useStore } from '../contexts/StoreContext.jsx'
@@ -105,27 +105,23 @@ export default function ProfileEditScreen() {
 
   const backTarget = buildProfilePath(currentStore?.slug || null)
 
-  const initialBannerSelection = useMemo(() => {
-    const value = bannerUrl || user?.user_metadata?.banner_url || null
-    if (!value) return { type: 'preset', id: BANNER_PRESETS[0].id }
-    if (isPresetBanner(value)) return { type: 'preset', id: value.slice(7) }
-    if (/^https?:/i.test(value)) return { type: 'url', url: value }
-    return { type: 'preset', id: BANNER_PRESETS[0].id }
-  }, [bannerUrl, user])
-
   const [name, setName] = useState('')
   const [nameError, setNameError] = useState('')
   const [selectedAvatarId, setSelectedAvatarId] = useState(AVATAR_PRESETS[0].id)
-  const [bannerSelection, setBannerSelection] = useState(initialBannerSelection)
+  const [bannerSelection, setBannerSelection] = useState({
+    type: 'preset',
+    id: BANNER_PRESETS[0].id,
+  })
   const [uploading, setUploading] = useState(false)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [customAvatarUrl, setCustomAvatarUrl] = useState(null)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState('')
+  const initializedRef = useRef(false)
 
   useEffect(() => {
-    if (!user) return
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!user || initializedRef.current) return
+    initializedRef.current = true
     setName(displayName || user.user_metadata?.full_name || '')
     const initialAvatar = avatarId || user.user_metadata?.avatar_id || AVATAR_PRESETS[0].id
     if (typeof initialAvatar === 'string' && /^https?:/i.test(initialAvatar)) {
@@ -134,8 +130,17 @@ export default function ProfileEditScreen() {
     } else {
       setSelectedAvatarId(initialAvatar || AVATAR_PRESETS[0].id)
     }
-    setBannerSelection(initialBannerSelection)
-  }, [user, displayName, avatarId, initialBannerSelection])
+    const bannerValue = bannerUrl || user.user_metadata?.banner_url || null
+    if (!bannerValue) {
+      setBannerSelection({ type: 'preset', id: BANNER_PRESETS[0].id })
+    } else if (isPresetBanner(bannerValue)) {
+      setBannerSelection({ type: 'preset', id: bannerValue.slice(7) })
+    } else if (/^https?:/i.test(bannerValue)) {
+      setBannerSelection({ type: 'url', url: bannerValue })
+    } else {
+      setBannerSelection({ type: 'preset', id: BANNER_PRESETS[0].id })
+    }
+  }, [user])
 
   if (!user) {
     navigate('/auth', { replace: true })
@@ -711,54 +716,6 @@ export default function ProfileEditScreen() {
                 gap: 10,
               }}
             >
-              {BANNER_PRESETS.map((preset) => {
-                const selected =
-                  bannerSelection?.type === 'preset' && bannerSelection.id === preset.id
-                return (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    onClick={() => setBannerSelection({ type: 'preset', id: preset.id })}
-                    aria-pressed={selected}
-                    style={{
-                      appearance: 'none',
-                      background: 'transparent',
-                      border: 'none',
-                      padding: 0,
-                      aspectRatio: '16 / 8',
-                      cursor: 'pointer',
-                      position: 'relative',
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        borderRadius: 16,
-                        overflow: 'hidden',
-                        border: selected
-                          ? '2px solid var(--primary-mid)'
-                          : '1px solid var(--glass-border)',
-                        boxShadow: selected ? '0 6px 18px var(--primary-glow)' : 'none',
-                        transition: 'border 0.15s, box-shadow 0.15s',
-                      }}
-                    >
-                      <img
-                        src={preset.thumb || preset.src}
-                        alt={preset.label[lang] || preset.label.ru}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                          display: 'block',
-                        }}
-                      />
-                    </div>
-                    {selected && <SelectedDot />}
-                  </button>
-                )
-              })}
-
               <div style={{ position: 'relative', aspectRatio: '16 / 8' }}>
                 <button
                   type="button"
@@ -812,7 +769,8 @@ export default function ProfileEditScreen() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                       >
-                        <path d="M12 4v16M4 12h16" />
+                        <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                        <circle cx="12" cy="13" r="3" />
                       </svg>
                       <span style={{ textAlign: 'center', padding: '0 6px' }}>
                         {uploading ? t('profile.edit.saving') : t('profile.edit.uploadOwn')}
@@ -822,6 +780,53 @@ export default function ProfileEditScreen() {
                 </button>
                 {bannerSelection?.type === 'url' && <SelectedDot />}
               </div>
+              {BANNER_PRESETS.map((preset) => {
+                const selected =
+                  bannerSelection?.type === 'preset' && bannerSelection.id === preset.id
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => setBannerSelection({ type: 'preset', id: preset.id })}
+                    aria-pressed={selected}
+                    style={{
+                      appearance: 'none',
+                      background: 'transparent',
+                      border: 'none',
+                      padding: 0,
+                      aspectRatio: '16 / 8',
+                      cursor: 'pointer',
+                      position: 'relative',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        borderRadius: 16,
+                        overflow: 'hidden',
+                        border: selected
+                          ? '2px solid var(--primary-mid)'
+                          : '1px solid var(--glass-border)',
+                        boxShadow: selected ? '0 6px 18px var(--primary-glow)' : 'none',
+                        transition: 'border 0.15s, box-shadow 0.15s',
+                      }}
+                    >
+                      <img
+                        src={preset.thumb || preset.src}
+                        alt={preset.label[lang] || preset.label.ru}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          display: 'block',
+                        }}
+                      />
+                    </div>
+                    {selected && <SelectedDot />}
+                  </button>
+                )
+              })}
             </div>
             <input
               ref={fileInputRef}
