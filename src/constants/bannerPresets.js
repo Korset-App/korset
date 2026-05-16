@@ -6,43 +6,36 @@ export const BANNER_PRESETS = [
   {
     id: 'golden-samurai',
     src: '/profile-bgs/golden-samurai.webp',
-    thumb: '/profile-bgs/thumbs/golden-samurai.webp',
     label: { ru: 'Золотой закат', kz: 'Алтын күн батуы' },
   },
   {
     id: 'starlit-observatory',
     src: '/profile-bgs/starlit-observatory.webp',
-    thumb: '/profile-bgs/thumbs/starlit-observatory.webp',
     label: { ru: 'Звёздная ночь', kz: 'Жұлдызды түн' },
   },
   {
     id: 'witching-hour',
     src: '/profile-bgs/witching-hour.webp',
-    thumb: '/profile-bgs/thumbs/witching-hour.webp',
     label: { ru: 'Ведьмин час', kz: 'Сиқыршы сағаты' },
   },
   {
     id: 'teal-moonlight',
     src: '/profile-bgs/teal-moonlight.webp',
-    thumb: '/profile-bgs/thumbs/teal-moonlight.webp',
     label: { ru: 'Бирюзовая луна', kz: 'Көкжасын ай' },
   },
   {
     id: 'crescent-nightingale',
     src: '/profile-bgs/crescent-nightingale.webp',
-    thumb: '/profile-bgs/thumbs/crescent-nightingale.webp',
     label: { ru: 'Полумесяц', kz: 'Жарты ай' },
   },
   {
     id: 'dawn-ronin',
     src: '/profile-bgs/dawn-ronin.webp',
-    thumb: '/profile-bgs/thumbs/dawn-ronin.webp',
     label: { ru: 'Рассветный ронин', kz: 'Таңғы ронин' },
   },
   {
     id: 'midnight-grove',
     src: '/profile-bgs/midnight-grove.webp',
-    thumb: '/profile-bgs/thumbs/midnight-grove.webp',
     label: { ru: 'Полночная роща', kz: 'Түнгі орман' },
   },
 ]

@@ -60,6 +60,38 @@ function cleanMessages(messages) {
             .slice(0, 3)
             .map((item) => cleanString(item, 180))
         }
+        if (message.verdict && typeof message.verdict === 'object') {
+          cleanMessage.verdict = {
+            label: cleanString(message.verdict.label, 40),
+            title: cleanString(message.verdict.title, 120),
+            tone: cleanString(message.verdict.tone, 40),
+          }
+        }
+        if (Array.isArray(message.confidenceNotes)) {
+          cleanMessage.confidenceNotes = message.confidenceNotes
+            .filter((item) => typeof item === 'string')
+            .slice(0, 6)
+            .map((item) => cleanString(item, 240))
+        }
+        if (Array.isArray(message.checkOnPackage)) {
+          cleanMessage.checkOnPackage = message.checkOnPackage
+            .filter((item) => typeof item === 'string')
+            .slice(0, 6)
+            .map((item) => cleanString(item, 160))
+        }
+        if (Array.isArray(message.alternatives)) {
+          cleanMessage.alternatives = message.alternatives.slice(0, 5).map((product) => ({
+            ean: cleanString(product.ean, 40),
+            name: cleanString(product.name, 220),
+            brand: cleanString(product.brand, 120),
+            category: cleanString(product.category, 80),
+            subcategory: cleanString(product.subcategory, 80),
+            priceKzt: Number.isFinite(Number(product.priceKzt)) ? Number(product.priceKzt) : null,
+            stockStatus: cleanString(product.stockStatus, 40),
+            image: cleanString(product.image, 500),
+            quantity: cleanString(product.quantity, 80),
+          }))
+        }
       }
 
       return cleanMessage

@@ -5,7 +5,7 @@ import { useI18n } from '../i18n/index.js'
 import { useLocalName } from '../utils/localName.js'
 import { useOffline } from '../contexts/OfflineContext.jsx'
 import KorsetAvatar from '../components/KorsetAvatar.jsx'
-import { askProductAI } from '../services/ai.js'
+import { askProductAIResponse } from '../services/ai.js'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { buildProductPath } from '../utils/routes.js'
 import { resolveProductForProductAI } from '../domain/ai/productContext.js'
@@ -19,6 +19,209 @@ import {
   loadAIChatSession,
   saveAIChatSession,
 } from '../domain/ai/context.js'
+
+function formatAiPrice(value) {
+  return Number.isFinite(Number(value))
+    ? new Intl.NumberFormat('ru-KZ', {
+        style: 'currency',
+        currency: 'KZT',
+        maximumFractionDigits: 0,
+      }).format(Number(value))
+    : ''
+}
+
+function getStockLabel(t, status) {
+  if (status === 'in_stock') return t('ai.stock.inStock')
+  if (status === 'low_stock') return t('ai.stock.lowStock')
+  if (status === 'out_of_stock') return t('ai.stock.outOfStock')
+  return ''
+}
+
+function getVerdictStyle(tone) {
+  if (tone === 'danger') {
+    return {
+      background: 'var(--error-dim)',
+      border: '1px solid var(--error-border)',
+      color: 'var(--error-bright)',
+    }
+  }
+  if (tone === 'caution') {
+    return {
+      background: 'var(--warning-dim, rgba(217,119,6,0.12))',
+      border: '1px solid var(--warning-border, rgba(217,119,6,0.22))',
+      color: 'var(--warning)',
+    }
+  }
+  if (tone === 'positive') {
+    return {
+      background: 'var(--success-dim)',
+      border: '1px solid var(--success-border)',
+      color: 'var(--success-bright)',
+    }
+  }
+  return {
+    background: 'var(--glass-subtle)',
+    border: '1px solid var(--glass-soft-border)',
+    color: 'var(--text-sub)',
+  }
+}
+
+function ProductAIMessageDetails({ message, t, onProductOpen }) {
+  const hasVerdict = message.verdict?.title
+  const hasConfidenceNotes =
+    Array.isArray(message.confidenceNotes) && message.confidenceNotes.length > 0
+  const hasPackageChecks =
+    Array.isArray(message.checkOnPackage) && message.checkOnPackage.length > 0
+  const hasAlternatives = Array.isArray(message.alternatives) && message.alternatives.length > 0
+
+  if (!hasVerdict && !hasConfidenceNotes && !hasPackageChecks && !hasAlternatives) return null
+
+  return (
+    <div style={{ marginTop: 12, display: 'grid', gap: 10 }}>
+      {hasVerdict && (
+        <div
+          style={{
+            ...getVerdictStyle(message.verdict.tone),
+            borderRadius: 12,
+            padding: '9px 11px',
+            fontSize: 12,
+            fontWeight: 700,
+          }}
+        >
+          <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            {t('ai.productVerdict')}
+          </div>
+          <div style={{ marginTop: 2 }}>{message.verdict.title}</div>
+        </div>
+      )}
+
+      {hasConfidenceNotes && (
+        <div style={{ display: 'grid', gap: 6 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)' }}>
+            {t('ai.confidenceNotes')}
+          </div>
+          {message.confidenceNotes.map((note, index) => (
+            <div
+              key={`${note}-${index}`}
+              style={{
+                fontSize: 12,
+                lineHeight: 1.45,
+                color: 'var(--text-sub)',
+                paddingLeft: 10,
+                borderLeft: '2px solid var(--glass-soft-border)',
+              }}
+            >
+              {note}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {hasPackageChecks && (
+        <div style={{ display: 'grid', gap: 6 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)' }}>
+            {t('ai.checkOnPackage')}
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {message.checkOnPackage.map((item, index) => (
+              <span
+                key={`${item}-${index}`}
+                style={{
+                  border: '1px solid var(--glass-soft-border)',
+                  background: 'var(--glass-subtle)',
+                  color: 'var(--text-sub)',
+                  borderRadius: 999,
+                  padding: '5px 8px',
+                  fontSize: 11,
+                  lineHeight: 1.2,
+                }}
+              >
+                {item}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {hasAlternatives && (
+        <div style={{ display: 'grid', gap: 7 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)' }}>
+            {t('ai.sameStoreAlternatives')}
+          </div>
+          {message.alternatives.slice(0, 3).map((item) => {
+            const price = formatAiPrice(item.priceKzt)
+            const stock = getStockLabel(t, item.stockStatus)
+            return (
+              <button
+                type="button"
+                key={item.ean}
+                onClick={() => onProductOpen(item)}
+                style={{
+                  width: '100%',
+                  border: '1px solid var(--glass-soft-border)',
+                  background: 'var(--glass-subtle)',
+                  color: 'var(--text)',
+                  borderRadius: 12,
+                  padding: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 9,
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                }}
+              >
+                <div
+                  className="catalog-img-box"
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 9,
+                    overflow: 'hidden',
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {item.image ? (
+                    <img
+                      src={item.image}
+                      alt=""
+                      className="product-img-blend"
+                      style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 2 }}
+                    />
+                  ) : (
+                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+                      grocery
+                    </span>
+                  )}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {item.name}
+                  </div>
+                  {(price || stock) && (
+                    <div style={{ marginTop: 2, fontSize: 11, color: 'var(--text-disabled)' }}>
+                      {[price, stock].filter(Boolean).join(' · ')}
+                    </div>
+                  )}
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function AIScreen() {
   const { ean, storeSlug } = useParams()
@@ -132,7 +335,7 @@ export default function AIScreen() {
     setInput('')
     setLoading(true)
     try {
-      const reply = await askProductAI(
+      const response = await askProductAIResponse(
         newMessages,
         product,
         profile,
@@ -140,7 +343,18 @@ export default function AIScreen() {
         storeContext,
         productAlternatives
       )
-      setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: response.reply,
+          verdict: response.verdict,
+          confidenceNotes: response.confidenceNotes,
+          checkOnPackage: response.checkOnPackage,
+          alternatives: response.alternatives,
+          warnings: response.warnings,
+        },
+      ])
     } catch (e) {
       setError(`${t('ai.errorPrefix')} ${e.message}`)
       setMessages((prev) => prev.slice(0, -1))
@@ -459,6 +673,17 @@ export default function AIScreen() {
               }
             >
               {msg.content}
+              {msg.role === 'assistant' && (
+                <ProductAIMessageDetails
+                  message={msg}
+                  t={t}
+                  onProductOpen={(item) =>
+                    navigate(buildProductPath(activeStoreSlug, item.ean), {
+                      state: { product: item },
+                    })
+                  }
+                />
+              )}
             </div>
           </div>
         ))}

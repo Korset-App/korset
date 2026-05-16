@@ -62,5 +62,9 @@
   "ai.productSuggestions.packagingCheck.question": "\"{name}\" сатып алар алдында қаптамадан нені тексеру маңызды?",
   "ai.productSuggestions.usageIdeas.label": "Қалай қолданған дұрыс?",
   "ai.productSuggestions.usageIdeas.question": "\"{name}\" үйде қалай қолданған дұрыс? Күрделі рецептсіз практикалық идеялар беріңіз.",
+  "ai.productVerdict": "Қорытынды",
+  "ai.confidenceNotes": "Карточка деректері бойынша",
+  "ai.checkOnPackage": "Қаптамадан тексеріңіз",
+  "ai.sameStoreAlternatives": "Осы дүкендегі баламалар",
   "ai.disclaimer": "Ескерту: жасанды интеллект қателесуі мүмкін. Құрамды әрқашан қаптамадан тексеріңіз, әсіресе халал ережелері қатаң болса немесе күшті аллергияңыз болса."
 }

@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { buildAIProductGroups, normalizeAIResponse } from '../../src/domain/ai/responseShape.js'
+import {
+  buildAIProductGroups,
+  buildProductAIResponseMeta,
+  normalizeAIResponse,
+} from '../../src/domain/ai/responseShape.js'
 
 const candidates = [
   {
@@ -129,6 +133,10 @@ test('normalizeAIResponse keeps reply and attaches groups/follow ups', () => {
     productGroups: buildAIProductGroups(candidates),
     followUps: ['Сделать дешевле', 'Только халал'],
     warnings: ['Цена может отличаться на кассе'],
+    verdict: { label: 'good_option', title: 'Выглядит подходящим вариантом', tone: 'positive' },
+    confidenceNotes: ['По данным карточки явных рисков не вижу.'],
+    checkOnPackage: ['Следы аллергенов'],
+    alternatives: [{ ean: '4', name: 'Alt', priceKzt: 500, stockStatus: 'in_stock' }],
     ragUsed: true,
   })
 
@@ -136,6 +144,10 @@ test('normalizeAIResponse keeps reply and attaches groups/follow ups', () => {
   assert.equal(response.productGroups.length, 3)
   assert.deepEqual(response.followUps, ['Сделать дешевле', 'Только халал'])
   assert.deepEqual(response.warnings, ['Цена может отличаться на кассе'])
+  assert.equal(response.verdict.label, 'good_option')
+  assert.deepEqual(response.confidenceNotes, ['По данным карточки явных рисков не вижу.'])
+  assert.deepEqual(response.checkOnPackage, ['Следы аллергенов'])
+  assert.equal(response.alternatives[0].ean, '4')
   assert.equal(response.ragUsed, true)
 })
 
@@ -145,6 +157,62 @@ test('normalizeAIResponse accepts legacy string replies', () => {
     productGroups: [],
     followUps: [],
     warnings: [],
+    verdict: null,
+    confidenceNotes: [],
+    checkOnPackage: [],
+    alternatives: [],
     ragUsed: false,
   })
+})
+
+test('buildProductAIResponseMeta marks direct allergy match as choose another', () => {
+  const meta = buildProductAIResponseMeta({
+    product: {
+      ean: '1',
+      name: 'Milk',
+      ingredients: 'milk',
+      allergens: ['milk'],
+      alternatives: [],
+    },
+    profile: { allergens: ['milk'] },
+    alternatives: [{ ean: '2', name: 'Oat drink', stockStatus: 'in_stock' }],
+  })
+
+  assert.equal(meta.verdict.label, 'choose_another')
+  assert.equal(meta.verdict.tone, 'danger')
+  assert.ok(meta.warnings.includes('allergy_direct_match'))
+  assert.ok(meta.checkOnPackage.includes('Следы аллергенов'))
+  assert.equal(meta.alternatives[0].ean, '2')
+})
+
+test('buildProductAIResponseMeta keeps likely halal useful without fake certification', () => {
+  const meta = buildProductAIResponseMeta({
+    product: {
+      ean: '1',
+      name: 'Rice',
+      ingredients: 'rice, water, salt',
+      halalStatus: 'unknown',
+    },
+    profile: { halalOnly: true },
+  })
+
+  assert.equal(meta.verdict.label, 'good_option')
+  assert.ok(meta.checkOnPackage.includes('Halal-маркировку или сертификат'))
+  assert.equal(meta.warnings.includes('not_halal'), false)
+})
+
+test('buildProductAIResponseMeta localizes product response metadata to Kazakh', () => {
+  const meta = buildProductAIResponseMeta({
+    product: {
+      ean: '1',
+      name: 'Product',
+      halalStatus: 'unknown',
+    },
+    profile: { allergens: ['milk'], halalOnly: true },
+    lang: 'kz',
+  })
+
+  assert.equal(meta.verdict.title, 'Қаптамадан тексеру керек')
+  assert.ok(meta.checkOnPackage.includes('Құрамы мен тағамдық қоспалары'))
+  assert.ok(meta.checkOnPackage.includes('Halal белгісі немесе сертификаты'))
 })

@@ -7,7 +7,10 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { buildGeneralAIFollowUps } from '../src/domain/ai/followUps.js'
-import { buildAIProductGroups } from '../src/domain/ai/responseShape.js'
+import {
+  buildAIProductGroups,
+  buildProductAIResponseMeta,
+} from '../src/domain/ai/responseShape.js'
 import { buildSafetyNotes } from '../src/domain/ai/safetyContract.js'
 
 const CORS_ORIGINS = [
@@ -483,6 +486,15 @@ export default async function handler(req, res) {
       mode === 'general'
         ? buildProductGroupsFromCatalog(catalogContext, { lang, replyText: reply || '' })
         : []
+    const productResponseMeta =
+      mode === 'product'
+        ? buildProductAIResponseMeta({
+            product,
+            profile,
+            alternatives: product?.alternatives || [],
+            lang,
+          })
+        : null
     const followUps =
       mode === 'general'
         ? buildGeneralAIFollowUps({
@@ -513,9 +525,14 @@ export default async function handler(req, res) {
       productGroups: responseProductGroups,
       followUps,
       warnings:
-        mode === 'general' && catalogContext.length === 0
+        productResponseMeta?.warnings ||
+        (mode === 'general' && catalogContext.length === 0
           ? ['Я могу рекомендовать только товары, которые вижу в каталоге текущего магазина.']
-          : [],
+          : []),
+      verdict: productResponseMeta?.verdict || null,
+      confidenceNotes: productResponseMeta?.confidenceNotes || [],
+      checkOnPackage: productResponseMeta?.checkOnPackage || [],
+      alternatives: productResponseMeta?.alternatives || [],
       ragUsed: !!ragContext,
     })
   } catch (e) {
@@ -573,7 +590,7 @@ ${langNote}
 ПРОФИЛЬ: ${profileParts.length ? profileParts.join('; ') : 'не задан'}${safetySection}${alternativesSection}${ragSection}`
 }
 
-function buildGeneralPrompt(lang, storeContext, catalogContext = []) {
+export function buildGeneralPrompt(lang, storeContext, catalogContext = []) {
   const storeName = storeContext?.name || 'текущего магазина'
   const catalogSection = catalogContext.length
     ? `\n\nТОВАРЫ, КОТОРЫЕ ВИДНЫ В КАТАЛОГЕ ${storeName}:\n${catalogContext
@@ -582,12 +599,14 @@ function buildGeneralPrompt(lang, storeContext, catalogContext = []) {
             `- ${item.name}${item.brand ? `, ${item.brand}` : ''}${item.priceKzt ? `, ${item.priceKzt} ₸` : ''}${item.category ? `, категория: ${item.category}` : ''}${item.subcategory ? `/${item.subcategory}` : ''}, наличие: ${item.stockStatus}`
         )
         .join('\n')}`
-    : '\n\nВ переданном catalog context нет подходящих товаров.'
+    : '\n\nВ переданном catalog context нет подходящих товаров: честно скажи, что не вижу подходящих товаров в каталоге этого магазина, и не предлагай товары вне текущего магазина.'
 
   if (lang === 'kz') {
-    return `Сен — ${storeName} дүкеніндегі Körset AI көмекшісісің. Тек осы дүкеннің берілген каталогындағы тауарларды ұсын. Егер тауар берілген каталогта жоқ болса, оны көрмей тұрғаныңды ашық айт. Қысқа, түсінікті қазақша жауап бер. Максимум 3-4 сөйлем. Markdown, жұлдызша және ұзын тізім қолданба; карточкалардағы тауарларды мәтінде толық қайталама.${catalogSection}`
+    return `Сен — ${storeName} дүкеніндегі Körset AI көмекшісісің. Тек осы дүкеннің берілген каталогындағы тауарларды ұсын. Егер тауар берілген каталогта жоқ болса, оны көрмей тұрғаныңды ашық айт. Қысқа, түсінікті қазақша жауап бер. Максимум 3-4 сөйлем. Markdown, жұлдызша және ұзын тізім қолданба; карточкалардағы тауарларды мәтінде толық қайталама.
+ПРЕМИУМ ЖАУАП ЕРЕЖЕСІ: тауарларды тек ағымдағы дүкеннің берілген каталогынан ұсын; карточкалардағы барлық тауарды мәтінде қайталама; тауар топтары сұрауға неге сәйкес келетінін қысқа түсіндір; пайдалы келесі қадам ұсын; сәйкес тауар көрінбесе, осы дүкен каталогында көрмей тұрғаныңды айт.${catalogSection}`
   }
-  return `Ты — Körset AI, помощник покупателя в магазине ${storeName}. Помогаешь найти товары, советуешь простые покупки и отвечаешь про состав и аллергены. Рекомендуй только товары из переданного каталога текущего магазина. Если товара нет в данных, честно скажи, что не видишь его в этом магазине. Кратко, по-русски, как дружелюбный консультант. Максимум 3-4 предложения. Не используй markdown, звёздочки и длинные списки; не дублируй в тексте весь список товаров, который уже показан карточками.${catalogSection}`
+  return `Ты — Körset AI, помощник покупателя в магазине ${storeName}. Помогаешь найти товары, советуешь простые покупки и отвечаешь про состав и аллергены. Рекомендуй только товары из переданного каталога текущего магазина. Если товара нет в данных, честно скажи, что не видишь его в этом магазине. Кратко, по-русски, как дружелюбный консультант. Максимум 3-4 предложения. Не используй markdown, звёздочки и длинные списки; не дублируй в тексте весь список товаров, который уже показан карточками.
+ПРЕМИУМ-КОНТРАКТ ОТВЕТА: рекомендуй только из переданного каталога текущего магазина; не повторяй в тексте весь список товаров из карточек; объясни, почему группы товаров подходят под запрос; предложи следующий шаг, например дешевле, без аллергена, halal-фильтр, замену или проверку упаковки; если подходящих товаров не видно, скажи, что не вижу подходящих товаров в каталоге этого магазина, и не предлагай товары вне текущего магазина.${catalogSection}`
 }
 
 function buildComparePrompt(productA, productB, profile, winner, lang, ragContext) {

@@ -34,6 +34,25 @@ export async function askProductAI(
   storeContext = null,
   alternatives = []
 ) {
+  const response = await askProductAIResponse(
+    messages,
+    product,
+    profile,
+    lang,
+    storeContext,
+    alternatives
+  )
+  return response.reply
+}
+
+export async function askProductAIResponse(
+  messages,
+  product,
+  profile,
+  lang,
+  storeContext = null,
+  alternatives = []
+) {
   const response = await callAI({
     messages,
     mode: 'product',
@@ -53,7 +72,7 @@ export async function askProductAI(
     storeContext,
     lang,
   })
-  return response.reply
+  return normalizeAIResponse(response)
 }
 
 export async function askGeneralAI(

@@ -248,8 +248,8 @@ Acceptance:
 
 Purpose: find the actual quality failures before adding more code.
 
-- [ ] Create/update a premium QA pack under `docs/vault/plans/`.
-- [ ] Cover at least these general AI prompts:
+- [x] Create/update a premium QA pack under `docs/vault/plans/`. Created `docs/vault/plans/2026-05-17-ai-premium-qa-matrix.md`.
+- [x] Cover at least these general AI prompts:
   - `Соберите продукты для плова`
   - `Что купить на ужин до 5000 ₸?`
   - `Покажите халал-сладости`
@@ -258,15 +258,15 @@ Purpose: find the actual quality failures before adding more code.
   - `Покажите дешевле`
   - `Что есть без сахара?`
   - `Что есть без лактозы?`
-- [ ] Cover at least these product AI prompts:
+- [x] Cover at least these product AI prompts:
   - `Можно ли мне этот продукт?`
   - `Можно ли считать халал?`
   - `Разберите состав простыми словами`
   - `Есть риск для моих аллергий?`
   - `Есть вариант лучше?`
   - `Что проверить на упаковке?`
-- [ ] Run mocked browser smoke first for `/s/store-one/ai`.
-- [ ] Spend real OpenAI calls only for the first 10 premium QA cases.
+- [x] Run mocked browser smoke first for `/s/store-one/ai`. `npm test -- tests/e2e/aiGeneralMocked.spec.js --reporter=list` passed without real OpenAI calls.
+- [ ] Spend real OpenAI calls only for the first 10 premium QA cases. Deferred until owner explicitly approves spending real API balance.
 - [ ] Stop and fix patterns if fewer than 8/10 pass.
 
 Acceptance:
@@ -278,24 +278,24 @@ Acceptance:
 
 Purpose: make the store assistant feel like a competent in-store consultant.
 
-- [ ] Add or update internal ranking tests for best-choice labels:
+- [x] Add or update internal ranking tests for best-choice labels:
   - allergy risk outranks price.
   - confirmed/likely halal outranks unknown for halal requests.
   - in-stock outranks out-of-stock when relevance is similar.
   - lower price matters only after safety and relevance.
-- [ ] Add tests for meal-set and budget candidate selection in `tests/unit/aiCatalogSearch.test.mjs`.
-- [ ] Improve `findCatalogCandidates()` for:
+- [x] Add tests for meal-set and budget candidate selection in `tests/unit/aiCatalogSearch.test.mjs`.
+- [x] Improve `findCatalogCandidates()` for:
   - meal sets: plov, dinner, breakfast, snack.
   - budget caps and cheaper follow-ups.
   - halal intent using the confidence ladder.
   - children/family snack intent with caution filters.
   - no-match alternatives inside current store.
-- [ ] Keep `catalogContext` compact; do not send full catalog to OpenAI.
-- [ ] Update general prompt in `api/ai.js` so it:
+- [x] Keep `catalogContext` compact; do not send full catalog to OpenAI.
+- [x] Update general prompt in `api/ai.js` so it:
   - does not repeat every product card in text.
   - explains why the selected groups fit the request.
   - says when the current store has no visible match.
-- [ ] Run catalog/AI unit tests and mocked browser smoke.
+- [x] Run catalog/AI unit tests and mocked browser smoke.
 
 Acceptance:
 
@@ -308,22 +308,22 @@ Acceptance:
 
 Purpose: turn product AI from plain chat into a trust-building product advisor.
 
-- [ ] Decide response shape for product AI while keeping legacy string support:
+- [x] Decide response shape for product AI while keeping legacy string support:
   - `reply`.
   - `verdict`.
   - `confidenceNotes`.
   - `checkOnPackage`.
   - `alternatives`.
   - `warnings`.
-- [ ] Update `normalizeAIResponse()` and `askProductAI()` without breaking existing callers.
-- [ ] Add tests for product response normalization.
-- [ ] Update `AIScreen.jsx` to render:
+- [x] Update `normalizeAIResponse()` and `askProductAI()` without breaking existing callers. Added `askProductAIResponse()` for structured callers; legacy `askProductAI()` still returns `reply`.
+- [x] Add tests for product response normalization.
+- [x] Update `AIScreen.jsx` to render:
   - concise verdict block.
   - known facts.
   - "что проверить на упаковке".
   - same-store alternatives as cards.
-- [ ] Use semantic CSS variables; remove raw white/black/green/red where touched.
-- [ ] Run `node scripts/check-i18n.mjs`, unit tests, and browser smoke for product AI.
+- [x] Use semantic CSS variables; remove raw white/black/green/red where touched.
+- [x] Run `node scripts/check-i18n.mjs`, unit tests, and browser smoke for product AI.
 
 Acceptance:
 

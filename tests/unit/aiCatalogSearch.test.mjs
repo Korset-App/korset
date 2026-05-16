@@ -156,6 +156,126 @@ test('findCatalogCandidates applies budget intent before generic cheaper boost',
   assert.equal(result.some((product) => product.category === 'healthy'), false)
 })
 
+test('findCatalogCandidates suggests child-appropriate snacks without caffeine or household noise', () => {
+  const result = findCatalogCandidates(
+    'что можно ребёнку на перекус?',
+    [
+      ...products,
+      {
+        ean: '12',
+        name: 'Сок детский яблочный',
+        category: 'water_beverages',
+        subcategory: 'juice',
+        priceKzt: 420,
+        stockStatus: 'in_stock',
+        ingredients: 'яблочный сок',
+      },
+      {
+        ean: '13',
+        name: 'Энергетик манго',
+        category: 'water_beverages',
+        subcategory: 'energy',
+        priceKzt: 500,
+        stockStatus: 'in_stock',
+      },
+    ],
+    null,
+    { limit: 8 }
+  )
+
+  assert.equal(result[0].ean, '12')
+  assert.equal(result.some((product) => product.ean === '13'), false)
+  assert.equal(result.some((product) => product.category === 'household'), false)
+})
+
+test('findCatalogCandidates understands meat-free protein requests', () => {
+  const result = findCatalogCandidates(
+    'что взять без мяса, но с белком?',
+    [
+      ...products,
+      {
+        ean: '14',
+        name: 'Яйца куриные',
+        category: 'dairy_eggs',
+        subcategory: 'eggs',
+        priceKzt: 920,
+        stockStatus: 'in_stock',
+      },
+      {
+        ean: '15',
+        name: 'Нут консервированный',
+        category: 'grocery',
+        subcategory: 'beans',
+        priceKzt: 680,
+        stockStatus: 'in_stock',
+      },
+    ],
+    null,
+    { limit: 8 }
+  )
+
+  const resultEans = result.map((product) => product.ean)
+  assert.equal(resultEans.includes('8'), false)
+  assert.equal(resultEans.includes('14'), true)
+  assert.equal(resultEans.includes('15'), true)
+})
+
+test('findCatalogCandidates prioritizes explicit sugar-free products for tea snacks', () => {
+  const result = findCatalogCandidates(
+    'есть что-нибудь без сахара к чаю?',
+    [
+      ...products,
+      {
+        ean: '16',
+        name: 'Печенье к чаю',
+        category: 'sweets',
+        subcategory: 'cookies',
+        priceKzt: 550,
+        stockStatus: 'in_stock',
+        halalStatus: 'unknown',
+      },
+    ],
+    null,
+    { limit: 8 }
+  )
+
+  assert.equal(result[0].ean, '3')
+  assert.equal(result.some((product) => product.ean === '16'), false)
+})
+
+test('findCatalogCandidates builds breakfast sets from current-store breakfast categories', () => {
+  const result = findCatalogCandidates(
+    'собери завтрак на двоих до 3000 ₸',
+    [
+      ...products,
+      {
+        ean: '17',
+        name: 'Овсяные хлопья',
+        category: 'grocery',
+        subcategory: 'breakfast',
+        priceKzt: 850,
+        stockStatus: 'in_stock',
+      },
+      {
+        ean: '18',
+        name: 'Бананы',
+        category: 'fruits_veg',
+        subcategory: 'fruits',
+        priceKzt: 780,
+        stockStatus: 'in_stock',
+      },
+    ],
+    null,
+    { limit: 8 }
+  )
+
+  const resultEans = result.map((product) => product.ean)
+  assert.equal(resultEans.includes('17'), true)
+  assert.equal(resultEans.includes('18'), true)
+  assert.equal(result.some((product) => product.priceKzt > 3000), false)
+  assert.equal(result.some((product) => product.category === 'household'), false)
+})
+
 test('findCatalogCandidates keeps halal sweets inside sweets category when certification is missing', () => {
   const result = findCatalogCandidates('покажите халал-сладости', products, null, { limit: 8 })
 

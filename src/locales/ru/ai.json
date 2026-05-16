@@ -62,5 +62,9 @@
   "ai.productSuggestions.packagingCheck.question": "Что важно проверить на упаковке \"{name}\" перед покупкой?",
   "ai.productSuggestions.usageIdeas.label": "Как лучше использовать?",
   "ai.productSuggestions.usageIdeas.question": "Как лучше использовать \"{name}\" дома? Дайте практичные идеи без сложных рецептов.",
+  "ai.productVerdict": "Вердикт",
+  "ai.confidenceNotes": "По данным карточки",
+  "ai.checkOnPackage": "Проверьте на упаковке",
+  "ai.sameStoreAlternatives": "Альтернативы в этом магазине",
   "ai.disclaimer": "Внимание: ИИ может ошибаться. Всегда проверяйте состав на упаковке, особенно при строгих правилах халал и сильных аллергиях."
 }

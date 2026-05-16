@@ -171,6 +171,48 @@ test('saveAIChatSession preserves assistant product cards and follow ups', () =>
   assert.deepEqual(restored.messages[0].warnings, ['Проверьте цену на кассе'])
 })
 
+test('saveAIChatSession preserves premium product AI response fields', () => {
+  const storage = new Map()
+  const adapter = {
+    getItem: (key) => storage.get(key) || null,
+    setItem: (key, value) => storage.set(key, value),
+  }
+
+  saveAIChatSession({
+    storage: adapter,
+    key: 'chat-key',
+    messages: [
+      {
+        role: 'assistant',
+        content: 'Проверьте упаковку перед покупкой.',
+        verdict: { label: 'fits_but_check', title: 'Нужно проверить упаковку', tone: 'caution' },
+        confidenceNotes: ['Состав неполный.'],
+        checkOnPackage: ['Состав', 'Следы аллергенов'],
+        alternatives: [
+          {
+            ean: '4870204070094',
+            name: 'Alt Milk',
+            brand: 'Demo',
+            priceKzt: 790,
+            stockStatus: 'in_stock',
+            image: '/alt.webp',
+            quantity: '1 л',
+          },
+        ],
+      },
+    ],
+    now: 1000,
+  })
+
+  const restored = loadAIChatSession({ storage: adapter, key: 'chat-key', now: 1000 })
+
+  assert.equal(restored.messages[0].verdict.label, 'fits_but_check')
+  assert.deepEqual(restored.messages[0].confidenceNotes, ['Состав неполный.'])
+  assert.deepEqual(restored.messages[0].checkOnPackage, ['Состав', 'Следы аллергенов'])
+  assert.equal(restored.messages[0].alternatives[0].ean, '4870204070094')
+  assert.equal(restored.messages[0].alternatives[0].quantity, '1 л')
+})
+
 test('loadAIChatSession drops expired sessions', () => {
   const storage = new Map()
   const adapter = {

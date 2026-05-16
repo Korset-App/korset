@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { askGeneralAI, askProductAI } from '../../src/services/ai.js'
+import { askGeneralAI, askProductAI, askProductAIResponse } from '../../src/services/ai.js'
 
 test('askProductAI sends store product facts and same-store alternatives', async () => {
   const originalFetch = globalThis.fetch
@@ -104,4 +104,47 @@ test('askGeneralAI sends store-scoped catalog context and normalizes structured 
   assert.equal(calls[0].mode, 'general')
   assert.equal(calls[0].storeContext.slug, 'mast')
   assert.equal(calls[0].catalogContext[0].ean, '4870204070018')
+})
+
+test('askProductAIResponse normalizes premium product response without breaking string caller', async () => {
+  const originalFetch = globalThis.fetch
+  const originalAbortSignal = globalThis.AbortSignal
+
+  globalThis.AbortSignal = { timeout: () => undefined }
+  globalThis.fetch = async () => ({
+    ok: true,
+    json: async () => ({
+      reply: 'По данным карточки лучше проверить упаковку.',
+      verdict: { label: 'fits_but_check', title: 'Проверьте упаковку', tone: 'caution' },
+      confidenceNotes: ['Состав неполный.'],
+      checkOnPackage: ['Состав'],
+      alternatives: [{ ean: '2', name: 'Alt', priceKzt: 990, stockStatus: 'in_stock' }],
+      warnings: ['missing_composition'],
+      ragUsed: true,
+    }),
+  })
+
+  try {
+    const structured = await askProductAIResponse(
+      [{ role: 'user', content: 'Можно ли мне?' }],
+      { ean: '1', name: 'Product' },
+      { allergens: ['milk'] },
+      'ru'
+    )
+    const legacy = await askProductAI(
+      [{ role: 'user', content: 'Можно ли мне?' }],
+      { ean: '1', name: 'Product' },
+      { allergens: ['milk'] },
+      'ru'
+    )
+
+    assert.equal(structured.reply, 'По данным карточки лучше проверить упаковку.')
+    assert.equal(structured.verdict.label, 'fits_but_check')
+    assert.deepEqual(structured.checkOnPackage, ['Состав'])
+    assert.equal(structured.alternatives[0].ean, '2')
+    assert.equal(legacy, 'По данным карточки лучше проверить упаковку.')
+  } finally {
+    globalThis.fetch = originalFetch
+    globalThis.AbortSignal = originalAbortSignal
+  }
 })
