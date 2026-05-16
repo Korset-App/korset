@@ -19,5 +19,5 @@ test-results/
 vite.config.js.timestamp-*
 *.timestamp-*.mjs
 # Banner source files & generated thumbs (optimized WebP stays tracked)
-public/banners/raw/
-public/banners/thumbs/
+public/profile-bgs/raw/
+public/profile-bgs/thumbs/

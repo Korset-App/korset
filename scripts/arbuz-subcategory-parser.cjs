@@ -325,6 +325,20 @@ async function main() {
       ],
       subcategories: ['deli_meat', 'smoked', 'pate'],
       pages: 10
+    },
+    nuts_dried_fruits: {
+      title: 'Орехи и сухофрукты',
+      url: [
+        'https://arbuz.kz/ru/almaty/catalog/cat/225304-orehi_i_suhofrukty',
+        'https://arbuz.kz/ru/almaty/catalog/cat/19786-orehi',
+        'https://arbuz.kz/ru/almaty/catalog/cat/19798-suhofrukty',
+        'https://arbuz.kz/ru/almaty/catalog/cat/218350-fruktovye_chipsy',
+        'https://arbuz.kz/ru/almaty/catalog/cat/225603-pastila',
+        'https://arbuz.kz/ru/almaty/catalog/cat/225757-finiki_na_iftar',
+        'https://arbuz.kz/ru/almaty/catalog/cat/19797-semechki'
+      ],
+      subcategories: ['nuts', 'dried_fruits'],
+      pages: 10
     }
   }
 
@@ -351,32 +365,46 @@ async function main() {
     for (let page = 1; page <= modeConfig.pages; page++) {
       const pageUrl = `${baseUrl}?page=${page}`
       console.log(`  Scraping page ${page}...`)
-      try {
-        const res = await httpGetHtml(pageUrl)
-        if (res.status === 200) {
-          const html = res.body
-          const itemRe = /\/catalog\/item\/(\d+)-([a-z0-9_]+)/gi
-          let match
-          let pageCount = 0
-          while ((match = itemRe.exec(html)) !== null) {
-            const id = parseInt(match[1], 10)
-            const slug = match[2]
-            if (!uniqueProducts.has(id)) {
-              uniqueProducts.set(id, { id, slug, name: slug.replace(/_/g, ' ') })
-              pageCount++
-            }
+      
+      let html = null
+      let attempts = 3
+      for (let attempt = 1; attempt <= attempts; attempt++) {
+        try {
+          const res = await httpGetHtml(pageUrl)
+          if (res.status === 200) {
+            html = res.body
+            break
+          } else {
+            console.warn(`    [Attempt ${attempt}/${attempts}] Page ${page} returned status ${res.status}. Retrying...`)
           }
-          console.log(`    Discovered ${pageCount} new products (Total so far: ${uniqueProducts.size})`)
-          if (pageCount === 0 && page > 1) {
-            break // Skip further pages if this page yielded no new items
-          }
-        } else {
-          console.error(`    Page ${page} returned status ${res.status}`)
+        } catch (e) {
+          console.warn(`    [Attempt ${attempt}/${attempts}] Failed to scrape page ${page}: ${e.message}. Retrying...`)
         }
-      } catch (e) {
-        console.error(`    Failed to scrape page ${page}: ${e.message}`)
+        if (attempt < attempts) {
+          await sleep(1500 * attempt)
+        }
       }
-      await sleep(250)
+
+      if (html) {
+        const itemRe = /\/catalog\/item\/(\d+)-([a-zA-Zа-яА-Я0-9_\-%]+)/gi
+        let match
+        let pageCount = 0
+        while ((match = itemRe.exec(html)) !== null) {
+          const id = parseInt(match[1], 10)
+          const slug = match[2]
+          if (!uniqueProducts.has(id)) {
+            uniqueProducts.set(id, { id, slug, name: slug.replace(/_/g, ' ') })
+            pageCount++
+          }
+        }
+        console.log(`    Discovered ${pageCount} new products (Total so far: ${uniqueProducts.size})`)
+        if (pageCount === 0 && page > 1) {
+          break // Skip further pages if this page yielded no new items
+        }
+      } else {
+        console.error(`    Failed to scrape page ${page} after all attempts.`)
+      }
+      await sleep(500)
     }
   }
 
@@ -542,6 +570,26 @@ async function main() {
         } else {
           subcategory = 'deli_meat'
         }
+      } else if (opts.mode === 'nuts_dried_fruits') {
+        category = 'snacks'
+        const lowerName = (full.name || '').toLowerCase()
+        if (
+          lowerName.includes('орех') ||
+          lowerName.includes('миндал') ||
+          lowerName.includes('фундук') ||
+          lowerName.includes('кешью') ||
+          lowerName.includes('арахис') ||
+          lowerName.includes('фисташк') ||
+          lowerName.includes('кедр') ||
+          lowerName.includes('пекан') ||
+          lowerName.includes('макадами') ||
+          lowerName.includes('смесь') ||
+          lowerName.includes('кокос')
+        ) {
+          subcategory = 'nuts'
+        } else {
+          subcategory = 'dried_fruits'
+        }
       }
 
       // Filter to keep only target subcategories
@@ -552,6 +600,8 @@ async function main() {
         expectedCategory = 'water_beverages'
       } else if (opts.mode === 'sausages' || opts.mode === 'wieners' || opts.mode === 'deli_meats') {
         expectedCategory = 'deli'
+      } else if (opts.mode === 'nuts_dried_fruits') {
+        expectedCategory = 'snacks'
       }
 
       const allowedSubcategories = modeConfig.subcategories

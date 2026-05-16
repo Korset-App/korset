@@ -19,15 +19,10 @@ async function main() {
   const token = await getToken()
   console.log('Token acquired:', token.substring(0, 20) + '...')
 
-  // Let's try various category parameters on /shop/search/products or /shop/categories
   const endpoints = [
-    { url: `${API_BASE}/shop/categories/19986`, desc: 'Category detail' },
-    { url: `${API_BASE}/shop/categories/19986/products?limit=10`, desc: 'Category products direct link' },
-    { url: `${API_BASE}/shop/search/products?where[categoryId][c]=19986&limit=10`, desc: 'where[categoryId][c]' },
-    { url: `${API_BASE}/shop/search/products?where[category_id][c]=19986&limit=10`, desc: 'where[category_id][c]' },
-    { url: `${API_BASE}/shop/search/products?where[category][c]=19986&limit=10`, desc: 'where[category][c]' },
-    { url: `${API_BASE}/shop/search/products?category_id=19986&limit=10`, desc: 'category_id query param' },
-    { url: `${API_BASE}/shop/collections/19986/products?limit=10`, desc: 'Collection 19986' }
+    { url: `${API_BASE}/shop/categories/225304`, desc: 'Category detail 225304' },
+    { url: `${API_BASE}/shop/categories/225304/products?limit=100`, desc: 'Category products direct link 225304' },
+    { url: `${API_BASE}/shop/collections/225304/products?limit=100`, desc: 'Collection 225304' }
   ]
 
   for (const ep of endpoints) {
@@ -45,10 +40,6 @@ async function main() {
         } else if (json.data && typeof json.data === 'object') {
           const keys = Object.keys(json.data)
           console.log(`Data keys: ${keys.join(', ')}`)
-          if (json.data.products && Array.isArray(json.data.products)) {
-            console.log(`Sub-products count: ${json.data.products.length}`)
-            console.log(`Sample product: "${json.data.products[0].name}"`)
-          }
         }
       } else {
         const text = await res.text()

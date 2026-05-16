@@ -3,7 +3,7 @@
  * Banner image optimizer for Korset.
  *
  * Usage:
- *   1. Drop source images (JPG/PNG/WebP) into public/banners/raw/
+ *   1. Drop source images (JPG/PNG/WebP) into public/profile-bgs/raw/
  *   2. Rename them to match the ids in bannerPresets.js, e.g.
  *      samurai-sunset.jpg, stargazer-night.png, etc.
  *   3. Run: npm run optimize:banners
@@ -21,9 +21,9 @@ import { mkdir, readdir, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import sharp from 'sharp'
 
-const RAW_DIR = 'public/banners/raw'
-const OUT_DIR = 'public/banners'
-const THUMB_DIR = 'public/banners/thumbs'
+const RAW_DIR = 'public/profile-bgs/raw'
+const OUT_DIR = 'public/profile-bgs'
+const THUMB_DIR = 'public/profile-bgs/thumbs'
 
 async function ensureDir(dir) {
   try {
