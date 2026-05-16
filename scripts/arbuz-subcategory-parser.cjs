@@ -307,6 +307,12 @@ async function main() {
       ],
       subcategories: ['sausage'],
       pages: 10
+    },
+    wieners: {
+      title: 'Сосиски, сардельки',
+      url: 'https://arbuz.kz/ru/almaty/catalog/cat/225180-sosiski_sardelki',
+      subcategories: ['sausage'],
+      pages: 5
     }
   }
 
@@ -511,7 +517,7 @@ async function main() {
       } else if (opts.mode === 'juices') {
         category = 'water_beverages'
         subcategory = 'juice'
-      } else if (opts.mode === 'sausages') {
+      } else if (opts.mode === 'sausages' || opts.mode === 'wieners') {
         category = 'deli'
         subcategory = 'sausage'
       }
@@ -522,7 +528,7 @@ async function main() {
         expectedCategory = 'frozen'
       } else if (opts.mode === 'water' || opts.mode === 'soda_energy' || opts.mode === 'cold_tea' || opts.mode === 'juices') {
         expectedCategory = 'water_beverages'
-      } else if (opts.mode === 'sausages') {
+      } else if (opts.mode === 'sausages' || opts.mode === 'wieners') {
         expectedCategory = 'deli'
       }
 

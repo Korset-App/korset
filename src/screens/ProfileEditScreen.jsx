@@ -674,7 +674,7 @@ export default function ProfileEditScreen() {
                       background: 'transparent',
                       border: 'none',
                       padding: 0,
-                      aspectRatio: '1 / 1',
+                      width: '100%',
                       cursor: 'pointer',
                       position: 'relative',
                     }}
@@ -682,7 +682,7 @@ export default function ProfileEditScreen() {
                     <div
                       style={{
                         width: '100%',
-                        height: '100%',
+                        aspectRatio: '1 / 1',
                         borderRadius: 18,
                         overflow: 'hidden',
                         border: selected
@@ -794,7 +794,7 @@ export default function ProfileEditScreen() {
                       background: 'transparent',
                       border: 'none',
                       padding: 0,
-                      aspectRatio: '16 / 8',
+                      width: '100%',
                       cursor: 'pointer',
                       position: 'relative',
                     }}
@@ -802,7 +802,7 @@ export default function ProfileEditScreen() {
                     <div
                       style={{
                         width: '100%',
-                        height: '100%',
+                        aspectRatio: '16 / 8',
                         borderRadius: 16,
                         overflow: 'hidden',
                         border: selected

@@ -83,16 +83,15 @@ function AvatarChoice({ selected, onClick, children }) {
         background: 'transparent',
         border: 'none',
         padding: 0,
-        aspectRatio: '1 / 1',
+        width: '100%',
         cursor: 'pointer',
         position: 'relative',
-        overflow: 'visible',
       }}
     >
       <div
         style={{
           width: '100%',
-          height: '100%',
+          aspectRatio: '1 / 1',
           borderRadius: 20,
           background: 'var(--image-bg)',
           border: selected ? '2px solid var(--primary-mid)' : '1px solid var(--glass-soft-border)',
@@ -118,16 +117,15 @@ function BannerChoice({ selected, onClick, children }) {
         background: 'transparent',
         border: 'none',
         padding: 0,
-        aspectRatio: '16 / 8',
+        width: '100%',
         cursor: 'pointer',
         position: 'relative',
-        overflow: 'visible',
       }}
     >
       <div
         style={{
           width: '100%',
-          height: '100%',
+          aspectRatio: '16 / 8',
           borderRadius: 16,
           overflow: 'hidden',
           border: selected ? '2px solid var(--primary-mid)' : '1px solid var(--glass-soft-border)',
