@@ -12,6 +12,7 @@ import {
   buildProductAIResponseMeta,
 } from '../src/domain/ai/responseShape.js'
 import { buildSafetyNotes } from '../src/domain/ai/safetyContract.js'
+import { resolveControlledProductEnrichment } from '../src/domain/ai/productEnrichmentService.js'
 
 const CORS_ORIGINS = [
   'https://korset.app',
@@ -468,11 +469,34 @@ export default async function handler(req, res) {
       ragContext = await fetchRagContext(combinedProduct, mode, profile)
     }
 
+    let productEnrichment = null
+    if (mode === 'product' && product) {
+      productEnrichment = await resolveControlledProductEnrichment({
+        product,
+        profile,
+        userQuery: validMessages.at(-1)?.content || '',
+        lang,
+        supabase: getRagSupabase(),
+        env: {
+          USDA_API_KEY: process.env.USDA_API_KEY,
+          NPC_API_KEY: process.env.NPC_API_KEY,
+        },
+        fetchImpl: fetch,
+      })
+    }
+
     // ── Формируем developer prompt на сервере ──
     let systemPrompt
 
     if (mode === 'product' && product) {
-      systemPrompt = buildProductPrompt(product, profile, lang, ragContext, storeContext)
+      systemPrompt = buildProductPrompt(
+        product,
+        profile,
+        lang,
+        ragContext,
+        storeContext,
+        productEnrichment?.externalReference || null
+      )
     } else if (mode === 'enrich' && product) {
       systemPrompt = buildEnrichPrompt(product)
     } else if (mode === 'compare' && productA && productB) {
@@ -580,6 +604,8 @@ export default async function handler(req, res) {
       confidenceNotes: productResponseMeta?.confidenceNotes || [],
       checkOnPackage: productResponseMeta?.checkOnPackage || [],
       alternatives: productResponseMeta?.alternatives || [],
+      externalReference: productEnrichment?.externalReference || null,
+      externalEnrichmentStatus: productEnrichment?.status || null,
       ragUsed: !!ragContext,
     })
   } catch (e) {
@@ -590,7 +616,14 @@ export default async function handler(req, res) {
 
 // ── Developer prompts ───────────────────────────────────────────
 
-export function buildProductPrompt(product, profile, lang, ragContext, storeContext) {
+function formatStockStatusForPrompt(status, lang = 'ru') {
+  if (status === 'in_stock') return lang === 'kz' ? 'бар' : 'есть в наличии'
+  if (status === 'out_of_stock') return lang === 'kz' ? 'қазір жоқ' : 'нет в наличии'
+  if (status === 'low_stock') return lang === 'kz' ? 'аз қалды' : 'мало в наличии'
+  return lang === 'kz' ? 'нақты белгісіз' : 'точно не указано'
+}
+
+export function buildProductPrompt(product, profile, lang, ragContext, storeContext, externalReference = null) {
   const profileParts = []
   if (profile?.halal || profile?.halalOnly) profileParts.push('нужен халал')
   if (profile?.allergens?.length) profileParts.push(`аллергии: ${profile.allergens.join(', ')}`)
@@ -621,11 +654,21 @@ export function buildProductPrompt(product, profile, lang, ragContext, storeCont
         .map((item) => `${item.name}${item.priceKzt ? ` (${item.priceKzt} ₸)` : ''}`)
         .join('; ')}`
     : ''
+  const externalReferenceSection = externalReference?.text
+    ? `\nEXTERNAL_REFERENCE:
+- sourceLabel: ${externalReference.sourceLabel || 'external_reference'}
+- externalConfidence: ${externalReference.externalConfidence || 'not_found'}
+- lower-confidence text: ${externalReference.text}
+- candidate fields: ${JSON.stringify(externalReference.fields || {})}
+- needsPackageCheck: ${externalReference.needsPackageCheck ? 'true' : 'false'}
+- This lower-confidence external reference may help answer a missing exact product fact, but it must not override the local product card, Fit-Check, direct allergy matches, local price, local stock, or halalStatus=no.`
+    : ''
 
-  return `Ты — Körset AI, умный помощник покупателя в супермаркете Казахстана. Отвечай кратко, по делу. Максимум 3–4 предложения. Без markdown — пиши живым текстом как друг.
+  return `Ты — Körset AI, умный помощник покупателя в супермаркете Казахстана. Отвечай кратко, по делу. Максимум 3–4 предложения. Не используй markdown-разметку: без **, *, заголовков, таблиц и bullet-списков. Пиши живым текстом как друг.
 ${langNote}
 Рекомендуй только товары из текущего магазина и только из переданных данных. Если подходящего товара нет в данных, честно скажи, что не видишь его в каталоге этого магазина.
 Не выдумывай цену, наличие, состав, сертификаты, халал-статус, аллергены или свойства товара.
+Не показывай пользователю внутренние поля и машинные labels вроде stockStatus, in_stock, out_of_stock, priceKzt, halalConfidence, allergyConfidence.
 Не называй товар безопасным, если данных мало, состав отсутствует, есть совпадение с аллергенами профиля или есть только неполные сведения.
 При сильных аллергиях всегда советуй сверить состав, следы аллергенов и маркировку на упаковке; не заменяй медицинскую консультацию.
 Халал-статус unknown означает, что сертификат не подтверждён. Не называй товар "подтверждённо халал", но используй halalConfidence из SAFETY CONTRACT: confirmed_halal / likely_compatible / questionable / not_halal / insufficient_data.
@@ -636,10 +679,10 @@ ${langNote}
 
 ТОВАР: ${product.name} | EAN: ${product.ean || '—'} | Бренд: ${product.brand || '—'}${storeSection}
 КБЖУ: ${nutr} | Состав: ${product.ingredients || '—'}
-Цена: ${product.priceKzt ? `${product.priceKzt} ₸` : '—'} | Наличие: ${product.stockStatus || 'unknown'}
+Цена: ${product.priceKzt ? `${product.priceKzt} ₸` : '—'} | Наличие: ${formatStockStatusForPrompt(product.stockStatus, lang)}
 Халал: ${product.halalStatus === 'yes' ? 'да' : product.halalStatus === 'no' ? 'нет' : 'неизвестно'}
 Аллергены: ${product.allergens?.join(', ') || 'нет'}
-ПРОФИЛЬ: ${profileParts.length ? profileParts.join('; ') : 'не задан'}${safetySection}${alternativesSection}${ragSection}`
+ПРОФИЛЬ: ${profileParts.length ? profileParts.join('; ') : 'не задан'}${safetySection}${alternativesSection}${externalReferenceSection}${ragSection}`
 }
 
 export function buildGeneralPrompt(lang, storeContext, catalogContext = []) {
@@ -648,17 +691,17 @@ export function buildGeneralPrompt(lang, storeContext, catalogContext = []) {
     ? `\n\nТОВАРЫ, КОТОРЫЕ ВИДНЫ В КАТАЛОГЕ ${storeName}:\n${catalogContext
         .map(
           (item) =>
-            `- ${item.name}${item.brand ? `, ${item.brand}` : ''}${item.priceKzt ? `, ${item.priceKzt} ₸` : ''}${item.category ? `, категория: ${item.category}` : ''}${item.subcategory ? `/${item.subcategory}` : ''}, наличие: ${item.stockStatus}`
+            `- ${item.name}${item.brand ? `, ${item.brand}` : ''}${item.priceKzt ? `, ${item.priceKzt} ₸` : ''}${item.category ? `, категория: ${item.category}` : ''}${item.subcategory ? `/${item.subcategory}` : ''}, наличие: ${formatStockStatusForPrompt(item.stockStatus, lang)}`
         )
         .join('\n')}`
     : '\n\nВ переданном catalog context нет подходящих товаров: честно скажи, что не вижу подходящих товаров в каталоге этого магазина, и не предлагай товары вне текущего магазина.'
 
   if (lang === 'kz') {
-    return `Сен — ${storeName} дүкеніндегі Körset AI көмекшісісің. Тек осы дүкеннің берілген каталогындағы тауарларды ұсын. Егер тауар берілген каталогта жоқ болса, оны көрмей тұрғаныңды ашық айт. Қысқа, түсінікті қазақша жауап бер. Максимум 3-4 сөйлем. Markdown, жұлдызша және ұзын тізім қолданба; карточкалардағы тауарларды мәтінде толық қайталама.
-ПРЕМИУМ ЖАУАП ЕРЕЖЕСІ: тауарларды тек ағымдағы дүкеннің берілген каталогынан ұсын; карточкалардағы барлық тауарды мәтінде қайталама; тауар топтары сұрауға неге сәйкес келетінін қысқа түсіндір; пайдалы келесі қадам ұсын; сәйкес тауар көрінбесе, осы дүкен каталогында көрмей тұрғаныңды айт. Балаға арналған сұрақта жаңғақ, кофеин, энергетик немесе қанты көп тауарларды бірінші қауіпсіз таңдау ретінде ұсынба; алдымен су, шырын, жеміс сияқты қарапайым нұсқаларды бер және қаптаманы/аллергендерді тексеруді айт.${catalogSection}`
+    return `Сен — ${storeName} дүкеніндегі Körset AI көмекшісісің. Тек осы дүкеннің берілген каталогындағы тауарларды ұсын. Егер тауар берілген каталогта жоқ болса, оны көрмей тұрғаныңды ашық айт. Қысқа, түсінікті қазақша жауап бер. Максимум 3-4 сөйлем. Markdown-разметку қолданба: **, *, тақырыптар, кестелер және bullet-тізімдер жоқ; карточкалардағы тауарларды мәтінде толық қайталама.
+ПРЕМИУМ ЖАУАП ЕРЕЖЕСІ: тауарларды тек ағымдағы дүкеннің берілген каталогынан ұсын; карточкалардағы барлық тауарды мәтінде қайталама; тауар топтары сұрауға неге сәйкес келетінін қысқа түсіндір; пайдалы келесі қадам ұсын; сәйкес тауар көрінбесе, осы дүкен каталогында көрмей тұрғаныңды айт. Ішкі өрістер мен машиналық labels көрсетпе: stockStatus, in_stock, out_of_stock, priceKzt, halalConfidence, allergyConfidence. Балаға арналған сұрақта жаңғақ, кофеин, энергетик немесе қанты көп тауарларды бірінші қауіпсіз таңдау ретінде ұсынба; алдымен су, шырын, жеміс сияқты қарапайым нұсқаларды бер және қаптаманы/аллергендерді тексеруді айт.${catalogSection}`
   }
-  return `Ты — Körset AI, помощник покупателя в магазине ${storeName}. Помогаешь найти товары, советуешь простые покупки и отвечаешь про состав и аллергены. Рекомендуй только товары из переданного каталога текущего магазина. Если товара нет в данных, честно скажи, что не видишь его в этом магазине. Кратко, по-русски, как дружелюбный консультант. Максимум 3-4 предложения. Не используй markdown, звёздочки и длинные списки; не дублируй в тексте весь список товаров, который уже показан карточками.
-ПРЕМИУМ-КОНТРАКТ ОТВЕТА: рекомендуй только из переданного каталога текущего магазина; не повторяй в тексте весь список товаров из карточек; объясни, почему группы товаров подходят под запрос; предложи следующий шаг, например дешевле, без аллергена, halal-фильтр, замену или проверку упаковки; если подходящих товаров не видно, скажи, что не вижу подходящих товаров в каталоге этого магазина, и не предлагай товары вне текущего магазина. Для детских перекусов не ставь орехи, кофеин, энергетики или явно сладкие спорные товары как первый безопасный выбор, если аллергии и возраст неизвестны; сначала предлагай более нейтральные видимые варианты и проси проверить упаковку/аллергены.${catalogSection}`
+  return `Ты — Körset AI, помощник покупателя в магазине ${storeName}. Помогаешь найти товары, советуешь простые покупки и отвечаешь про состав и аллергены. Рекомендуй только товары из переданного каталога текущего магазина. Если товара нет в данных, честно скажи, что не видишь его в этом магазине. Кратко, по-русски, как дружелюбный консультант. Максимум 3-4 предложения. Не используй markdown-разметку: без **, *, заголовков, таблиц и bullet-списков; не дублируй в тексте весь список товаров, который уже показан карточками.
+ПРЕМИУМ-КОНТРАКТ ОТВЕТА: рекомендуй только из переданного каталога текущего магазина; не повторяй в тексте весь список товаров из карточек; объясни, почему группы товаров подходят под запрос; предложи следующий шаг, например дешевле, без аллергена, halal-фильтр, замену или проверку упаковки; если подходящих товаров не видно, скажи, что не вижу подходящих товаров в каталоге этого магазина, и не предлагай товары вне текущего магазина. Не показывай пользователю внутренние поля и машинные labels вроде stockStatus, in_stock, out_of_stock, priceKzt, halalConfidence, allergyConfidence. Для детских перекусов не ставь орехи, кофеин, энергетики или явно сладкие спорные товары как первый безопасный выбор, если аллергии и возраст неизвестны; сначала предлагай более нейтральные видимые варианты и проси проверить упаковку/аллергены.${catalogSection}`
 }
 
 function buildComparePrompt(productA, productB, profile, winner, lang, ragContext) {

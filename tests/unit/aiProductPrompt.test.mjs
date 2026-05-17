@@ -23,11 +23,48 @@ test('buildProductPrompt includes strict product safety and uncertainty guardrai
   )
 
   assert.match(prompt, /Не называй товар безопасным/)
+  assert.match(prompt, /stockStatus, in_stock, out_of_stock, priceKzt/)
+  assert.doesNotMatch(prompt, /Наличие: in_stock/)
+  assert.match(prompt, /Наличие: есть в наличии/)
+  assert.match(prompt, /Не используй markdown-разметку/)
+  assert.match(prompt, /без \*\*/)
   assert.match(prompt, /Халал-статус unknown/)
   assert.match(prompt, /сильных аллергиях/)
   assert.match(prompt, /Не выдумывай цену/)
   assert.match(prompt, /Альтернативы предлагай только из блока/)
   assert.match(prompt, /АЛЬТЕРНАТИВЫ В ЭТОМ МАГАЗИНЕ/)
+})
+
+test('buildProductPrompt includes lower-confidence external reference when provided', () => {
+  const prompt = buildProductPrompt(
+    {
+      name: 'Test Yogurt',
+      ean: '4870000000011',
+      brand: 'TestFarm',
+      ingredients: '',
+      halalStatus: 'unknown',
+      allergens: [],
+      stockStatus: 'in_stock',
+    },
+    {},
+    'ru',
+    null,
+    { name: 'Demo Store' },
+    {
+      text: 'External reference: composition may be milk, sugar. Check package before buying.',
+      sourceLabel: 'external_reference',
+      externalConfidence: 'exact_ean_match',
+      fields: { ingredients: 'milk, sugar' },
+      needsPackageCheck: true,
+    }
+  )
+
+  assert.match(prompt, /EXTERNAL_REFERENCE/)
+  assert.match(prompt, /external_reference/)
+  assert.match(prompt, /exact_ean_match/)
+  assert.match(prompt, /milk, sugar/)
+  assert.match(prompt, /lower-confidence/)
+  assert.match(prompt, /must not override/)
 })
 
 test('buildProductPrompt includes balanced halal confidence guidance instead of helpless unknown-only wording', () => {

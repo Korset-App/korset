@@ -113,6 +113,27 @@ Same-store alternatives remain based on current store catalog only.
 4. Surface explicit "external reference" wording in Product AI only after candidates exist.
 5. Add cost/rate limits before any production use.
 
+## Stage 12 Implementation Contract
+
+Stage 12 added the pure contract module `src/domain/ai/enrichmentContract.js`. This is not a network implementation and must stay side-effect free.
+
+The module owns these decisions:
+
+- `classifyEnrichmentTrigger()` decides whether enrichment is allowed for a product/question pair.
+- `buildEnrichmentRequest()` builds a precise lookup request from allowed product identifiers only: EAN, exact product name, brand, quantity, and manufacturer.
+- `normalizeExternalCandidate()` classifies external candidates as `exact_ean_match`, `probable_product_match`, `weak_match`, `conflict`, or `not_found`.
+- `canShowExternalCandidateToBuyer()` allows buyer-visible use only for strong non-conflicting candidates.
+- `buildExternalReferenceNotice()` generates lower-confidence RU/KZ wording and always sets `needsPackageCheck: true`.
+
+Current hard guarantees:
+
+- No live network calls.
+- No buyer message text is stored as enrichment evidence.
+- Broad shopping requests are rejected.
+- Strong local cards do not trigger enrichment.
+- External candidates remain reviewable candidates, not trusted product facts.
+- Weak/conflicting candidates are not buyer-visible.
+
 ## Stop Points
 
 Ask the owner before:

@@ -151,6 +151,25 @@ test('normalizeAIResponse keeps reply and attaches groups/follow ups', () => {
   assert.equal(response.ragUsed, true)
 })
 
+test('normalizeAIResponse preserves controlled external reference metadata', () => {
+  const response = normalizeAIResponse({
+    reply: 'Check the package.',
+    externalReference: {
+      text: 'External lower-confidence note.',
+      sourceLabel: 'external_reference',
+      externalConfidence: 'exact_ean_match',
+      needsPackageCheck: true,
+    },
+    externalEnrichmentStatus: 'ready',
+  })
+
+  assert.equal(response.externalReference.text, 'External lower-confidence note.')
+  assert.equal(response.externalReference.sourceLabel, 'external_reference')
+  assert.equal(response.externalReference.externalConfidence, 'exact_ean_match')
+  assert.equal(response.externalReference.needsPackageCheck, true)
+  assert.equal(response.externalEnrichmentStatus, 'ready')
+})
+
 test('normalizeAIResponse accepts legacy string replies', () => {
   assert.deepEqual(normalizeAIResponse('Ответ'), {
     reply: 'Ответ',
@@ -161,6 +180,8 @@ test('normalizeAIResponse accepts legacy string replies', () => {
     confidenceNotes: [],
     checkOnPackage: [],
     alternatives: [],
+    externalReference: null,
+    externalEnrichmentStatus: null,
     ragUsed: false,
   })
 })

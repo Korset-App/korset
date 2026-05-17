@@ -181,6 +181,8 @@ export function normalizeAIResponse(response) {
       confidenceNotes: [],
       checkOnPackage: [],
       alternatives: [],
+      externalReference: null,
+      externalEnrichmentStatus: null,
       ragUsed: false,
     }
   }
@@ -194,7 +196,25 @@ export function normalizeAIResponse(response) {
     confidenceNotes: normalizeStringList(response?.confidenceNotes, 6, 240),
     checkOnPackage: normalizeStringList(response?.checkOnPackage, 6, 160),
     alternatives: normalizeProductAlternatives(response?.alternatives),
+    externalReference: normalizeExternalReference(response?.externalReference),
+    externalEnrichmentStatus:
+      typeof response?.externalEnrichmentStatus === 'string'
+        ? response.externalEnrichmentStatus.slice(0, 60)
+        : null,
     ragUsed: Boolean(response?.ragUsed),
+  }
+}
+
+function normalizeExternalReference(value) {
+  if (!value || typeof value !== 'object') return null
+  return {
+    text: typeof value.text === 'string' ? value.text.trim().slice(0, 600) : '',
+    sourceLabel: typeof value.sourceLabel === 'string' ? value.sourceLabel.trim().slice(0, 80) : '',
+    externalConfidence:
+      typeof value.externalConfidence === 'string'
+        ? value.externalConfidence.trim().slice(0, 80)
+        : '',
+    needsPackageCheck: Boolean(value.needsPackageCheck),
   }
 }
 

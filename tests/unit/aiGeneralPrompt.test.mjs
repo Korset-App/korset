@@ -33,6 +33,11 @@ test('buildGeneralPrompt includes premium store-scoped answer contract', () => {
   assert.match(prompt, /объясни, почему группы товаров подходят под запрос/)
   assert.match(prompt, /предложи следующий шаг/)
   assert.match(prompt, /если подходящих товаров не видно/)
+  assert.match(prompt, /stockStatus, in_stock, out_of_stock, priceKzt/)
+  assert.doesNotMatch(prompt, /наличие: in_stock/)
+  assert.match(prompt, /наличие: есть в наличии/)
+  assert.match(prompt, /Не используй markdown-разметку/)
+  assert.match(prompt, /без \*\*/)
 })
 
 test('buildGeneralPrompt adds cautious child-snack guidance', () => {
