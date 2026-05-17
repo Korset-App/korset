@@ -266,8 +266,8 @@ Purpose: find the actual quality failures before adding more code.
   - `Есть вариант лучше?`
   - `Что проверить на упаковке?`
 - [x] Run mocked browser smoke first for `/s/store-one/ai`. `npm test -- tests/e2e/aiGeneralMocked.spec.js --reporter=list` passed without real OpenAI calls.
-- [ ] Spend real OpenAI calls only for the first 10 premium QA cases. Deferred until owner explicitly approves spending real API balance.
-- [ ] Stop and fix patterns if fewer than 8/10 pass.
+- [x] Spend real OpenAI calls only for the first 10 premium QA cases. Owner approved this on 2026-05-17; the first 10-call gate ran on `gpt-5.4-nano`.
+- [x] Stop and fix patterns if fewer than 8/10 pass. Initial live gate exposed recurring prompt issues: internal confidence labels leaked into user text, child snack wording put nuts too early, and one allergy-alternative answer softened direct milk risk. Fixed in `api/ai.js`, added tests, then reran the 5 affected live scenarios successfully.
 
 Acceptance:
 
@@ -361,16 +361,16 @@ Acceptance:
 
 Purpose: make the AI surfaces visually match the product ambition without redesigning the whole app.
 
-- [ ] Extract repeated chat UI pieces only if it reduces real duplication:
+- [x] Extract repeated chat UI pieces only if it reduces real duplication. Stage 5 kept code local because a shared abstraction would add churn before the AI screens stabilize:
   - assistant bubble.
   - user bubble.
   - product group card.
   - quick chips.
-- [ ] Replace inline raw colors in touched AI screens with semantic tokens.
-- [ ] Ensure mobile layout does not collide with bottom navigation or safe-area inset.
-- [ ] Keep cards compact; avoid nested card-heavy marketing UI.
-- [ ] Verify light and dark themes.
-- [ ] Run `npm run check:agent:ui` and browser screenshots for general/product AI.
+- [x] Replace inline raw colors in touched AI screens with semantic tokens.
+- [x] Ensure mobile layout does not collide with bottom navigation or safe-area inset.
+- [x] Keep cards compact; avoid nested card-heavy marketing UI.
+- [x] Verify light and dark themes.
+- [x] Run `npm run check:agent:ui` and browser screenshots for general/product AI.
 
 Acceptance:
 
@@ -381,18 +381,18 @@ Acceptance:
 
 Purpose: increase B2B value without building owner chat.
 
-- [ ] Inspect existing retail insight code and decide whether to extract `src/domain/retail/aiInsights.js`.
-- [ ] Add/extend tests for:
+- [x] Inspect existing retail insight code and decide whether to extract `src/domain/retail/aiInsights.js`. It already exists as a pure aggregate builder, so Stage 6 extended it in place.
+- [x] Add/extend tests for:
   - assortment gaps from unknown EAN demand.
   - categories with high scans and weak catalog coverage.
   - products often scanned but out of stock.
   - weak data quality: missing composition, image, halal status, nutrition.
   - personalized store opportunities, such as "people ask for halal sweets but halal coverage is weak".
   - assortment recommendations based on repeated no-match searches/scans.
-- [ ] Keep all insights aggregate-only; no user-level analytics.
-- [ ] Render 3-5 owner-readable insights with practical next action.
-- [ ] Use RU/KZ locale keys.
-- [ ] Run retail insight tests, i18n check, and build.
+- [x] Keep all insights aggregate-only; no user-level analytics.
+- [x] Render 3-5 owner-readable insights with practical next action.
+- [x] Use RU/KZ locale keys.
+- [x] Run retail insight tests, i18n check, and build.
 
 Acceptance:
 
@@ -404,22 +404,22 @@ Acceptance:
 
 Purpose: make AI quality measurable without storing sensitive chat text.
 
-- [ ] Extend usage event shape in `api/ai.js` without logging message content:
+- [x] Extend usage event shape in `api/ai.js` without logging message content:
   - `intent`.
   - `safetyConfidence`.
   - `noCatalogMatch`.
   - `productGroupsCount`.
   - `latencyMs`.
   - `errorType`.
-- [ ] Decide storage destination later; console logs remain acceptable until owner approves analytics persistence.
-- [ ] Keep rate limits:
+- [x] Decide storage destination later; console logs remain acceptable until owner approves analytics persistence.
+- [x] Keep rate limits:
   - anonymous: 8/min/IP.
   - authenticated: 30/min/user.
   - max messages: 12.
   - max single message: 1200 chars.
   - max total payload: 6000 chars.
-- [ ] Do not enable automatic `gpt-5.4-mini` routing unless owner approves a production cost policy.
-- [ ] Run AI launch limit tests and build.
+- [x] Do not enable automatic `gpt-5.4-mini` routing unless owner approves a production cost policy.
+- [x] Run AI launch limit tests and build.
 
 Acceptance:
 
@@ -455,4 +455,9 @@ Ask the owner before:
 
 ## Current Recommended Next Action
 
-Start with Stage 1, then Stage 2. Do not jump straight to UI polish; the product needs the quality contract and real-catalog QA first. Treat controlled web enrichment as a design task before implementation.
+Stages 1-7 are implemented and locally verified. The next action is launch readiness, not more feature expansion:
+
+1. Run no-spend verification from `docs/vault/plans/2026-05-17-ai-premium-launch-readiness.md`.
+2. Ask the owner before spending real OpenAI calls.
+3. If approved, run the first 10-call real QA gate from `docs/vault/plans/2026-05-17-ai-premium-qa-matrix.md`.
+4. Fix recurring live-quality failure patterns before controlled enrichment, persistence, model routing changes, or more UI work.

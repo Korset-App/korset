@@ -8,6 +8,86 @@ function productName(item) {
   return item?.name || item?.ean || 'EAN'
 }
 
+function scanCount(item) {
+  return Number(item?.scan_count || item?.scanCount || 0)
+}
+
+function textValue(value) {
+  return String(value || '').trim()
+}
+
+function normalizedText(...values) {
+  return values
+    .map((value) => textValue(value).toLowerCase())
+    .filter(Boolean)
+    .join(' ')
+}
+
+function categoryName(item) {
+  return (
+    textValue(item?.category) ||
+    textValue(item?.category_name) ||
+    textValue(item?.categoryName) ||
+    textValue(item?.subcategory) ||
+    textValue(item?.subcategory_name) ||
+    textValue(item?.subcategoryName)
+  )
+}
+
+function findDemandCluster(items) {
+  const buckets = new Map()
+
+  for (const item of items) {
+    const category = categoryName(item)
+    if (!category) continue
+    const key = category.toLowerCase()
+    const current = buckets.get(key) ?? { category, count: 0, scans: 0 }
+    current.count += 1
+    current.scans += scanCount(item)
+    buckets.set(key, current)
+  }
+
+  return [...buckets.values()]
+    .filter((bucket) => bucket.count >= 2 || bucket.scans >= 5)
+    .sort((a, b) => b.scans - a.scans || b.count - a.count)[0]
+}
+
+function hasHalalIntent(item) {
+  const text = normalizedText(
+    item?.name,
+    item?.local_name,
+    item?.query,
+    item?.category,
+    item?.subcategory,
+    item?.notes,
+    item?.tags
+  )
+
+  return /\bhalal\b|халал|حلال/.test(text)
+}
+
+function hasValue(item, keys) {
+  return keys.some((key) => {
+    const value = item?.[key]
+    if (Array.isArray(value)) return value.length > 0
+    if (typeof value === 'object' && value !== null) return Object.keys(value).length > 0
+    return value !== undefined && value !== null && String(value).trim() !== ''
+  })
+}
+
+function dataGaps(item) {
+  const gaps = []
+  if (!hasValue(item, ['image_url', 'imageUrl'])) gaps.push('image')
+  if (!hasValue(item, ['ingredients_raw', 'ingredients', 'ingredients_kz', 'ingredientsKz'])) {
+    gaps.push('composition')
+  }
+  if (!hasValue(item, ['halal_status', 'halalStatus', 'is_halal', 'isHalal'])) gaps.push('halal')
+  if (!hasValue(item, ['nutrition', 'nutrition_facts', 'nutritionFacts', 'calories'])) {
+    gaps.push('nutrition')
+  }
+  return gaps
+}
+
 function insight(id, tone, icon, values, priority) {
   return {
     id,
@@ -35,6 +115,11 @@ export function buildRetailAIInsights({
   const unknownItems = missed.filter((item) => item.reason === 'not_in_catalog')
   const outOfStockItems = missed.filter((item) => item.reason === 'out_of_stock')
   const topProduct = top[0]
+  const unknownCluster = findDemandCluster(unknownItems)
+  const halalDemandItems = missed.filter(hasHalalIntent)
+  const weakDataProducts = top
+    .map((item) => ({ item, gaps: dataGaps(item), scans: scanCount(item) }))
+    .filter(({ gaps, scans }) => gaps.length > 0 && scans > 0)
 
   if (unknownItems.length > 0) {
     insights.push(
@@ -68,6 +153,38 @@ export function buildRetailAIInsights({
     )
   }
 
+  if (unknownCluster) {
+    insights.push(
+      insight(
+        'category_gap_demand',
+        'warning',
+        'category_search',
+        {
+          category: unknownCluster.category,
+          count: unknownCluster.count,
+          scans: unknownCluster.scans,
+        },
+        25
+      )
+    )
+  }
+
+  if (halalDemandItems.length > 0) {
+    insights.push(
+      insight(
+        'halal_assortment_gap',
+        'warning',
+        'verified',
+        {
+          count: halalDemandItems.length,
+          scans: sumScans(halalDemandItems),
+          product: productName(halalDemandItems[0]),
+        },
+        28
+      )
+    )
+  }
+
   if (scansCount > 0 && Number(scanCoverage) > 0 && Number(scanCoverage) < 70) {
     insights.push(
       insight(
@@ -92,7 +209,23 @@ export function buildRetailAIInsights({
     )
   }
 
-  if (topProduct && (!topProduct.name || !topProduct.image_url)) {
+  if (weakDataProducts.length >= 2) {
+    const scans = weakDataProducts.reduce((sum, { scans: itemScans }) => sum + itemScans, 0)
+    insights.push(
+      insight(
+        'weak_catalog_data',
+        'warning',
+        'fact_check',
+        {
+          count: weakDataProducts.length,
+          scans,
+          product: productName(weakDataProducts[0].item),
+          missing: weakDataProducts[0].gaps.join(', '),
+        },
+        55
+      )
+    )
+  } else if (topProduct && (!topProduct.name || !topProduct.image_url)) {
     insights.push(
       insight(
         'weak_product_data',
@@ -100,7 +233,7 @@ export function buildRetailAIInsights({
         'edit_note',
         {
           product: productName(topProduct),
-          scans: Number(topProduct.scan_count || topProduct.scanCount || 0),
+          scans: scanCount(topProduct),
         },
         60
       )
@@ -115,7 +248,7 @@ export function buildRetailAIInsights({
         'trending_up',
         {
           product: productName(topProduct),
-          scans: Number(topProduct.scan_count || topProduct.scanCount || 0),
+          scans: scanCount(topProduct),
         },
         70
       )

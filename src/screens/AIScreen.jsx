@@ -47,8 +47,8 @@ function getVerdictStyle(tone) {
   }
   if (tone === 'caution') {
     return {
-      background: 'var(--warning-dim, rgba(217,119,6,0.12))',
-      border: '1px solid var(--warning-border, rgba(217,119,6,0.22))',
+      background: 'var(--warning-dim)',
+      border: '1px solid var(--warning-border)',
       color: 'var(--warning)',
     }
   }
@@ -279,7 +279,7 @@ export default function AIScreen() {
       })
     }
 
-    if (storeSlug && !storeId && isStoreLoading) {
+    if (storeSlug && !storeId && isStoreLoading && !fallbackProduct) {
       markLoading()
       return () => {
         active = false
@@ -482,7 +482,9 @@ export default function AIScreen() {
           >
             Körset AI
           </div>
-          <div style={{ fontSize: 12, color: '#34D399', fontWeight: 500, marginTop: 1 }}>
+          <div
+            style={{ fontSize: 12, color: 'var(--success-bright)', fontWeight: 500, marginTop: 1 }}
+          >
             {t('common.online')}
           </div>
         </div>
@@ -549,7 +551,12 @@ export default function AIScreen() {
               style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 2 }}
             />
           ) : (
-            <span style={{ fontSize: 22 }}>🛍️</span>
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: 22, color: 'var(--text-disabled)' }}
+            >
+              grocery
+            </span>
           )}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -594,8 +601,8 @@ export default function AIScreen() {
         {/* Дисклеймер ИИ */}
         <div
           style={{
-            background: 'rgba(250,204,21,0.08)',
-            border: '1px solid rgba(250,204,21,0.2)',
+            background: 'var(--warning-dim)',
+            border: '1px solid var(--warning-border)',
             padding: '10px 14px',
             borderRadius: 12,
             display: 'flex',
@@ -603,7 +610,12 @@ export default function AIScreen() {
             alignItems: 'flex-start',
           }}
         >
-          <span style={{ fontSize: 16 }}>⚠️</span>
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: 17, color: 'var(--warning)', lineHeight: 1.2 }}
+          >
+            warning
+          </span>
           <div style={{ fontSize: 11, color: 'var(--text-sub)', lineHeight: 1.4, opacity: 0.9 }}>
             {t('ai.disclaimer')}
           </div>
@@ -657,7 +669,7 @@ export default function AIScreen() {
                       maxWidth: '78%',
                       fontSize: 15,
                       lineHeight: 1.65,
-                      color: '#fff',
+                      color: 'var(--text-inverse)',
                       boxShadow: 'var(--shadow-soft)',
                     }
                   : {
@@ -721,12 +733,12 @@ export default function AIScreen() {
         {error && (
           <div
             style={{
-              background: 'rgba(220,38,38,0.08)',
-              border: '1px solid rgba(220,38,38,0.2)',
+              background: 'var(--error-dim)',
+              border: '1px solid var(--error-border)',
               borderRadius: 12,
               padding: '12px 14px',
               fontSize: 13,
-              color: '#F87171',
+              color: 'var(--error-bright)',
             }}
           >
             {error}
@@ -836,7 +848,7 @@ export default function AIScreen() {
               height="20"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="white"
+              stroke="var(--text-inverse)"
               strokeWidth="2"
               strokeLinecap="round"
             >

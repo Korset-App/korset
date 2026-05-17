@@ -354,9 +354,69 @@ async function main() {
     },
     chips: {
       title: 'Чипсы и попкорн',
-      url: 'https://arbuz.kz/ru/almaty/catalog/cat/225604-chipsy',
+      url: [
+        'https://arbuz.kz/ru/almaty/catalog/cat/225604-chipsy',
+        'https://arbuz.kz/ru/almaty/catalog/cat/19821-kartofelnye',
+        'https://arbuz.kz/ru/almaty/catalog/cat/206490-kukuruznye_i_dr_',
+        'https://arbuz.kz/ru/almaty/catalog/cat/204690-vodorosli_nori',
+        'https://arbuz.kz/ru/almaty/catalog/cat/224626-popkorn',
+        'https://arbuz.kz/ru/almaty/catalog/cat/225644-chipsy_iz_morskoi_kapusty'
+      ],
       subcategories: ['chips'],
-      pages: 7
+      pages: 10
+    },
+    snacks_appetizers: {
+      title: 'Закуски и снеки',
+      url: [
+        'https://arbuz.kz/ru/almaty/catalog/cat/225605-zakuski_i_sneki',
+        'https://arbuz.kz/ru/almaty/catalog/cat/201118-suhariki',
+        'https://arbuz.kz/ru/almaty/catalog/cat/225442-krekery',
+        'https://arbuz.kz/ru/almaty/catalog/cat/19797-semechki',
+        'https://arbuz.kz/ru/almaty/catalog/cat/224571-kukuruznye_palochki',
+        'https://arbuz.kz/ru/almaty/catalog/cat/224626-popkorn',
+        'https://arbuz.kz/ru/almaty/catalog/cat/224627-zakuski_k_pivu'
+      ],
+      subcategories: ['chips', 'crackers', 'nuts', 'dried_fruits', 'seeds', 'fish_snacks'],
+      pages: 10
+    },
+    coffee_cocoa: {
+      title: 'Кофе и какао',
+      url: [
+        'https://arbuz.kz/ru/almaty/catalog/cat/225172-kofe_i_kakao',
+        'https://arbuz.kz/ru/almaty/catalog/cat/20627-molotyi_kofe',
+        'https://arbuz.kz/ru/almaty/catalog/cat/20637-kofe_v_z_rnah',
+        'https://arbuz.kz/ru/almaty/catalog/cat/20608-rastvorimyi_kofe',
+        'https://arbuz.kz/ru/almaty/catalog/cat/225360-kofe_3_v_1',
+        'https://arbuz.kz/ru/almaty/catalog/cat/196459-kofe_v_kapsulah_dlya_kofemashin',
+        'https://arbuz.kz/ru/almaty/catalog/cat/20603-kakao',
+        'https://arbuz.kz/ru/almaty/catalog/cat/184574-kisel'
+      ],
+      subcategories: ['coffee'],
+      pages: 8
+    },
+    tea: {
+      title: 'Чай',
+      url: 'https://arbuz.kz/ru/almaty/catalog/cat/225447-chai',
+      subcategories: ['tea'],
+      pages: 16
+    },
+    cookies_bakery: {
+      title: 'Печенье, вафли, пряники',
+      url: 'https://arbuz.kz/ru/almaty/catalog/cat/225042-pechene_vafli_pryaniki',
+      subcategories: ['cookies', 'pastries'],
+      pages: 12
+    },
+    chocolate: {
+      title: 'Шоколад, батончики, паста',
+      url: 'https://arbuz.kz/ru/almaty/catalog/cat/225247-shokolad_batonchiki_pasta',
+      subcategories: ['chocolate'],
+      pages: 12
+    },
+    candy_sweets: {
+      title: 'Конфеты, зефир, мармелад',
+      url: 'https://arbuz.kz/ru/almaty/catalog/cat/225041-konfety_zefir_marmelad',
+      subcategories: ['candy', 'halva', 'honey_jam'],
+      pages: 12
     }
   }
 
@@ -423,6 +483,200 @@ async function main() {
         console.error(`    Failed to scrape page ${page} after all attempts.`)
       }
       await sleep(500)
+    }
+  }
+  // Search-based discovery to find out-of-stock or hidden items
+  if (opts.mode === 'snacks_appetizers') {
+    console.log('\n── SEARCH-BASED SNACKS DISCOVERY ──')
+    const searchQueries = [
+      'ХрусTeam', 'Кириешки', 'Трапеза', 'TUC', 'семечки',
+      'крекер', 'попкорн', 'умаибо', 'umaibo', 'чечил',
+      'гренки', 'хрустим', 'джинн', 'бабкины', 'семечки джинн',
+      'Happy Corn', 'Cheetos', 'читос'
+    ]
+    for (const query of searchQueries) {
+      console.log(`  Searching for brand/keyword: "${query}"...`)
+      try {
+        const found = await apiSearch(query, token, 100)
+        let searchCount = 0
+        for (const item of found) {
+          const targetCatalogIds = [225602, 225605, 201118, 225442, 19797, 224571, 224626, 224627, 225644]
+          const catalogIdNum = item.catalogId ? parseInt(item.catalogId, 10) : null
+          const parentCatalogIdNum = item.parentCatalogId ? parseInt(item.parentCatalogId, 10) : null
+
+          if (targetCatalogIds.includes(catalogIdNum) || targetCatalogIds.includes(parentCatalogIdNum)) {
+            const id = parseInt(item.id, 10)
+            if (!uniqueProducts.has(id)) {
+              uniqueProducts.set(id, { id, slug: item.uri || item.slug || String(id), name: item.name })
+              searchCount++
+            }
+          }
+        }
+        console.log(`    Discovered ${searchCount} new products (Total so far: ${uniqueProducts.size})`)
+      } catch (e) {
+        console.warn(`    Search failed for query "${query}": ${e.message}`)
+      }
+      await sleep(300)
+    }
+  }
+  if (opts.mode === 'coffee_cocoa') {
+    console.log('\n── SEARCH-BASED COFFEE & COCOA DISCOVERY ──')
+    const searchQueries = [
+      'Jacobs', 'Nescafe', 'Carte Noire', 'Tchibo', 'Davidoff', 'MacCoffee',
+      'Lavazza', 'Jardin', 'Nesquik', 'Starbucks', 'Bushido', 'Presidentti',
+      'Paulig', 'Julius Meinl', 'кофе', 'какао', 'кисель', '3 в 1'
+    ]
+    for (const query of searchQueries) {
+      console.log(`  Searching for brand/keyword: "${query}"...`)
+      try {
+        const found = await apiSearch(query, token, 100)
+        let searchCount = 0
+        for (const item of found) {
+          const targetCatalogIds = [225172, 20627, 20637, 20608, 225360, 196459, 20603, 184574]
+          const catalogIdNum = item.catalogId ? parseInt(item.catalogId, 10) : null
+          const parentCatalogIdNum = item.parentCatalogId ? parseInt(item.parentCatalogId, 10) : null
+
+          if (targetCatalogIds.includes(catalogIdNum) || targetCatalogIds.includes(parentCatalogIdNum)) {
+            const id = parseInt(item.id, 10)
+            if (!uniqueProducts.has(id)) {
+              uniqueProducts.set(id, { id, slug: item.uri || item.slug || String(id), name: item.name })
+              searchCount++
+            }
+          }
+        }
+        console.log(`    Discovered ${searchCount} new products (Total so far: ${uniqueProducts.size})`)
+      } catch (e) {
+        console.warn(`    Search failed for query "${query}": ${e.message}`)
+      }
+      await sleep(300)
+    }
+  }
+  if (opts.mode === 'tea') {
+    console.log('\n── SEARCH-BASED TEA DISCOVERY ──')
+    const searchQueries = [
+      'Ahmad', 'Greenfield', 'Tess', 'Piala', 'Alokozay', 'Basilur', 'Curtis', 'Richard',
+      'Dilmah', 'Lipton', 'Азерчай', 'Akbar', 'Beta', 'Ronnefeldt', 'Dammann', 'Kioko',
+      'Assam', 'Ассам', 'Shah', 'Шах', 'Принцесса', 'Тянь Шань', 'Milford', 'Twinings',
+      'Hyleys', 'Bazaar', 'чай', 'tea'
+    ]
+    for (const query of searchQueries) {
+      console.log(`  Searching for brand/keyword: "${query}"...`)
+      try {
+        const found = await apiSearch(query, token, 100)
+        let searchCount = 0
+        for (const item of found) {
+          const targetCatalogIds = [225447, 20666, 203902, 20647, 225448, 225449]
+          const catalogIdNum = item.catalogId ? parseInt(item.catalogId, 10) : null
+          const parentCatalogIdNum = item.parentCatalogId ? parseInt(item.parentCatalogId, 10) : null
+
+          if (targetCatalogIds.includes(catalogIdNum) || targetCatalogIds.includes(parentCatalogIdNum)) {
+            const id = parseInt(item.id, 10)
+            if (!uniqueProducts.has(id)) {
+              uniqueProducts.set(id, { id, slug: item.uri || item.slug || String(id), name: item.name })
+              searchCount++
+            }
+          }
+        }
+        console.log(`    Discovered ${searchCount} new products (Total so far: ${uniqueProducts.size})`)
+      } catch (e) {
+        console.warn(`    Search failed for query "${query}": ${e.message}`)
+      }
+      await sleep(300)
+    }
+  }
+  if (opts.mode === 'cookies_bakery') {
+    console.log('\n── SEARCH-BASED COOKIES & BAKERY DISCOVERY ──')
+    const searchQueries = [
+      'Oreo', 'Яшкино', 'Юбилейное', 'Tuc', 'Любятово', 'Barny', 'Барни',
+      'печенье', 'вафли', 'пряники', 'бисквит', 'крекер', 'крендель', 'соломка'
+    ]
+    for (const query of searchQueries) {
+      console.log(`  Searching for brand/keyword: "${query}"...`)
+      try {
+        const found = await apiSearch(query, token, 100)
+        let searchCount = 0
+        for (const item of found) {
+          const targetCatalogIds = [225042]
+          const catalogIdNum = item.catalogId ? parseInt(item.catalogId, 10) : null
+          const parentCatalogIdNum = item.parentCatalogId ? parseInt(item.parentCatalogId, 10) : null
+
+          if (targetCatalogIds.includes(catalogIdNum) || targetCatalogIds.includes(parentCatalogIdNum)) {
+            const id = parseInt(item.id, 10)
+            if (!uniqueProducts.has(id)) {
+              uniqueProducts.set(id, { id, slug: item.uri || item.slug || String(id), name: item.name })
+              searchCount++
+            }
+          }
+        }
+        console.log(`    Discovered ${searchCount} new products (Total so far: ${uniqueProducts.size})`)
+      } catch (e) {
+        console.warn(`    Search failed for query "${query}": ${e.message}`)
+      }
+      await sleep(300)
+    }
+  }
+  if (opts.mode === 'chocolate') {
+    console.log('\n── SEARCH-BASED CHOCOLATE DISCOVERY ──')
+    const searchQueries = [
+      'Milka', 'Alpen Gold', 'Ritter Sport', 'Kinder', 'Snickers', 'Twix', 'Bounty',
+      'Mars', 'Toblerone', 'Nestle', 'Бабаевский', 'Казахстанский', 'Рахат', 'Dove',
+      'шоколад', 'батончик', 'шоколадная паста'
+    ]
+    for (const query of searchQueries) {
+      console.log(`  Searching for brand/keyword: "${query}"...`)
+      try {
+        const found = await apiSearch(query, token, 100)
+        let searchCount = 0
+        for (const item of found) {
+          const targetCatalogIds = [225247]
+          const catalogIdNum = item.catalogId ? parseInt(item.catalogId, 10) : null
+          const parentCatalogIdNum = item.parentCatalogId ? parseInt(item.parentCatalogId, 10) : null
+
+          if (targetCatalogIds.includes(catalogIdNum) || targetCatalogIds.includes(parentCatalogIdNum)) {
+            const id = parseInt(item.id, 10)
+            if (!uniqueProducts.has(id)) {
+              uniqueProducts.set(id, { id, slug: item.uri || item.slug || String(id), name: item.name })
+              searchCount++
+            }
+          }
+        }
+        console.log(`    Discovered ${searchCount} new products (Total so far: ${uniqueProducts.size})`)
+      } catch (e) {
+        console.warn(`    Search failed for query "${query}": ${e.message}`)
+      }
+      await sleep(300)
+    }
+  }
+  if (opts.mode === 'candy_sweets') {
+    console.log('\n── SEARCH-BASED CANDY & SWEETS DISCOVERY ──')
+    const searchQueries = [
+      'Chupa Chups', 'Рахат конфеты', 'Toffifee', 'Merci', 'Raffaello', 'Ferrero Rocher',
+      'Skittles', 'M&Ms', 'Haribo', 'конфеты', 'зефир', 'мармелад', 'леденцы', 'драже',
+      'халва', 'козинаки', 'рахат-лукум', 'джем', 'варенье'
+    ]
+    for (const query of searchQueries) {
+      console.log(`  Searching for brand/keyword: "${query}"...`)
+      try {
+        const found = await apiSearch(query, token, 100)
+        let searchCount = 0
+        for (const item of found) {
+          const targetCatalogIds = [225041]
+          const catalogIdNum = item.catalogId ? parseInt(item.catalogId, 10) : null
+          const parentCatalogIdNum = item.parentCatalogId ? parseInt(item.parentCatalogId, 10) : null
+
+          if (targetCatalogIds.includes(catalogIdNum) || targetCatalogIds.includes(parentCatalogIdNum)) {
+            const id = parseInt(item.id, 10)
+            if (!uniqueProducts.has(id)) {
+              uniqueProducts.set(id, { id, slug: item.uri || item.slug || String(id), name: item.name })
+              searchCount++
+            }
+          }
+        }
+        console.log(`    Discovered ${searchCount} new products (Total so far: ${uniqueProducts.size})`)
+      } catch (e) {
+        console.warn(`    Search failed for query "${query}": ${e.message}`)
+      }
+      await sleep(300)
     }
   }
 
@@ -590,6 +844,26 @@ async function main() {
       } else if (opts.mode === 'chips') {
         category = 'snacks'
         subcategory = 'chips'
+      } else if (opts.mode === 'snacks_appetizers') {
+        category = 'snacks'
+        const lowerName = (full.name || '').toLowerCase()
+        if (lowerName.includes('семечки') || lowerName.includes('джинн') || lowerName.includes('бабкины') || lowerName.includes('тыкви')) {
+          subcategory = 'seeds'
+        } else if (lowerName.includes('сухарики') || lowerName.includes('хрусteam') || lowerName.includes('кириешки') || lowerName.includes('гренки') || lowerName.includes('багет') || lowerName.includes('baget') || lowerName.includes('трапеза') || lowerName.includes('сухари')) {
+          subcategory = 'crackers'
+        } else if (lowerName.includes('крекер') || lowerName.includes('tuc') || lowerName.includes('тук') || lowerName.includes('печенье солен') || lowerName.includes('рыбки')) {
+          subcategory = 'crackers'
+        } else if (lowerName.includes('арахис') || lowerName.includes('миндаль') || lowerName.includes('кешью') || lowerName.includes('фисташки') || lowerName.includes('орех')) {
+          subcategory = 'nuts'
+        } else if (lowerName.includes('попкорн') || lowerName.includes('popcorn') || lowerName.includes('happy corn')) {
+          subcategory = 'chips'
+        } else if (lowerName.includes('кукурузные палочки') || lowerName.includes('кукурузная палочка') || lowerName.includes('umaibo') || lowerName.includes('cheetos') || lowerName.includes('читос')) {
+          subcategory = 'chips'
+        } else if (lowerName.includes('кальмар') || lowerName.includes('анчоус') || lowerName.includes('желтый полосатик') || lowerName.includes('рыбка солен') || lowerName.includes('вобла') || lowerName.includes('чечил') || lowerName.includes('сыр косичка') || lowerName.includes('суджук') || lowerName.includes('рыбн') || lowerName.includes('икра')) {
+          subcategory = 'fish_snacks'
+        } else {
+          subcategory = 'crackers'
+        }
       } else if (opts.mode === 'sausages' || opts.mode === 'wieners') {
         category = 'deli'
         subcategory = 'sausage'
@@ -634,6 +908,65 @@ async function main() {
         } else {
           subcategory = 'dried_fruits'
         }
+      } else if (opts.mode === 'coffee_cocoa') {
+        const lowerName = (full.name || '').toLowerCase()
+        if (lowerName.includes('кисель')) {
+          category = 'water_beverages'
+          subcategory = 'lemonade'
+        } else {
+          category = 'tea_coffee'
+          subcategory = 'coffee'
+        }
+      } else if (opts.mode === 'tea') {
+        category = 'tea_coffee'
+        subcategory = 'tea'
+      } else if (opts.mode === 'cookies_bakery') {
+        category = 'sweets'
+        const lowerName = (full.name || '').toLowerCase()
+        if (
+          lowerName.includes('вафли') ||
+          lowerName.includes('вафель') ||
+          lowerName.includes('торт') ||
+          lowerName.includes('пирожн') ||
+          lowerName.includes('кекс') ||
+          lowerName.includes('рулет') ||
+          lowerName.includes('круассан') ||
+          lowerName.includes('пирог') ||
+          lowerName.includes('выпеч')
+        ) {
+          subcategory = 'pastries'
+        } else {
+          subcategory = 'cookies'
+        }
+      } else if (opts.mode === 'chocolate') {
+        category = 'sweets'
+        subcategory = 'chocolate'
+      } else if (opts.mode === 'candy_sweets') {
+        category = 'sweets'
+        const lowerName = (full.name || '').toLowerCase()
+        if (
+          lowerName.includes('халв') ||
+          lowerName.includes('козинак') ||
+          lowerName.includes('рахат-лукум') ||
+          lowerName.includes('рахат лукум') ||
+          lowerName.includes('щербет') ||
+          lowerName.includes('чак-чак') ||
+          lowerName.includes('чак чак') ||
+          lowerName.includes('грильяж')
+        ) {
+          subcategory = 'halva'
+        } else if (
+          lowerName.includes('мед') ||
+          lowerName.includes('мёд') ||
+          lowerName.includes('варень') ||
+          lowerName.includes('джем') ||
+          lowerName.includes('сироп') ||
+          lowerName.includes('топпинг')
+        ) {
+          subcategory = 'honey_jam'
+        } else {
+          subcategory = 'candy'
+        }
       }
 
       // Filter to keep only target subcategories
@@ -644,11 +977,17 @@ async function main() {
         expectedCategory = 'water_beverages'
       } else if (opts.mode === 'sausages' || opts.mode === 'wieners' || opts.mode === 'deli_meats') {
         expectedCategory = 'deli'
-      } else if (opts.mode === 'nuts_dried_fruits' || opts.mode === 'chips') {
+      } else if (opts.mode === 'nuts_dried_fruits' || opts.mode === 'chips' || opts.mode === 'snacks_appetizers') {
         expectedCategory = 'snacks'
+      } else if (opts.mode === 'coffee_cocoa' || opts.mode === 'tea' || opts.mode === 'cookies_bakery' || opts.mode === 'chocolate' || opts.mode === 'candy_sweets') {
+        expectedCategory = category
       }
 
-      const allowedSubcategories = modeConfig.subcategories
+      let allowedSubcategories = modeConfig.subcategories
+      if (opts.mode === 'coffee_cocoa') {
+        allowedSubcategories = ['coffee', 'lemonade']
+      }
+
       if (category !== expectedCategory || !allowedSubcategories.includes(subcategory)) {
         console.log(`  [skip] Skipping non-target product: ${full.name} (${category} / ${subcategory})`)
         continue

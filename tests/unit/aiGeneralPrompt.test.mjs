@@ -35,6 +35,26 @@ test('buildGeneralPrompt includes premium store-scoped answer contract', () => {
   assert.match(prompt, /если подходящих товаров не видно/)
 })
 
+test('buildGeneralPrompt adds cautious child-snack guidance', () => {
+  const prompt = buildGeneralPrompt(
+    'ru',
+    { name: 'MARS', slug: 'store-one' },
+    [
+      {
+        ean: '1',
+        name: 'Батончик ореховый',
+        category: 'snacks',
+        priceKzt: 520,
+        stockStatus: 'in_stock',
+      },
+    ]
+  )
+
+  assert.match(prompt, /Для детских перекусов/)
+  assert.match(prompt, /не ставь орехи, кофеин, энергетики/)
+  assert.match(prompt, /если аллергии и возраст неизвестны/)
+})
+
 test('buildGeneralPrompt gives honest no-match contract when catalog context is empty', () => {
   const prompt = buildGeneralPrompt('ru', { name: 'MARS' }, [])
 

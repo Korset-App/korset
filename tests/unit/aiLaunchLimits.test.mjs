@@ -5,10 +5,12 @@ import {
   AI_LIMITS,
   AI_MODELS,
   RATE_LIMITS,
+  buildAISafetyConfidence,
   buildAIUsageEvent,
   buildProductGroupsFromCatalog,
   classifyOpenAIError,
   getOpenAICompletionLimits,
+  inferAIIntent,
   sanitizeCatalogContext,
   selectOpenAIModel,
   validateMessages,
@@ -152,7 +154,7 @@ test('OpenAI error classification keeps provider failures actionable', () => {
   assert.equal(classifyOpenAIError(418), 'unknown')
 })
 
-test('AI usage event is compact and excludes user message content', () => {
+test('AI usage event is compact, diagnostic, and excludes user message content', () => {
   const originalNow = Date.now
   Date.now = () => 1_500
   try {
@@ -171,21 +173,30 @@ test('AI usage event is compact and excludes user message content', () => {
         status: 'ok',
         storeContext: { slug: 'store-one', name: 'Store One' },
         catalogContext: [{ ean: '1', name: 'A' }, { ean: '2', name: 'B' }],
+        intent: 'catalog_recommendation',
+        safetyConfidence: null,
+        noCatalogMatch: false,
+        productGroupsCount: 2,
         ragUsed: true,
       }),
       {
         event: 'ai_completion',
         mode: 'general',
+        intent: 'catalog_recommendation',
         model: 'gpt-5.4-nano',
         modelRoute: 'default',
         status: 'ok',
         errorType: null,
         durationMs: 500,
+        latencyMs: 500,
         promptTokens: 240,
         completionTokens: 80,
         totalTokens: 320,
         maxCompletionTokens: 320,
         catalogCandidates: 2,
+        noCatalogMatch: false,
+        productGroupsCount: 2,
+        safetyConfidence: null,
         ragUsed: true,
         storeSlug: 'store-one',
       }
@@ -193,4 +204,54 @@ test('AI usage event is compact and excludes user message content', () => {
   } finally {
     Date.now = originalNow
   }
+})
+
+test('AI usage event derives no-match diagnostics without message text', () => {
+  const event = buildAIUsageEvent({
+    mode: 'general',
+    modelRoute: 'default',
+    model: 'gpt-5.4-nano',
+    status: 'error',
+    errorType: 'provider_error',
+    latencyMs: 35,
+    catalogContext: [],
+  })
+
+  assert.equal(event.intent, 'catalog_no_match')
+  assert.equal(event.noCatalogMatch, true)
+  assert.equal(event.latencyMs, 35)
+  assert.equal(event.errorType, 'provider_error')
+  assert.equal(Object.hasOwn(event, 'messages'), false)
+  assert.equal(Object.hasOwn(event, 'message'), false)
+  assert.equal(Object.hasOwn(event, 'profile'), false)
+})
+
+test('AI intent and safety confidence are metadata-only', () => {
+  assert.equal(inferAIIntent({ mode: 'product', product: { name: 'Milk' } }), 'product_fit_check')
+  assert.equal(
+    inferAIIntent({
+      mode: 'compare',
+      productA: { name: 'A' },
+      productB: { name: 'B' },
+    }),
+    'product_compare'
+  )
+  assert.equal(inferAIIntent({ mode: 'general', catalogContext: [{ ean: '1' }] }), 'catalog_recommendation')
+  assert.equal(inferAIIntent({ mode: 'general', catalogContext: [] }), 'catalog_no_match')
+
+  const confidence = buildAISafetyConfidence({
+    mode: 'product',
+    product: {
+      name: 'Chocolate',
+      ingredients: 'milk, sugar, cocoa',
+      halalStatus: 'unknown',
+      allergens: ['milk'],
+    },
+    profile: { halalOnly: true, allergens: ['milk'] },
+  })
+
+  assert.deepEqual(confidence, {
+    halal: 'likely_compatible',
+    allergy: 'direct_match',
+  })
 })

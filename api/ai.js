@@ -64,6 +64,27 @@ export function classifyOpenAIError(status, error = {}) {
   return 'unknown'
 }
 
+export function inferAIIntent({ mode, product = null, productA = null, productB = null, catalogContext = [] } = {}) {
+  if (mode === 'product') return product ? 'product_fit_check' : 'product_missing'
+  if (mode === 'compare') return productA && productB ? 'product_compare' : 'compare_missing'
+  if (mode === 'enrich') return product ? 'product_enrichment' : 'enrich_missing'
+  if (mode === 'general') {
+    return Array.isArray(catalogContext) && catalogContext.length > 0
+      ? 'catalog_recommendation'
+      : 'catalog_no_match'
+  }
+  return 'unknown'
+}
+
+export function buildAISafetyConfidence({ mode, product = null, profile = null } = {}) {
+  if (mode !== 'product' || !product) return null
+  const notes = buildSafetyNotes({ product, profile, lang: 'ru' })
+  return {
+    halal: notes.halal.level,
+    allergy: notes.allergy.level,
+  }
+}
+
 export function buildAIUsageEvent({
   mode,
   modelRoute,
@@ -71,21 +92,31 @@ export function buildAIUsageEvent({
   completionLimits = {},
   usage = null,
   startedAt,
+  latencyMs = null,
   status = 'ok',
   errorType = null,
   storeContext = null,
   catalogContext = [],
+  intent = null,
+  safetyConfidence = null,
+  noCatalogMatch = null,
+  productGroupsCount = null,
   ragUsed = false,
 }) {
   const safeUsage = usage && typeof usage === 'object' ? usage : {}
+  const durationMs = startedAt ? Math.max(0, Date.now() - startedAt) : null
   return {
     event: 'ai_completion',
     mode,
+    intent: intent || inferAIIntent({ mode, catalogContext }),
     model,
     modelRoute,
     status,
     errorType,
-    durationMs: startedAt ? Math.max(0, Date.now() - startedAt) : null,
+    durationMs,
+    latencyMs: latencyMs != null && Number.isFinite(Number(latencyMs))
+      ? Math.max(0, Number(latencyMs))
+      : durationMs,
     promptTokens: Number.isFinite(Number(safeUsage.prompt_tokens))
       ? Number(safeUsage.prompt_tokens)
       : null,
@@ -97,6 +128,14 @@ export function buildAIUsageEvent({
       : null,
     maxCompletionTokens: completionLimits.max_completion_tokens || null,
     catalogCandidates: Array.isArray(catalogContext) ? catalogContext.length : 0,
+    noCatalogMatch:
+      typeof noCatalogMatch === 'boolean'
+        ? noCatalogMatch
+        : mode === 'general' && (!Array.isArray(catalogContext) || catalogContext.length === 0),
+    productGroupsCount: Number.isFinite(Number(productGroupsCount))
+      ? Number(productGroupsCount)
+      : null,
+    safetyConfidence,
     ragUsed: !!ragUsed,
     storeSlug: storeContext?.slug || null,
   }
@@ -474,6 +513,10 @@ export default async function handler(req, res) {
           errorType,
           storeContext,
           catalogContext,
+          intent: inferAIIntent({ mode, product, productA, productB, catalogContext }),
+          safetyConfidence: buildAISafetyConfidence({ mode, product, profile }),
+          noCatalogMatch: mode === 'general' && catalogContext.length === 0,
+          productGroupsCount: 0,
           ragUsed: !!ragContext,
         })
       )
@@ -516,6 +559,10 @@ export default async function handler(req, res) {
         status: 'ok',
         storeContext,
         catalogContext,
+        intent: inferAIIntent({ mode, product, productA, productB, catalogContext }),
+        safetyConfidence: buildAISafetyConfidence({ mode, product, profile }),
+        noCatalogMatch: mode === 'general' && catalogContext.length === 0,
+        productGroupsCount: responseProductGroups.length,
         ragUsed: !!ragContext,
       })
     )
@@ -562,6 +609,9 @@ export function buildProductPrompt(product, profile, lang, ragContext, storeCont
 - ${safetyNotes.userNotes.join('\n- ')}
 - Если halalConfidence = likely_compatible, объясни это как осторожную практическую оценку по видимому составу: явных запрещённых компонентов не видно, но сертификат не указан.
 - не делай вид, что AI полностью беспомощен при unknown halal, если состав достаточно понятен; помогай, но маркируй уверенность и проси проверить упаковку при строгих требованиях.
+- Не показывай пользователю внутренние названия confidence labels: confirmed_halal, likely_compatible, questionable, not_halal, insufficient_data, direct_match, profile_allergen_match. Переводи их в обычный русский/казахский текст.
+- Если allergyConfidence указывает на совпадение с аллергеном профиля, прямо советуй выбрать другой товар. Не спрашивай, достаточно ли "без начинки" или частичного исключения аллергена.
+- Не приписывай альтернативам полку, halal-статус, отсутствие аллергенов, состав или свойства, если этого нет в блоке альтернатив.
 - Если Fit-Check или данные профиля показывают реальный риск, не спорь с ними и не снижай риск.`
   const storeSection = storeContext?.name
     ? `\nМАГАЗИН: ${storeContext.name}${storeContext.address ? ` | ${storeContext.address}` : ''}${storeContext.aiStoreNotes ? `\nФАКТЫ МАГАЗИНА: ${storeContext.aiStoreNotes}` : ''}`
@@ -579,8 +629,10 @@ ${langNote}
 Не называй товар безопасным, если данных мало, состав отсутствует, есть совпадение с аллергенами профиля или есть только неполные сведения.
 При сильных аллергиях всегда советуй сверить состав, следы аллергенов и маркировку на упаковке; не заменяй медицинскую консультацию.
 Халал-статус unknown означает, что сертификат не подтверждён. Не называй товар "подтверждённо халал", но используй halalConfidence из SAFETY CONTRACT: confirmed_halal / likely_compatible / questionable / not_halal / insufficient_data.
+В ответе не пиши внутренние labels вроде "halalConfidence", "likely_compatible", "questionable" или "direct_match"; это служебные метки, а не текст для покупателя.
 Если состав отсутствует, прямо скажи, что данных о составе нет, и перечисли, что проверить на упаковке.
 Альтернативы предлагай только из блока "АЛЬТЕРНАТИВЫ В ЭТОМ МАГАЗИНЕ"; если блока нет, скажи, что не видишь подходящих альтернатив в текущем магазине.
+Если у пользователя есть прямое совпадение с аллергеном, не смягчай рекомендацию вопросами про частичное исключение аллергена; основной совет — не брать этот товар и рассмотреть только видимые альтернативы с обязательной проверкой упаковки.
 
 ТОВАР: ${product.name} | EAN: ${product.ean || '—'} | Бренд: ${product.brand || '—'}${storeSection}
 КБЖУ: ${nutr} | Состав: ${product.ingredients || '—'}
@@ -603,10 +655,10 @@ export function buildGeneralPrompt(lang, storeContext, catalogContext = []) {
 
   if (lang === 'kz') {
     return `Сен — ${storeName} дүкеніндегі Körset AI көмекшісісің. Тек осы дүкеннің берілген каталогындағы тауарларды ұсын. Егер тауар берілген каталогта жоқ болса, оны көрмей тұрғаныңды ашық айт. Қысқа, түсінікті қазақша жауап бер. Максимум 3-4 сөйлем. Markdown, жұлдызша және ұзын тізім қолданба; карточкалардағы тауарларды мәтінде толық қайталама.
-ПРЕМИУМ ЖАУАП ЕРЕЖЕСІ: тауарларды тек ағымдағы дүкеннің берілген каталогынан ұсын; карточкалардағы барлық тауарды мәтінде қайталама; тауар топтары сұрауға неге сәйкес келетінін қысқа түсіндір; пайдалы келесі қадам ұсын; сәйкес тауар көрінбесе, осы дүкен каталогында көрмей тұрғаныңды айт.${catalogSection}`
+ПРЕМИУМ ЖАУАП ЕРЕЖЕСІ: тауарларды тек ағымдағы дүкеннің берілген каталогынан ұсын; карточкалардағы барлық тауарды мәтінде қайталама; тауар топтары сұрауға неге сәйкес келетінін қысқа түсіндір; пайдалы келесі қадам ұсын; сәйкес тауар көрінбесе, осы дүкен каталогында көрмей тұрғаныңды айт. Балаға арналған сұрақта жаңғақ, кофеин, энергетик немесе қанты көп тауарларды бірінші қауіпсіз таңдау ретінде ұсынба; алдымен су, шырын, жеміс сияқты қарапайым нұсқаларды бер және қаптаманы/аллергендерді тексеруді айт.${catalogSection}`
   }
   return `Ты — Körset AI, помощник покупателя в магазине ${storeName}. Помогаешь найти товары, советуешь простые покупки и отвечаешь про состав и аллергены. Рекомендуй только товары из переданного каталога текущего магазина. Если товара нет в данных, честно скажи, что не видишь его в этом магазине. Кратко, по-русски, как дружелюбный консультант. Максимум 3-4 предложения. Не используй markdown, звёздочки и длинные списки; не дублируй в тексте весь список товаров, который уже показан карточками.
-ПРЕМИУМ-КОНТРАКТ ОТВЕТА: рекомендуй только из переданного каталога текущего магазина; не повторяй в тексте весь список товаров из карточек; объясни, почему группы товаров подходят под запрос; предложи следующий шаг, например дешевле, без аллергена, halal-фильтр, замену или проверку упаковки; если подходящих товаров не видно, скажи, что не вижу подходящих товаров в каталоге этого магазина, и не предлагай товары вне текущего магазина.${catalogSection}`
+ПРЕМИУМ-КОНТРАКТ ОТВЕТА: рекомендуй только из переданного каталога текущего магазина; не повторяй в тексте весь список товаров из карточек; объясни, почему группы товаров подходят под запрос; предложи следующий шаг, например дешевле, без аллергена, halal-фильтр, замену или проверку упаковки; если подходящих товаров не видно, скажи, что не вижу подходящих товаров в каталоге этого магазина, и не предлагай товары вне текущего магазина. Для детских перекусов не ставь орехи, кофеин, энергетики или явно сладкие спорные товары как первый безопасный выбор, если аллергии и возраст неизвестны; сначала предлагай более нейтральные видимые варианты и проси проверить упаковку/аллергены.${catalogSection}`
 }
 
 function buildComparePrompt(productA, productB, profile, winner, lang, ragContext) {

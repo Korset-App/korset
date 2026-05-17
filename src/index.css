@@ -23,6 +23,8 @@
   --error-dim: rgba(220, 38, 38, 0.13);
   --error-border: rgba(239, 68, 68, 0.2);
   --warning: #d97706;
+  --warning-dim: rgba(217, 119, 6, 0.12);
+  --warning-border: rgba(217, 119, 6, 0.22);
   --text: #e8e8ff;
   --text-sub: #c9c9e8;
   --text-dim: #8e8eb6;
@@ -124,6 +126,8 @@
   --error-dim: rgba(220, 38, 38, 0.1);
   --error-border: rgba(220, 38, 38, 0.2);
   --warning: #b45309;
+  --warning-dim: rgba(180, 83, 9, 0.1);
+  --warning-border: rgba(180, 83, 9, 0.2);
   --text: #111827;
   --text-sub: #40506a;
   --text-dim: #71809a;

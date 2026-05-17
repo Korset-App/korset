@@ -285,7 +285,9 @@ export default function AIAssistantScreen() {
           >
             Körset AI
           </div>
-          <div style={{ fontSize: 12, color: '#34D399', fontWeight: 500, marginTop: 1 }}>
+          <div
+            style={{ fontSize: 12, color: 'var(--success-bright)', fontWeight: 500, marginTop: 1 }}
+          >
             {storeContext?.name
               ? t('ai.generalStoreSubtitle', { store: storeContext.name })
               : t('ai.generalSubtitle')}
@@ -369,7 +371,7 @@ export default function AIAssistantScreen() {
                       maxWidth: '78%',
                       fontSize: 15,
                       lineHeight: 1.65,
-                      color: '#fff',
+                      color: 'var(--text-inverse)',
                       boxShadow: '0 4px 16px var(--primary-glow)',
                     }
                   : {
@@ -554,7 +556,7 @@ export default function AIAssistantScreen() {
               height="20"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="white"
+              stroke="var(--text-inverse)"
               strokeWidth="2"
               strokeLinecap="round"
             >
