@@ -153,14 +153,23 @@ area: ai
 **Purpose:** help when product cards lack composition, halal clues, nutrition, or exact facts.
 
 **Work:**
-- Add a controlled endpoint/job behind explicit trigger rules.
-- Cache findings as reviewable signals, not automatic truth.
-- Never override Fit-Check, direct allergen matches, or trusted store facts.
+- [x] Add controlled enrichment behind the Stage 12 trigger rules.
+- [x] Cache findings as reviewable signals in existing `external_product_cache`, not automatic truth.
+- [x] Never override Fit-Check, direct allergen matches, trusted product facts, current-store price, or stock.
+- [x] Feed strong external references into Product AI as lower-confidence context only.
 
 **Acceptance:**
-- Missing-fact answers become more useful.
-- External data is always visibly lower-confidence.
-- Cost and rate limits remain bounded.
+- [x] Missing-fact answers become more useful.
+- [x] External data is always visibly lower-confidence.
+- [x] Cost and rate limits remain bounded.
+
+**Status:** completed on 2026-05-17.
+
+**Verification:**
+- `node --test tests/unit/ai*.test.mjs` passed: 108/108.
+- `npm run check:ai:qa` passed: 12/12 no-spend scenarios.
+- `npm run check:ai:live:dry` listed 13 scenarios and made no OpenAI calls.
+- Live NPC + Supabase smoke passed: weak NPC candidate was persisted as review-only and not shown to buyer; test row was removed after verification.
 
 ## Stage 14: Compare And Ranking Cleanup
 

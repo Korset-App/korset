@@ -134,6 +134,37 @@ Current hard guarantees:
 - External candidates remain reviewable candidates, not trusted product facts.
 - Weak/conflicting candidates are not buyer-visible.
 
+## Stage 13 Implementation
+
+Stage 13 added `src/domain/ai/productEnrichmentService.js` and connected it to Product AI in `/api/ai.js`.
+
+Runtime flow:
+
+1. Product AI receives a product question.
+2. `resolveControlledProductEnrichment()` applies the Stage 12 trigger contract.
+3. The server checks `external_product_cache` first.
+4. If no fresh strong cache exists, the server may call controlled sources:
+   - USDA for branded composition/nutrition when `USDA_API_KEY` exists.
+   - National Product Catalog RK for product identity/manufacturer signals when `NPC_API_KEY` exists.
+5. Candidates are normalized and classified.
+6. Candidates are cached as reviewable signals in `external_product_cache`.
+7. Only strong non-conflicting candidates become Product AI `EXTERNAL_REFERENCE` context.
+
+Product AI prompt rule:
+
+- `EXTERNAL_REFERENCE` is lower-confidence context only.
+- It must not override local card fields, Fit-Check, direct allergy matches, `halalStatus=no`, current-store price, or current-store stock.
+- Weak/conflicting candidates remain review-only and are not buyer-visible.
+
+Current storage path:
+
+- Existing `external_product_cache` is used.
+- `raw_payload.controlledConfidence` stores candidate confidence.
+- `raw_payload.reviewStatus` stores review state.
+- `raw_payload.sourceDomain`, `sourceUrl`, `fetchedAt`, and `ttlExpiresAt` store source/cache metadata.
+
+This stage did not add a new migration, new RLS policy, or automatic promotion into `global_products`.
+
 ## Stop Points
 
 Ask the owner before:
