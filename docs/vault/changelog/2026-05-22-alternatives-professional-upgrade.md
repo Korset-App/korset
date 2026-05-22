@@ -21,6 +21,7 @@ Completed the professional alternatives flow for product cards.
 - Renamed the common product AI action from visible `AI` wording to `Спросить ИИ` / `ЖИ-дан сұрау`.
 - Added contextual alternative-selection behavior in Product AI: the chat is separated by `alternative_selection` mode and receives the current product, selected scenario, and visible alternatives.
 - Added metadata-only analytics for scenario selection, product opening, compare click, and AI help click through `src/utils/alternativeAnalytics.js`.
+- Polished the Alternatives product-card UI: cards are denser, the visible `Open` CTA was removed, the full card opens the product, `Compare` remains a dedicated action, and cards/scenario chips use a richer theme-aware glass treatment.
 - Added `supabase/migrations/035_alternative_events.sql` for persistent alternatives analytics with RLS and store-owner read access.
 - Added owner-facing Retail Dashboard aggregation for alternatives: total alternative interactions, compare clicks, AI help clicks, top scenario, and top source EAN for the selected period.
 - Moved Retail Dashboard alternative aggregation to server-side RPC `fn_get_alternative_events_summary` in `supabase/migrations/036_alternative_events_summary_rpc.sql`.
@@ -42,6 +43,7 @@ Completed the professional alternatives flow for product cards.
 - `node scripts/check-i18n.mjs` passed.
 - `npm run lint` exited 0 with existing warnings outside this feature.
 - `npm run build` passed.
+- Post-polish `npm run build` passed, and `npm test -- tests/e2e/alternatives.spec.js` passed 1/1.
 - Browser smokes passed for:
   - RPC-backed alternatives screen at `/s/store-one/product/4601751002907/alternatives`;
   - ProductScreen risky callout opening `Подходят мне`;

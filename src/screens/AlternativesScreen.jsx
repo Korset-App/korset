@@ -302,6 +302,7 @@ function SourceProductCard({ product, localName, profile, lang, t }) {
 
 function AlternativeCard({ alternative, scenario, lang, t, onOpen, onCompare }) {
   const quantity = getDisplayQuantity(alternative, lang)
+  const name = getLocalName(alternative)
   const meta = [alternative.brand || t('alternatives.noBrand'), quantity]
     .filter(Boolean)
     .join(' · ')
@@ -311,11 +312,16 @@ function AlternativeCard({ alternative, scenario, lang, t, onOpen, onCompare }) 
   const stockKey = getStockKey(alternative.stockStatus)
 
   return (
-    <article className="alternatives-card">
+    <article className="alternatives-card" onClick={onOpen}>
+      <button
+        type="button"
+        className="alternatives-card-open-hitbox"
+        aria-label={`${t('alternatives.open')}: ${name}`}
+      />
       <div className="alternatives-card-main">
-        <AltThumb product={alternative} size={66} />
+        <AltThumb product={alternative} size={58} />
         <div className="alternatives-card-body">
-          <div className="alternatives-card-name">{getLocalName(alternative)}</div>
+          <div className="alternatives-card-name">{name}</div>
           <div className="alternatives-card-meta">{meta}</div>
           <div className="alternatives-reason">
             <span className="material-symbols-outlined" aria-hidden="true">
@@ -334,18 +340,22 @@ function AlternativeCard({ alternative, scenario, lang, t, onOpen, onCompare }) 
             )}
           </div>
         </div>
-        <div className="alternatives-price">{formatPrice(alternative.priceKzt)}</div>
-      </div>
-      <div className="alternatives-card-actions">
-        <button type="button" className="alternatives-compare-btn" onClick={onCompare}>
-          <span className="material-symbols-outlined" aria-hidden="true">
-            compare_arrows
-          </span>
-          {t('compare.btnLabel')}
-        </button>
-        <button type="button" className="alternatives-open-btn" onClick={onOpen}>
-          {t('alternatives.open')}
-        </button>
+        <div className="alternatives-card-side">
+          <div className="alternatives-price">{formatPrice(alternative.priceKzt)}</div>
+          <button
+            type="button"
+            className="alternatives-compare-btn"
+            onClick={(event) => {
+              event.stopPropagation()
+              onCompare()
+            }}
+          >
+            <span className="material-symbols-outlined" aria-hidden="true">
+              compare_arrows
+            </span>
+            {t('compare.btnLabel')}
+          </button>
+        </div>
       </div>
     </article>
   )
