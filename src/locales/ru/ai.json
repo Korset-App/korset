@@ -1,6 +1,9 @@
 {
   "ai.productTitle": "Körset AI",
   "ai.productContext": "Контекст продукта",
+  "ai.alternativeSelectionContext": "Выбор альтернативы",
+  "ai.alternativeSelectionPrompt": "Помогите выбрать лучшую альтернативу для \"{name}\" из вариантов на этом экране. Учитывайте мой профиль, состав, наличие и цену. Ответьте коротко: какой вариант выбрать и почему.",
+  "ai.welcomeAlternativeSelection": "Я помогу выбрать замену для «{name}». Вижу {count} вариантов с экрана альтернатив и буду сравнивать только их.",
   "ai.generalSubtitle": "Помощник в магазине",
   "ai.generalStoreSubtitle": "Помощник магазина {store}",
   "ai.welcomeProduct": "Здравствуйте! Задайте любой вопрос про",

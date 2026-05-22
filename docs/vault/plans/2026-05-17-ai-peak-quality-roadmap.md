@@ -176,69 +176,121 @@ area: ai
 **Purpose:** remove misleading "magic score" behavior and align comparison with Fit Priority.
 
 **Work:**
-- Audit compare/rating logic.
-- Either redesign visible scoring around human labels or simplify it.
-- Add tests for allergy, halal, stock, relevance, price, and data completeness precedence.
+- [x] Audit compare/rating logic.
+- [x] Replace visible magic percentages with human labels.
+- [x] Add tests for allergy, halal, stock, price, and data completeness precedence.
 
 **Acceptance:**
-- Buyer sees understandable labels, not fake precision.
-- The "better product" explanation matches deterministic ranking.
+- [x] Buyer sees understandable labels, not fake precision.
+- [x] The "better product" explanation matches deterministic ranking.
+
+**Status:** completed on 2026-05-18.
+
+**Verification:**
+- `node --test tests/unit/ai*.test.mjs tests/unit/productComparison.test.mjs` passed: 116/116.
+- `npm run check:ai:qa` passed: 12/12 no-spend scenarios.
+- `node scripts/check-i18n.mjs` passed: all KZ keys present.
+- `npm run build` passed.
+- `npm run lint` passed with existing warnings only: 0 errors, 57 warnings.
 
 ## Stage 15: AI UI Shelf-Use Smoke And Polish
 
 **Purpose:** make the AI experience reliable on mobile in real store use.
 
 **Work:**
-- Browser smoke for General AI and Product AI on mobile and desktop.
-- Verify loading, error, empty, long-answer, product-card, and bottom-nav spacing states.
-- Fix only focused UI issues, no broad redesign.
+- [x] Browser smoke for General AI and Product AI on mobile and desktop.
+- [x] Verify loading, error, empty, long-answer, product-card, and bottom-nav spacing states.
+- [x] Fix only focused UI issues, no broad redesign.
 
 **Acceptance:**
-- No layout collisions.
-- Product cards and quick chips remain usable on mobile.
-- Light/dark themes stay clean.
+- [x] No layout collisions.
+- [x] Product cards and quick chips remain usable on mobile.
+- [x] Light/dark themes stay clean.
+
+**Status:** completed on 2026-05-18.
+
+**Verification:**
+- Added `tests/e2e/aiShelfUiMocked.spec.js`.
+- `npm test -- tests/e2e/aiShelfUiMocked.spec.js` passed: 4/4.
+- `npm test -- tests/e2e/aiGeneralMocked.spec.js tests/e2e/aiProductMocked.spec.js tests/e2e/aiShelfUiMocked.spec.js` passed: 6/6.
+- In-app Browser MCP smoke was attempted, but the local node_repl kernel exited on a sandbox `EPERM` while resolving `C:\Users\User\AppData`; Playwright browser smoke covers the same local Vite routes with deterministic mocked AI responses.
 
 ## Stage 16: Retail Owner Intelligence Upgrade
 
 **Purpose:** make AI more valuable for stores, not only shoppers.
 
 **Work:**
-- Improve assortment gap insights, weak-card detection, no-match demand, and halal coverage opportunities.
-- Keep analytics aggregate-only.
-- Add practical next actions for the owner.
+- [x] Improve assortment gap insights, weak-card detection, no-match demand, and halal coverage opportunities.
+- [x] Keep analytics aggregate-only.
+- [x] Add practical next actions for the owner.
 
 **Acceptance:**
-- Dashboard insights feel store-specific.
-- Empty/sparse data states are honest.
-- No user-level behavior is exposed.
+- [x] Dashboard insights feel store-specific.
+- [x] Empty/sparse data states are honest.
+- [x] No user-level behavior is exposed.
+
+**Status:** completed on 2026-05-18.
+
+**Verification:**
+- `node --test tests/unit/retailAiInsights.test.mjs` passed: 11/11.
+- `node --test tests/unit/retailAiInsights.test.mjs tests/unit/retailStoreSettings.test.mjs tests/unit/retailImportCore.test.mjs` passed: 15/15.
+- `node scripts/check-i18n.mjs` passed: all KZ keys present.
+- `npm run lint` passed with existing warnings only: 0 errors, 57 warnings.
+- `npm run build` passed.
 
 ## Stage 17: Observability Persistence Decision
 
 **Purpose:** decide whether console-only usage diagnostics should become real product analytics.
 
 **Work:**
-- Propose storage schema or external analytics path.
-- Define privacy constraints and retention.
-- Do not implement DB/RLS changes without approval.
+- [x] Propose storage schema or external analytics path.
+- [x] Define privacy constraints and retention.
+- [x] Do not implement DB/RLS changes without approval.
 
 **Acceptance:**
-- Owner has a clear yes/no decision with tradeoffs.
-- No message content logging is introduced.
+- [x] Owner has a clear yes/no decision with tradeoffs.
+- [x] No message content logging is introduced.
+
+**Status:** completed on 2026-05-18.
+
+**Decision:**
+- Recommendation: persist AI diagnostics later as metadata-only Supabase events, not as chat logs.
+- Keep console-only logging until owner explicitly approves DB/RLS implementation.
+- Decision note: `docs/vault/decisions/2026-05-18-ai-observability-persistence.md`.
+
+**Verification:**
+- `npm run check:agent:docs` passed.
 
 ## Stage 18: Pilot Launch Gate
 
 **Purpose:** decide honestly whether AI is ready for pilot users.
 
 **Work:**
-- Run unit, mocked QA, UI smoke, i18n, build, and owner-approved live QA.
-- Produce a short launch-readiness report.
-- List remaining known risks.
+- [x] Run unit, mocked QA, UI smoke, i18n, build, and live QA dry-run.
+- [x] Defer fresh live OpenAI QA until explicit owner approval.
+- [x] Produce a short launch-readiness report.
+- [x] List remaining known risks.
 
 **Acceptance:**
-- No critical safety/store-scope failures.
-- KZ core answers are acceptable.
-- Cost limits and model routing remain controlled.
-- Owner manual review can focus on taste, not basic correctness.
+- [x] No critical safety/store-scope failures in local/no-spend gates.
+- [x] KZ core fixtures pass; fresh live KZ taste review still needs owner-approved live QA.
+- [x] Cost limits and model routing remain controlled.
+- [x] Owner manual review can focus on taste, not basic correctness.
+
+**Status:** completed on 2026-05-18.
+
+**Report:**
+- `docs/vault/plans/2026-05-18-ai-peak-pilot-launch-readiness-report.md`.
+
+**Verification:**
+- `node --test tests/unit/ai*.test.mjs tests/unit/productComparison.test.mjs tests/unit/retailAiInsights.test.mjs` passed: 127/127.
+- `npm run check:ai:qa` passed: 12/12 no-spend scenarios.
+- `npm run check:ai:live:dry` listed 13 scenarios and made no OpenAI calls.
+- `npm test -- tests/e2e/aiGeneralMocked.spec.js tests/e2e/aiProductMocked.spec.js tests/e2e/aiShelfUiMocked.spec.js` passed: 6/6.
+- `node scripts/check-i18n.mjs` passed: 0 missing KZ keys.
+- `npm run lint` passed with existing warnings only: 0 errors, 57 warnings.
+- `npm run build` passed.
+- `npm run check:agent:docs` passed.
 
 ## Owner Checkpoints
 

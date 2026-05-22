@@ -8,45 +8,9 @@ import { useI18n } from '../i18n/index.js'
 import { useLocalName } from '../utils/localName.js'
 import { getAnyKnownProductByRef } from '../utils/storeCatalog.js'
 import { buildProductAIPath } from '../utils/routes.js'
+import { buildProductComparison } from '../domain/product/comparison.js'
 
-// ── Scoring ──────────────────────────────────────────────────────────────────
-function calcCompareScore(product, fitResult, profile) {
-  let score = 0
-
-  score += fitResult.fits ? 35 : 15
-  score -= fitResult.reasons.filter((r) => r.type === 'fail').length * 6
-  score += fitResult.reasons.filter((r) => r.type === 'pass').length * 3
-
-  score += 25
-
-  // 3. Ingredient purity — count E-additives (0-20)
-  const eCount = ((product.ingredients || '').match(/\bЕ\d{3,4}/gi) || []).length
-  score += eCount === 0 ? 20 : eCount <= 2 ? 15 : eCount <= 4 ? 9 : 4
-
-  // 4. Halal (0-10) — only counts if user profile needs it
-  const needsHalal = profile.halal || profile.halalOnly
-  if (needsHalal) {
-    if (product.halalStatus === 'yes') score += 10
-    else if (product.halalStatus === 'unknown') score += 4
-    else score += 0
-  } else {
-    score += 5
-  }
-
-  return Math.max(1, Math.min(95, score))
-}
-
-function getScores(productA, productB, fitA, fitB, profile) {
-  const rawA = calcCompareScore(productA, fitA, profile)
-  const rawB = calcCompareScore(productB, fitB, profile)
-  const total = rawA + rawB
-  const pctA = Math.round((rawA / total) * 100)
-  const pctB = 100 - pctA
-  const isDraw = Math.abs(pctA - pctB) < 5
-  const winner = isDraw ? 'draw' : pctA > pctB ? 'A' : 'B'
-  return { pctA, pctB, winner }
-}
-
+// ── Comparison helpers ───────────────────────────────────────────────────────
 // ── Flavor extraction ─────────────────────────────────────────────────────────
 const FLAVOR_KEYWORDS = [
   'клубнич',
@@ -199,6 +163,24 @@ function isBetter(row, side) {
   return false
 }
 
+function getComparisonBarSplit(comparison) {
+  if (!comparison || comparison.winner === 'draw') return 50
+  if (comparison.winner === 'A') return comparison.confidence === 'clear' ? 64 : 56
+  return comparison.confidence === 'clear' ? 36 : 44
+}
+
+function getComparisonToneKey(comparison) {
+  if (!comparison || comparison.winner === 'draw') return 'draw'
+  return comparison.confidence === 'clear' ? 'clear' : 'slight'
+}
+
+function getSideLabelKey(label) {
+  if (label === 'best_choice') return 'compare.label.best'
+  if (label === 'fits_but_check') return 'compare.label.check'
+  if (label === 'choose_another') return 'compare.label.avoid'
+  return 'compare.label.good'
+}
+
 // ── Sub-components ────────────────────────────────────────────────────────────
 function ProductPhoto({ product }) {
   const [ok, setOk] = useState(true)
@@ -270,10 +252,14 @@ export default function CompareScreen() {
     [productB, profile]
   )
 
-  const { pctA, pctB, winner } = useMemo(() => {
-    if (!productA || !productB || !fitA || !fitB) return { pctA: 50, pctB: 50, winner: 'draw' }
-    return getScores(productA, productB, fitA, fitB, profile)
-  }, [productA, productB, fitA, fitB, profile])
+  const comparison = useMemo(() => {
+    if (!productA || !productB) return null
+    return buildProductComparison(productA, productB, { profile })
+  }, [productA, productB, profile])
+
+  const winner = comparison?.winner || 'draw'
+  const barSplit = getComparisonBarSplit(comparison)
+  const toneKey = getComparisonToneKey(comparison)
 
   const rows = useMemo(() => {
     if (!productA || !productB) return []
@@ -635,29 +621,30 @@ export default function CompareScreen() {
               <div
                 style={{
                   height: '100%',
-                  background: `linear-gradient(90deg, #7C3AED ${pctA}%, rgba(139,92,246,0.25) ${pctA}%)`,
+                  background: `linear-gradient(90deg, #7C3AED ${barSplit}%, rgba(139,92,246,0.25) ${barSplit}%)`,
                   borderRadius: 99,
                   transition: 'all 0.6s cubic-bezier(0.4,0,0.2,1)',
                 }}
               />
             </div>
 
-            {/* Percentage labels */}
+            {/* Result labels */}
             <div
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
-                fontSize: 18,
-                fontWeight: 900,
+                fontSize: 11,
+                fontWeight: 800,
                 fontFamily: 'var(--font-display)',
                 marginBottom: 16,
+                textTransform: 'uppercase',
               }}
             >
               <span style={{ color: winner === 'A' ? '#C4B5FD' : 'rgba(180,160,230,0.5)' }}>
-                {pctA}%
+                {t(getSideLabelKey(comparison?.a?.label))}
               </span>
               <span style={{ color: winner === 'B' ? '#C4B5FD' : 'rgba(180,160,230,0.5)' }}>
-                {pctB}%
+                {t(getSideLabelKey(comparison?.b?.label))}
               </span>
             </div>
 
@@ -706,6 +693,31 @@ export default function CompareScreen() {
                   {winner === 'draw'
                     ? t('compare.draw')
                     : `${winnerProduct.name} ${t('compare.better')}`}
+                </div>
+                <div
+                  style={{
+                    marginTop: 4,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: 'rgba(220,210,255,0.68)',
+                    lineHeight: 1.35,
+                  }}
+                >
+                  {t(`compare.reason.${comparison?.summaryKey || 'similar_fit'}`, {
+                    name: winnerProduct?.name || '',
+                  })}
+                </div>
+                <div
+                  style={{
+                    marginTop: 5,
+                    fontSize: 10,
+                    fontWeight: 800,
+                    color: 'rgba(180,160,230,0.56)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.03em',
+                  }}
+                >
+                  {t(`compare.confidence.${toneKey}`)}
                 </div>
               </div>
             </div>

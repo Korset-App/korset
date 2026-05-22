@@ -318,6 +318,7 @@ export default function ProductScreen() {
 
   const { fits, reasons } = checkProductFit(product, profile)
   const severityKey = resolveSeverityKey(reasons, fits)
+  const showAlternativeNudge = severityKey !== 'safe'
 
   const manufacturerText = getManufacturerText(product)
   const country = getCountry(product)
@@ -507,6 +508,36 @@ export default function ProductScreen() {
 
         {/* 4. Collapsible Fit-Check */}
         <CollapsibleFitCheck severityKey={severityKey} reasons={reasons} />
+
+        {showAlternativeNudge && (
+          <button
+            type="button"
+            className={`product-alternative-nudge ${severityKey}`}
+            onClick={() =>
+              navigate(buildProductAlternativesPath(activeStoreSlug, product.ean), {
+                state: { product, preferredScenario: 'fits_me' },
+              })
+            }
+          >
+            <span className="material-symbols-outlined" aria-hidden="true">
+              travel_explore
+            </span>
+            <span className="product-alternative-nudge-copy">
+              <span className="product-alternative-nudge-title">
+                {t('product.alternativesNudge.title')}
+              </span>
+              <span className="product-alternative-nudge-body">
+                {t('product.alternativesNudge.body')}
+              </span>
+            </span>
+            <span
+              className="material-symbols-outlined product-alternative-nudge-arrow"
+              aria-hidden="true"
+            >
+              arrow_forward
+            </span>
+          </button>
+        )}
 
         {/* Offline indicator */}
         {!isOnline && formatCacheAge() && (

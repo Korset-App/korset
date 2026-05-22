@@ -34,5 +34,18 @@
   "compare.compareMode": "Сравнить",
   "compare.cancel": "Отменить",
   "compare.selectSecond": "Выберите второй товар для сравнения",
-  "compare.aiExplainPrompt": "Объясни результат сравнения."
+  "compare.aiExplainPrompt": "Объясни результат сравнения.",
+  "compare.label.best": "Лучший выбор",
+  "compare.label.good": "Хороший вариант",
+  "compare.label.check": "Проверить",
+  "compare.label.avoid": "Не брать",
+  "compare.confidence.clear": "Приоритет понятный",
+  "compare.confidence.slight": "Разница небольшая",
+  "compare.confidence.draw": "Почти одинаково",
+  "compare.reason.avoid_allergen": "Выбор основан на безопасности: товар с аллергенным риском лучше не брать.",
+  "compare.reason.confirmed_halal": "Выбор основан на halal-приоритете и данных карточки.",
+  "compare.reason.available_now": "Выбор основан на наличии в этом магазине.",
+  "compare.reason.better_price": "Выбор основан на цене, потому что по безопасности товары близки.",
+  "compare.reason.more_complete_card": "Выбор основан на более полной карточке товара.",
+  "compare.reason.similar_fit": "По ключевым признакам товары очень близки."
 }

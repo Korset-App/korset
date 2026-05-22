@@ -13,6 +13,7 @@ import {
 } from '../src/domain/ai/responseShape.js'
 import { buildSafetyNotes } from '../src/domain/ai/safetyContract.js'
 import { resolveControlledProductEnrichment } from '../src/domain/ai/productEnrichmentService.js'
+import { buildProductComparison } from '../src/domain/product/comparison.js'
 
 const CORS_ORIGINS = [
   'https://korset.app',
@@ -454,7 +455,10 @@ export default async function handler(req, res) {
     const profile = sanitizeProfile(body.profile)
     const storeContext = sanitizeStoreContext(body.storeContext)
     const catalogContext = sanitizeCatalogContext(body.catalogContext)
-    const winner = ['A', 'B', 'draw'].includes(body.winner) ? body.winner : null
+    const compareResult =
+      mode === 'compare' && productA && productB
+        ? buildProductComparison(productA, productB, { profile })
+        : null
 
     // ── RAG: подтягиваем релевантный контекст из vault ──
     let ragContext = null
@@ -500,7 +504,7 @@ export default async function handler(req, res) {
     } else if (mode === 'enrich' && product) {
       systemPrompt = buildEnrichPrompt(product)
     } else if (mode === 'compare' && productA && productB) {
-      systemPrompt = buildComparePrompt(productA, productB, profile, winner, lang, ragContext)
+      systemPrompt = buildComparePrompt(productA, productB, profile, compareResult, lang, ragContext)
     } else {
       systemPrompt = buildGeneralPrompt(lang, storeContext, catalogContext)
     }
@@ -604,6 +608,7 @@ export default async function handler(req, res) {
       confidenceNotes: productResponseMeta?.confidenceNotes || [],
       checkOnPackage: productResponseMeta?.checkOnPackage || [],
       alternatives: productResponseMeta?.alternatives || [],
+      comparison: compareResult,
       externalReference: productEnrichment?.externalReference || null,
       externalEnrichmentStatus: productEnrichment?.status || null,
       ragUsed: !!ragContext,
@@ -704,7 +709,7 @@ export function buildGeneralPrompt(lang, storeContext, catalogContext = []) {
 ПРЕМИУМ-КОНТРАКТ ОТВЕТА: рекомендуй только из переданного каталога текущего магазина; не повторяй в тексте весь список товаров из карточек; объясни, почему группы товаров подходят под запрос; предложи следующий шаг, например дешевле, без аллергена, halal-фильтр, замену или проверку упаковки; если подходящих товаров не видно, скажи, что не вижу подходящих товаров в каталоге этого магазина, и не предлагай товары вне текущего магазина. Не показывай пользователю внутренние поля и машинные labels вроде stockStatus, in_stock, out_of_stock, priceKzt, halalConfidence, allergyConfidence. Для детских перекусов не ставь орехи, кофеин, энергетики или явно сладкие спорные товары как первый безопасный выбор, если аллергии и возраст неизвестны; сначала предлагай более нейтральные видимые варианты и проси проверить упаковку/аллергены.${catalogSection}`
 }
 
-function buildComparePrompt(productA, productB, profile, winner, lang, ragContext) {
+export function buildComparePrompt(productA, productB, profile, comparison, lang, ragContext) {
   const profileParts = []
   if (profile?.halal || profile?.halalOnly) profileParts.push('нужен халал')
   if (profile?.allergens?.length) profileParts.push(`аллергии: ${profile.allergens.join(', ')}`)
@@ -716,19 +721,32 @@ function buildComparePrompt(productA, productB, profile, winner, lang, ragContex
   const nutrA = formatNutrition(productA)
   const nutrB = formatNutrition(productB)
 
+  const winner = comparison?.winner || 'draw'
   const isDraw = winner === 'draw'
   const winnerLine = isDraw
     ? 'Эти товары по безопасности и составу одинаковы.'
     : `По расчёту Körset, ${winner === 'A' ? productA.name : productB.name} лучше для данного пользователя.`
 
   const ragSection = ragContext ? `\n\nПРОВЕРЕННЫЕ ЗНАНИЯ:\n${ragContext}` : ''
+  const compareContract = comparison
+    ? `\nFIT_PRIORITY_RESULT:
+winner: ${comparison.winner}
+confidence: ${comparison.confidence}
+primaryReason: ${comparison.primaryReason}
+summaryKey: ${comparison.summaryKey}
+productA_label: ${comparison.a?.label || 'unknown'}
+productA_reasons: ${(comparison.a?.reasons || []).join(', ') || 'none'}
+productB_label: ${comparison.b?.label || 'unknown'}
+productB_reasons: ${(comparison.b?.reasons || []).join(', ') || 'none'}
+Your explanation must match this deterministic result. Do not invent percentages, numeric ratings, or a different winner.`
+    : ''
 
   return `Ты — Körset AI. Ты только что сравнил два товара для покупателя. Напиши 1-2 предложения объяснения — почему именно этот товар лучше (или почему ничья). Без markdown, живым текстом.
 ${langNote}
 ПРОФИЛЬ: ${profileStr}
 ТОВАР A: ${productA.name} | Халал: ${productA.halalStatus || '?'} | КБЖУ: ${nutrA} | Аллергены: ${productA.allergens?.join(', ') || 'нет'}
 ТОВАР B: ${productB.name} | Халал: ${productB.halalStatus || '?'} | КБЖУ: ${nutrB} | Аллергены: ${productB.allergens?.join(', ') || 'нет'}
-${winnerLine}${ragSection}`
+${winnerLine}${compareContract}${ragSection}`
 }
 
 function buildEnrichPrompt(product) {

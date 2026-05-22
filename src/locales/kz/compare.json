@@ -34,5 +34,18 @@
   "compare.compareMode": "Салыстыру",
   "compare.cancel": "Болдырмау",
   "compare.selectSecond": "Салыстыру үшін 2-ші тауарды таңдаңыз",
-  "compare.aiExplainPrompt": "Салыстыру нәтижесін түсіндіріңіз."
+  "compare.aiExplainPrompt": "Салыстыру нәтижесін түсіндіріңіз.",
+  "compare.label.best": "Ең жақсы таңдау",
+  "compare.label.good": "Жақсы нұсқа",
+  "compare.label.check": "Тексеру керек",
+  "compare.label.avoid": "Алмаған дұрыс",
+  "compare.confidence.clear": "Басымдық түсінікті",
+  "compare.confidence.slight": "Айырмашылық аз",
+  "compare.confidence.draw": "Өте ұқсас",
+  "compare.reason.avoid_allergen": "Таңдау қауіпсіздікке негізделген: аллерген қаупі бар тауарды алмаған дұрыс.",
+  "compare.reason.confirmed_halal": "Таңдау halal-басымдық пен карточка деректеріне негізделген.",
+  "compare.reason.available_now": "Таңдау осы дүкендегі қолжетімділікке негізделген.",
+  "compare.reason.better_price": "Қауіпсіздік жағынан тауарлар жақын болғандықтан, таңдау бағаға негізделген.",
+  "compare.reason.more_complete_card": "Таңдау тауар карточкасының толықтығына негізделген.",
+  "compare.reason.similar_fit": "Негізгі белгілер бойынша тауарлар өте ұқсас."
 }

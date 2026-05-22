@@ -82,6 +82,74 @@ export async function getScanCoverage(storeId, days) {
   return Number(data ?? 0)
 }
 
+function countBy(items, keyFn) {
+  const counts = new Map()
+  for (const item of items) {
+    const key = keyFn(item)
+    if (!key) continue
+    counts.set(key, (counts.get(key) || 0) + 1)
+  }
+  return counts
+}
+
+function topCount(counts) {
+  let top = null
+  for (const [key, count] of counts.entries()) {
+    if (!top || count > top.count) top = { key, count }
+  }
+  return top
+}
+
+export function summarizeAlternativeEvents(events = []) {
+  const list = Array.isArray(events) ? events : []
+  const scenarioTop = topCount(countBy(list, (event) => event.scenario))
+  const sourceTop = topCount(countBy(list, (event) => event.source_ean))
+
+  return {
+    total: list.length,
+    compareCount: list.filter((event) => event.event_type === 'alternatives_compare_clicked')
+      .length,
+    aiHelpCount: list.filter((event) => event.event_type === 'alternatives_ai_help_clicked').length,
+    openCount: list.filter((event) => event.event_type === 'alternatives_product_opened').length,
+    scenarioSelectCount: list.filter(
+      (event) => event.event_type === 'alternatives_scenario_selected'
+    ).length,
+    topScenario: scenarioTop ? { scenario: scenarioTop.key, count: scenarioTop.count } : null,
+    topSource: sourceTop ? { ean: sourceTop.key, count: sourceTop.count } : null,
+  }
+}
+
+export function mapAlternativeEventsSummaryRpcRow(row = {}) {
+  const topScenario =
+    row.top_scenario && Number(row.top_scenario_count || 0) > 0
+      ? { scenario: row.top_scenario, count: Number(row.top_scenario_count || 0) }
+      : null
+  const topSource =
+    row.top_source_ean && Number(row.top_source_count || 0) > 0
+      ? { ean: row.top_source_ean, count: Number(row.top_source_count || 0) }
+      : null
+
+  return {
+    total: Number(row.total_count || 0),
+    compareCount: Number(row.compare_count || 0),
+    aiHelpCount: Number(row.ai_help_count || 0),
+    openCount: Number(row.open_count || 0),
+    scenarioSelectCount: Number(row.scenario_select_count || 0),
+    topScenario,
+    topSource,
+  }
+}
+
+export async function getAlternativeEventsSummary(storeId, days) {
+  const { data, error } = await supabase.rpc('fn_get_alternative_events_summary', {
+    p_store_id: storeId,
+    p_days_back: days,
+  })
+
+  if (error) throw new Error(error.message ?? error)
+  return mapAlternativeEventsSummaryRpcRow(Array.isArray(data) ? data[0] : data)
+}
+
 const PRODUCTS_PAGE_SIZE = 40
 
 export async function getStoreCatalogProducts(storeId, { page = 0, search = '' } = {}) {

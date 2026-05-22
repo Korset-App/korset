@@ -1,352 +1,378 @@
-# Лог сессий разработки Körset
+# Р›РѕРі СЃРµСЃСЃРёР№ СЂР°Р·СЂР°Р±РѕС‚РєРё KГ¶rset
 
-> Домен: changelog
-> Дата начала: 2026-04-17
-> Связи: [[assistant-access-and-architecture-governance]] · [[architecture-decisions]] · [[fit-check-engine]] · [[2026-04-28-security-allergen-audit]]
-
----
-
-## 2026-04-17 — Сессия 1: Полный аудит + RAG + P0/P1
-
-**Выполнено:**
-- Полный аудит: 26 экранов, 8 компонентов, 4 контекста, 15 утилит, 5 API, SQL-схема
-- 4 критических бага экранов — исправлены
-- 6 HIGH багов контекстов — исправлены
-- 6 CRITICAL уязвимостей безопасности — исправлены (RLS 13 таблиц, JWT auth, CORS, rate limit)
-- RAG-система через Supabase pgvector (216 чанков, 14 файлов)
-- База знаний: e-additives (~60 добавок), halal-certification, allergen-cross-contamination
-- Миграции 002-004 запущены
-
-**Откатано (ошибка):**
-- React.lazy — добавлен → откатан (задержка при переходах)
-- BottomNav SVG → Material — заменён → откатан (хозяин подбирал вручную)
-- УРОК: не менять дизайн без разрешения хозяина
+> Р”РѕРјРµРЅ: changelog
+> Р”Р°С‚Р° РЅР°С‡Р°Р»Р°: 2026-04-17
+> РЎРІСЏР·Рё: [[assistant-access-and-architecture-governance]] В· [[architecture-decisions]] В· [[fit-check-engine]] В· [[2026-04-28-security-allergen-audit]]
 
 ---
 
-## 2026-04-17 — Сессия 2: Офлайн + Архитектурный аудит
+## 2026-04-17 вЂ” РЎРµСЃСЃРёСЏ 1: РџРѕР»РЅС‹Р№ Р°СѓРґРёС‚ + RAG + P0/P1
 
-**Выполнено:**
-- Архитектурный аудит — 6 слабых мест (оценки 25-85/100)
-- Офлайн-режим полностью реализован (6 слоёв, 85/100)
-  - Слой 0: App Shell (Workbox Precache)
-  - Слой 1: IndexedDB каталог (~3000 товаров, ~9MB)
-  - Слой 2: Resolver с IndexedDB lookup
-  - Слой 3: Очередь сканов (100 FIFO + Background Sync)
-  - Слой 4: Картинки — НЕТ в V1 (placeholder)
-  - Слой 5: OfflineContext + OfflineBanner
-- 7 багов найдено и исправлено при самопроверке
-- Документация обновлена (ARCHITECTURE.md, ROADMAP, CONTEXT.md)
-- Vault RAG: +55 чанков (offline-resilience, data-moat-strategy, обновлённый audit-full)
+**Р’С‹РїРѕР»РЅРµРЅРѕ:**
+- РџРѕР»РЅС‹Р№ Р°СѓРґРёС‚: 26 СЌРєСЂР°РЅРѕРІ, 8 РєРѕРјРїРѕРЅРµРЅС‚РѕРІ, 4 РєРѕРЅС‚РµРєСЃС‚Р°, 15 СѓС‚РёР»РёС‚, 5 API, SQL-СЃС…РµРјР°
+- 4 РєСЂРёС‚РёС‡РµСЃРєРёС… Р±Р°РіР° СЌРєСЂР°РЅРѕРІ вЂ” РёСЃРїСЂР°РІР»РµРЅС‹
+- 6 HIGH Р±Р°РіРѕРІ РєРѕРЅС‚РµРєСЃС‚РѕРІ вЂ” РёСЃРїСЂР°РІР»РµРЅС‹
+- 6 CRITICAL СѓСЏР·РІРёРјРѕСЃС‚РµР№ Р±РµР·РѕРїР°СЃРЅРѕСЃС‚Рё вЂ” РёСЃРїСЂР°РІР»РµРЅС‹ (RLS 13 С‚Р°Р±Р»РёС†, JWT auth, CORS, rate limit)
+- RAG-СЃРёСЃС‚РµРјР° С‡РµСЂРµР· Supabase pgvector (216 С‡Р°РЅРєРѕРІ, 14 С„Р°Р№Р»РѕРІ)
+- Р‘Р°Р·Р° Р·РЅР°РЅРёР№: e-additives (~60 РґРѕР±Р°РІРѕРє), halal-certification, allergen-cross-contamination
+- РњРёРіСЂР°С†РёРё 002-004 Р·Р°РїСѓС‰РµРЅС‹
 
-**Не выполнено:**
-- Data Moat — СЛЕДУЮЩИЙ ФОКУС
-- Импорт прайс-листа (P0 блокер)
-- БД-фиксы (UNIQUE, CASCADE, триггеры, GIN)
-- Метрики в тенге
+**РћС‚РєР°С‚Р°РЅРѕ (РѕС€РёР±РєР°):**
+- React.lazy вЂ” РґРѕР±Р°РІР»РµРЅ в†’ РѕС‚РєР°С‚Р°РЅ (Р·Р°РґРµСЂР¶РєР° РїСЂРё РїРµСЂРµС…РѕРґР°С…)
+- BottomNav SVG в†’ Material вЂ” Р·Р°РјРµРЅС‘РЅ в†’ РѕС‚РєР°С‚Р°РЅ (С…РѕР·СЏРёРЅ РїРѕРґР±РёСЂР°Р» РІСЂСѓС‡РЅСѓСЋ)
+- РЈР РћРљ: РЅРµ РјРµРЅСЏС‚СЊ РґРёР·Р°Р№РЅ Р±РµР· СЂР°Р·СЂРµС€РµРЅРёСЏ С…РѕР·СЏРёРЅР°
 
 ---
 
-## 2026-04-17 — Сессия 3: Оптимизация инфраструктуры ассистента
+## 2026-04-17 вЂ” РЎРµСЃСЃРёСЏ 2: РћС„Р»Р°Р№РЅ + РђСЂС…РёС‚РµРєС‚СѓСЂРЅС‹Р№ Р°СѓРґРёС‚
 
-**Выполнено:**
-- AGENTS.md создан — Vault Protocol (CONTEXT.md + RAG при старте, сохранение при конце)
-- Vault консолидирован: 20 файлов → 12, 301 чанков → 239
-- Skills установлены: supabase-postgres-best-practices, supabase
-- MCP подключены: Context7 (документации), Grep (GitHub код)
-- Custom Tools созданы: vault-query.ts, vault-embed.ts
-- opencode.json создан (MCP конфиг)
-- CONTEXT.md упрощён — убраны дубли с audit
+**Р’С‹РїРѕР»РЅРµРЅРѕ:**
+- РђСЂС…РёС‚РµРєС‚СѓСЂРЅС‹Р№ Р°СѓРґРёС‚ вЂ” 6 СЃР»Р°Р±С‹С… РјРµСЃС‚ (РѕС†РµРЅРєРё 25-85/100)
+- РћС„Р»Р°Р№РЅ-СЂРµР¶РёРј РїРѕР»РЅРѕСЃС‚СЊСЋ СЂРµР°Р»РёР·РѕРІР°РЅ (6 СЃР»РѕС‘РІ, 85/100)
+  - РЎР»РѕР№ 0: App Shell (Workbox Precache)
+  - РЎР»РѕР№ 1: IndexedDB РєР°С‚Р°Р»РѕРі (~3000 С‚РѕРІР°СЂРѕРІ, ~9MB)
+  - РЎР»РѕР№ 2: Resolver СЃ IndexedDB lookup
+  - РЎР»РѕР№ 3: РћС‡РµСЂРµРґСЊ СЃРєР°РЅРѕРІ (100 FIFO + Background Sync)
+  - РЎР»РѕР№ 4: РљР°СЂС‚РёРЅРєРё вЂ” РќР•Рў РІ V1 (placeholder)
+  - РЎР»РѕР№ 5: OfflineContext + OfflineBanner
+- 7 Р±Р°РіРѕРІ РЅР°Р№РґРµРЅРѕ Рё РёСЃРїСЂР°РІР»РµРЅРѕ РїСЂРё СЃР°РјРѕРїСЂРѕРІРµСЂРєРµ
+- Р”РѕРєСѓРјРµРЅС‚Р°С†РёСЏ РѕР±РЅРѕРІР»РµРЅР° (ARCHITECTURE.md, ROADMAP, CONTEXT.md)
+- Vault RAG: +55 С‡Р°РЅРєРѕРІ (offline-resilience, data-moat-strategy, РѕР±РЅРѕРІР»С‘РЅРЅС‹Р№ audit-full)
+
+**РќРµ РІС‹РїРѕР»РЅРµРЅРѕ:**
+- Data Moat вЂ” РЎР›Р•Р”РЈР®Р©РР™ Р¤РћРљРЈРЎ
+- РРјРїРѕСЂС‚ РїСЂР°Р№СЃ-Р»РёСЃС‚Р° (P0 Р±Р»РѕРєРµСЂ)
+- Р‘Р”-С„РёРєСЃС‹ (UNIQUE, CASCADE, С‚СЂРёРіРіРµСЂС‹, GIN)
+- РњРµС‚СЂРёРєРё РІ С‚РµРЅРіРµ
 
 ---
 
-## 2026-04-18/19 — Сессия 4-5: Data Moat Pipeline — NPC + Arbuz + USDA
+## 2026-04-17 вЂ” РЎРµСЃСЃРёСЏ 3: РћРїС‚РёРјРёР·Р°С†РёСЏ РёРЅС„СЂР°СЃС‚СЂСѓРєС‚СѓСЂС‹ Р°СЃСЃРёСЃС‚РµРЅС‚Р°
 
-**Выполнено:**
-- Arbuz API v1 обнаружен и документирован — полностью открытый API (auth + search + detail)
-- `scripts/arbuz-enrich.cjs` — полностью переписан с HTML scraper на API v1
-  - Прод запуск: 190/190 processed, 143 found (75%), 127 comp, 124 КБЖУ, 23 халал
-- `scripts/npc-enrich.cjs` — прод запуск: 288/289 matched (99.7%), 164 GTIN, 288 NTIN
+**Р’С‹РїРѕР»РЅРµРЅРѕ:**
+- AGENTS.md СЃРѕР·РґР°РЅ вЂ” Vault Protocol (CONTEXT.md + RAG РїСЂРё СЃС‚Р°СЂС‚Рµ, СЃРѕС…СЂР°РЅРµРЅРёРµ РїСЂРё РєРѕРЅС†Рµ)
+- Vault РєРѕРЅСЃРѕР»РёРґРёСЂРѕРІР°РЅ: 20 С„Р°Р№Р»РѕРІ в†’ 12, 301 С‡Р°РЅРєРѕРІ в†’ 239
+- Skills СѓСЃС‚Р°РЅРѕРІР»РµРЅС‹: supabase-postgres-best-practices, supabase
+- MCP РїРѕРґРєР»СЋС‡РµРЅС‹: Context7 (РґРѕРєСѓРјРµРЅС‚Р°С†РёРё), Grep (GitHub РєРѕРґ)
+- Custom Tools СЃРѕР·РґР°РЅС‹: vault-query.ts, vault-embed.ts
+- opencode.json СЃРѕР·РґР°РЅ (MCP РєРѕРЅС„РёРі)
+- CONTEXT.md СѓРїСЂРѕС‰С‘РЅ вЂ” СѓР±СЂР°РЅС‹ РґСѓР±Р»Рё СЃ audit
+
+---
+
+## 2026-04-18/19 вЂ” РЎРµСЃСЃРёСЏ 4-5: Data Moat Pipeline вЂ” NPC + Arbuz + USDA
+
+**Р’С‹РїРѕР»РЅРµРЅРѕ:**
+- Arbuz API v1 РѕР±РЅР°СЂСѓР¶РµРЅ Рё РґРѕРєСѓРјРµРЅС‚РёСЂРѕРІР°РЅ вЂ” РїРѕР»РЅРѕСЃС‚СЊСЋ РѕС‚РєСЂС‹С‚С‹Р№ API (auth + search + detail)
+- `scripts/arbuz-enrich.cjs` вЂ” РїРѕР»РЅРѕСЃС‚СЊСЋ РїРµСЂРµРїРёСЃР°РЅ СЃ HTML scraper РЅР° API v1
+  - РџСЂРѕРґ Р·Р°РїСѓСЃРє: 190/190 processed, 143 found (75%), 127 comp, 124 РљР‘Р–РЈ, 23 С…Р°Р»Р°Р»
+- `scripts/npc-enrich.cjs` вЂ” РїСЂРѕРґ Р·Р°РїСѓСЃРє: 288/289 matched (99.7%), 164 GTIN, 288 NTIN
   - ~130 DB updates (rest blocked by source_primary_check constraint)
-- `scripts/usda-enrich.cjs` — написан, но USDA API unreachable из KZ (нужен Vercel proxy)
-- `api/usda.js` — написан, не задеплоен (нет VERCEL_TOKEN)
-- halal_status fix: `'certified'` → `'yes'` (valid values: unknown/yes/no)
-- Миграция 007 написана (add 'npc','arbuz','usda' to source_primary) — НЕ применена (нет psql/MCP)
+- `scripts/usda-enrich.cjs` вЂ” РЅР°РїРёСЃР°РЅ, РЅРѕ USDA API unreachable РёР· KZ (РЅСѓР¶РµРЅ Vercel proxy)
+- `api/usda.js` вЂ” РЅР°РїРёСЃР°РЅ, РЅРµ Р·Р°РґРµРїР»РѕРµРЅ (РЅРµС‚ VERCEL_TOKEN)
+- halal_status fix: `'certified'` в†’ `'yes'` (valid values: unknown/yes/no)
+- РњРёРіСЂР°С†РёСЏ 007 РЅР°РїРёСЃР°РЅР° (add 'npc','arbuz','usda' to source_primary) вЂ” РќР• РїСЂРёРјРµРЅРµРЅР° (РЅРµС‚ psql/MCP)
 
-**Проблемы:**
-- `source_primary_check` — 'npc' не в списке. Скрипт использует 'kz_verified' как обход
-- `global_products_ean_key` — UNIQUE конфликт при одинаковых GTIN для вариантов товаров
-- USDA API unreachable напрямую из KZ (ETIMEDOUT) — нужен Vercel proxy
-- 155 товаров ещё с kaspi_ EAN (NPC не смог матчить — дубли EAN)
+**РџСЂРѕР±Р»РµРјС‹:**
+- `source_primary_check` вЂ” 'npc' РЅРµ РІ СЃРїРёСЃРєРµ. РЎРєСЂРёРїС‚ РёСЃРїРѕР»СЊР·СѓРµС‚ 'kz_verified' РєР°Рє РѕР±С…РѕРґ
+- `global_products_ean_key` вЂ” UNIQUE РєРѕРЅС„Р»РёРєС‚ РїСЂРё РѕРґРёРЅР°РєРѕРІС‹С… GTIN РґР»СЏ РІР°СЂРёР°РЅС‚РѕРІ С‚РѕРІР°СЂРѕРІ
+- USDA API unreachable РЅР°РїСЂСЏРјСѓСЋ РёР· KZ (ETIMEDOUT) вЂ” РЅСѓР¶РµРЅ Vercel proxy
+- 155 С‚РѕРІР°СЂРѕРІ РµС‰С‘ СЃ kaspi_ EAN (NPC РЅРµ СЃРјРѕРі РјР°С‚С‡РёС‚СЊ вЂ” РґСѓР±Р»Рё EAN)
 
-**Статистика БД:**
+**РЎС‚Р°С‚РёСЃС‚РёРєР° Р‘Р”:**
 - 685 active products
-- Без состава: 81 (было ~190), Без КБЖУ: 110
-- С халал=yes: 35, С kz_verified: 115
-- С kaspi_ EAN: 155
+- Р‘РµР· СЃРѕСЃС‚Р°РІР°: 81 (Р±С‹Р»Рѕ ~190), Р‘РµР· РљР‘Р–РЈ: 110
+- РЎ С…Р°Р»Р°Р»=yes: 35, РЎ kz_verified: 115
+- РЎ kaspi_ EAN: 155
 
 ---
 
-## 2026-04-19 — Сессия 6: R2 CDN миграция + интеграция getImageUrl()
+## 2026-04-19 вЂ” РЎРµСЃСЃРёСЏ 6: R2 CDN РјРёРіСЂР°С†РёСЏ + РёРЅС‚РµРіСЂР°С†РёСЏ getImageUrl()
 
-**Выполнено:**
-- R2 bucket `korset-images` создан (регион EEUR)
-- Custom domain `cdn.korset.app` привязан и работает (200 OK)
-- 580/620 картинок мигрировано с внешних CDN → R2
-  - Источники: OpenFoodFacts, Arbuz, Kaspi → `cdn.korset.app/products/{EAN}/main.jpg`
-  - 40 пропущено (локальные плейсхолдеры, недоступные URL)
-  - `original_image_url` сохранены для отката
-- `scripts/utils/r2-upload.cjs` — утилита загрузки в R2
-- `scripts/migrate-images-to-r2.mjs` — скрипт миграции
-- `src/utils/imageUrl.js` — `getImageUrl()` + helpers (упрощён: без Cloudflare Transformations)
-- Интегрирован `getImageUrl()` во все компоненты:
+**Р’С‹РїРѕР»РЅРµРЅРѕ:**
+- R2 bucket `korset-images` СЃРѕР·РґР°РЅ (СЂРµРіРёРѕРЅ EEUR)
+- Custom domain `cdn.korset.app` РїСЂРёРІСЏР·Р°РЅ Рё СЂР°Р±РѕС‚Р°РµС‚ (200 OK)
+- 580/620 РєР°СЂС‚РёРЅРѕРє РјРёРіСЂРёСЂРѕРІР°РЅРѕ СЃ РІРЅРµС€РЅРёС… CDN в†’ R2
+  - РСЃС‚РѕС‡РЅРёРєРё: OpenFoodFacts, Arbuz, Kaspi в†’ `cdn.korset.app/products/{EAN}/main.jpg`
+  - 40 РїСЂРѕРїСѓС‰РµРЅРѕ (Р»РѕРєР°Р»СЊРЅС‹Рµ РїР»РµР№СЃС…РѕР»РґРµСЂС‹, РЅРµРґРѕСЃС‚СѓРїРЅС‹Рµ URL)
+  - `original_image_url` СЃРѕС…СЂР°РЅРµРЅС‹ РґР»СЏ РѕС‚РєР°С‚Р°
+- `scripts/utils/r2-upload.cjs` вЂ” СѓС‚РёР»РёС‚Р° Р·Р°РіСЂСѓР·РєРё РІ R2
+- `scripts/migrate-images-to-r2.mjs` вЂ” СЃРєСЂРёРїС‚ РјРёРіСЂР°С†РёРё
+- `src/utils/imageUrl.js` вЂ” `getImageUrl()` + helpers (СѓРїСЂРѕС‰С‘РЅ: Р±РµР· Cloudflare Transformations)
+- РРЅС‚РµРіСЂРёСЂРѕРІР°РЅ `getImageUrl()` РІРѕ РІСЃРµ РєРѕРјРїРѕРЅРµРЅС‚С‹:
   - `StoreContext.jsx`, `normalizers.js`, `RetailProductsScreen.jsx`, `RetailDashboardScreen.jsx`
-- Миграция 008 (r2 columns) применена
-- Arbuz-enrich обновлён — автозагрузка в R2
-- Запушено в main, Vercel задеплоил
+- РњРёРіСЂР°С†РёСЏ 008 (r2 columns) РїСЂРёРјРµРЅРµРЅР°
+- Arbuz-enrich РѕР±РЅРѕРІР»С‘РЅ вЂ” Р°РІС‚РѕР·Р°РіСЂСѓР·РєР° РІ R2
+- Р—Р°РїСѓС€РµРЅРѕ РІ main, Vercel Р·Р°РґРµРїР»РѕРёР»
 
-**Открытие:**
-- Cloudflare Image Transformations (`/cdn-cgi/image/...`) НЕ работают с R2 — нужен платный Cloudflare Images план
-- R2 dev URL (`pub-*.r2.dev`) отдаёт 401 — публичный доступ выключен, но кастомный домен работает
+**РћС‚РєСЂС‹С‚РёРµ:**
+- Cloudflare Image Transformations (`/cdn-cgi/image/...`) РќР• СЂР°Р±РѕС‚Р°СЋС‚ СЃ R2 вЂ” РЅСѓР¶РµРЅ РїР»Р°С‚РЅС‹Р№ Cloudflare Images РїР»Р°РЅ
+- R2 dev URL (`pub-*.r2.dev`) РѕС‚РґР°С‘С‚ 401 вЂ” РїСѓР±Р»РёС‡РЅС‹Р№ РґРѕСЃС‚СѓРї РІС‹РєР»СЋС‡РµРЅ, РЅРѕ РєР°СЃС‚РѕРјРЅС‹Р№ РґРѕРјРµРЅ СЂР°Р±РѕС‚Р°РµС‚
 
-**Не выполнено:**
-- 40 картинок не загружены — retry при следующем чате
-- Проверка отображения на телефоне — завтра
+**РќРµ РІС‹РїРѕР»РЅРµРЅРѕ:**
+- 40 РєР°СЂС‚РёРЅРѕРє РЅРµ Р·Р°РіСЂСѓР¶РµРЅС‹ вЂ” retry РїСЂРё СЃР»РµРґСѓСЋС‰РµРј С‡Р°С‚Рµ
+- РџСЂРѕРІРµСЂРєР° РѕС‚РѕР±СЂР°Р¶РµРЅРёСЏ РЅР° С‚РµР»РµС„РѕРЅРµ вЂ” Р·Р°РІС‚СЂР°
 
 ---
 
-## 2026-04-19 — Сессия 7: Каталог cleanup + Pipeline фикс + USDA proxy
+## 2026-04-19 вЂ” РЎРµСЃСЃРёСЏ 7: РљР°С‚Р°Р»РѕРі cleanup + Pipeline С„РёРєСЃ + USDA proxy
 
-**Выполнено:**
-- **api/usda.js** задеплоен на Vercel + USDA_API_KEY добавлен в env
-- **USDA proxy работает** — `https://korset.app/api/usda?query=X` → 200 OK, данные корректные
-- **Миграция 007** подтверждена применённой (npc, arbuz, usda в source_primary_check)
-- **Каталог аудит** (audit-catalog.cjs): 385/685 (56.2%) англ. имён, 554 без name_kz
-- **npc-enrich --fix-names**: обработал 628 продуктов, 385→2 англ. имён (−99.5%)
-  - Раздельные name/EAN апдейты (решает duplicate EAN: name обновляется даже если GTIN занят)
-  - source_primary='npc' (было 'kz_verified')
-- **arbuz-enrich**: обновляет name/name_kz из Arbuz, source_primary='arbuz', --fix-names режим
-  - Прод запуск: 34/81 found, 20 comp, 19 КБЖУ, фото → R2
-- **usda-enrich**: работает через Vercel proxy, source_primary='usda'
-  - Прод запуск: 22/50 обогащено
-- **add-category-prefix.cjs**: 2 оставшихся англ. имени → prepend русской категории
-- **arbuz-import.cjs**: новый Arbuz-first pipeline (Arbuz = primary, NPC/OFF = enrichment)
-- **Ключевой фикс**: r2-upload.cjs require path (`.cjs` extension), SUPABASE_URL/SUPABASE_KEY constants
+**Р’С‹РїРѕР»РЅРµРЅРѕ:**
+- **api/usda.js** Р·Р°РґРµРїР»РѕРµРЅ РЅР° Vercel + USDA_API_KEY РґРѕР±Р°РІР»РµРЅ РІ env
+- **USDA proxy СЂР°Р±РѕС‚Р°РµС‚** вЂ” `https://korset.app/api/usda?query=X` в†’ 200 OK, РґР°РЅРЅС‹Рµ РєРѕСЂСЂРµРєС‚РЅС‹Рµ
+- **РњРёРіСЂР°С†РёСЏ 007** РїРѕРґС‚РІРµСЂР¶РґРµРЅР° РїСЂРёРјРµРЅС‘РЅРЅРѕР№ (npc, arbuz, usda РІ source_primary_check)
+- **РљР°С‚Р°Р»РѕРі Р°СѓРґРёС‚** (audit-catalog.cjs): 385/685 (56.2%) Р°РЅРіР». РёРјС‘РЅ, 554 Р±РµР· name_kz
+- **npc-enrich --fix-names**: РѕР±СЂР°Р±РѕС‚Р°Р» 628 РїСЂРѕРґСѓРєС‚РѕРІ, 385в†’2 Р°РЅРіР». РёРјС‘РЅ (в€’99.5%)
+  - Р Р°Р·РґРµР»СЊРЅС‹Рµ name/EAN Р°РїРґРµР№С‚С‹ (СЂРµС€Р°РµС‚ duplicate EAN: name РѕР±РЅРѕРІР»СЏРµС‚СЃСЏ РґР°Р¶Рµ РµСЃР»Рё GTIN Р·Р°РЅСЏС‚)
+  - source_primary='npc' (Р±С‹Р»Рѕ 'kz_verified')
+- **arbuz-enrich**: РѕР±РЅРѕРІР»СЏРµС‚ name/name_kz РёР· Arbuz, source_primary='arbuz', --fix-names СЂРµР¶РёРј
+  - РџСЂРѕРґ Р·Р°РїСѓСЃРє: 34/81 found, 20 comp, 19 РљР‘Р–РЈ, С„РѕС‚Рѕ в†’ R2
+- **usda-enrich**: СЂР°Р±РѕС‚Р°РµС‚ С‡РµСЂРµР· Vercel proxy, source_primary='usda'
+  - РџСЂРѕРґ Р·Р°РїСѓСЃРє: 22/50 РѕР±РѕРіР°С‰РµРЅРѕ
+- **add-category-prefix.cjs**: 2 РѕСЃС‚Р°РІС€РёС…СЃСЏ Р°РЅРіР». РёРјРµРЅРё в†’ prepend СЂСѓСЃСЃРєРѕР№ РєР°С‚РµРіРѕСЂРёРё
+- **arbuz-import.cjs**: РЅРѕРІС‹Р№ Arbuz-first pipeline (Arbuz = primary, NPC/OFF = enrichment)
+- **РљР»СЋС‡РµРІРѕР№ С„РёРєСЃ**: r2-upload.cjs require path (`.cjs` extension), SUPABASE_URL/SUPABASE_KEY constants
 
-**Результаты:**
-| Метрика | Было | Стало |
+**Р РµР·СѓР»СЊС‚Р°С‚С‹:**
+| РњРµС‚СЂРёРєР° | Р‘С‹Р»Рѕ | РЎС‚Р°Р»Рѕ |
 |---------|------|-------|
-| Англ. имена | 385 (56.2%) | 2 (0.3%) |
-| Пустой name_kz | 554 (80.9%) | 171 (25%) |
+| РђРЅРіР». РёРјРµРЅР° | 385 (56.2%) | 2 (0.3%) |
+| РџСѓСЃС‚РѕР№ name_kz | 554 (80.9%) | 171 (25%) |
 | source_primary=npc | 0 | 359 |
 | source_primary=openfoodfacts | 382 | 28 |
 
-**Не выполнено:**
-- arbuz-import.cjs не запущен (нужен тестовый запуск --dry-run)
-- Фронтенд name_kz по языку
+**РќРµ РІС‹РїРѕР»РЅРµРЅРѕ:**
+- arbuz-import.cjs РЅРµ Р·Р°РїСѓС‰РµРЅ (РЅСѓР¶РµРЅ С‚РµСЃС‚РѕРІС‹Р№ Р·Р°РїСѓСЃРє --dry-run)
+- Р¤СЂРѕРЅС‚РµРЅРґ name_kz РїРѕ СЏР·С‹РєСѓ
 - Retry 40 R2 failed
-- Duplicate EAN cleanup (деактивация дубликатов)
+- Duplicate EAN cleanup (РґРµР°РєС‚РёРІР°С†РёСЏ РґСѓР±Р»РёРєР°С‚РѕРІ)
 
 ---
 
-## 2026-04-19 — Сессия 8: Полный Arbuz catalog import + NPC + перевод состава
+## 2026-04-19 вЂ” РЎРµСЃСЃРёСЏ 8: РџРѕР»РЅС‹Р№ Arbuz catalog import + NPC + РїРµСЂРµРІРѕРґ СЃРѕСЃС‚Р°РІР°
 
-**Выполнено:**
-- **arbuz-catalog-parser.cjs** — переписан на batch upsert (100x быстрее, 0 ошибок)
-  - Инкрементальное сохранение прогресса каждые 10 продуктов
-  - Ретраи на API таймаутах (3 попытки, 2 сек между попытками)
-  - Обработка ошибок в Phase 1 (пропуск неудачных запросов)
-- **Полный Arbuz импорт**: 2228 продуктов из Arbuz → 3236 активных в DB (было 685)
-- **NPC EAN enrichment**: 1320/3236 (40%) реальных EAN (было 30%)
-  - Обработано ~635 продуктов в двух батчах по 500
-- **Удаление мусора**: 17 деактивировано (11 электроника, 3 открытки, 3 стройматериалы)
-- **Перевод состава**: `translate-composition.cjs` через OpenAI gpt-4o-mini
-  - 331 инноязычный состав → 0 (100% русский)
-  - Batch по 15 продуктов, стоимость ~$0.05 за всё
-- **0 дубликатов EAN** — UNIQUE constraint работает
+**Р’С‹РїРѕР»РЅРµРЅРѕ:**
+- **arbuz-catalog-parser.cjs** вЂ” РїРµСЂРµРїРёСЃР°РЅ РЅР° batch upsert (100x Р±С‹СЃС‚СЂРµРµ, 0 РѕС€РёР±РѕРє)
+  - РРЅРєСЂРµРјРµРЅС‚Р°Р»СЊРЅРѕРµ СЃРѕС…СЂР°РЅРµРЅРёРµ РїСЂРѕРіСЂРµСЃСЃР° РєР°Р¶РґС‹Рµ 10 РїСЂРѕРґСѓРєС‚РѕРІ
+  - Р РµС‚СЂР°Рё РЅР° API С‚Р°Р№РјР°СѓС‚Р°С… (3 РїРѕРїС‹С‚РєРё, 2 СЃРµРє РјРµР¶РґСѓ РїРѕРїС‹С‚РєР°РјРё)
+  - РћР±СЂР°Р±РѕС‚РєР° РѕС€РёР±РѕРє РІ Phase 1 (РїСЂРѕРїСѓСЃРє РЅРµСѓРґР°С‡РЅС‹С… Р·Р°РїСЂРѕСЃРѕРІ)
+- **РџРѕР»РЅС‹Р№ Arbuz РёРјРїРѕСЂС‚**: 2228 РїСЂРѕРґСѓРєС‚РѕРІ РёР· Arbuz в†’ 3236 Р°РєС‚РёРІРЅС‹С… РІ DB (Р±С‹Р»Рѕ 685)
+- **NPC EAN enrichment**: 1320/3236 (40%) СЂРµР°Р»СЊРЅС‹С… EAN (Р±С‹Р»Рѕ 30%)
+  - РћР±СЂР°Р±РѕС‚Р°РЅРѕ ~635 РїСЂРѕРґСѓРєС‚РѕРІ РІ РґРІСѓС… Р±Р°С‚С‡Р°С… РїРѕ 500
+- **РЈРґР°Р»РµРЅРёРµ РјСѓСЃРѕСЂР°**: 17 РґРµР°РєС‚РёРІРёСЂРѕРІР°РЅРѕ (11 СЌР»РµРєС‚СЂРѕРЅРёРєР°, 3 РѕС‚РєСЂС‹С‚РєРё, 3 СЃС‚СЂРѕР№РјР°С‚РµСЂРёР°Р»С‹)
+- **РџРµСЂРµРІРѕРґ СЃРѕСЃС‚Р°РІР°**: `translate-composition.cjs` С‡РµСЂРµР· OpenAI gpt-4o-mini
+  - 331 РёРЅРЅРѕСЏР·С‹С‡РЅС‹Р№ СЃРѕСЃС‚Р°РІ в†’ 0 (100% СЂСѓСЃСЃРєРёР№)
+  - Batch РїРѕ 15 РїСЂРѕРґСѓРєС‚РѕРІ, СЃС‚РѕРёРјРѕСЃС‚СЊ ~$0.05 Р·Р° РІСЃС‘
+- **0 РґСѓР±Р»РёРєР°С‚РѕРІ EAN** вЂ” UNIQUE constraint СЂР°Р±РѕС‚Р°РµС‚
 
-**Результаты:**
-| Метрика | Было (сессия 7) | Стало (сессия 8) |
+**Р РµР·СѓР»СЊС‚Р°С‚С‹:**
+| РњРµС‚СЂРёРєР° | Р‘С‹Р»Рѕ (СЃРµСЃСЃРёСЏ 7) | РЎС‚Р°Р»Рѕ (СЃРµСЃСЃРёСЏ 8) |
 |---------|----------------|-------------------|
-| Active продуктов | 685 | 3236 |
-| С составом | ~75% | 86% (2779) |
-| Русский состав | ~48% | **100%** (2779/2779) |
-| Реальные EAN | 63% | 40% (больше продуктов без EAN) |
+| Active РїСЂРѕРґСѓРєС‚РѕРІ | 685 | 3236 |
+| РЎ СЃРѕСЃС‚Р°РІРѕРј | ~75% | 86% (2779) |
+| Р СѓСЃСЃРєРёР№ СЃРѕСЃС‚Р°РІ | ~48% | **100%** (2779/2779) |
+| Р РµР°Р»СЊРЅС‹Рµ EAN | 63% | 40% (Р±РѕР»СЊС€Рµ РїСЂРѕРґСѓРєС‚РѕРІ Р±РµР· EAN) |
 | Arbuz primary | 26 | 2237 |
 
-**Не выполнено:**
-- USDA enrichment на 457 без состава
-- R2 upload для ~2000 новых Arbuz картинок
-- Фронтенд: name_kz по языку
-- Импорт прайс-листа (RetailImportScreen)
-- БД-фиксы (CASCADE, GIN)
+**РќРµ РІС‹РїРѕР»РЅРµРЅРѕ:**
+- USDA enrichment РЅР° 457 Р±РµР· СЃРѕСЃС‚Р°РІР°
+- R2 upload РґР»СЏ ~2000 РЅРѕРІС‹С… Arbuz РєР°СЂС‚РёРЅРѕРє
+- Р¤СЂРѕРЅС‚РµРЅРґ: name_kz РїРѕ СЏР·С‹РєСѓ
+- РРјРїРѕСЂС‚ РїСЂР°Р№СЃ-Р»РёСЃС‚Р° (RetailImportScreen)
+- Р‘Р”-С„РёРєСЃС‹ (CASCADE, GIN)
 
 ---
 
-## 2026-04-26 — Сессия 14: NPC EAN Harvest (combo approach)
+## 2026-04-26 вЂ” РЎРµСЃСЃРёСЏ 14: NPC EAN Harvest (combo approach)
 
-**Выполнено:**
-- Эксперимент с 6 методами NPC-поиска → combo стратегия (brand+name + brand+core+weight + brand-only)
-- Новый `scripts/npc-eans-harvest.cjs`: 2-3 запроса/продукт, ВСЕ EAN в alternate_eans, лучший GTIN → primary
-- Обработка duplicate EAN (если занят → в alternate, пробует следующий)
-- 3 партии harvest (~900 продуктов): 1320 → 2558 реальных EAN (+94%)
-- Avg 40 EAN/продукт (GTINs + NTINs + alternates)
-- Сканер уже поддерживает alternate_eans (resolver.js)
-- USDA-enrich фикс: не перезаписывает source_primary
-- NPC-enrich фикс: пагинация .range() (Supabase limit 1000)
-- CONTEXT.md + vault обновлены
+**Р’С‹РїРѕР»РЅРµРЅРѕ:**
+- Р­РєСЃРїРµСЂРёРјРµРЅС‚ СЃ 6 РјРµС‚РѕРґР°РјРё NPC-РїРѕРёСЃРєР° в†’ combo СЃС‚СЂР°С‚РµРіРёСЏ (brand+name + brand+core+weight + brand-only)
+- РќРѕРІС‹Р№ `scripts/npc-eans-harvest.cjs`: 2-3 Р·Р°РїСЂРѕСЃР°/РїСЂРѕРґСѓРєС‚, Р’РЎР• EAN РІ alternate_eans, Р»СѓС‡С€РёР№ GTIN в†’ primary
+- РћР±СЂР°Р±РѕС‚РєР° duplicate EAN (РµСЃР»Рё Р·Р°РЅСЏС‚ в†’ РІ alternate, РїСЂРѕР±СѓРµС‚ СЃР»РµРґСѓСЋС‰РёР№)
+- 3 РїР°СЂС‚РёРё harvest (~900 РїСЂРѕРґСѓРєС‚РѕРІ): 1320 в†’ 2558 СЂРµР°Р»СЊРЅС‹С… EAN (+94%)
+- Avg 40 EAN/РїСЂРѕРґСѓРєС‚ (GTINs + NTINs + alternates)
+- РЎРєР°РЅРµСЂ СѓР¶Рµ РїРѕРґРґРµСЂР¶РёРІР°РµС‚ alternate_eans (resolver.js)
+- USDA-enrich С„РёРєСЃ: РЅРµ РїРµСЂРµР·Р°РїРёСЃС‹РІР°РµС‚ source_primary
+- NPC-enrich С„РёРєСЃ: РїР°РіРёРЅР°С†РёСЏ .range() (Supabase limit 1000)
+- CONTEXT.md + vault РѕР±РЅРѕРІР»РµРЅС‹
 
-**Не выполнено:**
-- Продолжить harvest для оставшихся ~5595 продуктов (партиями по 2000)
-- Продукты без бренда — нужен другой подход
-- USDA enrichment — API ключ disabled, нужен новый
-
----
-
-## 2026-04-26 — Сессия 15: Завершение визуального паритета Light Theme (AI Chat & Scan)
-
-**Выполнено:**
-- **AIAssistantScreen.jsx (General AI)**: Полный рефакторинг. Удалены все хардкод-цвета (#151525, #0C0C18, rgba-черные). Теперь экран полностью использует семантические токены (`var(--bg)`, `var(--glass-bg)`, `var(--text)`, `var(--input-bg)` и т.д.).
-- **AIScreen.jsx (Product AI)**: Дополнительная полировка. Заменены оставшиеся хардкод-пурпурные цвета и тени на `var(--primary)`, `var(--primary-mid)` и `var(--primary-glow)`.
-- **UI Parity**: Исправлены "черные поля ввода" и "черные фоны сообщений" в светлой теме, на которые жаловался пользователь.
-- **CONTEXT.md**: Статус **Light theme rollout** обновлен на ✅ COMPLETED.
-
-**Результат:**
-- Корсет теперь имеет 100% визуальный паритет между темной и светлой темами во всех ключевых сценариях использования (Сканирование, Чат с ИИ, Профиль, Каталог).
+**РќРµ РІС‹РїРѕР»РЅРµРЅРѕ:**
+- РџСЂРѕРґРѕР»Р¶РёС‚СЊ harvest РґР»СЏ РѕСЃС‚Р°РІС€РёС…СЃСЏ ~5595 РїСЂРѕРґСѓРєС‚РѕРІ (РїР°СЂС‚РёСЏРјРё РїРѕ 2000)
+- РџСЂРѕРґСѓРєС‚С‹ Р±РµР· Р±СЂРµРЅРґР° вЂ” РЅСѓР¶РµРЅ РґСЂСѓРіРѕР№ РїРѕРґС…РѕРґ
+- USDA enrichment вЂ” API РєР»СЋС‡ disabled, РЅСѓР¶РµРЅ РЅРѕРІС‹Р№
 
 ---
 
-## 2026-04-27 — Сессия 16: EAN Recovery UI + RLS Fix + Vault Context Save
+## 2026-04-26 вЂ” РЎРµСЃСЃРёСЏ 15: Р—Р°РІРµСЂС€РµРЅРёРµ РІРёР·СѓР°Р»СЊРЅРѕРіРѕ РїР°СЂРёС‚РµС‚Р° Light Theme (AI Chat & Scan)
 
-**Выполнено:**
-- **RLS bug fix:** Обнаружено что Supabase RLS с anon key молча блокирует DELETE/UPDATE на global_products (возвращает `data:null, error:null`). Создан serverless API `api/ean-recovery.js` с JWT + service_role key для обхода.
-- **EAN Recovery Screen** полностью переписан: сканер штрихкода, карточка товара в новой вкладке, инлайн-редактирование названия, полное DELETE с модалом подтверждения. Всё на русском.
-- **Retail Bottom Nav:** 4-я вкладка «Штрихкоды» (оранжевый qr_code_scanner)
-- **i18n:** eanRecovery nav key (RU: Штрихкоды, KZ: Штрихкодтар)
-- **Vault:** созданы `docs/vault/architecture/ean-recovery-system.md` и `docs/vault/decisions/ean-recovery-rls-decision.md`
+**Р’С‹РїРѕР»РЅРµРЅРѕ:**
+- **AIAssistantScreen.jsx (General AI)**: РџРѕР»РЅС‹Р№ СЂРµС„Р°РєС‚РѕСЂРёРЅРі. РЈРґР°Р»РµРЅС‹ РІСЃРµ С…Р°СЂРґРєРѕРґ-С†РІРµС‚Р° (#151525, #0C0C18, rgba-С‡РµСЂРЅС‹Рµ). РўРµРїРµСЂСЊ СЌРєСЂР°РЅ РїРѕР»РЅРѕСЃС‚СЊСЋ РёСЃРїРѕР»СЊР·СѓРµС‚ СЃРµРјР°РЅС‚РёС‡РµСЃРєРёРµ С‚РѕРєРµРЅС‹ (`var(--bg)`, `var(--glass-bg)`, `var(--text)`, `var(--input-bg)` Рё С‚.Рґ.).
+- **AIScreen.jsx (Product AI)**: Р”РѕРїРѕР»РЅРёС‚РµР»СЊРЅР°СЏ РїРѕР»РёСЂРѕРІРєР°. Р—Р°РјРµРЅРµРЅС‹ РѕСЃС‚Р°РІС€РёРµСЃСЏ С…Р°СЂРґРєРѕРґ-РїСѓСЂРїСѓСЂРЅС‹Рµ С†РІРµС‚Р° Рё С‚РµРЅРё РЅР° `var(--primary)`, `var(--primary-mid)` Рё `var(--primary-glow)`.
+- **UI Parity**: РСЃРїСЂР°РІР»РµРЅС‹ "С‡РµСЂРЅС‹Рµ РїРѕР»СЏ РІРІРѕРґР°" Рё "С‡РµСЂРЅС‹Рµ С„РѕРЅС‹ СЃРѕРѕР±С‰РµРЅРёР№" РІ СЃРІРµС‚Р»РѕР№ С‚РµРјРµ, РЅР° РєРѕС‚РѕСЂС‹Рµ Р¶Р°Р»РѕРІР°Р»СЃСЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ.
+- **CONTEXT.md**: РЎС‚Р°С‚СѓСЃ **Light theme rollout** РѕР±РЅРѕРІР»РµРЅ РЅР° вњ… COMPLETED.
 
-**EAN Coverage:** 77.2% → 99.0% (7031/7104 реальных EAN). ~68 fake EAN остаются для ручной обработки.
-
-**Следующие приоритеты:**
-1. Дочистить fake EAN вручную через EAN Recovery
-2. Импорт прайс-листа — P0 блокер продаж
-3. Data Moat — data_quality_score, каскад источников
-4. БД-фиксы — CASCADE, GIN, триггеры
-5. Метрики в тенге
+**Р РµР·СѓР»СЊС‚Р°С‚:**
+- РљРѕСЂСЃРµС‚ С‚РµРїРµСЂСЊ РёРјРµРµС‚ 100% РІРёР·СѓР°Р»СЊРЅС‹Р№ РїР°СЂРёС‚РµС‚ РјРµР¶РґСѓ С‚РµРјРЅРѕР№ Рё СЃРІРµС‚Р»РѕР№ С‚РµРјР°РјРё РІРѕ РІСЃРµС… РєР»СЋС‡РµРІС‹С… СЃС†РµРЅР°СЂРёСЏС… РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ (РЎРєР°РЅРёСЂРѕРІР°РЅРёРµ, Р§Р°С‚ СЃ РР, РџСЂРѕС„РёР»СЊ, РљР°С‚Р°Р»РѕРі).
 
 ---
 
-## 2026-04-27 — Сессия 17: Banner Overhaul + PWA Precache Fix + Guest Empty States
+## 2026-04-27 вЂ” РЎРµСЃСЃРёСЏ 16: EAN Recovery UI + RLS Fix + Vault Context Save
 
-**Выполнено:**
-- **7 фото-баннеров**: golden-samurai, starlit-observatory, witching-hour, teal-moonlight, crescent-nightingale, dawn-ronin, midnight-grove — оптимизированы в WebP (160KB total, 99% compression от ~13MB PNG)
-- **`scripts/optimize-banners.mjs`**: Pipeline Sharp — resize 1200×450 → WebP quality 80 + thumbnails 240×90
-- **Удалены 5 старых SVG баннеров** из presets и с диска
-- **PWA precache fix**: `globPatterns` перенесён из `workbox` в `injectManifest` config — webp теперь в precache manifest (36 entries вместо 9). Фиксит отсутствие баннеров в Chrome.
-- **SelectedDot clipping fix**: `overflow:hidden` на upload tile обрезал галочку → обёртка `position:relative` div + dot рендерится снаружи button
-- **Guest empty states (Favorites + History)**: Текст «Войдите, чтобы сохранять...» + кликабельный блок → открывает AuthPromptModal. RU/KZ i18n ключи добавлены.
-- **ProfileEditScreen**: ровная сетка 2×4 (7 пресетов + 1 upload tile)
+**Р’С‹РїРѕР»РЅРµРЅРѕ:**
+- **RLS bug fix:** РћР±РЅР°СЂСѓР¶РµРЅРѕ С‡С‚Рѕ Supabase RLS СЃ anon key РјРѕР»С‡Р° Р±Р»РѕРєРёСЂСѓРµС‚ DELETE/UPDATE РЅР° global_products (РІРѕР·РІСЂР°С‰Р°РµС‚ `data:null, error:null`). РЎРѕР·РґР°РЅ serverless API `api/ean-recovery.js` СЃ JWT + service_role key РґР»СЏ РѕР±С…РѕРґР°.
+- **EAN Recovery Screen** РїРѕР»РЅРѕСЃС‚СЊСЋ РїРµСЂРµРїРёСЃР°РЅ: СЃРєР°РЅРµСЂ С€С‚СЂРёС…РєРѕРґР°, РєР°СЂС‚РѕС‡РєР° С‚РѕРІР°СЂР° РІ РЅРѕРІРѕР№ РІРєР»Р°РґРєРµ, РёРЅР»Р°Р№РЅ-СЂРµРґР°РєС‚РёСЂРѕРІР°РЅРёРµ РЅР°Р·РІР°РЅРёСЏ, РїРѕР»РЅРѕРµ DELETE СЃ РјРѕРґР°Р»РѕРј РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ. Р’СЃС‘ РЅР° СЂСѓСЃСЃРєРѕРј.
+- **Retail Bottom Nav:** 4-СЏ РІРєР»Р°РґРєР° В«РЁС‚СЂРёС…РєРѕРґС‹В» (РѕСЂР°РЅР¶РµРІС‹Р№ qr_code_scanner)
+- **i18n:** eanRecovery nav key (RU: РЁС‚СЂРёС…РєРѕРґС‹, KZ: РЁС‚СЂРёС…РєРѕРґС‚Р°СЂ)
+- **Vault:** СЃРѕР·РґР°РЅС‹ `docs/vault/architecture/ean-recovery-system.md` Рё `docs/vault/decisions/ean-recovery-rls-decision.md`
 
-**Файлы:**
-- `src/constants/bannerPresets.js` — 7 presets, default golden-samurai
-- `src/screens/ProfileEditScreen.jsx` — SelectedDot fix, grid layout
-- `src/components/profile/ProfileStatsTabs.jsx` — isGuest + onAuthPrompt, clickable TabEmptyState
-- `src/screens/ProfileScreen.jsx` — `onAuthPrompt={() => setAuthPromptOpen(true)}`
-- `src/utils/i18n.js` — `favoritesEmptyGuest`, `historyEmptyGuest` (RU/KZ)
-- `vite.config.js` — `injectManifest.globPatterns` includes webp/jpg/jpeg
-- `src/sw.js` — runtime `CacheFirst` route для изображений
-- `scripts/optimize-banners.mjs` — Sharp pipeline
-- `.gitignore` — `public/banners/raw/`, `public/banners/thumbs/`
+**EAN Coverage:** 77.2% в†’ 99.0% (7031/7104 СЂРµР°Р»СЊРЅС‹С… EAN). ~68 fake EAN РѕСЃС‚Р°СЋС‚СЃСЏ РґР»СЏ СЂСѓС‡РЅРѕР№ РѕР±СЂР°Р±РѕС‚РєРё.
 
-**Коммиты:** `e03210e` (баннеры), `cfe9428` (PWA fix), `0b29105` (globPatterns injectManifest), `session-commit` (guest empty states)
+**РЎР»РµРґСѓСЋС‰РёРµ РїСЂРёРѕСЂРёС‚РµС‚С‹:**
+1. Р”РѕС‡РёСЃС‚РёС‚СЊ fake EAN РІСЂСѓС‡РЅСѓСЋ С‡РµСЂРµР· EAN Recovery
+2. РРјРїРѕСЂС‚ РїСЂР°Р№СЃ-Р»РёСЃС‚Р° вЂ” P0 Р±Р»РѕРєРµСЂ РїСЂРѕРґР°Р¶
+3. Data Moat вЂ” data_quality_score, РєР°СЃРєР°Рґ РёСЃС‚РѕС‡РЅРёРєРѕРІ
+4. Р‘Р”-С„РёРєСЃС‹ вЂ” CASCADE, GIN, С‚СЂРёРіРіРµСЂС‹
+5. РњРµС‚СЂРёРєРё РІ С‚РµРЅРіРµ
 
-**Следующие приоритеты:**
-1. Проверить баннеры в Chrome после деплоя
-2. Retail Import — P0 блокер продаж
-3. Data Moat — каскад источников
-4. i18n хардкод русского текста (EanRecoveryScreen, ProductScreen, CatalogScreen)
-# 2026-04-28 — Landing redesign Stage 1
+---
 
-- Реализован новый публичный лендинг `/` как отдельный `LandingScreen` вместо продолжения старого inline-лендинга внутри `HomeScreen`.
-- Стратегия: B2C-first hero (“Проверьте, подходит ли товар именно вам”), B2B-секция ниже и отдельно, без смешивания сообщений.
-- Визуал: один сканируемый продукт, телефонный mockup, Fit-Check, glass cards, theme toggle, scan-beam, лёгкие CSS-анимации без WebGL.
-- B2B: отдельный retail-разворот, сценарий роста продаж/лояльности, Early Access 15 000 ₸, Premium/Enterprise “скоро”.
-- Проверки: e2e landing spec, build, lint. Остались только существующие warnings вне новой поверхности.
+## 2026-04-27 вЂ” РЎРµСЃСЃРёСЏ 17: Banner Overhaul + PWA Precache Fix + Guest Empty States
 
-# 2026-04-28 — Landing redesign Stage 2
+**Р’С‹РїРѕР»РЅРµРЅРѕ:**
+- **7 С„РѕС‚Рѕ-Р±Р°РЅРЅРµСЂРѕРІ**: golden-samurai, starlit-observatory, witching-hour, teal-moonlight, crescent-nightingale, dawn-ronin, midnight-grove вЂ” РѕРїС‚РёРјРёР·РёСЂРѕРІР°РЅС‹ РІ WebP (160KB total, 99% compression РѕС‚ ~13MB PNG)
+- **`scripts/optimize-banners.mjs`**: Pipeline Sharp вЂ” resize 1200Г—450 в†’ WebP quality 80 + thumbnails 240Г—90
+- **РЈРґР°Р»РµРЅС‹ 5 СЃС‚Р°СЂС‹С… SVG Р±Р°РЅРЅРµСЂРѕРІ** РёР· presets Рё СЃ РґРёСЃРєР°
+- **PWA precache fix**: `globPatterns` РїРµСЂРµРЅРµСЃС‘РЅ РёР· `workbox` РІ `injectManifest` config вЂ” webp С‚РµРїРµСЂСЊ РІ precache manifest (36 entries РІРјРµСЃС‚Рѕ 9). Р¤РёРєСЃРёС‚ РѕС‚СЃСѓС‚СЃС‚РІРёРµ Р±Р°РЅРЅРµСЂРѕРІ РІ Chrome.
+- **SelectedDot clipping fix**: `overflow:hidden` РЅР° upload tile РѕР±СЂРµР·Р°Р» РіР°Р»РѕС‡РєСѓ в†’ РѕР±С‘СЂС‚РєР° `position:relative` div + dot СЂРµРЅРґРµСЂРёС‚СЃСЏ СЃРЅР°СЂСѓР¶Рё button
+- **Guest empty states (Favorites + History)**: РўРµРєСЃС‚ В«Р’РѕР№РґРёС‚Рµ, С‡С‚РѕР±С‹ СЃРѕС…СЂР°РЅСЏС‚СЊ...В» + РєР»РёРєР°Р±РµР»СЊРЅС‹Р№ Р±Р»РѕРє в†’ РѕС‚РєСЂС‹РІР°РµС‚ AuthPromptModal. RU/KZ i18n РєР»СЋС‡Рё РґРѕР±Р°РІР»РµРЅС‹.
+- **ProfileEditScreen**: СЂРѕРІРЅР°СЏ СЃРµС‚РєР° 2Г—4 (7 РїСЂРµСЃРµС‚РѕРІ + 1 upload tile)
 
-- Усилен B2B-разворот без вмешательства в B2C hero: добавлен лёгкий HTML/CSS preview Retail Cabinet с метриками сканов, покрытием каталога, упущенной выручкой, QR, импортом прайса и неизвестными EAN.
-- Визуальная полировка: dashboard glass surface, sweep-подсветка, бар-чарт, pricing sweep, responsive grid для desktop/mobile, `scroll-margin-top` для sticky header anchors.
-- RU/KZ i18n обновлён для новых retail dashboard-текстов.
-- E2E обновлён: проверяет `landing-retail-dashboard`, знак ₸ и скан-метрики. Проверки: `npm test -- tests/e2e/landing.spec.js` 4 passed; `npm run build` passed; `npm run lint` 0 errors, 56 existing warnings.
+**Р¤Р°Р№Р»С‹:**
+- `src/constants/bannerPresets.js` вЂ” 7 presets, default golden-samurai
+- `src/screens/ProfileEditScreen.jsx` вЂ” SelectedDot fix, grid layout
+- `src/components/profile/ProfileStatsTabs.jsx` вЂ” isGuest + onAuthPrompt, clickable TabEmptyState
+- `src/screens/ProfileScreen.jsx` вЂ” `onAuthPrompt={() => setAuthPromptOpen(true)}`
+- `src/utils/i18n.js` вЂ” `favoritesEmptyGuest`, `historyEmptyGuest` (RU/KZ)
+- `vite.config.js` вЂ” `injectManifest.globPatterns` includes webp/jpg/jpeg
+- `src/sw.js` вЂ” runtime `CacheFirst` route РґР»СЏ РёР·РѕР±СЂР°Р¶РµРЅРёР№
+- `scripts/optimize-banners.mjs` вЂ” Sharp pipeline
+- `.gitignore` вЂ” `public/banners/raw/`, `public/banners/thumbs/`
 
-# 2026-04-28 — Landing hero polish after design feedback
+**РљРѕРјРјРёС‚С‹:** `e03210e` (Р±Р°РЅРЅРµСЂС‹), `cfe9428` (PWA fix), `0b29105` (globPatterns injectManifest), `session-commit` (guest empty states)
 
-- Удалён центральный диагональный beam/glare из hero — больше нет прямоугольного блика поверх текста и CTA.
-- Hero-визуал перестроен в более смелую 3D-сцену: телефон, один продукт за телефоном, нижний hand-silhouette и кинетические стеклянные слои с scroll-driven/fallback CSS-анимацией.
-- Основные CTA больше не используют дешёвый фиолетовый градиент: заменены на premium dark/glass стиль в dark theme и контрастный solid стиль в light theme.
-- Акценты в hero/bar chart переведены с primary-purple на cyan/green premium-tech.
-- Проверки после правок: `npm test -- tests/e2e/landing.spec.js` 4 passed; `npm run build` passed; `npm run lint` 0 errors, 56 existing warnings.
+**РЎР»РµРґСѓСЋС‰РёРµ РїСЂРёРѕСЂРёС‚РµС‚С‹:**
+1. РџСЂРѕРІРµСЂРёС‚СЊ Р±Р°РЅРЅРµСЂС‹ РІ Chrome РїРѕСЃР»Рµ РґРµРїР»РѕСЏ
+2. Retail Import вЂ” P0 Р±Р»РѕРєРµСЂ РїСЂРѕРґР°Р¶
+3. Data Moat вЂ” РєР°СЃРєР°Рґ РёСЃС‚РѕС‡РЅРёРєРѕРІ
+4. i18n С…Р°СЂРґРєРѕРґ СЂСѓСЃСЃРєРѕРіРѕ С‚РµРєСЃС‚Р° (EanRecoveryScreen, ProductScreen, CatalogScreen)
+# 2026-04-28 вЂ” Landing redesign Stage 1
 
-# 2026-04-28 — Landing visual system Stage 1
+- Р РµР°Р»РёР·РѕРІР°РЅ РЅРѕРІС‹Р№ РїСѓР±Р»РёС‡РЅС‹Р№ Р»РµРЅРґРёРЅРі `/` РєР°Рє РѕС‚РґРµР»СЊРЅС‹Р№ `LandingScreen` РІРјРµСЃС‚Рѕ РїСЂРѕРґРѕР»Р¶РµРЅРёСЏ СЃС‚Р°СЂРѕРіРѕ inline-Р»РµРЅРґРёРЅРіР° РІРЅСѓС‚СЂРё `HomeScreen`.
+- РЎС‚СЂР°С‚РµРіРёСЏ: B2C-first hero (вЂњРџСЂРѕРІРµСЂСЊС‚Рµ, РїРѕРґС…РѕРґРёС‚ Р»Рё С‚РѕРІР°СЂ РёРјРµРЅРЅРѕ РІР°РјвЂќ), B2B-СЃРµРєС†РёСЏ РЅРёР¶Рµ Рё РѕС‚РґРµР»СЊРЅРѕ, Р±РµР· СЃРјРµС€РёРІР°РЅРёСЏ СЃРѕРѕР±С‰РµРЅРёР№.
+- Р’РёР·СѓР°Р»: РѕРґРёРЅ СЃРєР°РЅРёСЂСѓРµРјС‹Р№ РїСЂРѕРґСѓРєС‚, С‚РµР»РµС„РѕРЅРЅС‹Р№ mockup, Fit-Check, glass cards, theme toggle, scan-beam, Р»С‘РіРєРёРµ CSS-Р°РЅРёРјР°С†РёРё Р±РµР· WebGL.
+- B2B: РѕС‚РґРµР»СЊРЅС‹Р№ retail-СЂР°Р·РІРѕСЂРѕС‚, СЃС†РµРЅР°СЂРёР№ СЂРѕСЃС‚Р° РїСЂРѕРґР°Р¶/Р»РѕСЏР»СЊРЅРѕСЃС‚Рё, Early Access 15 000 в‚ё, Premium/Enterprise вЂњСЃРєРѕСЂРѕвЂќ.
+- РџСЂРѕРІРµСЂРєРё: e2e landing spec, build, lint. РћСЃС‚Р°Р»РёСЃСЊ С‚РѕР»СЊРєРѕ СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёРµ warnings РІРЅРµ РЅРѕРІРѕР№ РїРѕРІРµСЂС…РЅРѕСЃС‚Рё.
 
-- По новому фидбеку убраны CTA sheen/glare-эффекты полностью: primary CTA теперь простой solid accent (`--accent-sky`) без бликов, полос и фиолетового градиента.
-- Весь публичный лендинг переведён на Advent Pro как основной шрифт; текстовые веса/размеры подняты, чтобы уйти от generic UI-ощущения.
-- Массовый glassmorphism снят с обычных информационных карточек: базовые блоки теперь solid/surface с 8px radius, а glass оставлен как намеренный визуальный слой для hero-мокапа, floating chips и retail dashboard.
-- Визуальный Stage 1 проверен на desktop dark, mobile dark, desktop light и первом scroll-блоке. Проверки: `npm test -- tests/e2e/landing.spec.js` 4 passed; `npm run build` passed; `npm run lint` 0 errors, 56 existing warnings.
-- Следующие дизайн-этапы: отдельно перепроектировать B2C sections (`у полки`, Fit-Check, возможности) и затем B2B/pricing/footer, не смешивая всё в один заход.
+# 2026-04-28 вЂ” Landing redesign Stage 2
 
-# 2026-05-03 — i18n unit tests + check-i18n.mjs script
+- РЈСЃРёР»РµРЅ B2B-СЂР°Р·РІРѕСЂРѕС‚ Р±РµР· РІРјРµС€Р°С‚РµР»СЊСЃС‚РІР° РІ B2C hero: РґРѕР±Р°РІР»РµРЅ Р»С‘РіРєРёР№ HTML/CSS preview Retail Cabinet СЃ РјРµС‚СЂРёРєР°РјРё СЃРєР°РЅРѕРІ, РїРѕРєСЂС‹С‚РёРµРј РєР°С‚Р°Р»РѕРіР°, СѓРїСѓС‰РµРЅРЅРѕР№ РІС‹СЂСѓС‡РєРѕР№, QR, РёРјРїРѕСЂС‚РѕРј РїСЂР°Р№СЃР° Рё РЅРµРёР·РІРµСЃС‚РЅС‹РјРё EAN.
+- Р’РёР·СѓР°Р»СЊРЅР°СЏ РїРѕР»РёСЂРѕРІРєР°: dashboard glass surface, sweep-РїРѕРґСЃРІРµС‚РєР°, Р±Р°СЂ-С‡Р°СЂС‚, pricing sweep, responsive grid РґР»СЏ desktop/mobile, `scroll-margin-top` РґР»СЏ sticky header anchors.
+- RU/KZ i18n РѕР±РЅРѕРІР»С‘РЅ РґР»СЏ РЅРѕРІС‹С… retail dashboard-С‚РµРєСЃС‚РѕРІ.
+- E2E РѕР±РЅРѕРІР»С‘РЅ: РїСЂРѕРІРµСЂСЏРµС‚ `landing-retail-dashboard`, Р·РЅР°Рє в‚ё Рё СЃРєР°РЅ-РјРµС‚СЂРёРєРё. РџСЂРѕРІРµСЂРєРё: `npm test -- tests/e2e/landing.spec.js` 4 passed; `npm run build` passed; `npm run lint` 0 errors, 56 existing warnings.
 
-- Создан `scripts/check-i18n.mjs` — аудит 14 namespace × 2 языка: missing KZ keys, orphan keys, empty values, identical RU=KZ (possibly untranslated). Exit code 1 если KZ ключи отсутствуют.
-- Результат первой проверки: 14 namespace, 0 missing KZ, 0 orphan, 0 empty, 106 identical RU=KZ (бренды, иконки, единицы измерения — нормально).
-- Созданы 4 unit-тест файла (`tests/unit/i18n/`): plural (20), interpolate (13), format (16), resolve (15) = 64 теста. Все проходят.
-- Поправлен `src/i18n/resolve.js` — `import.meta.env.DEV` → `import.meta.env?.DEV` (optional chaining для совместимости с Node.js без Vite). Не влияет на production (Vite всегда предоставляет `import.meta.env`).
-- KZ plural rules: `Intl.PluralRules('kk')` имеет только `one`/`other` (в отличие от ru: one/few/many/other). Тесты отражают это.
+# 2026-04-28 вЂ” Landing hero polish after design feedback
 
-# 2026-05-03 — i18n `exists` API fix + LandingScreen crash fix + lint 0 errors
+- РЈРґР°Р»С‘РЅ С†РµРЅС‚СЂР°Р»СЊРЅС‹Р№ РґРёР°РіРѕРЅР°Р»СЊРЅС‹Р№ beam/glare РёР· hero вЂ” Р±РѕР»СЊС€Рµ РЅРµС‚ РїСЂСЏРјРѕСѓРіРѕР»СЊРЅРѕРіРѕ Р±Р»РёРєР° РїРѕРІРµСЂС… С‚РµРєСЃС‚Р° Рё CTA.
+- Hero-РІРёР·СѓР°Р» РїРµСЂРµСЃС‚СЂРѕРµРЅ РІ Р±РѕР»РµРµ СЃРјРµР»СѓСЋ 3D-СЃС†РµРЅСѓ: С‚РµР»РµС„РѕРЅ, РѕРґРёРЅ РїСЂРѕРґСѓРєС‚ Р·Р° С‚РµР»РµС„РѕРЅРѕРј, РЅРёР¶РЅРёР№ hand-silhouette Рё РєРёРЅРµС‚РёС‡РµСЃРєРёРµ СЃС‚РµРєР»СЏРЅРЅС‹Рµ СЃР»РѕРё СЃ scroll-driven/fallback CSS-Р°РЅРёРјР°С†РёРµР№.
+- РћСЃРЅРѕРІРЅС‹Рµ CTA Р±РѕР»СЊС€Рµ РЅРµ РёСЃРїРѕР»СЊР·СѓСЋС‚ РґРµС€С‘РІС‹Р№ С„РёРѕР»РµС‚РѕРІС‹Р№ РіСЂР°РґРёРµРЅС‚: Р·Р°РјРµРЅРµРЅС‹ РЅР° premium dark/glass СЃС‚РёР»СЊ РІ dark theme Рё РєРѕРЅС‚СЂР°СЃС‚РЅС‹Р№ solid СЃС‚РёР»СЊ РІ light theme.
+- РђРєС†РµРЅС‚С‹ РІ hero/bar chart РїРµСЂРµРІРµРґРµРЅС‹ СЃ primary-purple РЅР° cyan/green premium-tech.
+- РџСЂРѕРІРµСЂРєРё РїРѕСЃР»Рµ РїСЂР°РІРѕРє: `npm test -- tests/e2e/landing.spec.js` 4 passed; `npm run build` passed; `npm run lint` 0 errors, 56 existing warnings.
 
-- **Критический баг:** `t.exists = useCallback(...)` — lint error `This value cannot be modified` (useCallback возвращает замороженную функцию, нельзя присвоить свойство)
-- **Решение:** `exists` вынесен как отдельный return из `useI18n()`: `return { t, exists, lang, format }`
-- **4 файла обновлены:** AIAssistantScreen, QRPrintScreen, LandingScreen (16 вызовов), HomeScreen
-- **LandingScreen crash:** `collectObjArr(t, \`...\`, ['label', 'href'])` — пропущен `exists` аргумент → fields[0] на undefined → TypeError. Исправлено на `collectObjArr(t, exists, \`...\`, ['label', 'href'])`
-- **main.jsx:31** — empty catch block → добавлен комментарий `/* invalid URL — ignore */` для no-empty lint
-- **Итог:** lint 0 errors (было 2), e2e landing 4/4 pass, unit 64/64 pass, build OK
+# 2026-04-28 вЂ” Landing visual system Stage 1
 
-# 2026-05-03 — i18n финальная полировка: хардкод-остатки + markdownToHtml rewrite
+- РџРѕ РЅРѕРІРѕРјСѓ С„РёРґР±РµРєСѓ СѓР±СЂР°РЅС‹ CTA sheen/glare-СЌС„С„РµРєС‚С‹ РїРѕР»РЅРѕСЃС‚СЊСЋ: primary CTA С‚РµРїРµСЂСЊ РїСЂРѕСЃС‚РѕР№ solid accent (`--accent-sky`) Р±РµР· Р±Р»РёРєРѕРІ, РїРѕР»РѕСЃ Рё С„РёРѕР»РµС‚РѕРІРѕРіРѕ РіСЂР°РґРёРµРЅС‚Р°.
+- Р’РµСЃСЊ РїСѓР±Р»РёС‡РЅС‹Р№ Р»РµРЅРґРёРЅРі РїРµСЂРµРІРµРґС‘РЅ РЅР° Advent Pro РєР°Рє РѕСЃРЅРѕРІРЅРѕР№ С€СЂРёС„С‚; С‚РµРєСЃС‚РѕРІС‹Рµ РІРµСЃР°/СЂР°Р·РјРµСЂС‹ РїРѕРґРЅСЏС‚С‹, С‡С‚РѕР±С‹ СѓР№С‚Рё РѕС‚ generic UI-РѕС‰СѓС‰РµРЅРёСЏ.
+- РњР°СЃСЃРѕРІС‹Р№ glassmorphism СЃРЅСЏС‚ СЃ РѕР±С‹С‡РЅС‹С… РёРЅС„РѕСЂРјР°С†РёРѕРЅРЅС‹С… РєР°СЂС‚РѕС‡РµРє: Р±Р°Р·РѕРІС‹Рµ Р±Р»РѕРєРё С‚РµРїРµСЂСЊ solid/surface СЃ 8px radius, Р° glass РѕСЃС‚Р°РІР»РµРЅ РєР°Рє РЅР°РјРµСЂРµРЅРЅС‹Р№ РІРёР·СѓР°Р»СЊРЅС‹Р№ СЃР»РѕР№ РґР»СЏ hero-РјРѕРєР°РїР°, floating chips Рё retail dashboard.
+- Р’РёР·СѓР°Р»СЊРЅС‹Р№ Stage 1 РїСЂРѕРІРµСЂРµРЅ РЅР° desktop dark, mobile dark, desktop light Рё РїРµСЂРІРѕРј scroll-Р±Р»РѕРєРµ. РџСЂРѕРІРµСЂРєРё: `npm test -- tests/e2e/landing.spec.js` 4 passed; `npm run build` passed; `npm run lint` 0 errors, 56 existing warnings.
+- РЎР»РµРґСѓСЋС‰РёРµ РґРёР·Р°Р№РЅ-СЌС‚Р°РїС‹: РѕС‚РґРµР»СЊРЅРѕ РїРµСЂРµРїСЂРѕРµРєС‚РёСЂРѕРІР°С‚СЊ B2C sections (`Сѓ РїРѕР»РєРё`, Fit-Check, РІРѕР·РјРѕР¶РЅРѕСЃС‚Рё) Рё Р·Р°С‚РµРј B2B/pricing/footer, РЅРµ СЃРјРµС€РёРІР°СЏ РІСЃС‘ РІ РѕРґРёРЅ Р·Р°С…РѕРґ.
 
-- **markdownToHtml** переписан: line-by-line парсер вместо regex — чистый HTML без мусорных `<br>` и `<p>` обёрток вокруг `<h3>/<ul>`
-- **aria-label хардкод → t():** SyncResolveModal, SupportBottomSheet (2), FaqScreen — все через `t('common.close')`, `t('common.back')`, `t('common.feedback')`
-- **UnifiedProductScreen** `'Да'` → `t('common.yes')`
-- **ProfileScreen** `ariaLabel: 'Русский'` → `t('common.langRu')`
-- Новые ключи RU+KZ: `common.yes`, `common.close`, `common.feedback`, `common.langRu`, `common.langKzAria`
-- Удалён устаревший `scripts/extract-locales.mjs` (ссылался на удалённый `src/utils/i18n.js`)
-- **0 aria-label хардкода**, **0 `isKz ? 'Қаз' : 'Рус'`**, lint 0 errors, e2e 4/4, unit 64/64
+# 2026-05-03 вЂ” i18n unit tests + check-i18n.mjs script
 
-# 2026-05-03 — i18n шаги 12-14: финальная полировка
+- РЎРѕР·РґР°РЅ `scripts/check-i18n.mjs` вЂ” Р°СѓРґРёС‚ 14 namespace Г— 2 СЏР·С‹РєР°: missing KZ keys, orphan keys, empty values, identical RU=KZ (possibly untranslated). Exit code 1 РµСЃР»Рё KZ РєР»СЋС‡Рё РѕС‚СЃСѓС‚СЃС‚РІСѓСЋС‚.
+- Р РµР·СѓР»СЊС‚Р°С‚ РїРµСЂРІРѕР№ РїСЂРѕРІРµСЂРєРё: 14 namespace, 0 missing KZ, 0 orphan, 0 empty, 106 identical RU=KZ (Р±СЂРµРЅРґС‹, РёРєРѕРЅРєРё, РµРґРёРЅРёС†С‹ РёР·РјРµСЂРµРЅРёСЏ вЂ” РЅРѕСЂРјР°Р»СЊРЅРѕ).
+- РЎРѕР·РґР°РЅС‹ 4 unit-С‚РµСЃС‚ С„Р°Р№Р»Р° (`tests/unit/i18n/`): plural (20), interpolate (13), format (16), resolve (15) = 64 С‚РµСЃС‚Р°. Р’СЃРµ РїСЂРѕС…РѕРґСЏС‚.
+- РџРѕРїСЂР°РІР»РµРЅ `src/i18n/resolve.js` вЂ” `import.meta.env.DEV` в†’ `import.meta.env?.DEV` (optional chaining РґР»СЏ СЃРѕРІРјРµСЃС‚РёРјРѕСЃС‚Рё СЃ Node.js Р±РµР· Vite). РќРµ РІР»РёСЏРµС‚ РЅР° production (Vite РІСЃРµРіРґР° РїСЂРµРґРѕСЃС‚Р°РІР»СЏРµС‚ `import.meta.env`).
+- KZ plural rules: `Intl.PluralRules('kk')` РёРјРµРµС‚ С‚РѕР»СЊРєРѕ `one`/`other` (РІ РѕС‚Р»РёС‡РёРµ РѕС‚ ru: one/few/many/other). РўРµСЃС‚С‹ РѕС‚СЂР°Р¶Р°СЋС‚ СЌС‚Рѕ.
 
-- **Шаг 12 (хардкод → t()):**
-  - RetailSettingsScreen: 40 `isKz ? 'Қаз' : 'Рус'` → `t('retail.settings.*')` (38 новых ключей RU+KZ)
-  - StorePublicScreen: 8 `isKz ? 'Қаз' : 'Рус'` → `t('home.store*')` (12 новых ключей RU+KZ)
-  - Мелочь: UnifiedProductScreen (2), SetupProfileScreen (1), QRPrintScreen (2), RetailProductsScreen (1), ProfileScreen (3), AccountScreen (2) → все через t()
-  - Итого: 0 `isKz ? 'Қаз' : 'Рус'` паттернов осталось в экранах (13 `lang === 'kz'` — корректные data-driven/CSS)
-  - check-i18n: 0 missing, 0 orphan, 0 empty, 109 identical (бренды/иконки/единицы)
+# 2026-05-03 вЂ” i18n `exists` API fix + LandingScreen crash fix + lint 0 errors
 
-- **Шаг 13 (Dev-mode visual warnings):**
-  - `resolve.js`: при missing key в обоих языках → `⚠key` в DEV-режиме (визуальная пометка)
-  - Production: key path как и раньше (без ⚠)
+- **РљСЂРёС‚РёС‡РµСЃРєРёР№ Р±Р°Рі:** `t.exists = useCallback(...)` вЂ” lint error `This value cannot be modified` (useCallback РІРѕР·РІСЂР°С‰Р°РµС‚ Р·Р°РјРѕСЂРѕР¶РµРЅРЅСѓСЋ С„СѓРЅРєС†РёСЋ, РЅРµР»СЊР·СЏ РїСЂРёСЃРІРѕРёС‚СЊ СЃРІРѕР№СЃС‚РІРѕ)
+- **Р РµС€РµРЅРёРµ:** `exists` РІС‹РЅРµСЃРµРЅ РєР°Рє РѕС‚РґРµР»СЊРЅС‹Р№ return РёР· `useI18n()`: `return { t, exists, lang, format }`
+- **4 С„Р°Р№Р»Р° РѕР±РЅРѕРІР»РµРЅС‹:** AIAssistantScreen, QRPrintScreen, LandingScreen (16 РІС‹Р·РѕРІРѕРІ), HomeScreen
+- **LandingScreen crash:** `collectObjArr(t, \`...\`, ['label', 'href'])` вЂ” РїСЂРѕРїСѓС‰РµРЅ `exists` Р°СЂРіСѓРјРµРЅС‚ в†’ fields[0] РЅР° undefined в†’ TypeError. РСЃРїСЂР°РІР»РµРЅРѕ РЅР° `collectObjArr(t, exists, \`...\`, ['label', 'href'])`
+- **main.jsx:31** вЂ” empty catch block в†’ РґРѕР±Р°РІР»РµРЅ РєРѕРјРјРµРЅС‚Р°СЂРёР№ `/* invalid URL вЂ” ignore */` РґР»СЏ no-empty lint
+- **РС‚РѕРі:** lint 0 errors (Р±С‹Р»Рѕ 2), e2e landing 4/4 pass, unit 64/64 pass, build OK
 
-- **Шаг 14 (PrivacyPolicyScreen):**
-  - 200+ строк хардкода kzText/ruText → markdown файлы `src/legal/privacy-{ru,kz}.md`
-  - `markdownToHtml()` — минимальный markdown→HTML конвертер
-  - Vite `?raw` import для bundling markdown как строки
-  - `{date}` placeholder для динамической даты обновления
-  - 0 хардкод-текста в JSX
+# 2026-05-03 вЂ” i18n С„РёРЅР°Р»СЊРЅР°СЏ РїРѕР»РёСЂРѕРІРєР°: С…Р°СЂРґРєРѕРґ-РѕСЃС‚Р°С‚РєРё + markdownToHtml rewrite
 
-- **Все 17 шагов i18n миграции ЗАВЕРШЕНЫ**
+- **markdownToHtml** РїРµСЂРµРїРёСЃР°РЅ: line-by-line РїР°СЂСЃРµСЂ РІРјРµСЃС‚Рѕ regex вЂ” С‡РёСЃС‚С‹Р№ HTML Р±РµР· РјСѓСЃРѕСЂРЅС‹С… `<br>` Рё `<p>` РѕР±С‘СЂС‚РѕРє РІРѕРєСЂСѓРі `<h3>/<ul>`
+- **aria-label С…Р°СЂРґРєРѕРґ в†’ t():** SyncResolveModal, SupportBottomSheet (2), FaqScreen вЂ” РІСЃРµ С‡РµСЂРµР· `t('common.close')`, `t('common.back')`, `t('common.feedback')`
+- **UnifiedProductScreen** `'Р”Р°'` в†’ `t('common.yes')`
+- **ProfileScreen** `ariaLabel: 'Р СѓСЃСЃРєРёР№'` в†’ `t('common.langRu')`
+- РќРѕРІС‹Рµ РєР»СЋС‡Рё RU+KZ: `common.yes`, `common.close`, `common.feedback`, `common.langRu`, `common.langKzAria`
+- РЈРґР°Р»С‘РЅ СѓСЃС‚Р°СЂРµРІС€РёР№ `scripts/extract-locales.mjs` (СЃСЃС‹Р»Р°Р»СЃСЏ РЅР° СѓРґР°Р»С‘РЅРЅС‹Р№ `src/utils/i18n.js`)
+- **0 aria-label С…Р°СЂРґРєРѕРґР°**, **0 `isKz ? 'ТљР°Р·' : 'Р СѓСЃ'`**, lint 0 errors, e2e 4/4, unit 64/64
 
-# 2026-05-03 — AI best-fit analysis for Körset
+# 2026-05-03 вЂ” i18n С€Р°РіРё 12-14: С„РёРЅР°Р»СЊРЅР°СЏ РїРѕР»РёСЂРѕРІРєР°
 
-- Проведена короткая ревизия проектного контекста и актуальных приоритетов, чтобы зафиксировать лучший тип задач для Codex в проекте.
-- Вывод: максимальная ценность Codex — сложные системные улучшения с end-to-end мышлением: Data Moat, data pipelines, DB/RLS hardening, декомпозиция монолитов, особенно `ProductScreen`.
-- Если нужна быстрая бизнес-отдача от следующих сессий: давать Codex задачи, где нужно одновременно понять продукт, код, данные, побочные эффекты и проверку.
+- **РЁР°Рі 12 (С…Р°СЂРґРєРѕРґ в†’ t()):**
+  - RetailSettingsScreen: 40 `isKz ? 'ТљР°Р·' : 'Р СѓСЃ'` в†’ `t('retail.settings.*')` (38 РЅРѕРІС‹С… РєР»СЋС‡РµР№ RU+KZ)
+  - StorePublicScreen: 8 `isKz ? 'ТљР°Р·' : 'Р СѓСЃ'` в†’ `t('home.store*')` (12 РЅРѕРІС‹С… РєР»СЋС‡РµР№ RU+KZ)
+  - РњРµР»РѕС‡СЊ: UnifiedProductScreen (2), SetupProfileScreen (1), QRPrintScreen (2), RetailProductsScreen (1), ProfileScreen (3), AccountScreen (2) в†’ РІСЃРµ С‡РµСЂРµР· t()
+  - РС‚РѕРіРѕ: 0 `isKz ? 'ТљР°Р·' : 'Р СѓСЃ'` РїР°С‚С‚РµСЂРЅРѕРІ РѕСЃС‚Р°Р»РѕСЃСЊ РІ СЌРєСЂР°РЅР°С… (13 `lang === 'kz'` вЂ” РєРѕСЂСЂРµРєС‚РЅС‹Рµ data-driven/CSS)
+  - check-i18n: 0 missing, 0 orphan, 0 empty, 109 identical (Р±СЂРµРЅРґС‹/РёРєРѕРЅРєРё/РµРґРёРЅРёС†С‹)
+
+- **РЁР°Рі 13 (Dev-mode visual warnings):**
+  - `resolve.js`: РїСЂРё missing key РІ РѕР±РѕРёС… СЏР·С‹РєР°С… в†’ `вљ key` РІ DEV-СЂРµР¶РёРјРµ (РІРёР·СѓР°Р»СЊРЅР°СЏ РїРѕРјРµС‚РєР°)
+  - Production: key path РєР°Рє Рё СЂР°РЅСЊС€Рµ (Р±РµР· вљ )
+
+- **РЁР°Рі 14 (PrivacyPolicyScreen):**
+  - 200+ СЃС‚СЂРѕРє С…Р°СЂРґРєРѕРґР° kzText/ruText в†’ markdown С„Р°Р№Р»С‹ `src/legal/privacy-{ru,kz}.md`
+  - `markdownToHtml()` вЂ” РјРёРЅРёРјР°Р»СЊРЅС‹Р№ markdownв†’HTML РєРѕРЅРІРµСЂС‚РµСЂ
+  - Vite `?raw` import РґР»СЏ bundling markdown РєР°Рє СЃС‚СЂРѕРєРё
+  - `{date}` placeholder РґР»СЏ РґРёРЅР°РјРёС‡РµСЃРєРѕР№ РґР°С‚С‹ РѕР±РЅРѕРІР»РµРЅРёСЏ
+  - 0 С…Р°СЂРґРєРѕРґ-С‚РµРєСЃС‚Р° РІ JSX
+
+- **Р’СЃРµ 17 С€Р°РіРѕРІ i18n РјРёРіСЂР°С†РёРё Р—РђР’Р•Р РЁР•РќР«**
+
+# 2026-05-03 вЂ” AI best-fit analysis for KГ¶rset
+
+- РџСЂРѕРІРµРґРµРЅР° РєРѕСЂРѕС‚РєР°СЏ СЂРµРІРёР·РёСЏ РїСЂРѕРµРєС‚РЅРѕРіРѕ РєРѕРЅС‚РµРєСЃС‚Р° Рё Р°РєС‚СѓР°Р»СЊРЅС‹С… РїСЂРёРѕСЂРёС‚РµС‚РѕРІ, С‡С‚РѕР±С‹ Р·Р°С„РёРєСЃРёСЂРѕРІР°С‚СЊ Р»СѓС‡С€РёР№ С‚РёРї Р·Р°РґР°С‡ РґР»СЏ Codex РІ РїСЂРѕРµРєС‚Рµ.
+- Р’С‹РІРѕРґ: РјР°РєСЃРёРјР°Р»СЊРЅР°СЏ С†РµРЅРЅРѕСЃС‚СЊ Codex вЂ” СЃР»РѕР¶РЅС‹Рµ СЃРёСЃС‚РµРјРЅС‹Рµ СѓР»СѓС‡С€РµРЅРёСЏ СЃ end-to-end РјС‹С€Р»РµРЅРёРµРј: Data Moat, data pipelines, DB/RLS hardening, РґРµРєРѕРјРїРѕР·РёС†РёСЏ РјРѕРЅРѕР»РёС‚РѕРІ, РѕСЃРѕР±РµРЅРЅРѕ `ProductScreen`.
+- Р•СЃР»Рё РЅСѓР¶РЅР° Р±С‹СЃС‚СЂР°СЏ Р±РёР·РЅРµСЃ-РѕС‚РґР°С‡Р° РѕС‚ СЃР»РµРґСѓСЋС‰РёС… СЃРµСЃСЃРёР№: РґР°РІР°С‚СЊ Codex Р·Р°РґР°С‡Рё, РіРґРµ РЅСѓР¶РЅРѕ РѕРґРЅРѕРІСЂРµРјРµРЅРЅРѕ РїРѕРЅСЏС‚СЊ РїСЂРѕРґСѓРєС‚, РєРѕРґ, РґР°РЅРЅС‹Рµ, РїРѕР±РѕС‡РЅС‹Рµ СЌС„С„РµРєС‚С‹ Рё РїСЂРѕРІРµСЂРєСѓ.
+
+---
+
+# 2026-05-18 вЂ” РРјРїРѕСЂС‚ РєРѕРЅРґРёС‚РµСЂСЃРєРѕР№ РєР°С‚РµРіРѕСЂРёРё СЃР»Р°РґРѕСЃС‚РµР№ (Р§Р°Р№, РџРµС‡РµРЅСЊРµ, РЁРѕРєРѕР»Р°Рґ, РљРѕРЅС„РµС‚С‹)
+
+**Р’С‹РїРѕР»РЅРµРЅРѕ:**
+- **Р“Р»СѓР±РѕРєРёР№ Р±РѕРµРІРѕР№ РёРјРїРѕСЂС‚ РїРѕРґРєР°С‚РµРіРѕСЂРёРё В«Р§Р°Р№В»**:
+  - РћР±СЂР°Р±РѕС‚Р°РЅРѕ **258 СѓРЅРёРєР°Р»СЊРЅС‹С… РїСЂРѕРґСѓРєС‚РѕРІ** РёР· РІР»РѕР¶РµРЅРЅС‹С… РїРѕРґСЂР°Р·РґРµР»РѕРІ С‡Р°СЏ.
+  - Р”РµРґСѓРїР»РёС†РёСЂРѕРІР°РЅРѕ РґРѕ **174 СѓРЅРёРєР°Р»СЊРЅС‹С… EAN-РїСЂРѕРґСѓРєС‚РѕРІ**.
+  - Р’С‹РїРѕР»РЅРµРЅ РјР°С‚С‡РёРЅРі EAN СЃ РќР°С†РёРѕРЅР°Р»СЊРЅС‹Рј РєР°С‚Р°Р»РѕРіРѕРј Р Рљ, РїРѕР»СѓС‡РµРЅС‹ РїРѕР»РЅС‹Рµ СЃРѕСЃС‚Р°РІС‹ Рё С…Р°СЂР°РєС‚РµСЂРёСЃС‚РёРєРё РљР‘Р–РЈ.
+  - РљР»Р°СЃСЃРёС„РёС†РёСЂРѕРІР°РЅС‹ РІ `tea_coffee / tea`.
+- **Р“Р»СѓР±РѕРєРёР№ Р±РѕРµРІРѕР№ РёРјРїРѕСЂС‚ РїРѕРґРєР°С‚РµРіРѕСЂРёРё В«РџРµС‡РµРЅСЊРµ, РІР°С„Р»Рё, РїСЂСЏРЅРёРєРёВ»**:
+  - РћР±СЂР°Р±РѕС‚Р°РЅРѕ **468 СѓРЅРёРєР°Р»СЊРЅС‹С… РїСЂРѕРґСѓРєС‚РѕРІ** РёР· РІСЃРµС… РІР»РѕР¶РµРЅРЅС‹С… СЂР°Р·РґРµР»РѕРІ.
+  - Р”РµРґСѓРїР»РёС†РёСЂРѕРІР°РЅРѕ РґРѕ **331 СѓРЅРёРєР°Р»СЊРЅРѕРіРѕ EAN-РїСЂРѕРґСѓРєС‚Р°**.
+  - РљР»Р°СЃСЃРёС„РёС†РёСЂРѕРІР°РЅС‹ РІ `sweets / cookies` Рё `sweets / pastries`.
+- **Р“Р»СѓР±РѕРєРёР№ Р±РѕРµРІРѕР№ РёРјРїРѕСЂС‚ РїРѕРґРєР°С‚РµРіРѕСЂРёРё В«РЁРѕРєРѕР»Р°Рґ, Р±Р°С‚РѕРЅС‡РёРєРё, РїР°СЃС‚Р°В»**:
+  - РћР±СЂР°Р±РѕС‚Р°РЅРѕ **326 СѓРЅРёРєР°Р»СЊРЅС‹С… РїСЂРѕРґСѓРєС‚РѕРІ** РёР· РІСЃРµС… РІР»РѕР¶РµРЅРЅС‹С… РїРѕРґСЂР°Р·РґРµР»РѕРІ.
+  - Р”РµРґСѓРїР»РёС†РёСЂРѕРІР°РЅРѕ РґРѕ **253 СѓРЅРёРєР°Р»СЊРЅС‹С… EAN-РїСЂРѕРґСѓРєС‚РѕРІ**.
+  - РљР»Р°СЃСЃРёС„РёС†РёСЂРѕРІР°РЅС‹ РІ `sweets / chocolate`.
+- **Р“Р»СѓР±РѕРєРёР№ Р±РѕРµРІРѕР№ РёРјРїРѕСЂС‚ РїРѕРґРєР°С‚РµРіРѕСЂРёРё В«РљРѕРЅС„РµС‚С‹, Р·РµС„РёСЂ, РјР°СЂРјРµР»Р°РґВ»**:
+  - РћР±СЂР°Р±РѕС‚Р°РЅРѕ **489 СѓРЅРёРєР°Р»СЊРЅС‹С… РїСЂРѕРґСѓРєС‚РѕРІ** (РІ РїСЂРѕС†РµСЃСЃРµ РёРјРїРѕСЂС‚Р°).
+  - РРЅС‚РµРіСЂРёСЂРѕРІР°РЅР° СѓРјРЅР°СЏ РєР»Р°СЃСЃРёС„РёРєР°С†РёСЏ РїРѕ РєР»СЋС‡РµРІС‹Рј СЃР»РѕРІР°Рј РІ `sweets / candy`, `sweets / halva` Рё `sweets / honey_jam`.
+- **Р¤РёР»СЊС‚СЂР°С†РёСЏ Рё РѕР±РѕРіР°С‰РµРЅРёРµ**:
+  - РРЅС‚РµРіСЂРёСЂРѕРІР°РЅР° Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєР°СЏ С„РёР»СЊС‚СЂР°С†РёСЏ СЃРѕР±СЃС‚РІРµРЅРЅС‹С… С‚РѕСЂРіРѕРІС‹С… РјР°СЂРѕРє (РЎРўРњ Arbuz Select) РґР»СЏ РїРѕРґРґРµСЂР¶Р°РЅРёСЏ С‡РёСЃС‚РѕС‚С‹ Р±СЂРµРЅРґРѕРІРѕРіРѕ РєР°С‚Р°Р»РѕРіР°.
+  - Р’СЃРµ РїСЂРѕРґСѓРєС‚С‹ РѕР±РѕРіР°С‰РµРЅС‹ РљР‘Р–РЈ, СЃРѕСЃС‚Р°РІР°РјРё, РёР·РѕР±СЂР°Р¶РµРЅРёСЏРјРё, Р·Р°РіСЂСѓР¶РµРЅРЅС‹РјРё РІ Cloudflare R2 CDN, Рё С‚РµРіР°РјРё Fit-Check.
+  - Р’СЃРµ РёРјРїРѕСЂС‚С‹ РѕСЃСѓС‰РµСЃС‚РІР»СЏСЋС‚СЃСЏ РІ Р±РµСЃРєРѕРЅС„Р»РёРєС‚РЅРѕРј РїР°РєРµС‚РЅРѕРј СЂРµР¶РёРјРµ (upsert) СЃ СЃРѕС…СЂР°РЅРµРЅРёРµРј Р°СѓРґРёС‚РѕСЂСЃРєРёС… Р»РѕРіРѕРІ.

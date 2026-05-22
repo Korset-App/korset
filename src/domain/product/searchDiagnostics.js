@@ -2,6 +2,7 @@ const MATCH_GROUP_BY_TYPE = {
   ean_exact: 'exact',
   alternate_ean: 'exact',
   local_ean: 'exact',
+  brand_alias: 'alias',
   fts_name: 'text',
   fts_name_simple: 'text',
   fts_brand: 'text',

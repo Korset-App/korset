@@ -1,4 +1,7 @@
 import { parseQuantityTokens } from '../../utils/parseQuantity.js'
+import { NAME_KEYWORDS, DEACTIVATE } from './categoryMap.js'
+
+const CATEGORY_MAP_DEACTIVATE = DEACTIVATE || '__deactivate__'
 
 const ATTRIBUTE_ALIASES = [
   { key: 'sugar_free', phrases: ['без сахара', 'б сах', 'б.сах', 'sugar free', 'sugar-free'] },
@@ -9,6 +12,11 @@ const ATTRIBUTE_ALIASES = [
   { key: 'lactose_free', phrases: ['без лактозы', 'безлактоз', 'lactose free', 'lactose-free'] },
   { key: 'halal', phrases: ['халал', 'halal'] },
   { key: 'protein', phrases: ['протеин', 'белковый', 'protein'] },
+  { key: 'vegan', phrases: ['веган', 'vegan', 'растительный'] },
+  { key: 'organic', phrases: ['органик', 'organic', 'органика', 'био'] },
+  { key: 'keto', phrases: ['кето', 'keto', 'кетогенный'] },
+  { key: 'palm_oil', phrases: ['пальмовое масло', 'пальмовый жир', 'palm oil'] },
+  { key: 'low_calorie', phrases: ['низкокалорийный', 'низкая калорийность', 'low calorie'] },
 ]
 
 const QUERY_ALIASES = [
@@ -23,6 +31,93 @@ const QUERY_ALIASES = [
     intent: { category: 'sweets', subcategory: 'chocolate' },
   },
   {
+    phrases: ['твикс'],
+    tokens: ['twix'],
+    intent: { category: 'sweets', subcategory: 'chocolate' },
+  },
+  {
+    phrases: ['twix'],
+    tokens: ['твикс'],
+    intent: { category: 'sweets', subcategory: 'chocolate' },
+  },
+  {
+    phrases: ['баунти'],
+    tokens: ['bounty'],
+    intent: { category: 'sweets', subcategory: 'chocolate' },
+  },
+  {
+    phrases: ['bounty'],
+    tokens: ['баунти'],
+    intent: { category: 'sweets', subcategory: 'chocolate' },
+  },
+  {
+    phrases: ['кит кат', 'кит-кат', 'киткат'],
+    tokens: ['kitkat'],
+    intent: { category: 'sweets', subcategory: 'chocolate' },
+  },
+  {
+    phrases: ['kitkat'],
+    tokens: ['киткат'],
+    intent: { category: 'sweets', subcategory: 'chocolate' },
+  },
+  {
+    phrases: ['милка'],
+    tokens: ['milka'],
+    intent: { category: 'sweets', subcategory: 'chocolate' },
+  },
+  {
+    phrases: ['milka'],
+    tokens: ['милка'],
+    intent: { category: 'sweets', subcategory: 'chocolate' },
+  },
+  {
+    phrases: ['нутелла'],
+    tokens: ['nutella'],
+    intent: { category: 'sweets', subcategory: 'chocolate' },
+  },
+  {
+    phrases: ['nutella'],
+    tokens: ['нутелла'],
+    intent: { category: 'sweets', subcategory: 'chocolate' },
+  },
+  {
+    phrases: ['виспа'],
+    tokens: ['wispa'],
+    intent: { category: 'sweets', subcategory: 'chocolate' },
+  },
+  {
+    phrases: ['wispa'],
+    tokens: ['виспа'],
+    intent: { category: 'sweets', subcategory: 'chocolate' },
+  },
+  {
+    phrases: ['тофифи'],
+    tokens: ['toffifee'],
+    intent: { category: 'sweets', subcategory: 'candy' },
+  },
+  {
+    phrases: ['toffifee'],
+    tokens: ['тофифи'],
+    intent: { category: 'sweets', subcategory: 'candy' },
+  },
+  { phrases: ['рошен'], tokens: ['roshen'], intent: { category: 'sweets', subcategory: 'candy' } },
+  { phrases: ['roshen'], tokens: ['рошен'], intent: { category: 'sweets', subcategory: 'candy' } },
+  {
+    phrases: ['баян сулу'],
+    tokens: ['баян сулу'],
+    intent: { category: 'sweets', subcategory: 'candy' },
+  },
+  {
+    phrases: ['альпен голд', 'альпенголд'],
+    tokens: ['alpen gold'],
+    intent: { category: 'sweets', subcategory: 'chocolate' },
+  },
+  {
+    phrases: ['alpen gold'],
+    tokens: ['альпен голд'],
+    intent: { category: 'sweets', subcategory: 'chocolate' },
+  },
+  {
     phrases: ['доритос'],
     tokens: ['doritos'],
     intent: { category: 'snacks', subcategory: 'chips' },
@@ -33,148 +128,341 @@ const QUERY_ALIASES = [
     intent: { category: 'snacks', subcategory: 'chips' },
   },
   {
+    phrases: ['лейс', 'лейз'],
+    tokens: ['lays'],
+    intent: { category: 'snacks', subcategory: 'chips' },
+  },
+  {
+    phrases: ['lays', "lay's"],
+    tokens: ['лейс'],
+    intent: { category: 'snacks', subcategory: 'chips' },
+  },
+  {
+    phrases: ['принглс'],
+    tokens: ['pringles'],
+    intent: { category: 'snacks', subcategory: 'chips' },
+  },
+  {
+    phrases: ['pringles'],
+    tokens: ['принглс'],
+    intent: { category: 'snacks', subcategory: 'chips' },
+  },
+  {
     phrases: ['кока кола', 'кока-кола', 'coca cola', 'coca-cola'],
-    tokens: ['coca', 'cola', 'кока', 'кола'],
+    tokens: ['coca cola'],
     intent: { category: 'water_beverages', subcategory: 'soda' },
+  },
+  {
+    phrases: ['пепси'],
+    tokens: ['pepsi'],
+    intent: { category: 'water_beverages', subcategory: 'soda' },
+  },
+  {
+    phrases: ['pepsi'],
+    tokens: ['пепси'],
+    intent: { category: 'water_beverages', subcategory: 'soda' },
+  },
+  {
+    phrases: ['фанта'],
+    tokens: ['fanta'],
+    intent: { category: 'water_beverages', subcategory: 'soda' },
+  },
+  {
+    phrases: ['fanta'],
+    tokens: ['фанта'],
+    intent: { category: 'water_beverages', subcategory: 'soda' },
+  },
+  {
+    phrases: ['спрайт'],
+    tokens: ['sprite'],
+    intent: { category: 'water_beverages', subcategory: 'soda' },
+  },
+  {
+    phrases: ['sprite'],
+    tokens: ['спрайт'],
+    intent: { category: 'water_beverages', subcategory: 'soda' },
+  },
+  {
+    phrases: ['ред булл', 'ред бул'],
+    tokens: ['red bull'],
+    intent: { category: 'water_beverages', subcategory: 'energy' },
+  },
+  {
+    phrases: ['red bull'],
+    tokens: ['ред булл'],
+    intent: { category: 'water_beverages', subcategory: 'energy' },
+  },
+  {
+    phrases: ['нескафе'],
+    tokens: ['nescafe'],
+    intent: { category: 'tea_coffee', subcategory: 'coffee' },
+  },
+  {
+    phrases: ['nescafe'],
+    tokens: ['нескафе'],
+    intent: { category: 'tea_coffee', subcategory: 'coffee' },
+  },
+  {
+    phrases: ['якобс'],
+    tokens: ['jacobs'],
+    intent: { category: 'tea_coffee', subcategory: 'coffee' },
+  },
+  {
+    phrases: ['jacobs'],
+    tokens: ['якобс'],
+    intent: { category: 'tea_coffee', subcategory: 'coffee' },
+  },
+  { phrases: ['ахмад'], tokens: ['ahmad'], intent: { category: 'tea_coffee', subcategory: 'tea' } },
+  { phrases: ['ahmad'], tokens: ['ахмад'], intent: { category: 'tea_coffee', subcategory: 'tea' } },
+  {
+    phrases: ['липтон'],
+    tokens: ['lipton'],
+    intent: { category: 'tea_coffee', subcategory: 'tea' },
+  },
+  {
+    phrases: ['lipton'],
+    tokens: ['липтон'],
+    intent: { category: 'tea_coffee', subcategory: 'tea' },
+  },
+  {
+    phrases: ['гринфилд'],
+    tokens: ['greenfield'],
+    intent: { category: 'tea_coffee', subcategory: 'tea' },
+  },
+  {
+    phrases: ['greenfield'],
+    tokens: ['гринфилд'],
+    intent: { category: 'tea_coffee', subcategory: 'tea' },
+  },
+  {
+    phrases: ['дилма'],
+    tokens: ['dilmah'],
+    intent: { category: 'tea_coffee', subcategory: 'tea' },
+  },
+  {
+    phrases: ['dilmah'],
+    tokens: ['дилма'],
+    intent: { category: 'tea_coffee', subcategory: 'tea' },
+  },
+  {
+    phrases: ['эмил', 'эмиль'],
+    tokens: ['эмиль'],
+    intent: { category: 'dairy_eggs', subcategory: 'milk' },
+  },
+  {
+    phrases: ['простоквашино'],
+    tokens: ['простоквашино'],
+    intent: { category: 'dairy_eggs', subcategory: 'milk' },
+  },
+  {
+    phrases: ['даниссимо'],
+    tokens: ['danissimo'],
+    intent: { category: 'dairy_eggs', subcategory: 'fermented' },
+  },
+  {
+    phrases: ['danissimo'],
+    tokens: ['даниссимо'],
+    intent: { category: 'dairy_eggs', subcategory: 'fermented' },
+  },
+  {
+    phrases: ['президент'],
+    tokens: ['president'],
+    intent: { category: 'dairy_eggs', subcategory: 'cheese' },
+  },
+  {
+    phrases: ['president'],
+    tokens: ['президент'],
+    intent: { category: 'dairy_eggs', subcategory: 'cheese' },
+  },
+  {
+    phrases: ['пармалат'],
+    tokens: ['parmalat'],
+    intent: { category: 'dairy_eggs', subcategory: 'milk' },
+  },
+  {
+    phrases: ['parmalat'],
+    tokens: ['пармалат'],
+    intent: { category: 'dairy_eggs', subcategory: 'milk' },
+  },
+  {
+    phrases: ['лактел'],
+    tokens: ['lactel'],
+    intent: { category: 'dairy_eggs', subcategory: 'milk' },
+  },
+  {
+    phrases: ['lactel'],
+    tokens: ['лактел'],
+    intent: { category: 'dairy_eggs', subcategory: 'milk' },
+  },
+  {
+    phrases: ['боржоми'],
+    tokens: ['borjomi'],
+    intent: { category: 'water_beverages', subcategory: 'water' },
+  },
+  {
+    phrases: ['borjomi'],
+    tokens: ['боржоми'],
+    intent: { category: 'water_beverages', subcategory: 'water' },
+  },
+  {
+    phrases: ['фейри'],
+    tokens: ['fairy'],
+    intent: { category: 'household', subcategory: 'cleaning' },
+  },
+  {
+    phrases: ['fairy'],
+    tokens: ['фейри'],
+    intent: { category: 'household', subcategory: 'cleaning' },
+  },
+  {
+    phrases: ['доместос'],
+    tokens: ['domestos'],
+    intent: { category: 'household', subcategory: 'cleaning' },
+  },
+  {
+    phrases: ['domestos'],
+    tokens: ['доместос'],
+    intent: { category: 'household', subcategory: 'cleaning' },
+  },
+  {
+    phrases: ['тайд'],
+    tokens: ['tide'],
+    intent: { category: 'household', subcategory: 'laundry' },
+  },
+  {
+    phrases: ['tide'],
+    tokens: ['тайд'],
+    intent: { category: 'household', subcategory: 'laundry' },
+  },
+  {
+    phrases: ['барилла'],
+    tokens: ['barilla'],
+    intent: { category: 'grocery', subcategory: 'pasta' },
+  },
+  {
+    phrases: ['barilla'],
+    tokens: ['барилла'],
+    intent: { category: 'grocery', subcategory: 'pasta' },
+  },
+  { phrases: ['макфа'], tokens: ['makfa'], intent: { category: 'grocery', subcategory: 'pasta' } },
+  { phrases: ['makfa'], tokens: ['макфа'], intent: { category: 'grocery', subcategory: 'pasta' } },
+  {
+    phrases: ['увелка'],
+    tokens: ['увелка'],
+    intent: { category: 'grocery', subcategory: 'cereals' },
+  },
+  {
+    phrases: ['мистраль'],
+    tokens: ['мистраль'],
+    intent: { category: 'grocery', subcategory: 'rice' },
+  },
+  {
+    phrases: ['мираторг'],
+    tokens: ['мираторг'],
+    intent: { category: 'frozen', subcategory: 'semi_finished' },
+  },
+  {
+    phrases: ['алпро'],
+    tokens: ['alpro'],
+    intent: { category: 'dairy_eggs', subcategory: 'milk' },
+  },
+  {
+    phrases: ['alpro'],
+    tokens: ['алпро'],
+    intent: { category: 'dairy_eggs', subcategory: 'milk' },
+  },
+  {
+    phrases: ['немолоко'],
+    tokens: ['nemoloko'],
+    intent: { category: 'dairy_eggs', subcategory: 'milk' },
+  },
+  {
+    phrases: ['nemoloko'],
+    tokens: ['немолоко'],
+    intent: { category: 'dairy_eggs', subcategory: 'milk' },
+  },
+  {
+    phrases: ['фрутоняня'],
+    tokens: ['фрутоняня'],
+    intent: { category: 'baby_food', subcategory: 'puree' },
+  },
+  {
+    phrases: ['агуша'],
+    tokens: ['агуша'],
+    intent: { category: 'baby_food', subcategory: 'puree' },
+  },
+  {
+    phrases: ['нестожен'],
+    tokens: ['nestogen'],
+    intent: { category: 'baby_food', subcategory: 'formula' },
+  },
+  {
+    phrases: ['nestogen'],
+    tokens: ['нестожен'],
+    intent: { category: 'baby_food', subcategory: 'formula' },
+  },
+  {
+    phrases: ['кабрита'],
+    tokens: ['kabrita'],
+    intent: { category: 'baby_food', subcategory: 'formula' },
+  },
+  {
+    phrases: ['kabrita'],
+    tokens: ['кабрита'],
+    intent: { category: 'baby_food', subcategory: 'formula' },
+  },
+  {
+    phrases: ['нутрилон'],
+    tokens: ['nutrilon'],
+    intent: { category: 'baby_food', subcategory: 'formula' },
+  },
+  {
+    phrases: ['nutrilon'],
+    tokens: ['нутрилон'],
+    intent: { category: 'baby_food', subcategory: 'formula' },
   },
   {
     phrases: ['сүт'],
     tokens: ['молоко', 'milk'],
     intent: { category: 'dairy_eggs', subcategory: 'milk' },
   },
+  {
+    phrases: ['симилак'],
+    tokens: ['similac'],
+    intent: { category: 'baby_food', subcategory: 'formula' },
+  },
+  {
+    phrases: ['similac'],
+    tokens: ['симилак'],
+    intent: { category: 'baby_food', subcategory: 'formula' },
+  },
+  { phrases: ['деп'], tokens: ['dep'], intent: { category: 'dairy_eggs', subcategory: 'cream' } },
+  { phrases: ['dep'], tokens: ['деп'], intent: { category: 'dairy_eggs', subcategory: 'cream' } },
+  { phrases: ['адаль'], tokens: ['adal'], intent: { category: 'dairy_eggs', subcategory: 'milk' } },
+  { phrases: ['adal'], tokens: ['адаль'], intent: { category: 'dairy_eggs', subcategory: 'milk' } },
+  {
+    phrases: ['фудмастер'],
+    tokens: ['foodmaster'],
+    intent: { category: 'dairy_eggs', subcategory: 'fermented' },
+  },
+  {
+    phrases: ['foodmaster'],
+    tokens: ['фудмастер'],
+    intent: { category: 'dairy_eggs', subcategory: 'fermented' },
+  },
+  {
+    phrases: ['ляззат'],
+    tokens: ['ляззат'],
+    intent: { category: 'dairy_eggs', subcategory: 'fermented' },
+  },
+  { phrases: ['цесна'], tokens: ['цесна'], intent: { category: 'grocery', subcategory: 'flour' } },
 ]
 
-const INTENT_RULES = [
-  {
-    phrases: [
-      'молочный шоколад',
-      'шоколад молочный',
-      'шоколад',
-      'chocolate',
-      'snickers',
-      'сникерс',
-    ],
-    category: 'sweets',
-    subcategory: 'chocolate',
-  },
-  {
-    phrases: ['печенье', 'крекер', 'бисквит', 'cookie', 'biscuit'],
-    category: 'sweets',
-    subcategory: 'cookies',
-  },
-  { phrases: ['конфеты', 'конфет', 'candy'], category: 'sweets', subcategory: 'candy' },
-  {
-    phrases: ['сливочное масло', 'масло сливочное', 'butter'],
-    category: 'dairy_eggs',
-    subcategory: 'butter',
-  },
-  {
-    phrases: [
-      'подсолнечное масло',
-      'масло подсолнеч',
-      'оливковое масло',
-      'масло оливков',
-      'растительное масло',
-    ],
-    category: 'grocery',
-    subcategory: 'cooking_oil',
-  },
-  {
-    phrases: [
-      'топленое молоко',
-      'топленное молоко',
-      'топленое',
-      'топленное',
-      'молоко',
-      'молок',
-      'milk',
-      'сүт',
-    ],
-    category: 'dairy_eggs',
-    subcategory: 'milk',
-  },
-  {
-    phrases: ['кефир', 'айран', 'ряженка', 'йогурт'],
-    category: 'dairy_eggs',
-    subcategory: 'fermented',
-  },
-  {
-    phrases: ['сыр моцарелла', 'моцарелла', 'сыр ', 'cheese'],
-    category: 'dairy_eggs',
-    subcategory: 'cheese',
-  },
-  { phrases: ['сметана', 'сливки', 'cream'], category: 'dairy_eggs', subcategory: 'cream' },
-  { phrases: ['творог', 'сырок'], category: 'dairy_eggs', subcategory: 'cottage' },
-  { phrases: ['яйцо', 'яйца'], category: 'dairy_eggs', subcategory: 'eggs' },
-  { phrases: ['сок', 'juice'], category: 'water_beverages', subcategory: 'juice' },
-  { phrases: ['вода', 'water'], category: 'water_beverages', subcategory: 'water' },
-  {
-    phrases: ['газировка', 'кола', 'cola', 'coca cola', 'coca-cola', 'pepsi', 'fanta', 'sprite'],
-    category: 'water_beverages',
-    subcategory: 'soda',
-  },
-  { phrases: ['чай', 'tea'], category: 'tea_coffee', subcategory: 'tea' },
-  { phrases: ['кофе', 'coffee'], category: 'tea_coffee', subcategory: 'coffee' },
-  {
-    phrases: ['чипсы', 'чипс', 'doritos', 'доритос', 'chips'],
-    category: 'snacks',
-    subcategory: 'chips',
-  },
-  { phrases: ['сухарики', 'сухарик', 'crackers'], category: 'snacks', subcategory: 'crackers' },
-  {
-    phrases: ['орехи', 'орех', 'арахис', 'миндаль', 'nuts'],
-    category: 'snacks',
-    subcategory: 'nuts',
-  },
-  {
-    phrases: ['гречка', 'гречневая крупа', 'крупа гречневая'],
-    category: 'grocery',
-    subcategory: 'cereals',
-  },
-  { phrases: ['рис', 'басмати', 'жасмин', 'rice'], category: 'grocery', subcategory: 'rice' },
-  {
-    phrases: ['макароны', 'спагетти', 'паста', 'pasta'],
-    category: 'grocery',
-    subcategory: 'pasta',
-  },
-  { phrases: ['мука', 'flour'], category: 'grocery', subcategory: 'flour' },
-  { phrases: ['сахар', 'sugar'], category: 'grocery', subcategory: 'sugar' },
-  { phrases: ['соль'], category: 'grocery', subcategory: 'salt' },
-  {
-    phrases: ['пельмени', 'вареники', 'наггетсы', 'котлеты'],
-    category: 'frozen',
-    subcategory: 'semi_finished',
-  },
-  { phrases: ['мороженое', 'пломбир', 'эскимо'], category: 'frozen', subcategory: 'ice_cream' },
-  { phrases: ['колбаса', 'сосиски', 'сардельки'], category: 'deli', subcategory: 'sausage' },
-  { phrases: ['курица', 'индейка'], category: 'meat', subcategory: 'poultry' },
-  { phrases: ['говядина', 'фарш', 'мясо'], category: 'meat', subcategory: 'raw' },
-  { phrases: ['рыба', 'форель'], category: 'fish', subcategory: 'fish' },
-  { phrases: ['тунец', 'сайра'], category: 'fish', subcategory: 'canned_fish' },
-  {
-    phrases: ['креветки', 'крабовые палочки', 'морепродукты'],
-    category: 'fish',
-    subcategory: 'seafood',
-  },
-  {
-    phrases: ['без сахара', 'сахарозаменитель'],
-    category: 'healthy',
-    subcategory: 'sugar_free',
-    attribute: 'sugar_free',
-  },
-  {
-    phrases: ['без глютена', 'безглютен'],
-    category: 'healthy',
-    subcategory: 'gluten_free',
-    attribute: 'gluten_free',
-  },
-  {
-    phrases: ['протеин', 'белковый батончик'],
-    category: 'healthy',
-    subcategory: 'protein',
-    attribute: 'protein',
-  },
-]
+const INTENT_RULES = NAME_KEYWORDS.filter((kw) => kw.cat !== CATEGORY_MAP_DEACTIVATE).map((kw) => ({
+  phrases: [kw.pattern],
+  category: kw.cat,
+  subcategory: kw.sub,
+}))
 
 const STOP_WORDS = new Set(['и', 'с', 'со', 'в', 'во', 'на', 'для', 'без', 'with', 'and', 'the'])
 
@@ -222,7 +510,8 @@ function includesPhrase(text, phrase) {
 
 function findAttribute(normalized) {
   for (const attribute of ATTRIBUTE_ALIASES) {
-    if (attribute.phrases.some((phrase) => includesPhrase(normalized, phrase))) return attribute.key
+    if (attribute.phrases.some((phrase) => normalized.includes(phrase.toLowerCase())))
+      return attribute.key
   }
   return null
 }
@@ -242,7 +531,7 @@ function findAliasMatches(normalized) {
 function findIntent(normalized, aliasIntent) {
   if (aliasIntent) return aliasIntent
   for (const rule of INTENT_RULES) {
-    if (rule.phrases.some((phrase) => includesPhrase(normalized, phrase))) {
+    if (rule.phrases.some((phrase) => normalized.includes(phrase.toLowerCase()))) {
       return { category: rule.category, subcategory: rule.subcategory }
     }
   }
@@ -257,22 +546,43 @@ function classifyMode(attribute, intent, digitsOnly) {
   return 'mixed'
 }
 
+function buildAliasOriginSet(normalized) {
+  const set = new Set()
+  for (const alias of QUERY_ALIASES) {
+    if (alias.phrases.some((p) => includesPhrase(normalized, p))) {
+      for (const phrase of alias.phrases) {
+        for (const t of tokenize(phrase)) set.add(t)
+      }
+    }
+  }
+  return set
+}
+
 export function analyzeCatalogSearchQuery(query) {
   const normalized = normalizeText(query)
   const quantity = findQuantity(normalized)
   const digitsOnly = normalized.replace(/\D/g, '')
   const aliasMatches = findAliasMatches(normalized)
   const attribute = findAttribute(normalized)
-  const intent = findIntent(normalized, aliasMatches.intent)
+  let intent = findIntent(normalized, aliasMatches.intent)
+  if (attribute && intent) {
+    intent = null
+  }
   const tokens = tokenize(normalized).filter(
     (token) => !/^\d/.test(token) && !['мл', 'л', 'г', 'кг'].includes(token)
   )
+  const aliasedOriginSet = buildAliasOriginSet(normalized)
+  const unaliasedTokens = tokens.filter((t) => !aliasedOriginSet.has(t))
+  const allTokens =
+    aliasMatches.aliasTokens.length > 0
+      ? [...new Set([...unaliasedTokens, ...aliasMatches.aliasTokens])]
+      : tokens
   return {
     original: String(query || ''),
     normalized,
     tokens,
     aliasTokens: aliasMatches.aliasTokens,
-    allTokens: [...new Set([...tokens, ...aliasMatches.aliasTokens])],
+    allTokens,
     quantity,
     intent,
     attribute,
@@ -371,8 +681,22 @@ function hasAttributeMatch(query, product, productText) {
     return values.some(
       (value) => value.includes('протеин') || value.includes('белков') || value.includes('protein')
     )
+  if (query.attribute === 'vegan')
+    return values.some((value) => value.includes('веган') || value.includes('vegan'))
+  if (query.attribute === 'organic')
+    return values.some(
+      (value) => value.includes('органик') || value.includes('organic') || value.includes('био')
+    )
+  if (query.attribute === 'keto')
+    return values.some((value) => value.includes('кето') || value.includes('keto'))
+  if (query.attribute === 'palm_oil')
+    return values.some((value) => value.includes('пальмов') || value.includes('palm oil'))
+  if (query.attribute === 'low_calorie')
+    return values.some((value) => value.includes('низкокалорийн') || value.includes('low calorie'))
   return false
 }
+
+const MIN_RELEVANCE_SCORE = 200
 
 export function scoreCatalogSearchProduct(queryInput, product) {
   const query = typeof queryInput === 'string' ? analyzeCatalogSearchQuery(queryInput) : queryInput
@@ -394,7 +718,7 @@ export function scoreCatalogSearchProduct(queryInput, product) {
   const brandText = normalizeText(product?.brand)
   const brandMatched = Boolean(
     brandText &&
-    query.tokens.some((token) => isTokenMatch(token, brandText) || brandText.includes(token))
+    query.allTokens.some((token) => isTokenMatch(token, brandText) || brandText.includes(token))
   )
 
   let score = 0
@@ -418,11 +742,11 @@ export function scoreCatalogSearchProduct(queryInput, product) {
     matchType = 'attribute_tag'
   }
 
-  if (subcategoryMatch) {
+  if (subcategoryMatch && matchedTokens > 0) {
     score += 2500
     relevanceTier = Math.min(relevanceTier, 1)
     matchType = matchType || 'intent_subcategory'
-  } else if (categoryMatch) {
+  } else if (categoryMatch && matchedTokens > 0) {
     score += 1400
     relevanceTier = Math.min(relevanceTier, 2)
     matchType = matchType || 'intent_category'
@@ -446,6 +770,7 @@ export function scoreCatalogSearchProduct(queryInput, product) {
 
   if (matchedQuantity) score += 350
   if (query.intent && !categoryMatch && matchedTokens > 0) score -= 250
+  if (score < MIN_RELEVANCE_SCORE) score = 0
   if (score <= 0) relevanceTier = 99
 
   return {
@@ -466,7 +791,7 @@ export function sortCatalogSearchProducts(products, queryInput, getFitScore = ()
       index,
       search: scoreCatalogSearchProduct(query, product),
     }))
-    .filter((item) => item.search.score > 0)
+    .filter((item) => item.search.score >= MIN_RELEVANCE_SCORE)
     .sort((a, b) => {
       if (a.search.relevanceTier !== b.search.relevanceTier)
         return a.search.relevanceTier - b.search.relevanceTier
@@ -480,5 +805,6 @@ export function sortCatalogSearchProducts(products, queryInput, getFitScore = ()
       ...item.product,
       searchRank: item.search.score,
       matchType: item.search.matchType,
+      relevanceTier: item.search.relevanceTier,
     }))
 }

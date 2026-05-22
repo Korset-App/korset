@@ -168,12 +168,13 @@ async function npcSearchByName(name, brand = null) {
 
 function parseArgs() {
   const args = process.argv.slice(2)
-  const result = { dryRun: false, limit: 0, skipR2: false, mode: 'milk' }
+  const result = { dryRun: false, limit: 0, skipR2: false, mode: 'milk', strategy: 'legacy' }
   for (const arg of args) {
     if (arg === '--dry-run') result.dryRun = true
     else if (arg.startsWith('--limit=')) result.limit = parseInt(arg.split('=')[1], 10)
     else if (arg === '--skip-r2') result.skipR2 = true
     else if (arg.startsWith('--mode=')) result.mode = arg.split('=')[1]
+    else if (arg.startsWith('--strategy=')) result.strategy = arg.split('=')[1]
   }
   return result
 }
@@ -404,7 +405,8 @@ async function main() {
       title: 'Печенье, вафли, пряники',
       url: 'https://arbuz.kz/ru/almaty/catalog/cat/225042-pechene_vafli_pryaniki',
       subcategories: ['cookies', 'pastries'],
-      pages: 12
+      pages: 12,
+      catalogId: 225042
     },
     chocolate: {
       title: 'Шоколад, батончики, паста',
@@ -416,7 +418,7 @@ async function main() {
       title: 'Конфеты, зефир, мармелад',
       url: 'https://arbuz.kz/ru/almaty/catalog/cat/225041-konfety_zefir_marmelad',
       subcategories: ['candy', 'halva', 'honey_jam'],
-      pages: 12
+      pages: 25
     }
   }
 
@@ -435,6 +437,62 @@ async function main() {
 
   const uniqueProducts = new Map()
 
+  async function fetchCatalogPage(catalogId, pageNum) {
+    const url = `https://arbuz.kz/api/v1/shop/catalog/${catalogId}?page=${pageNum}&limit=40`
+    const res = await httpReq('GET', url, { 'Authorization': 'Bearer ' + token })
+    if (res.status !== 200) return null
+    return JSON.parse(res.body).data
+  }
+
+  async function collectCatalogProducts(catalogId, seenCatalogs = new Set()) {
+    if (seenCatalogs.has(catalogId)) return
+    seenCatalogs.add(catalogId)
+
+    const rootData = await fetchCatalogPage(catalogId, 1)
+    if (!rootData || !rootData.products) return
+
+    const childCatalogs = rootData.catalogs?.data || []
+    for (const child of childCatalogs) {
+      const childId = parseInt(child.id, 10)
+      if (childId && !seenCatalogs.has(childId)) {
+        await collectCatalogProducts(childId, seenCatalogs)
+      }
+    }
+
+    let page = 1
+    let totalPages = Infinity
+    while (page <= totalPages) {
+      const data = page === 1 ? rootData : await fetchCatalogPage(catalogId, page)
+      if (!data || !data.products || !data.products.data) break
+      const products = data.products.data
+      const pageInfo = data.products.page
+      totalPages = pageInfo.last
+      let newCount = 0
+      for (const p of products) {
+        const id = parseInt(p.id, 10)
+        if (!uniqueProducts.has(id)) {
+          uniqueProducts.set(id, { id, slug: p.uri || String(id), name: p.name, _catalogData: p })
+          newCount++
+        }
+      }
+      if (newCount > 0) console.log(`    [cat ${catalogId}] page ${page}: +${newCount} (total: ${uniqueProducts.size})`)
+      if (page >= totalPages) break
+      page++
+      await sleep(DELAY_MS)
+    }
+  }
+
+  if (opts.strategy === 'catalog' && modeConfig.catalogId) {
+    console.log(`\n── PHASE 1: Discovering Products via Catalog API (recursive, root=${modeConfig.catalogId}) ──`)
+    await collectCatalogProducts(modeConfig.catalogId)
+    if (uniqueProducts.size === 0) {
+      console.error('Catalog API returned no products. Falling back to legacy discovery.')
+    } else {
+      console.log(`\nCatalog API discovery complete. Total unique products: ${uniqueProducts.size}`)
+    }
+  }
+
+  if (opts.strategy !== 'catalog' || uniqueProducts.size === 0) {
   console.log('\n── PHASE 1: Discovering Products via Category Page Scraper ──')
   const urlsToScrape = Array.isArray(modeConfig.url) ? modeConfig.url : [modeConfig.url]
   
@@ -678,6 +736,7 @@ async function main() {
       }
       await sleep(300)
     }
+  }
   }
 
   let productList = Array.from(uniqueProducts.values())

@@ -13,6 +13,7 @@ import {
   getMissedOpportunities,
   getLostRevenue,
   getScanCoverage,
+  getAlternativeEventsSummary,
 } from '../utils/retailAnalytics.js'
 
 // ── Skeleton placeholder ───────────────────────────────────────────
@@ -73,6 +74,116 @@ function MetricCard({ label, sub, value, icon, accent = 'neutral', loading }) {
         </div>
       )}
       {sub && <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 1 }}>{sub}</div>}
+    </div>
+  )
+}
+
+function AlternativeSignalsCard({ summary, loading, error, onRetry, d, t }) {
+  const topScenarioLabel = summary?.topScenario?.scenario
+    ? t(`retail.dashboard.alternatives.scenario.${summary.topScenario.scenario}`)
+    : null
+  const topSourceText = summary?.topSource?.ean ? `EAN ${summary.topSource.ean}` : null
+
+  return (
+    <div
+      style={{
+        background: 'rgba(16,185,129,0.07)',
+        border: '1px solid rgba(16,185,129,0.18)',
+        borderRadius: 16,
+        padding: '14px 16px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <SectionHeader icon="compare_arrows" iconColor="#10B981" title={d.alternativesTitle} />
+        {loading ? (
+          <Skel h={28} w={58} r={8} />
+        ) : (
+          <div
+            style={{
+              fontSize: 24,
+              fontWeight: 800,
+              fontFamily: 'var(--font-display)',
+              color: '#10B981',
+              lineHeight: 1,
+            }}
+          >
+            {error ? '—' : (summary?.total ?? 0)}
+          </div>
+        )}
+      </div>
+
+      {error ? (
+        <QueryError label={d.loadError} retryLabel={d.retry} onRetry={onRetry} />
+      ) : (
+        <>
+          <div style={{ fontSize: 12, color: 'var(--text-dim)', lineHeight: 1.4 }}>
+            {d.alternativesSub}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <MiniSignal
+              label={d.alternativesCompare}
+              value={summary?.compareCount ?? 0}
+              loading={loading}
+            />
+            <MiniSignal
+              label={d.alternativesAI}
+              value={summary?.aiHelpCount ?? 0}
+              loading={loading}
+            />
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 5,
+              fontSize: 12,
+              color: 'var(--text-dim)',
+            }}
+          >
+            <div>
+              <strong style={{ color: 'var(--text)' }}>{d.alternativesTopScenario}:</strong>{' '}
+              {loading ? '...' : topScenarioLabel || d.alternativesNoSignal}
+            </div>
+            <div>
+              <strong style={{ color: 'var(--text)' }}>{d.alternativesTopSource}:</strong>{' '}
+              {loading ? '...' : topSourceText || d.alternativesNoSignal}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function MiniSignal({ label, value, loading }) {
+  return (
+    <div
+      style={{
+        background: 'var(--glass-subtle)',
+        border: '1px solid var(--glass-soft-border)',
+        borderRadius: 12,
+        padding: '10px 12px',
+      }}
+    >
+      <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 4 }}>{label}</div>
+      {loading ? (
+        <Skel h={22} w={42} r={7} />
+      ) : (
+        <div
+          style={{
+            fontSize: 20,
+            fontWeight: 800,
+            fontFamily: 'var(--font-display)',
+            color: '#10B981',
+            lineHeight: 1,
+          }}
+        >
+          {value}
+        </div>
+      )}
     </div>
   )
 }
@@ -370,7 +481,7 @@ const AI_INSIGHT_THEME = {
   info: { bg: 'rgba(56,189,248,0.08)', border: 'rgba(56,189,248,0.2)', color: '#38BDF8' },
 }
 
-function AIInsightRow({ insight, t, loading }) {
+function AIInsightRow({ insight, t, exists, loading }) {
   if (loading) {
     return (
       <div
@@ -434,6 +545,25 @@ function AIInsightRow({ insight, t, loading }) {
         <div style={{ fontSize: 12, color: 'var(--text-dim)', lineHeight: 1.35, marginTop: 3 }}>
           {t(insight.bodyKey, values)}
         </div>
+        {exists?.(insight.actionKey) && (
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              marginTop: 8,
+              fontSize: 11,
+              fontWeight: 700,
+              color: theme.color,
+              lineHeight: 1.3,
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+              arrow_forward
+            </span>
+            {t(insight.actionKey, values)}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -459,7 +589,7 @@ function EmptyState({ icon, label, sub }) {
 
 // ── Main screen ────────────────────────────────────────────────────
 export default function RetailDashboardScreen() {
-  const { t } = useI18n()
+  const { t, exists } = useI18n()
   const { storeId, currentStore } = useStore()
   const [period, setPeriod] = useState(7)
   const [missedFilter, setMissedFilter] = useState('all')
@@ -495,6 +625,13 @@ export default function RetailDashboardScreen() {
       aiInsightsTitle: t('retail.dashboard.aiInsightsTitle'),
       aiInsightsEmpty: t('retail.dashboard.aiInsightsEmpty'),
       aiInsightsEmptySub: t('retail.dashboard.aiInsightsEmptySub'),
+      alternativesTitle: t('retail.dashboard.alternativesTitle'),
+      alternativesSub: t('retail.dashboard.alternativesSub'),
+      alternativesCompare: t('retail.dashboard.alternativesCompare'),
+      alternativesAI: t('retail.dashboard.alternativesAI'),
+      alternativesTopScenario: t('retail.dashboard.alternativesTopScenario'),
+      alternativesTopSource: t('retail.dashboard.alternativesTopSource'),
+      alternativesNoSignal: t('retail.dashboard.alternativesNoSignal'),
     }),
     [t]
   )
@@ -560,6 +697,14 @@ export default function RetailDashboardScreen() {
     gcTime: GC,
   })
 
+  const alternativesQ = useQuery({
+    queryKey: ['retail-alternatives-summary', storeId, period],
+    queryFn: () => getAlternativeEventsSummary(storeId, period),
+    enabled,
+    staleTime: STALE,
+    gcTime: GC,
+  })
+
   const missedFiltered = (missedQ.data ?? []).filter(
     (item) => missedFilter === 'all' || item.reason === missedFilter
   )
@@ -573,8 +718,17 @@ export default function RetailDashboardScreen() {
         lostRevenue: lostQ.data ?? 0,
         missedOpportunities: missedQ.data ?? [],
         topProducts: topQ.data ?? [],
+        alternativeSummary: alternativesQ.data,
       }),
-    [coverageQ.data, lostQ.data, missedQ.data, scansQ.data, topQ.data, totalQ.data]
+    [
+      alternativesQ.data,
+      coverageQ.data,
+      lostQ.data,
+      missedQ.data,
+      scansQ.data,
+      topQ.data,
+      totalQ.data,
+    ]
   )
 
   const aiInsightsLoading =
@@ -583,7 +737,8 @@ export default function RetailDashboardScreen() {
     coverageQ.isLoading ||
     lostQ.isLoading ||
     missedQ.isLoading ||
-    topQ.isLoading
+    topQ.isLoading ||
+    alternativesQ.isLoading
 
   const MISSED_TABS = [
     { key: 'all', label: d.missedFilterAll },
@@ -815,17 +970,34 @@ export default function RetailDashboardScreen() {
         </div>
       </div>
 
+      <AlternativeSignalsCard
+        summary={alternativesQ.data}
+        loading={alternativesQ.isLoading}
+        error={alternativesQ.isError}
+        onRetry={() => alternativesQ.refetch()}
+        d={d}
+        t={t}
+      />
+
       {/* AI insights */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <SectionHeader icon="auto_awesome" iconColor="#38BDF8" title={d.aiInsightsTitle} />
 
         {aiInsightsLoading ? (
-          Array.from({ length: 3 }).map((_, i) => <AIInsightRow key={i} loading t={t} />)
+          Array.from({ length: 3 }).map((_, i) => (
+            <AIInsightRow key={i} loading t={t} exists={exists} />
+          ))
         ) : aiInsights.length === 0 ? (
           <EmptyState icon="insights" label={d.aiInsightsEmpty} sub={d.aiInsightsEmptySub} />
         ) : (
           aiInsights.map((insight) => (
-            <AIInsightRow key={insight.id} insight={insight} t={t} loading={false} />
+            <AIInsightRow
+              key={insight.id}
+              insight={insight}
+              t={t}
+              exists={exists}
+              loading={false}
+            />
           ))
         )}
       </div>

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useProfile } from '../contexts/ProfileContext.jsx'
 import { useI18n } from '../i18n/index.js'
@@ -233,11 +233,25 @@ export default function AIScreen() {
   const { isOnline } = useOffline()
   const activeStoreSlug = storeSlug || currentStore?.slug || null
   const storeContext = buildStoreAIContext(currentStore, { slug: activeStoreSlug })
-  const chatKey = buildAIChatStorageKey({ mode: 'product', storeSlug: activeStoreSlug, ean })
   const fallbackProduct = location.state?.product || null
+  const alternativeScenario = location.state?.alternativeScenario || null
+  const passedAlternatives = useMemo(
+    () =>
+      Array.isArray(location.state?.alternatives)
+        ? location.state.alternatives.filter((item) => item?.ean).slice(0, 5)
+        : [],
+    [location.state]
+  )
+  const isAlternativeSelection = passedAlternatives.length > 0 || !!alternativeScenario
+  const chatKey = buildAIChatStorageKey({
+    mode: isAlternativeSelection ? 'alternative_selection' : 'product',
+    storeSlug: activeStoreSlug,
+    ean,
+  })
   const [product, setProduct] = useState(fallbackProduct)
   const [isProductLoading, setIsProductLoading] = useState(true)
   const localName = useLocalName(product)
+  const autoAlternativeAskedRef = useRef(false)
 
   const [messages, setMessages] = useState(
     () =>
@@ -250,16 +264,15 @@ export default function AIScreen() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const bottomRef = useRef(null)
-  const productAlternatives = useMemo(
-    () =>
-      findProductAlternatives({
-        product,
-        catalogProducts,
-        profile,
-        limit: 5,
-      }),
-    [product, catalogProducts, profile]
-  )
+  const productAlternatives = useMemo(() => {
+    if (passedAlternatives.length > 0) return passedAlternatives
+    return findProductAlternatives({
+      product,
+      catalogProducts,
+      profile,
+      limit: 5,
+    })
+  }, [passedAlternatives, product, catalogProducts, profile])
   const productSuggestions = useMemo(
     () =>
       buildProductAISuggestions({
@@ -326,42 +339,66 @@ export default function AIScreen() {
     setMessages([])
   }
 
-  const sendMessage = async (text) => {
-    if (!text.trim() || loading || !product) return
-    setError(null)
-    const userMsg = { role: 'user', content: text }
-    const newMessages = [...messages, userMsg]
-    setMessages(newMessages)
-    setInput('')
-    setLoading(true)
-    try {
-      const response = await askProductAIResponse(
-        newMessages,
-        product,
-        profile,
-        lang,
-        storeContext,
-        productAlternatives
-      )
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: response.reply,
-          verdict: response.verdict,
-          confidenceNotes: response.confidenceNotes,
-          checkOnPackage: response.checkOnPackage,
-          alternatives: response.alternatives,
-          warnings: response.warnings,
-        },
-      ])
-    } catch (e) {
-      setError(`${t('ai.errorPrefix')} ${e.message}`)
-      setMessages((prev) => prev.slice(0, -1))
-    } finally {
-      setLoading(false)
-    }
-  }
+  const sendMessage = useCallback(
+    async (text) => {
+      if (!text.trim() || loading || !product) return
+      setError(null)
+      const userMsg = { role: 'user', content: text }
+      const newMessages = [...messages, userMsg]
+      setMessages(newMessages)
+      setInput('')
+      setLoading(true)
+      try {
+        const response = await askProductAIResponse(
+          newMessages,
+          product,
+          profile,
+          lang,
+          storeContext,
+          productAlternatives
+        )
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: response.reply,
+            verdict: response.verdict,
+            confidenceNotes: response.confidenceNotes,
+            checkOnPackage: response.checkOnPackage,
+            alternatives: response.alternatives,
+            warnings: response.warnings,
+          },
+        ])
+      } catch (e) {
+        setError(`${t('ai.errorPrefix')} ${e.message}`)
+        setMessages((prev) => prev.slice(0, -1))
+      } finally {
+        setLoading(false)
+      }
+    },
+    [loading, product, messages, profile, lang, storeContext, productAlternatives, t]
+  )
+
+  useEffect(() => {
+    if (!isAlternativeSelection) return
+    if (autoAlternativeAskedRef.current) return
+    if (isProductLoading || !product || messages.length > 0 || loading) return
+    autoAlternativeAskedRef.current = true
+    const prompt = t('ai.alternativeSelectionPrompt', {
+      name: localName || product.name,
+    })
+    const timer = window.setTimeout(() => sendMessage(prompt), 0)
+    return () => window.clearTimeout(timer)
+  }, [
+    isAlternativeSelection,
+    isProductLoading,
+    product,
+    messages.length,
+    loading,
+    localName,
+    t,
+    sendMessage,
+  ])
 
   if (isProductLoading) {
     return (
@@ -570,7 +607,7 @@ export default function AIScreen() {
               marginBottom: 2,
             }}
           >
-            {t('ai.productContext')}
+            {isAlternativeSelection ? t('ai.alternativeSelectionContext') : t('ai.productContext')}
           </div>
           <div
             style={{
@@ -639,8 +676,18 @@ export default function AIScreen() {
                 color: 'var(--text)',
               }}
             >
-              {t('ai.welcomeProduct')} <strong style={{ color: 'var(--text)' }}>{localName}</strong>{' '}
-              {t('ai.welcomeProductEnd')}
+              {isAlternativeSelection ? (
+                t('ai.welcomeAlternativeSelection', {
+                  name: localName,
+                  count: productAlternatives.length,
+                })
+              ) : (
+                <>
+                  {t('ai.welcomeProduct')}{' '}
+                  <strong style={{ color: 'var(--text)' }}>{localName}</strong>{' '}
+                  {t('ai.welcomeProductEnd')}
+                </>
+              )}
             </div>
           </div>
         )}
