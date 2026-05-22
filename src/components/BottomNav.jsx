@@ -50,12 +50,22 @@ export default function BottomNav() {
       path: buildCatalogPath(storeSlug),
       icon: (on) =>
         on ? (
-          <svg width="22" height="22" viewBox="0 0 24 24" fill={col(true)}>
-            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-            <path d="M9 3a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-4a2 2 0 0 1 -2 -2v-4a2 2 0 0 1 2 -2z" />
-            <path d="M19 3a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-4a2 2 0 0 1 -2 -2v-4a2 2 0 0 1 2 -2z" />
-            <path d="M9 13a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-4a2 2 0 0 1 -2 -2v-4a2 2 0 0 1 2 -2z" />
-            <path d="M19 13a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-4a2 2 0 0 1 -2 -2v-4a2 2 0 0 1 2 -2z" />
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke={col(true)}
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M0 0h24v24H0z" fill="none" />
+            <circle cx="15" cy="15" r="4" fill={col(true)} stroke="none" />
+            <path d="M18.5 18.5l2.5 2.5" />
+            <path d="M4 6h16" />
+            <path d="M4 12h4" />
+            <path d="M4 18h4" />
           </svg>
         ) : (
           <svg
@@ -68,11 +78,12 @@ export default function BottomNav() {
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-            <path d="M4 5a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4" />
-            <path d="M14 5a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4" />
-            <path d="M4 15a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4" />
-            <path d="M14 15a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4" />
+            <path d="M0 0h24v24H0z" fill="none" />
+            <path d="M11 15a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
+            <path d="M18.5 18.5l2.5 2.5" />
+            <path d="M4 6h16" />
+            <path d="M4 12h4" />
+            <path d="M4 18h4" />
           </svg>
         ),
     },

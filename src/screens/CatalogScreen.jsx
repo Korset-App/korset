@@ -29,7 +29,10 @@ import { getDisplayQuantity } from '../utils/parseQuantity.js'
 import { CATEGORY_SHOWCASE_ORDER, getCategoryShowcase } from '../domain/product/catalogShowcase.js'
 import { getProductSearchDiagnosticsAttrs } from '../domain/product/searchDiagnostics.js'
 import { searchStoreProductsRPC } from '../domain/product/search.js'
-import { sortCatalogSearchProducts } from '../domain/product/searchQuality.js'
+import {
+  sortCatalogSearchProducts,
+  analyzeCatalogSearchQuery,
+} from '../domain/product/searchQuality.js'
 import {
   appendCatalogSearchQuery,
   readCatalogSearchHistory,
@@ -208,6 +211,22 @@ function buildSearchSuggestions(query) {
   const separatorMatch = normalized.match(/^(.+?)[,;:]/)
   if (separatorMatch?.[1]) {
     addSuggestion(separatorMatch[1])
+  }
+
+  const sq = analyzeCatalogSearchQuery(normalized)
+  if (sq.intent?.category) {
+    if (sq.intent.subcategory === 'milk') {
+      addSuggestion(normalized + ' 1л')
+      addSuggestion(normalized + ' 3.2%')
+      addSuggestion(sq.mode === 'product' ? normalized + ' топленое' : normalized)
+    } else if (sq.intent.subcategory === 'water') {
+      addSuggestion(normalized + ' 1.5л')
+      addSuggestion(normalized + ' минеральная')
+      addSuggestion(normalized + ' негазированная')
+    } else if (sq.intent.subcategory === 'chocolate' || sq.intent.subcategory === 'candy') {
+      addSuggestion(normalized + ' молочный')
+      addSuggestion(normalized + ' горький')
+    }
   }
 
   return suggestions.slice(0, 3)
@@ -400,6 +419,10 @@ export default function CatalogScreen() {
     }
 
     if (isSearching) {
+      const searchQuery = analyzeCatalogSearchQuery(debouncedQuery)
+      if (searchQuery.intent?.category) {
+        arr = arr.filter((p) => p.category === searchQuery.intent.category)
+      }
       arr = sortCatalogSearchProducts(arr, debouncedQuery, (product) => {
         const fit = checkProductFit(product, profile)
         return FIT_VERDICT_ORDER[fit.verdict] ?? (fit.fits ? 0 : 3)

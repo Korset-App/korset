@@ -734,6 +734,15 @@ export function scoreCatalogSearchProduct(queryInput, product) {
     score += 10000
     relevanceTier = 0
     matchType = 'ean_exact'
+  } else if (
+    query.ean &&
+    [product?.ean, ...(Array.isArray(product?.alternateEans) ? product.alternateEans : [])]
+      .map(String)
+      .some((ean) => ean.startsWith(query.ean))
+  ) {
+    score += 800
+    relevanceTier = Math.min(relevanceTier, 2)
+    matchType = 'ean_prefix'
   }
 
   if (attributeMatch) {

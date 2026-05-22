@@ -231,6 +231,15 @@ Auth — **DONE**. Полный deep audit + cleanup завершён. Код с
 
 Недавний product/code focus:
 
+- 🔎 **Catalog Search V3 — complete overhaul (2026-05-22)**:
+  Все 9 этапов поиска (0-9) завершены. Результаты QA: **82/83 PASS** на живом MARS (10K+ продуктов).
+  - SQL RPC v3: additive scoring (SUM), 16 сигналов, relevance floor, EAN prefix, ILIKE escaping
+  - search_brand_aliases (73) + search_category_keywords (321) в Supabase
+  - JS scorer: alias tokens как альтернативы, intent из NAME_KEYWORDS (~250), QUERY_ALIASES (~90)
+  - Merge + Sort: relevanceTier primary sort, re-score после merge
+  - UX: KZ нормализация, intent-based suggestions, client pre-filter
+  - Детали: docs/vault/changelog/2026-05-22-catalog-search-v3-complete.md
+
 - 🔎 **Catalog Search upgrade — Stage 1 audit**: зафиксирован контракт профессионального поиска и текущий search/data flow. Детали: `docs/vault/plans/2026-05-13-catalog-search-stage1-audit.md`. Ключевой вывод: `tsvector`/GIN уже есть и улучшены миграцией 018 (`russian` stemming), но `CatalogScreen.jsx` всё ещё использует клиентский `includes` и серверный `ILIKE`; Stage 2 должен добавить тонкую RPC/`pg_trgm` миграцию без переписывания старых миграций.
 - 🔎 **Catalog Search upgrade — Stage 2 RPC foundation**: добавлены `supabase/migrations/028_catalog_search_rpc.sql`, `src/domain/product/search.js`, `src/domain/product/searchMapping.js` и unit-тест mapper-контракта. RPC `fn_search_store_products` делает store-scoped FTS/fuzzy search с `search_rank`/`match_type`, но `CatalogScreen.jsx` ещё не переключён на него. Детали: `docs/vault/changelog/2026-05-13-catalog-search-stage-2-rpc.md`.
 - 🔎 **Catalog Search upgrade — Stage 3 CatalogScreen integration**: `CatalogScreen.jsx` больше не делает прямой PostgREST `ILIKE` fallback; server fallback подключён к `searchStoreProductsRPC()` и общему mapper-контракту. Offline/client search и текущий UI сохранены. Детали: `docs/vault/changelog/2026-05-13-catalog-search-stage-3-catalogscreen-rpc.md`.
