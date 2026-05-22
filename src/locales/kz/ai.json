@@ -1,6 +1,9 @@
 {
   "ai.productTitle": "Körset AI",
   "ai.productContext": "Тауар контексті",
+  "ai.alternativeSelectionContext": "Баламаны таңдау",
+  "ai.alternativeSelectionPrompt": "\"{name}\" үшін осы экрандағы баламалардың ішінен ең жақсысын таңдауға көмектесіңіз. Профилімді, құрамын, қолжетімділігін және бағасын ескеріңіз. Қысқа жауап беріңіз: қай нұсқаны таңдау керек және неге.",
+  "ai.welcomeAlternativeSelection": "«{name}» орнына балама таңдауға көмектесемін. Баламалар экранынан {count} нұсқаны көріп тұрмын және тек соларды салыстырамын.",
   "ai.generalSubtitle": "Дүкендегі көмекші",
   "ai.generalStoreSubtitle": "{store} дүкенінің көмекшісі",
   "ai.welcomeProduct": "Сәлеметсіз бе! Кез келген сұрақ қойыңыз:",

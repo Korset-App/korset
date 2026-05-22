@@ -171,3 +171,123 @@ test('buildRetailAIInsights aggregates weak data quality across popular products
   assert.equal(insights[0].values.scans, 13)
   assert.equal(insights[0].values.product, 'Ayran')
 })
+
+test('buildRetailAIInsights prioritizes same-category unavailable demand as an assortment action', () => {
+  const insights = buildRetailAIInsights({
+    scansCount: 30,
+    totalProducts: 120,
+    scanCoverage: 86,
+    missedOpportunities: [
+      { ean: '111', name: 'Greek yogurt', reason: 'out_of_stock', category: 'Dairy', scan_count: 4 },
+      { ean: '222', name: 'Kefir', reason: 'out_of_stock', category: 'Dairy', scan_count: 3 },
+      { ean: '333', name: 'Chips', reason: 'out_of_stock', category: 'Snacks', scan_count: 2 },
+    ],
+    topProducts: [],
+    maxInsights: 4,
+  })
+
+  const restockGap = insights.find((insight) => insight.id === 'restock_category_gap')
+  assert.equal(restockGap.values.category, 'Dairy')
+  assert.equal(restockGap.values.count, 2)
+  assert.equal(restockGap.values.scans, 7)
+  assert.equal(restockGap.actionKey, 'retail.dashboard.aiInsights.restock_category_gap.action')
+})
+
+test('buildRetailAIInsights detects halal coverage gaps in popular scanned products', () => {
+  const insights = buildRetailAIInsights({
+    scansCount: 24,
+    totalProducts: 100,
+    scanCoverage: 92,
+    missedOpportunities: [],
+    topProducts: [
+      {
+        ean: '111',
+        name: 'Marmalade',
+        category: 'Sweets',
+        scan_count: 8,
+        image_url: 'marmalade.jpg',
+        ingredients_raw: 'sugar, gelatin',
+        halal_status: '',
+        nutrition: { calories: 320 },
+      },
+      {
+        ean: '222',
+        name: 'Chocolate bar',
+        category: 'Sweets',
+        scan_count: 6,
+        image_url: 'chocolate.jpg',
+        ingredients_raw: 'cocoa, milk',
+        halal_status: 'unknown',
+        nutrition: { calories: 510 },
+      },
+      {
+        ean: '333',
+        name: 'Water',
+        category: 'Drinks',
+        scan_count: 5,
+        image_url: 'water.jpg',
+        ingredients_raw: 'water',
+        halal_status: 'yes',
+        nutrition: { calories: 0 },
+      },
+    ],
+    maxInsights: 4,
+  })
+
+  const halalCoverage = insights.find((insight) => insight.id === 'halal_coverage_gap')
+  assert.equal(halalCoverage.values.category, 'Sweets')
+  assert.equal(halalCoverage.values.count, 2)
+  assert.equal(halalCoverage.values.scans, 14)
+  assert.equal(halalCoverage.values.product, 'Marmalade')
+})
+
+test('buildRetailAIInsights includes owner action keys for every insight', () => {
+  const insights = buildRetailAIInsights({
+    scansCount: 20,
+    totalProducts: 80,
+    scanCoverage: 45,
+    lostRevenue: 5000,
+    missedOpportunities: [
+      { ean: '111', reason: 'not_in_catalog', category: 'Halal sweets', scan_count: 4 },
+      { ean: '222', reason: 'not_in_catalog', category: 'Halal sweets', scan_count: 3 },
+      { ean: '333', reason: 'out_of_stock', name: 'Milk', category: 'Dairy', scan_count: 5 },
+      { ean: '444', reason: 'out_of_stock', name: 'Kefir', category: 'Dairy', scan_count: 4 },
+    ],
+    topProducts: [
+      { ean: '555', name: 'Ayran', scan_count: 6, image_url: '', halal_status: '' },
+      { ean: '666', name: 'Bread', scan_count: 5, image_url: 'bread.jpg', ingredients_raw: '' },
+    ],
+    maxInsights: 8,
+  })
+
+  assert.ok(insights.length > 0)
+  for (const insight of insights) {
+    assert.equal(insight.actionKey, `retail.dashboard.aiInsights.${insight.id}.action`)
+  }
+})
+
+test('buildRetailAIInsights surfaces high alternative demand as owner action', () => {
+  const insights = buildRetailAIInsights({
+    scansCount: 32,
+    totalProducts: 140,
+    scanCoverage: 91,
+    missedOpportunities: [],
+    topProducts: [{ ean: '4870000000012', name: 'Yogurt', scan_count: 8 }],
+    alternativeSummary: {
+      total: 14,
+      compareCount: 5,
+      aiHelpCount: 4,
+      topScenario: { scenario: 'fits_me', count: 9 },
+      topSource: { ean: '4601751002907', count: 7 },
+    },
+    maxInsights: 4,
+  })
+
+  assert.equal(insights[0].id, 'alternative_decision_demand')
+  assert.equal(insights[0].values.count, 14)
+  assert.equal(insights[0].values.compares, 5)
+  assert.equal(insights[0].values.aiHelp, 4)
+  assert.equal(insights[0].values.scenario, 'fits_me')
+  assert.equal(insights[0].values.ean, '4601751002907')
+  assert.equal(Object.hasOwn(insights[0].values, 'userId'), false)
+})

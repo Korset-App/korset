@@ -74,6 +74,8 @@
   "product.pricePer": "Цена за",
   "product.subcategory": "Подкатегория",
   "product.loginForFavorites": "Войдите, чтобы добавлять товары в избранное.",
+  "product.alternativesNudge.title": "Посмотреть более подходящие варианты",
+  "product.alternativesNudge.body": "Подберём похожие товары из этого магазина с учётом вашего профиля.",
   "product.addToCompare": "Добавить к сравнению",
   "catalog.title": "Каталог",
   "catalog.productsCount": "товаров в базе",

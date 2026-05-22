@@ -34,13 +34,17 @@ function categoryName(item) {
   )
 }
 
+function normalizeCategoryKey(value) {
+  return textValue(value).toLowerCase()
+}
+
 function findDemandCluster(items) {
   const buckets = new Map()
 
   for (const item of items) {
     const category = categoryName(item)
     if (!category) continue
-    const key = category.toLowerCase()
+    const key = normalizeCategoryKey(category)
     const current = buckets.get(key) ?? { category, count: 0, scans: 0 }
     current.count += 1
     current.scans += scanCount(item)
@@ -75,17 +79,55 @@ function hasValue(item, keys) {
   })
 }
 
+function hasMeaningfulHalalStatus(item) {
+  const value =
+    item?.halal_status ?? item?.halalStatus ?? item?.is_halal ?? item?.isHalal ?? item?.halal
+  if (typeof value === 'boolean') return true
+  const normalized = textValue(value).toLowerCase()
+  return Boolean(
+    normalized && !['unknown', 'insufficient_data', 'unclear', 'n/a'].includes(normalized)
+  )
+}
+
 function dataGaps(item) {
   const gaps = []
   if (!hasValue(item, ['image_url', 'imageUrl'])) gaps.push('image')
   if (!hasValue(item, ['ingredients_raw', 'ingredients', 'ingredients_kz', 'ingredientsKz'])) {
     gaps.push('composition')
   }
-  if (!hasValue(item, ['halal_status', 'halalStatus', 'is_halal', 'isHalal'])) gaps.push('halal')
+  if (!hasMeaningfulHalalStatus(item)) gaps.push('halal')
   if (!hasValue(item, ['nutrition', 'nutrition_facts', 'nutritionFacts', 'calories'])) {
     gaps.push('nutrition')
   }
   return gaps
+}
+
+const HALAL_RELEVANT_CATEGORY_RE =
+  /halal|халал|sweets|sweet|candy|chocolate|confection|meat|sausage|dairy|snack|bakery|dessert|слад|конфет|шоколад|мяс|колбас|молоч|снек|выпеч|десерт/i
+
+function findHalalCoverageGap(items) {
+  const buckets = new Map()
+
+  for (const item of items) {
+    const category = categoryName(item)
+    const text = normalizedText(category, item?.name, item?.local_name, item?.subcategory)
+    if (!HALAL_RELEVANT_CATEGORY_RE.test(text) || hasMeaningfulHalalStatus(item)) continue
+
+    const key = normalizeCategoryKey(category || 'popular products')
+    const current = buckets.get(key) ?? {
+      category: category || 'Popular products',
+      count: 0,
+      scans: 0,
+      product: productName(item),
+    }
+    current.count += 1
+    current.scans += scanCount(item)
+    buckets.set(key, current)
+  }
+
+  return [...buckets.values()]
+    .filter((bucket) => bucket.count >= 2 || bucket.scans >= 10)
+    .sort((a, b) => b.scans - a.scans || b.count - a.count)[0]
 }
 
 function insight(id, tone, icon, values, priority) {
@@ -97,6 +139,7 @@ function insight(id, tone, icon, values, priority) {
     priority,
     titleKey: `${BASE_KEY}.${id}.title`,
     bodyKey: `${BASE_KEY}.${id}.body`,
+    actionKey: `${BASE_KEY}.${id}.action`,
   }
 }
 
@@ -107,6 +150,7 @@ export function buildRetailAIInsights({
   lostRevenue = 0,
   missedOpportunities = [],
   topProducts = [],
+  alternativeSummary = null,
   maxInsights = 4,
 } = {}) {
   const insights = []
@@ -116,7 +160,10 @@ export function buildRetailAIInsights({
   const outOfStockItems = missed.filter((item) => item.reason === 'out_of_stock')
   const topProduct = top[0]
   const unknownCluster = findDemandCluster(unknownItems)
+  const restockCluster = findDemandCluster(outOfStockItems)
   const halalDemandItems = missed.filter(hasHalalIntent)
+  const halalCoverageGap = findHalalCoverageGap(top)
+  const alternativeTotal = Number(alternativeSummary?.total || 0)
   const weakDataProducts = top
     .map((item) => ({ item, gaps: dataGaps(item), scans: scanCount(item) }))
     .filter(({ gaps, scans }) => gaps.length > 0 && scans > 0)
@@ -169,6 +216,22 @@ export function buildRetailAIInsights({
     )
   }
 
+  if (restockCluster) {
+    insights.push(
+      insight(
+        'restock_category_gap',
+        'warning',
+        'inventory_2',
+        {
+          category: restockCluster.category,
+          count: restockCluster.count,
+          scans: restockCluster.scans,
+        },
+        26
+      )
+    )
+  }
+
   if (halalDemandItems.length > 0) {
     insights.push(
       insight(
@@ -181,6 +244,23 @@ export function buildRetailAIInsights({
           product: productName(halalDemandItems[0]),
         },
         28
+      )
+    )
+  }
+
+  if (halalCoverageGap) {
+    insights.push(
+      insight(
+        'halal_coverage_gap',
+        'info',
+        'verified_user',
+        {
+          category: halalCoverageGap.category,
+          count: halalCoverageGap.count,
+          scans: halalCoverageGap.scans,
+          product: halalCoverageGap.product,
+        },
+        29
       )
     )
   }
@@ -200,6 +280,24 @@ export function buildRetailAIInsights({
   if (Number(lostRevenue) > 0) {
     insights.push(
       insight('lost_revenue', 'warning', 'payments', { amount: Number(lostRevenue) }, 40)
+    )
+  }
+
+  if (alternativeTotal >= 3) {
+    insights.push(
+      insight(
+        'alternative_decision_demand',
+        'positive',
+        'compare_arrows',
+        {
+          count: alternativeTotal,
+          compares: Number(alternativeSummary?.compareCount || 0),
+          aiHelp: Number(alternativeSummary?.aiHelpCount || 0),
+          scenario: alternativeSummary?.topScenario?.scenario || 'similar',
+          ean: alternativeSummary?.topSource?.ean || 'EAN',
+        },
+        45
+      )
     )
   }
 

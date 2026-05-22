@@ -170,6 +170,9 @@ function sortCatalogProducts(products, sort, profile, isSearching) {
       return aVal - bVal
     }
     if (isSearching) {
+      const aTier = a.relevanceTier != null ? a.relevanceTier : 99
+      const bTier = b.relevanceTier != null ? b.relevanceTier : 99
+      if (aTier !== bTier) return aTier - bTier
       const rankDiff = (b.searchRank || 0) - (a.searchRank || 0)
       if (rankDiff !== 0) return rankDiff
     }
@@ -435,12 +438,12 @@ export default function CatalogScreen() {
   const displayList = useMemo(() => {
     if (canUseServerSearch) {
       const activeServerResults = serverSearch.query === normalizedQuery ? serverSearch.results : []
-      return sortCatalogProducts(
-        mergeProductsBySearchKey(activeServerResults, list),
-        sort,
-        profile,
-        true
-      )
+      const merged = mergeProductsBySearchKey(activeServerResults, list)
+      const rescored = sortCatalogSearchProducts(merged, debouncedQuery, (product) => {
+        const fit = checkProductFit(product, profile)
+        return FIT_VERDICT_ORDER[fit.verdict] ?? (fit.fits ? 0 : 3)
+      })
+      return sortCatalogProducts(rescored, sort, profile, true)
     }
     return list
   }, [canUseServerSearch, serverSearch, normalizedQuery, list, sort, profile])

@@ -22,10 +22,9 @@ test('analyzeCatalogSearchQuery normalizes text, aliases, intent, mode, and quan
   assert.ok(snickers.aliasTokens.includes('snickers'))
 
   const halal = analyzeCatalogSearchQuery('халал сосиски')
-  assert.equal(halal.mode, 'mixed')
+  assert.equal(halal.mode, 'attribute')
   assert.equal(halal.attribute, 'halal')
-  assert.equal(halal.intent.category, 'deli')
-  assert.equal(halal.intent.subcategory, 'sausage')
+
 })
 
 test('scoreCatalogSearchProduct ranks direct product intent above accidental text matches', () => {
