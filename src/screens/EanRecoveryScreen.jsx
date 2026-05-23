@@ -72,24 +72,31 @@ export default function EanRecoveryScreen() {
 
   const loadProducts = useCallback(async () => {
     setLoading(true)
-    const all = []
-    for (let page = 0; page < 20; page++) {
-      const { data } = await supabase
-        .from('global_products')
-        .select(
-          'id, ean, name, name_kz, brand, category, image_url, ingredients_raw, source_primary'
-        )
-        .eq('is_active', true)
-        .or('ean.like.arbuz_%,ean.like.kaspi_%,ean.like.korzinavdom_%')
-        .order('brand')
-        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
-      if (!data || data.length === 0) break
-      all.push(...data)
-      if (data.length < PAGE_SIZE) break
+    setError('')
+    try {
+      const all = []
+      for (let page = 0; page < 20; page++) {
+        const { data, error: fetchError } = await supabase
+          .from('global_products')
+          .select(
+            'id, ean, name, name_kz, brand, category, image_url, ingredients_raw, source_primary'
+          )
+          .eq('is_active', true)
+          .or('ean.like.arbuz_%,ean.like.kaspi_%,ean.like.korzinavdom_%')
+          .order('brand')
+          .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
+        if (fetchError) throw fetchError
+        if (!data || data.length === 0) break
+        all.push(...data)
+        if (data.length < PAGE_SIZE) break
+      }
+      setProducts(all)
+      setInitialTotal(all.length)
+    } catch (e) {
+      setError(e?.message || 'Failed to load products')
+    } finally {
+      setLoading(false)
     }
-    setProducts(all)
-    setInitialTotal(all.length)
-    setLoading(false)
   }, [])
 
   useEffect(() => {
@@ -295,7 +302,7 @@ export default function EanRecoveryScreen() {
                     border: 'none',
                     background:
                       saving === confirmProduct.id ? 'rgba(239,68,68,0.4)' : 'rgba(239,68,68,0.85)',
-                    color: '#fff',
+                    color: 'var(--text-inverse)',
                     fontSize: 14,
                     fontWeight: 700,
                     cursor: saving === confirmProduct.id ? 'not-allowed' : 'pointer',
@@ -541,7 +548,7 @@ export default function EanRecoveryScreen() {
                           fontSize: 12,
                           fontWeight: 700,
                           background: 'var(--retail-accent)',
-                          color: '#fff',
+                          color: 'var(--text-inverse)',
                           border: 'none',
                           borderRadius: 8,
                           cursor: 'pointer',
@@ -691,7 +698,7 @@ export default function EanRecoveryScreen() {
                       fontSize: 13,
                       fontWeight: 700,
                       background: 'var(--retail-accent)',
-                      color: '#fff',
+                      color: 'var(--text-inverse)',
                       border: 'none',
                       borderRadius: 12,
                       cursor: 'pointer',

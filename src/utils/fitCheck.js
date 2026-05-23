@@ -91,7 +91,8 @@ export function checkProductFit(product, profile) {
   const dietTags = product.dietTags || []
   const nutrition = product.nutritionPer100 || product.nutriments || product.nutriments_json || {}
   const sugar100g = nutrition.sugar ?? nutrition.sugars ?? nutrition.sugars_100g
-  const protein100g = nutrition.protein ?? nutrition.proteins ?? nutrition.proteins_100g
+  const protein100g =
+    nutrition.protein ?? nutrition.protein_100g ?? nutrition.proteins ?? nutrition.proteins_100g
   const fatPercent = product.fatPercent ?? product.fat_percent ?? null
 
   // 1. Structured Allergens

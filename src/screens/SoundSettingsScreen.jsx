@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+﻿import { useNavigate } from 'react-router-dom'
 
 export default function SoundSettingsScreen() {
   const navigate = useNavigate()
@@ -6,7 +6,7 @@ export default function SoundSettingsScreen() {
   return (
     <div
       className="screen"
-      style={{ padding: '20px', minHeight: '100vh', background: 'var(--bg-app)' }}
+      style={{ padding: '20px', minHeight: '100dvh', background: 'var(--bg-app)' }}
     >
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20 }}>
         <button

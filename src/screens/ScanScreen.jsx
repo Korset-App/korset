@@ -402,9 +402,36 @@ export default function ScanScreen() {
   const storeRef = useRef(currentStore)
   const slugRef = useRef(storeSlug)
 
+  const historyOpenRef = useRef(historyOpen)
+  const compareModeActiveRef2 = useRef(initCompare)
+  const compareHintOpenRef = useRef(compareHintOpen)
+
+  useEffect(() => {
+    historyOpenRef.current = historyOpen
+    compareModeActiveRef2.current = compareModeActive
+    compareHintOpenRef.current = compareHintOpen
+  })
+
+  const cancelCompareModeRef = useRef(null)
+  const closeCompareHintRef = useRef(null)
+
   useEffect(() => {
     compareModeRef.current = compareModeActive
   }, [compareModeActive])
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (historyOpenRef.current) {
+        setHistoryOpen(false)
+      } else if (compareHintOpenRef.current) {
+        closeCompareHintRef.current?.()
+      } else if (compareModeActiveRef2.current) {
+        cancelCompareModeRef.current?.()
+      }
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
 
   useEffect(() => {
     pinnedProductRef.current = pinnedProduct
@@ -513,10 +540,7 @@ export default function ScanScreen() {
         if (cameraList.length > 0 && cameraList[idx]) {
           cameraConfig = { deviceId: { exact: cameraList[idx].id } }
         } else {
-          const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent)
-          cameraConfig = isIOS
-            ? { facingMode: { exact: 'environment' } }
-            : { facingMode: 'environment' }
+          cameraConfig = { facingMode: 'environment' }
         }
 
         const onScanSuccess = async (ean) => {
@@ -589,7 +613,6 @@ export default function ScanScreen() {
           cameraList[idx]?.id,
           { facingMode: { ideal: 'environment' } },
           { facingMode: 'environment' },
-          { facingMode: 'user' },
           cameraList[0]?.id,
         ].filter(Boolean)
         let lastStartError = null
@@ -624,6 +647,17 @@ export default function ScanScreen() {
           return
         }
         setStatus('ready')
+        try {
+          const settings = scanner.getRunningTrackSettings()
+          const host = document.getElementById('korset-scan-view')
+          if (host && settings?.facingMode === 'user') {
+            host.classList.add('scan-video-mirrored')
+          } else if (host) {
+            host.classList.remove('scan-video-mirrored')
+          }
+        } catch {
+          /* noop */
+        }
         busyRef.current = false
 
         try {
@@ -656,8 +690,9 @@ export default function ScanScreen() {
         const list = await Html5Qrcode.getCameras()
         if (!mountedRef.current) return
         const sorted = [...(list || [])].sort((a, b) => {
-          const aBack = /back|rear|environment/i.test(a.label) ? 1 : 0
-          const bBack = /back|rear|environment/i.test(b.label) ? 1 : 0
+          const backRe = /back|rear|environment|задн|тыльн|сзади|основн|арт|артқы|негізгі/i
+          const aBack = backRe.test(a.label) ? 1 : 0
+          const bBack = backRe.test(b.label) ? 1 : 0
           return bBack - aBack
         })
         setCameras(sorted)
@@ -837,8 +872,28 @@ export default function ScanScreen() {
     setCompareModeActive(next)
     compareModeRef.current = next
     if (next) {
+      try {
+        window.history.pushState(
+          { _scanInternal: true },
+          '',
+          window.location.pathname + window.location.search
+        )
+      } catch {
+        /* noop */
+      }
       const seen = localStorage.getItem('korset_compare_scan_hint_seen') === '1'
-      if (!seen) setCompareHintOpen(true)
+      if (!seen) {
+        try {
+          window.history.pushState(
+            { _scanInternal: true },
+            '',
+            window.location.pathname + window.location.search
+          )
+        } catch {
+          /* noop */
+        }
+        setCompareHintOpen(true)
+      }
     }
     if (!next) {
       setPinnedProduct(null)
@@ -856,6 +911,10 @@ export default function ScanScreen() {
     setCompareHintOpen(false)
   }, [])
 
+  useEffect(() => {
+    closeCompareHintRef.current = closeCompareHint
+  })
+
   const cancelCompareMode = useCallback(() => {
     const shouldRestartScanner = Boolean(secondCompareProductRef.current)
     setCompareModeActive(false)
@@ -868,6 +927,22 @@ export default function ScanScreen() {
     busyRef.current = false
     if (shouldRestartScanner) startScannerRef.current?.(cameras, camIdx)
   }, [cameras, camIdx])
+  useEffect(() => {
+    cancelCompareModeRef.current = cancelCompareMode
+  })
+
+  const handleHistoryOpen = useCallback(() => {
+    try {
+      window.history.pushState(
+        { _scanInternal: true },
+        '',
+        window.location.pathname + window.location.search
+      )
+    } catch (e) {
+      /* noop */
+    }
+    setHistoryOpen(true)
+  }, [])
 
   const openCompareResult = useCallback(() => {
     const first = pinnedProductRef.current
@@ -1115,7 +1190,7 @@ export default function ScanScreen() {
           <button
             type="button"
             className="scan-history-btn"
-            onClick={() => setHistoryOpen(true)}
+            onClick={handleHistoryOpen}
             aria-label={t('scan.recentScans')}
           >
             <IconHistory size={24} />

@@ -419,6 +419,31 @@ export default function ProfileScreen() {
   const [supportOpen, setSupportOpen] = useState(false)
   const [scannerSettingsExpanded, setScannerSettingsExpanded] = useState(false)
   const [notificationsExpanded, setNotificationsExpanded] = useState(false)
+
+  const activeTabRef = useRef(activeTab)
+  const authPromptOpenRef = useRef(authPromptOpen)
+  const supportOpenRef = useRef(supportOpen)
+
+  useEffect(() => {
+    activeTabRef.current = activeTab
+    authPromptOpenRef.current = authPromptOpen
+    supportOpenRef.current = supportOpen
+  })
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (authPromptOpenRef.current) {
+        setAuthPromptOpen(false)
+      } else if (supportOpenRef.current) {
+        setSupportOpen(false)
+      } else if (activeTabRef.current) {
+        setActiveTab(null)
+      }
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
+
   const [pushBusy, setPushBusy] = useState(false)
   const [pushStatus, setPushStatus] = useState('')
   const [pushSettings, setPushSettings] = useState(() => ({
@@ -916,7 +941,18 @@ export default function ProfileScreen() {
                    layer opens the auth prompt. */
                 <button
                   type="button"
-                  onClick={() => setAuthPromptOpen(true)}
+                  onClick={() => {
+                    try {
+                      window.history.pushState(
+                        { _profileInternal: true, _key: 'auth' },
+                        '',
+                        window.location.pathname + window.location.search
+                      )
+                    } catch (e) {
+                      /* noop */
+                    }
+                    setAuthPromptOpen(true)
+                  }}
                   aria-label={t('profile.authPromptTitle')}
                   style={{
                     position: 'absolute',
@@ -964,6 +1000,15 @@ export default function ProfileScreen() {
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation()
+                    try {
+                      window.history.pushState(
+                        { _profileInternal: true, _key: 'auth' },
+                        '',
+                        window.location.pathname + window.location.search
+                      )
+                    } catch (e) {
+                      /* noop */
+                    }
                     setAuthPromptOpen(true)
                   }}
                   aria-label={t('profile.authPromptTitle')}
@@ -1086,7 +1131,20 @@ export default function ProfileScreen() {
           <div style={{ padding: '38px 20px 28px' }}>
             <ProfileStatsTabs
               activeTab={activeTab}
-              onTabChange={setActiveTab}
+              onTabChange={(tab) => {
+                if (tab && !activeTab) {
+                  try {
+                    window.history.pushState(
+                      { _profileInternal: true, _key: 'tab' },
+                      '',
+                      window.location.pathname + window.location.search
+                    )
+                  } catch (e) {
+                    /* noop */
+                  }
+                }
+                setActiveTab(tab)
+              }}
               favoritesCount={favoritesCount}
               scanCount={scanCount}
               preferencesCount={totalPref}
@@ -1099,7 +1157,18 @@ export default function ProfileScreen() {
               onViewAllHistory={() =>
                 navigate(buildHistoryPath(currentStore?.slug || null, 'history'))
               }
-              onAuthPrompt={() => setAuthPromptOpen(true)}
+              onAuthPrompt={() => {
+                try {
+                  window.history.pushState(
+                    { _profileInternal: true, _key: 'auth' },
+                    '',
+                    window.location.pathname + window.location.search
+                  )
+                } catch (e) {
+                  /* noop */
+                }
+                setAuthPromptOpen(true)
+              }}
               t={t}
               isGuest={!user}
               preferencesContent={
@@ -1676,7 +1745,18 @@ export default function ProfileScreen() {
                     </svg>
                   ),
                   label: t('profile.feedback'),
-                  onClick: () => setSupportOpen(true),
+                  onClick: () => {
+                    try {
+                      window.history.pushState(
+                        { _profileInternal: true, _key: 'support' },
+                        '',
+                        window.location.pathname + window.location.search
+                      )
+                    } catch (e) {
+                      /* noop */
+                    }
+                    setSupportOpen(true)
+                  },
                 },
               ],
             },

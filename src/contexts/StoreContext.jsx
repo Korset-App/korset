@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { supabase } from '../utils/supabase.js'
-import { parseJson } from '../domain/product/model.js'
+import { normalizeNutrition, parseJson } from '../domain/product/model.js'
 import { PRIVACY_EVENT } from '../utils/privacySettings.js'
 import { getStoreBySlug } from '../data/stores.js'
 import { saveCatalogToIndexedDB } from '../utils/offlineDB.js'
@@ -44,6 +44,9 @@ function mapRpcRowToProduct(row) {
     group: row.product_group,
     allergens: parseJson(row.allergens_json, []),
     dietTags: parseJson(row.diet_tags_json, []),
+    ingredients: row.ingredients_raw || undefined,
+    traces: parseJson(row.traces_json, []),
+    nutritionPer100: normalizeNutrition(row.nutriments_json),
     halalStatus: row.halal_status || 'unknown',
     packagingType: row.packaging_type || null,
     fatPercent: row.fat_percent ?? null,
@@ -84,7 +87,7 @@ function mapRowToProduct(row) {
     packagingType: gp.packaging_type || null,
     fatPercent: gp.fat_percent ?? null,
     nutriscore: gp.nutriscore,
-    nutritionPer100: parseJson(gp.nutriments_json, {}),
+    nutritionPer100: normalizeNutrition(gp.nutriments_json),
     alcohol100g: gp.alcohol_100g ?? null,
     saturatedFat100g: gp.saturated_fat_100g ?? null,
     novaGroup: gp.nova_group ?? null,
@@ -99,6 +102,7 @@ function mapRowToProduct(row) {
     stockStatus: row.stock_status,
     storeProductId: row.id,
     globalProductId: gp.id,
+    productScreenFull: true,
     source: 'cache',
     alternateEans: parseJson(gp.alternate_eans, []),
   }

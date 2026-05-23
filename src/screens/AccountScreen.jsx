@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useStore } from '../contexts/StoreContext.jsx'
@@ -141,6 +141,25 @@ export default function AccountScreen() {
   const [resetLoading, setResetLoading] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+  const showDeleteConfirmRef = useRef(showDeleteConfirm)
+  const showLogoutConfirmRef = useRef(showLogoutConfirm)
+  useEffect(() => {
+    showDeleteConfirmRef.current = showDeleteConfirm
+    showLogoutConfirmRef.current = showLogoutConfirm
+  })
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (showDeleteConfirmRef.current) {
+        setShowDeleteConfirm(false)
+      } else if (showLogoutConfirmRef.current) {
+        setShowLogoutConfirm(false)
+      }
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
+
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [deleteError, setDeleteError] = useState('')
   const [linkLoading, setLinkLoading] = useState(false)
@@ -668,7 +687,18 @@ export default function AccountScreen() {
             }
             label={t('account.logout')}
             danger
-            onClick={() => setShowLogoutConfirm(true)}
+            onClick={() => {
+              try {
+                window.history.pushState(
+                  { _internal: true },
+                  '',
+                  window.location.pathname + window.location.search
+                )
+              } catch (e) {
+                /* noop */
+              }
+              setShowLogoutConfirm(true)
+            }}
           />
 
           <ActionRow
@@ -692,6 +722,15 @@ export default function AccountScreen() {
             label={t('account.deleteAccount')}
             danger
             onClick={() => {
+              try {
+                window.history.pushState(
+                  { _internal: true },
+                  '',
+                  window.location.pathname + window.location.search
+                )
+              } catch (e) {
+                /* noop */
+              }
               setDeleteError('')
               setShowDeleteConfirm(true)
             }}

@@ -12,7 +12,9 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { normalizeOFFProduct } from '../../src/domain/product/normalizers.js'
+import { normalizeGlobalProduct, normalizeOFFProduct } from '../../src/domain/product/normalizers.js'
+import { normalizeNutrition, normalizeSpecs } from '../../src/domain/product/model.js'
+import { buildProductCharacteristicSpecs } from '../../src/domain/product/productSpecs.js'
 import { ALLERGENS } from '../../src/constants/allergens.js'
 
 // Helper
@@ -97,4 +99,120 @@ test('empty allergens_tags → empty allergens array', () => {
 test('unknown OFF tag is silently dropped (not crash, not "undefined")', () => {
   const r = off(['en:something-not-mapped', 'en:milk'])
   assert.deepEqual(r.allergens, ['milk'])
+})
+
+test('normalizeNutrition maps Arbuz nutrition keys to canonical product keys', () => {
+  const nutrition = normalizeNutrition({
+    energy_kcal: 252,
+    protein_100g: 12.7,
+    fat_100g: 10.9,
+    carbohydrates_100g: 0.7,
+    sugars: 0.2,
+    salt: 0.3,
+  })
+
+  assert.deepEqual(nutrition, {
+    kcal: 252,
+    protein: 12.7,
+    fat: 10.9,
+    carbs: 0.7,
+    sugar: 0.2,
+    fiber: null,
+    salt: 0.3,
+    saturatedFat: null,
+    alcohol: null,
+  })
+})
+
+test('normalizeGlobalProduct exposes Arbuz nutrition as canonical ProductScreen nutrition', () => {
+  const product = normalizeGlobalProduct({
+    id: '11111111-1111-4111-8111-111111111111',
+    ean: '4870265540056',
+    name: 'Яйцо Казгер-Құс куриное, премиум, в лотке 20 шт',
+    category: 'dairy_eggs',
+    nutriments_json: {
+      energy_kcal: 157,
+      protein_100g: 12.7,
+      fat_100g: 10.9,
+      carbohydrates_100g: 0.7,
+    },
+  })
+
+  assert.equal(product.nutritionPer100.kcal, 157)
+  assert.equal(product.nutritionPer100.protein, 12.7)
+  assert.equal(product.nutritionPer100.fat, 10.9)
+  assert.equal(product.nutritionPer100.carbs, 0.7)
+})
+
+test('normalizeSpecs maps Arbuz storage_conditions and shelf-life aliases', () => {
+  const specs = normalizeSpecs({
+    quantity: '900 г',
+    storage_conditions: 'Хранить при температуре от +2°C до +6°C',
+    shelf_life: '14 суток',
+  })
+
+  assert.deepEqual(specs, {
+    weight: '900 г',
+    storage: 'Хранить при температуре от +2°C до +6°C',
+    bestBefore: '14 суток',
+    caloriesPerUnit: null,
+  })
+})
+
+test('buildProductCharacteristicSpecs shows useful specs and hides internal fields', () => {
+  const rows = buildProductCharacteristicSpecs(
+    normalizeGlobalProduct({
+      id: '11111111-1111-4111-8111-111111111112',
+      ean: '4870200000001',
+      name: 'Йогурт клубничный 2.5%',
+      category: 'dairy_eggs',
+      subcategory: 'fermented',
+      manufacturer: 'Test Dairy',
+      country_of_origin: 'Казахстан',
+      packaging_type: 'cup',
+      fat_percent: 2.5,
+      nutriscore: 'B',
+      nova_group: 4,
+      specs_json: {
+        storage_conditions: 'Хранить при температуре от +2°C до +6°C',
+        shelf_life: '14 суток',
+      },
+    }),
+    { lang: 'ru' }
+  )
+
+  assert.deepEqual(rows.map((row) => row.key), [
+    'storage',
+    'bestBefore',
+    'fatPercent',
+    'flavor',
+    'subcategory',
+    'manufacturer',
+    'country',
+  ])
+  assert.equal(rows.find((row) => row.key === 'storage')?.value, 'Хранить при температуре от +2°C до +6°C')
+  assert.equal(rows.find((row) => row.key === 'bestBefore')?.value, '14 суток')
+  assert.equal(rows.find((row) => row.key === 'fatPercent')?.value, '2.5%')
+  assert.equal(rows.find((row) => row.key === 'flavor')?.value, 'Клубника')
+  assert.notEqual(rows.find((row) => row.key === 'subcategory')?.value, 'fermented')
+  assert.equal(rows.find((row) => row.key === 'manufacturer')?.value, 'Test Dairy')
+  assert.equal(rows.find((row) => row.key === 'country')?.value, 'Казахстан')
+  assert.equal(rows.some((row) => row.value === 'cup'), false)
+  assert.equal(rows.some((row) => row.value === 'B'), false)
+  assert.equal(rows.some((row) => row.value === 4), false)
+})
+
+test('buildProductCharacteristicSpecs hides code-like unknown subcategories', () => {
+  const rows = buildProductCharacteristicSpecs(
+    normalizeGlobalProduct({
+      id: '11111111-1111-4111-8111-111111111113',
+      ean: '4870200000002',
+      name: 'Test product',
+      category: 'unknown_category',
+      subcategory: 'raw_internal_code',
+    }),
+    { lang: 'ru' }
+  )
+
+  assert.equal(rows.some((row) => row.key === 'subcategory'), false)
 })

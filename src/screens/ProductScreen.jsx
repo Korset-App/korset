@@ -1,7 +1,7 @@
 ﻿import { useMemo, useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { checkProductFit, formatPrice, getCategoryLabel } from '../utils/fitCheck.js'
-import { getDisplayQuantity, computePricePerUnit } from '../utils/parseQuantity.js'
+import { getDisplayQuantity } from '../utils/parseQuantity.js'
 import { useProfile } from '../contexts/ProfileContext.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useI18n } from '../i18n/index.js'
@@ -13,6 +13,11 @@ import { supabase } from '../utils/supabase.js'
 import { fetchFullProduct } from '../contexts/StoreContext.jsx'
 import { coerceProductEntity } from '../domain/product/normalizers.js'
 import { findProductInCatalog } from '../domain/product/alternatives.js'
+import {
+  getProductScreenBaseProduct,
+  getProductScreenProduct,
+  shouldFetchFullProductForProductScreen,
+} from '../domain/product/productScreenData.js'
 import { resolveProductByEan, enrichmentEvents } from '../domain/product/resolver.js'
 import {
   canRequestUnknownProduct,
@@ -23,6 +28,8 @@ import {
   buildProductAIPath,
   buildProductAlternativesPath,
 } from '../utils/routes.js'
+import { buildProductUnitPrice } from '../domain/product/unitPrice.js'
+import { hasProductScreenCharacteristics } from '../domain/product/productScreenSections.js'
 import { buildAuthNavigateState } from '../utils/authFlow.js'
 import { HeartIcon } from '../components/icons/HeartIcon.jsx'
 import ImageCarousel from '../components/product/ImageCarousel.jsx'
@@ -80,9 +87,7 @@ export default function ProductScreen() {
   const baseProduct = useMemo(() => {
     const known = findProductInCatalog(catalogProducts, ean)
     const stateProduct = coerceProductEntity(location.state?.product)
-    if (known) return known
-    if (stateProduct && stateProduct.ean === ean) return stateProduct
-    return stateProduct || null
+    return getProductScreenBaseProduct({ catalogProduct: known, stateProduct, ean })
   }, [catalogProducts, ean, location.state])
 
   const [fullProduct, setFullProduct] = useState(null)
@@ -92,19 +97,19 @@ export default function ProductScreen() {
   // Optimistic scan path: arrived from ScanScreen without pre-loaded product
   const needsResolve = fromScan && !location.state?.product && !baseProduct
 
-  const needsFullFetch =
-    !needsResolve &&
-    navigator.onLine &&
-    storeId &&
-    ean &&
-    (!baseProduct ||
-      !baseProduct.ingredients ||
-      !baseProduct.description ||
-      Object.keys(baseProduct.nutritionPer100 || {}).length === 0)
+  const needsFullFetch = shouldFetchFullProductForProductScreen({
+    baseProduct,
+    fullProduct,
+    ean,
+    storeId,
+    isOnline: isOnline && (typeof navigator === 'undefined' || navigator.onLine),
+    needsResolve,
+  })
 
   useEffect(() => {
     if (!needsResolve || !ean) return
     let aborted = false
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFetchingFull(true)
     resolveProductByEan(ean, storeId, { logScan: false })
       .then((p) => {
@@ -146,7 +151,7 @@ export default function ProductScreen() {
     return () => enrichmentEvents.removeEventListener('enriched', handler)
   }, [ean])
 
-  const product = fullProduct || baseProduct
+  const product = getProductScreenProduct({ baseProduct, fullProduct, ean })
   const localName = useLocalName(product)
   const canRequestUnknown = canRequestUnknownProduct({ ean, storeId })
 
@@ -323,10 +328,8 @@ export default function ProductScreen() {
   const manufacturerText = getManufacturerText(product)
   const country = getCountry(product)
   const quantityDisplay = getDisplayQuantity(product, lang)
-  const perUnit = computePricePerUnit(
-    product.priceKzt,
-    product.quantityParsed || product.quantity || product.specs?.weight
-  )
+  const perUnit = buildProductUnitPrice(product)
+  const showCharacteristics = hasProductScreenCharacteristics(product, { lang })
 
   const subtitleParts = [
     product.brand,
@@ -492,7 +495,7 @@ export default function ProductScreen() {
                     letterSpacing: '0.02em',
                   }}
                 >
-                  {formatPrice(perUnit.per100)} / {perUnit.suffix}
+                  {formatPrice(perUnit.value)} / {perUnit.suffix}
                 </div>
               )}
             </div>
@@ -570,7 +573,15 @@ export default function ProductScreen() {
           </div>
         )}
 
-        {/* 8. Description */}
+        {/* 8. Characteristics */}
+        {showCharacteristics && (
+          <div>
+            <SectionLabel>{t('product.characteristics')}</SectionLabel>
+            <SpecsGrid product={product} />
+          </div>
+        )}
+
+        {/* 9. Description */}
         {product.description && (
           <div>
             <SectionLabel>{t('product.description')}</SectionLabel>
@@ -589,12 +600,6 @@ export default function ProductScreen() {
             </div>
           </div>
         )}
-
-        {/* 9. Characteristics */}
-        <div>
-          <SectionLabel>{t('product.characteristics')}</SectionLabel>
-          <SpecsGrid product={product} />
-        </div>
 
         {/* 10. Bottom action buttons вЂ” Р’ РџРћРўРћРљР• (РЅРµ fixed) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>

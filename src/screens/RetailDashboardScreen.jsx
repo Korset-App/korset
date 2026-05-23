@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useI18n } from '../i18n/index.js'
 import { useStore } from '../contexts/StoreContext.jsx'
@@ -594,6 +594,25 @@ export default function RetailDashboardScreen() {
   const [period, setPeriod] = useState(7)
   const [missedFilter, setMissedFilter] = useState('all')
 
+  const periodRef = useRef(period)
+  const missedFilterRef = useRef(missedFilter)
+  useEffect(() => {
+    periodRef.current = period
+    missedFilterRef.current = missedFilter
+  })
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (missedFilterRef.current !== 'all') {
+        setMissedFilter('all')
+      } else if (periodRef.current !== 7) {
+        setPeriod(7)
+      }
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
+
   const d = useMemo(
     () => ({
       title: t('retail.dashboard.title'),
@@ -785,7 +804,12 @@ export default function RetailDashboardScreen() {
           {[7, 30].map((p) => (
             <button
               key={p}
-              onClick={() => setPeriod(p)}
+              onClick={() => {
+                if (p !== 7) {
+                  window.history.pushState({}, '')
+                }
+                setPeriod(p)
+              }}
               style={{
                 padding: '5px 14px',
                 borderRadius: 7,
@@ -1038,7 +1062,12 @@ export default function RetailDashboardScreen() {
             return (
               <button
                 key={tab.key}
-                onClick={() => setMissedFilter(tab.key)}
+                onClick={() => {
+                  if (tab.key !== 'all') {
+                    window.history.pushState({}, '')
+                  }
+                  setMissedFilter(tab.key)
+                }}
                 style={{
                   padding: '5px 11px',
                   borderRadius: 8,

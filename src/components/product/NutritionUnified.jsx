@@ -108,8 +108,12 @@ function ThreeStepRow({ label, value, unit, thresholds, t }) {
 export default function NutritionUnified({ nutrition }) {
   const { t } = useI18n()
   if (!nutrition) return null
-  const kcal = nutrition.kcal ?? nutrition.energy_kcal_100g
-  const protein = nutrition.protein ?? nutrition.proteins_100g
+  const kcal =
+    nutrition.kcal ??
+    nutrition.energy_kcal ??
+    nutrition.energy_kcal_100g ??
+    nutrition['energy-kcal_100g']
+  const protein = nutrition.protein ?? nutrition.protein_100g ?? nutrition.proteins_100g
   const fat = nutrition.fat ?? nutrition.fat_100g
   const carbs = nutrition.carbs ?? nutrition.carbohydrates_100g
   const sugar = nutrition.sugar ?? nutrition.sugars_100g ?? nutrition.sugars

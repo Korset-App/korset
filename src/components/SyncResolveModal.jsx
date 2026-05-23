@@ -341,7 +341,7 @@ export default function SyncResolveModal({ conflict, loading, onResolve, onDismi
                 background: loading
                   ? 'rgba(124,58,237,0.4)'
                   : 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
-                color: '#fff',
+                color: 'var(--text-inverse)',
                 fontSize: 15,
                 fontWeight: 800,
                 display: 'flex',

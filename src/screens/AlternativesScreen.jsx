@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useProfile } from '../contexts/ProfileContext.jsx'
 import { useI18n } from '../i18n/index.js'
@@ -40,6 +40,19 @@ export default function AlternativesScreen() {
   const [scenario, setScenario] = useState(() =>
     normalizeAlternativeScenario(location.state?.preferredScenario || DEFAULT_ALTERNATIVE_SCENARIO)
   )
+  const scenarioRef = useRef(scenario)
+
+  useEffect(() => {
+    scenarioRef.current = scenario
+  }, [scenario])
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setScenario(DEFAULT_ALTERNATIVE_SCENARIO)
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
   const [rpcState, setRpcState] = useState({
     status: 'idle',
     products: [],
@@ -172,6 +185,7 @@ export default function AlternativesScreen() {
               key={id}
               className={`alternatives-scenario${scenario === id ? ' active' : ''}`}
               onClick={() => {
+                if (id !== 'fits_me') window.history.pushState(null, '')
                 setScenario(id)
                 trackAlternativeEvent('alternatives_scenario_selected', {
                   storeId,

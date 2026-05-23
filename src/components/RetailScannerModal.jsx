@@ -82,8 +82,7 @@ export default function RetailScannerModal({ onScan, onClose }) {
         if (cameraList.length > 0 && cameraList[idx]) {
           camCfg = { deviceId: { exact: cameraList[idx].id } }
         } else {
-          const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent)
-          camCfg = isIOS ? { facingMode: { exact: 'environment' } } : { facingMode: 'environment' }
+          camCfg = { facingMode: 'environment' }
         }
 
         await scanner.start(
@@ -114,6 +113,18 @@ export default function RetailScannerModal({ onScan, onClose }) {
         busyRef.current = false
 
         try {
+          const settings = scanner.getRunningTrackSettings()
+          const host = document.getElementById(SCAN_ID)
+          if (host && settings?.facingMode === 'user') {
+            host.classList.add('scan-video-mirrored')
+          } else if (host) {
+            host.classList.remove('scan-video-mirrored')
+          }
+        } catch {
+          /* noop */
+        }
+
+        try {
           const vid = document.querySelector(`#${SCAN_ID} video`)
           if (vid?.srcObject) {
             const track = vid.srcObject.getVideoTracks()[0]
@@ -140,8 +151,16 @@ export default function RetailScannerModal({ onScan, onClose }) {
         const list = await Html5Qrcode.getCameras()
         if (!mountedRef.current) return
         const sorted = [...(list || [])].sort((a, b) => {
-          const aB = /back|rear|environment/i.test(a.label) ? 1 : 0
-          const bB = /back|rear|environment/i.test(b.label) ? 1 : 0
+          const aB = /back|rear|environment|задн|тыльн|сзади|основн|арт|артқы|негізгі/i.test(
+            a.label
+          )
+            ? 1
+            : 0
+          const bB = /back|rear|environment|задн|тыльн|сзади|основн|арт|артқы|негізгі/i.test(
+            b.label
+          )
+            ? 1
+            : 0
           return bB - aB
         })
         setCameras(sorted)
@@ -234,7 +253,7 @@ export default function RetailScannerModal({ onScan, onClose }) {
               style={{
                 fontSize: 15,
                 fontWeight: 700,
-                color: '#fff',
+                color: 'var(--text-inverse)',
                 fontFamily: 'var(--font-display)',
               }}
             >
@@ -253,7 +272,7 @@ export default function RetailScannerModal({ onScan, onClose }) {
             borderRadius: 10,
             border: 'none',
             background: 'rgba(255,255,255,0.07)',
-            color: '#fff',
+            color: 'var(--text-inverse)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -380,7 +399,9 @@ export default function RetailScannerModal({ onScan, onClose }) {
             >
               no_photography
             </span>
-            <div style={{ fontSize: 15, fontWeight: 600, color: '#fff' }}>Нет доступа к камере</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-inverse)' }}>
+              Нет доступа к камере
+            </div>
             <div style={{ fontSize: 13, color: 'var(--text-dim)', lineHeight: 1.6 }}>
               Разрешите доступ к камере в настройках браузера и попробуйте снова.
             </div>
@@ -424,7 +445,9 @@ export default function RetailScannerModal({ onScan, onClose }) {
             >
               error_outline
             </span>
-            <div style={{ fontSize: 15, fontWeight: 600, color: '#fff' }}>Ошибка камеры</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-inverse)' }}>
+              Ошибка камеры
+            </div>
             <button
               onClick={() => startScanner(cameras, camIdx)}
               style={{
@@ -507,6 +530,9 @@ export default function RetailScannerModal({ onScan, onClose }) {
 
       {/* CSS */}
       <style>{`
+        .scan-video-mirrored video {
+          transform: scaleX(-1) !important;
+        }
         @keyframes retail-scan-line {
           0%   { transform: translateY(0); opacity: 0.8; }
           50%  { transform: translateY(176px); opacity: 1; }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../i18n/index.js'
 import SupportBottomSheet from '../components/SupportBottomSheet.jsx'
@@ -102,12 +102,43 @@ export default function FaqScreen() {
   const navigate = useNavigate()
   const [openIndex, setOpenIndex] = useState(null)
   const [supportOpen, setSupportOpen] = useState(false)
+  const openIndexRef = useRef(openIndex)
+  const supportOpenRef = useRef(supportOpen)
+  useEffect(() => {
+    openIndexRef.current = openIndex
+    supportOpenRef.current = supportOpen
+  })
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (supportOpenRef.current) {
+        setSupportOpen(false)
+      } else if (openIndexRef.current !== null) {
+        setOpenIndex(null)
+      }
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
 
   const items = Array.from({ length: 10 }, (_, i) => ({
     q: t('faq.items.' + i + '.q'),
     a: t('faq.items.' + i + '.a'),
   }))
-  const toggle = (i) => setOpenIndex((prev) => (prev === i ? null : i))
+  const toggle = (i) => {
+    if (openIndexRef.current !== i) {
+      try {
+        window.history.pushState(
+          { _internal: true },
+          '',
+          window.location.pathname + window.location.search
+        )
+      } catch (e) {
+        /* noop */
+      }
+    }
+    setOpenIndex((prev) => (prev === i ? null : i))
+  }
 
   return (
     <>
@@ -311,7 +342,18 @@ export default function FaqScreen() {
             </div>
             <button
               type="button"
-              onClick={() => setSupportOpen(true)}
+              onClick={() => {
+                try {
+                  window.history.pushState(
+                    { _internal: true },
+                    '',
+                    window.location.pathname + window.location.search
+                  )
+                } catch (e) {
+                  /* noop */
+                }
+                setSupportOpen(true)
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',

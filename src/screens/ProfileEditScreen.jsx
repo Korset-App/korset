@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+﻿import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useStore } from '../contexts/StoreContext.jsx'
@@ -336,7 +336,7 @@ export default function ProfileEditScreen() {
         style={{
           paddingBottom: 'calc(120px + env(safe-area-inset-bottom, 0px))',
           background: 'var(--bg-app)',
-          minHeight: '100vh',
+          minHeight: '100dvh',
         }}
       >
         <div

@@ -60,6 +60,25 @@ export default function RetailSettingsScreen() {
   const logoInputRef = useRef(null)
   const qrRef = useRef(null)
 
+  const showQRRef = useRef(showQR)
+  const showClearModalRef = useRef(showClearModal)
+  useEffect(() => {
+    showQRRef.current = showQR
+    showClearModalRef.current = showClearModal
+  })
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (showClearModalRef.current) {
+        setShowClearModal(false)
+      } else if (showQRRef.current) {
+        setShowQR(false)
+      }
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
+
   // Sync ALL fields when store data arrives from Supabase
   useEffect(() => {
     if (currentStore) {
@@ -604,7 +623,7 @@ export default function RetailSettingsScreen() {
             borderRadius: 12,
             background: isSaving ? 'rgba(124,58,237,0.3)' : 'rgba(124,58,237,0.85)',
             border: 'none',
-            color: '#fff',
+            color: 'var(--text-inverse)',
             fontSize: 15,
             fontWeight: 700,
             cursor: isSaving ? 'default' : 'pointer',
@@ -734,7 +753,12 @@ export default function RetailSettingsScreen() {
             </div>
 
             <button
-              onClick={() => setShowQR(!showQR)}
+              onClick={() => {
+                if (!showQR) {
+                  window.history.pushState({}, '')
+                }
+                setShowQR(!showQR)
+              }}
               style={{
                 width: '100%',
                 padding: '12px 16px',
@@ -794,8 +818,8 @@ export default function RetailSettingsScreen() {
                       bottom: 20,
                       left: '50%',
                       transform: 'translateX(-50%)',
-                      background: '#7C3AED',
-                      color: '#fff',
+                      background: 'var(--primary)',
+                      color: 'var(--text-inverse)',
                       padding: '4px 14px',
                       borderRadius: 99,
                       fontSize: 11,
@@ -941,7 +965,7 @@ export default function RetailSettingsScreen() {
                     width: 22,
                     height: 22,
                     borderRadius: '50%',
-                    background: '#fff',
+                    background: 'var(--text-inverse)',
                     transition: 'left 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
                   }}
                 />
@@ -991,7 +1015,7 @@ export default function RetailSettingsScreen() {
                     width: 22,
                     height: 22,
                     borderRadius: '50%',
-                    background: '#fff',
+                    background: 'var(--text-inverse)',
                     transition: 'left 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
                   }}
                 />
@@ -1040,7 +1064,10 @@ export default function RetailSettingsScreen() {
                 </div>
               </div>
               <button
-                onClick={() => setShowClearModal(true)}
+                onClick={() => {
+                  window.history.pushState({}, '')
+                  setShowClearModal(true)
+                }}
                 disabled={isClearing}
                 style={{
                   background: 'rgba(239, 68, 68, 0.15)',

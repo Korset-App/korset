@@ -47,5 +47,6 @@
   "compare.reason.available_now": "Выбор основан на наличии в этом магазине.",
   "compare.reason.better_price": "Выбор основан на цене, потому что по безопасности товары близки.",
   "compare.reason.more_complete_card": "Выбор основан на более полной карточке товара.",
-  "compare.reason.similar_fit": "По ключевым признакам товары очень близки."
+  "compare.reason.similar_fit": "По ключевым признакам товары очень близки.",
+  "compare.aiError": "Не удалось получить сравнение от AI"
 }

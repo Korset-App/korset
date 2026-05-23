@@ -11,12 +11,14 @@ export default function StoresScreen() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let cancelled = false
     supabase
       .from('stores')
       .select('id, code, name, city, address, logo_url, type')
       .eq('is_active', true)
       .order('name')
       .then(({ data }) => {
+        if (cancelled) return
         if (data && data.length > 0) {
           setStores(data.map((s) => ({ ...s, slug: s.code })))
         } else {
@@ -24,6 +26,16 @@ export default function StoresScreen() {
         }
         setLoading(false)
       })
+      .catch(() => {
+        if (!cancelled) {
+          setStores(getStores().map((s) => ({ ...s, slug: s.slug || s.id })))
+          setLoading(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   return (

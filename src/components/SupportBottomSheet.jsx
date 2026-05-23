@@ -151,7 +151,7 @@ export default function SupportBottomSheet({ open, onClose }) {
                 borderRadius: 16,
                 border: 'none',
                 background: '#2AABEE',
-                color: '#fff',
+                color: 'var(--text-inverse)',
                 fontFamily: 'var(--font-body)',
                 fontSize: 15,
                 fontWeight: 700,

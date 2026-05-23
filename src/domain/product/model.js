@@ -1,3 +1,5 @@
+import { extractFlavorAttribute } from './attributeExtractor.js'
+
 export function buildCanonicalId({ id, ean, demoId } = {}) {
   if (id && isUuid(id)) return `gp:${id}`
   if (ean) return `ean:${String(ean)}`
@@ -12,6 +14,21 @@ export function createEmptyProduct(overrides = {}) {
   const canonicalId = overrides.canonicalId || buildCanonicalId({ id, ean, demoId })
   const images = Array.isArray(overrides.images) ? overrides.images.filter(Boolean) : []
   const image = overrides.image || images[0] || null
+  const manufacturer = normalizeManufacturer(
+    overrides.manufacturer,
+    overrides.country || overrides.countryOfOrigin || overrides.country_of_origin
+  )
+  const extractedFlavor = extractFlavorAttribute({
+    name: overrides.name,
+    category: overrides.category || 'grocery',
+  })
+  const providedFlavor = cleanString(
+    overrides.flavor ?? overrides.flavorName ?? overrides.flavor_name
+  )
+  const flavorMeta = normalizeFlavorMeta(
+    overrides.flavorMeta ?? overrides.flavor_meta ?? (providedFlavor ? null : extractedFlavor)
+  )
+  const flavor = providedFlavor || (flavorMeta?.confidence === 'high' ? flavorMeta.value : null)
 
   return {
     canonicalId,
@@ -36,8 +53,11 @@ export function createEmptyProduct(overrides = {}) {
     nameKz: overrides.nameKz || overrides.name_kz || null,
     brand: overrides.brand || null,
     category: overrides.category || 'grocery',
-    subcategory: overrides.subcategory || null,    quantity: overrides.quantity || null,
+    subcategory: overrides.subcategory || null,
+    quantity: overrides.quantity || null,
     group: overrides.group || null,
+    flavor,
+    flavorMeta,
 
     images,
     image,
@@ -63,7 +83,12 @@ export function createEmptyProduct(overrides = {}) {
     imageIngredientsUrl: overrides.imageIngredientsUrl ?? overrides.image_ingredients_url ?? null,
     imageNutritionUrl: overrides.imageNutritionUrl ?? overrides.image_nutrition_url ?? null,
 
-    manufacturer: normalizeManufacturer(overrides.manufacturer, overrides.country),
+    manufacturer,
+    country:
+      overrides.country ||
+      overrides.countryOfOrigin ||
+      overrides.country_of_origin ||
+      manufacturer.country,
 
     packagingType: overrides.packagingType ?? overrides.packaging_type ?? null,
     fatPercent: normalizeNumber(overrides.fatPercent ?? overrides.fat_percent),
@@ -146,8 +171,10 @@ export function parseJson(input, fallback) {
 export function normalizeNutrition(input) {
   const raw = parseJson(input, input || {}) || {}
   return {
-    kcal: normalizeNumber(raw.kcal ?? raw.calories ?? raw['energy-kcal_100g']),
-    protein: normalizeNumber(raw.protein ?? raw.proteins_100g),
+    kcal: normalizeNumber(
+      raw.kcal ?? raw.calories ?? raw.energy_kcal ?? raw.energy_kcal_100g ?? raw['energy-kcal_100g']
+    ),
+    protein: normalizeNumber(raw.protein ?? raw.protein_100g ?? raw.proteins_100g),
     fat: normalizeNumber(raw.fat ?? raw.fat_100g),
     carbs: normalizeNumber(raw.carbs ?? raw.carbohydrates ?? raw.carbohydrates_100g),
     sugar: normalizeNumber(raw.sugar ?? raw.sugars ?? raw.sugars_100g),
@@ -174,10 +201,18 @@ export function normalizeManufacturer(manufacturer, country = null) {
 export function normalizeSpecs(specs) {
   const raw = parseJson(specs, specs || {}) || {}
   return {
-    weight: raw.weight || raw.quantity || null,
-    storage: raw.storage || null,
-    bestBefore: raw.bestBefore || raw.expiry || null,
-    caloriesPerUnit: raw.caloriesPerUnit || raw.calories || null,
+    weight: cleanString(raw.weight ?? raw.quantity),
+    storage: cleanString(raw.storage ?? raw.storage_conditions ?? raw.storageConditions),
+    bestBefore: cleanString(
+      raw.bestBefore ??
+        raw.best_before ??
+        raw.expiry ??
+        raw.expiration ??
+        raw.expiration_date ??
+        raw.shelfLife ??
+        raw.shelf_life
+    ),
+    caloriesPerUnit: cleanString(raw.caloriesPerUnit ?? raw.calories),
   }
 }
 
@@ -197,4 +232,23 @@ export function normalizeNumber(value) {
   if (value === null || value === undefined || value === '') return null
   const num = Number(value)
   return Number.isFinite(num) ? num : null
+}
+
+function cleanString(value) {
+  if (value === null || value === undefined) return null
+  const trimmed = String(value).trim()
+  return trimmed || null
+}
+
+function normalizeFlavorMeta(input) {
+  const raw = parseJson(input, input || null)
+  if (!raw || typeof raw !== 'object') return null
+  const value = cleanString(raw.value)
+  const confidence = cleanString(raw.confidence)
+  if (!value || !['high', 'medium', 'low'].includes(confidence)) return null
+  return {
+    value,
+    confidence,
+    source: cleanString(raw.source),
+  }
 }

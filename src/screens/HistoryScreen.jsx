@@ -307,7 +307,7 @@ export default function HistoryScreen() {
             })
           }
           style={{
-            background: '#7C3AED',
+            background: 'var(--primary)',
             color: 'var(--text)',
             border: 'none',
             padding: '14px 28px',

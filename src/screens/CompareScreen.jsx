@@ -270,6 +270,7 @@ export default function CompareScreen() {
   useEffect(() => {
     if (!productA || !productB) return
     setAiLoading(true)
+    let mounted = true
     const ctrl = new AbortController()
 
     fetch('/api/ai', {
@@ -286,14 +287,24 @@ export default function CompareScreen() {
       }),
       signal: ctrl.signal,
     })
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.reply) setAiText(d.reply)
+      .then((r) => {
+        if (!r.ok) throw new Error('API error')
+        return r.json()
       })
-      .catch(() => {})
-      .finally(() => setAiLoading(false))
+      .then((d) => {
+        if (mounted && d.reply) setAiText(d.reply)
+      })
+      .catch(() => {
+        if (mounted) setAiText(t('compare.aiError') || '')
+      })
+      .finally(() => {
+        if (mounted) setAiLoading(false)
+      })
 
-    return () => ctrl.abort()
+    return () => {
+      mounted = false
+      ctrl.abort()
+    }
   }, []) // eslint-disable-line
 
   if (!productA || !productB) {

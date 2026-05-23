@@ -123,9 +123,13 @@
   "product.category": "Санат",
   "product.halalLabel": "Халал",
   "product.manufacturerLabel": "Өндіруші",
+  "product.countryOfOrigin": "Ел",
+  "product.fatPercent": "Майлылығы",
   "product.unknownProduct": "Белгісіз тауар",
   "product.specWeight": "Салмақ",
   "product.specStorage": "Сақтау",
   "product.specCaloriesPerUnit": "1 данаға ккал",
-  "catalog.globalTitle": "Körset каталогі"
+  "catalog.globalTitle": "Körset каталогі",
+  "catalog.searchError": "Іздеу қатесі",
+  "catalog.searchErrorHint": "Жергілікті нәтижелер көрсетілді"
 }

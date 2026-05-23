@@ -36,6 +36,10 @@
   object-fit: cover !important;
 }
 
+.scan-video-mirrored video {
+  transform: scaleX(-1) !important;
+}
+
 .scan-video-host img,
 .scan-video-host canvas {
   display: none !important;

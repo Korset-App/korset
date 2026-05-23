@@ -1,43 +1,36 @@
 import { useI18n } from '../../i18n/index.js'
-import { computePricePerUnit } from '../../utils/parseQuantity.js'
 import { formatPrice } from '../../utils/fitCheck.js'
+import { buildProductCharacteristicSpecs } from '../../domain/product/productSpecs.js'
+import { buildProductUnitPrice } from '../../domain/product/unitPrice.js'
 
 export default function SpecsGrid({ product }) {
   const { lang, t } = useI18n()
-  const specs = []
-  const s = product.specs || {}
+  const specs = buildProductCharacteristicSpecs(product, { lang }).map((spec) => ({
+    ...spec,
+    label: t(spec.labelKey),
+  }))
 
-  if (s.storage) specs.push({ label: t('product.storage'), value: s.storage })
-  if (s.bestBefore) specs.push({ label: t('product.expiry'), value: s.bestBefore })
-
-  const perUnit = computePricePerUnit(
-    product.priceKzt,
-    product.quantityParsed || product.quantity || s.weight
-  )
+  const perUnit = buildProductUnitPrice(product)
+  const priceSpecs = []
   if (perUnit) {
-    if (perUnit.per100 != null) {
-      specs.push({
+    if (perUnit.kind === 'per100') {
+      priceSpecs.push({
         label: `${t('product.pricePer')} ${perUnit.suffix}`,
-        value: formatPrice(perUnit.per100),
+        value: formatPrice(perUnit.value),
       })
     }
-    if (perUnit.perUnit != null) {
-      specs.push({
-        label: `${t('product.pricePer')} ${perUnit.unitSuffix}`,
-        value: formatPrice(perUnit.perUnit),
+    if (perUnit.kind === 'perUnit') {
+      priceSpecs.push({
+        label: `${t('product.pricePer')} ${perUnit.suffix}`,
+        value: formatPrice(perUnit.value),
       })
     }
   }
+  const priceInsertAt =
+    specs.findLastIndex((spec) => spec.key === 'storage' || spec.key === 'bestBefore') + 1
+  specs.splice(priceInsertAt, 0, ...priceSpecs)
 
-  if (product.flavor) specs.push({ label: t('product.flavor'), value: product.flavor })
-  if (s.flavor && !product.flavor) specs.push({ label: t('product.flavor'), value: s.flavor })
-  if (product.subcategory) {
-    specs.push({ label: t('product.subcategory'), value: product.subcategory })
-  }
   if (specs.length === 0) return null
-
-  // lang used via useI18n above — satisfies the hook dependency
-  void lang
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

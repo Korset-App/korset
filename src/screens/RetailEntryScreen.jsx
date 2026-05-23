@@ -13,7 +13,7 @@ const spinStyle = {
   animation: 'spin 0.8s linear infinite',
 }
 
-function FullScreenLoader({ label }) {
+function FullScreenLoader({ label, hint, onHint }) {
   return (
     <div
       style={{
@@ -34,6 +34,23 @@ function FullScreenLoader({ label }) {
         >
           {label}
         </div>
+      )}
+      {hint && onHint && (
+        <button
+          onClick={onHint}
+          style={{
+            background: 'none',
+            border: '1px solid rgba(56,189,248,0.25)',
+            borderRadius: 10,
+            padding: '10px 24px',
+            color: 'var(--retail-accent)',
+            fontSize: 13,
+            fontFamily: 'var(--font-body)',
+            cursor: 'pointer',
+          }}
+        >
+          {hint}
+        </button>
       )}
     </div>
   )
@@ -120,11 +137,12 @@ export default function RetailEntryScreen() {
   const { user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const [status, setStatus] = useState('idle') // idle | fetching | not_found
+  const [status, setStatus] = useState('idle') // idle | fetching | not_found | error
 
   useEffect(() => {
     if (authLoading || !user) return
 
+    let cancelled = false
     setStatus('fetching')
     supabase
       .from('stores')
@@ -134,12 +152,20 @@ export default function RetailEntryScreen() {
       .limit(1)
       .maybeSingle()
       .then(({ data, error }) => {
+        if (cancelled) return
         if (!error && data?.code) {
           navigate(`/retail/${data.code}/dashboard`, { replace: true })
         } else {
           setStatus('not_found')
         }
       })
+      .catch(() => {
+        if (!cancelled) setStatus('error')
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [user, authLoading, navigate])
 
   if (authLoading) return <FullScreenLoader label="Проверяем доступ..." />
@@ -159,6 +185,19 @@ export default function RetailEntryScreen() {
   }
 
   if (status === 'not_found') return <NoStoreScreen userEmail={user.email} />
+
+  if (status === 'error') {
+    return (
+      <FullScreenLoader
+        label="Не удалось загрузить данные. Проверьте подключение к интернету."
+        hint="Попробовать снова"
+        onHint={() => {
+          setStatus('idle')
+          window.location.reload()
+        }}
+      />
+    )
+  }
 
   return <FullScreenLoader label="Открываем кабинет..." />
 }

@@ -281,7 +281,7 @@ function StockToggle({ product, label, stockMutation }) {
             width: 24,
             height: 24,
             borderRadius: '50%',
-            background: '#fff',
+            background: 'var(--text-inverse)',
             transition: 'left 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
             boxShadow: '0 2px 4px rgba(0,0,0,0.25)',
           }}
@@ -434,7 +434,23 @@ const ProductCard = memo(
       >
         {/* ── Card header (tap to expand) ── */}
         <div
-          onClick={() => setExpandedId((prev) => (prev === product.id ? null : product.id))}
+          onClick={() =>
+            setExpandedId((prev) => {
+              if (prev === product.id) {
+                return null
+              }
+              try {
+                window.history.pushState(
+                  { _retailInternal: true },
+                  '',
+                  window.location.pathname + window.location.search
+                )
+              } catch (e) {
+                /* noop */
+              }
+              return product.id
+            })
+          }
           style={{
             padding: '13px 16px',
             display: 'flex',
@@ -1023,7 +1039,7 @@ function ConfirmDeleteModal({ product, tr, deleteMutation, onClose }) {
               borderRadius: 12,
               border: 'none',
               background: deleteMutation.isPending ? 'rgba(239,68,68,0.4)' : 'rgba(239,68,68,0.85)',
-              color: '#fff',
+              color: 'var(--text-inverse)',
               fontSize: 14,
               fontWeight: 700,
               cursor: deleteMutation.isPending ? 'not-allowed' : 'pointer',
@@ -1088,6 +1104,40 @@ export default function RetailProductsScreen() {
   const [gridSelectedId, setGridSelectedId] = useState(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
   const [scannerOpen, setScannerOpen] = useState(false)
+
+  const scannerOpenRef = useRef(scannerOpen)
+  const confirmDeleteIdRef = useRef(confirmDeleteId)
+  const gridSelectedIdRef = useRef(gridSelectedId)
+  const expandedIdRef = useRef(expandedId)
+  const viewModeRef = useRef(viewMode)
+
+  useEffect(() => {
+    scannerOpenRef.current = scannerOpen
+    confirmDeleteIdRef.current = confirmDeleteId
+    gridSelectedIdRef.current = gridSelectedId
+    expandedIdRef.current = expandedId
+    viewModeRef.current = viewMode
+  })
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (scannerOpenRef.current) {
+        setScannerOpen(false)
+      } else if (confirmDeleteIdRef.current) {
+        setConfirmDeleteId(null)
+      } else if (gridSelectedIdRef.current) {
+        setGridSelectedId(null)
+      } else if (expandedIdRef.current) {
+        setExpandedId(null)
+      } else if (viewModeRef.current !== 'list') {
+        const next = 'list'
+        setViewMode(next)
+        localStorage.setItem('retail_view_mode', next)
+      }
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
   const [scanToast, setScanToast] = useState(null) // { type: 'found'|'not_found', label }
   const toastTimer = useRef(null)
   const searchTimer = useRef(null)
@@ -1210,6 +1260,15 @@ export default function RetailProductsScreen() {
       const found = products.find((item) => item.ean === ean)
       if (found) {
         setSearch('')
+        try {
+          window.history.pushState(
+            { _retailInternal: true },
+            '',
+            window.location.pathname + window.location.search
+          )
+        } catch (e) {
+          /* noop */
+        }
         setExpandedId(found.id)
         setScanToast({
           type: 'found',
@@ -1243,6 +1302,17 @@ export default function RetailProductsScreen() {
 
   const toggleViewMode = useCallback(() => {
     const next = viewMode === 'list' ? 'grid' : 'list'
+    if (next !== 'list') {
+      try {
+        window.history.pushState(
+          { _retailInternal: true },
+          '',
+          window.location.pathname + window.location.search
+        )
+      } catch (e) {
+        /* noop */
+      }
+    }
     setViewMode(next)
     localStorage.setItem('retail_view_mode', next)
   }, [viewMode])
@@ -1267,7 +1337,7 @@ export default function RetailProductsScreen() {
             borderRadius: 14,
             border: 'none',
             background: 'linear-gradient(135deg, #10B981, #059669)',
-            color: '#fff',
+            color: 'var(--text-inverse)',
             fontSize: 14,
             fontWeight: 700,
             fontFamily: 'var(--font-display)',
@@ -1384,7 +1454,18 @@ export default function RetailProductsScreen() {
 
           {/* Scanner */}
           <button
-            onClick={() => setScannerOpen(true)}
+            onClick={() => {
+              try {
+                window.history.pushState(
+                  { _retailInternal: true },
+                  '',
+                  window.location.pathname + window.location.search
+                )
+              } catch (e) {
+                /* noop */
+              }
+              setScannerOpen(true)
+            }}
             style={{
               width: 44,
               height: 44,
@@ -1550,7 +1631,7 @@ export default function RetailProductsScreen() {
         >
           <span
             className="material-symbols-outlined"
-            style={{ fontSize: 20, color: '#fff', flexShrink: 0 }}
+            style={{ fontSize: 20, color: 'var(--text-inverse)', flexShrink: 0 }}
           >
             {scanToast.type === 'found' ? 'check_circle' : 'search_off'}
           </span>
@@ -1605,7 +1686,18 @@ export default function RetailProductsScreen() {
                 priceMutation={priceMutation}
                 stockMutation={stockMutation}
                 setExpandedId={setExpandedId}
-                onDeleteRequest={(id) => setConfirmDeleteId(id)}
+                onDeleteRequest={(id) => {
+                  try {
+                    window.history.pushState(
+                      { _retailInternal: true },
+                      '',
+                      window.location.pathname + window.location.search
+                    )
+                  } catch (e) {
+                    /* noop */
+                  }
+                  setConfirmDeleteId(id)
+                }}
               />
             </div>
           )}
@@ -1644,7 +1736,18 @@ export default function RetailProductsScreen() {
                   <GridCard
                     product={pair.first}
                     tr={p}
-                    onEdit={(prod) => setGridSelectedId(prod.id)}
+                    onEdit={(prod) => {
+                      try {
+                        window.history.pushState(
+                          { _retailInternal: true },
+                          '',
+                          window.location.pathname + window.location.search
+                        )
+                      } catch (e) {
+                        /* noop */
+                      }
+                      setGridSelectedId(prod.id)
+                    }}
                   />
                 </div>
                 {pair.second ? (
@@ -1652,7 +1755,18 @@ export default function RetailProductsScreen() {
                     <GridCard
                       product={pair.second}
                       tr={p}
-                      onEdit={(prod) => setGridSelectedId(prod.id)}
+                      onEdit={(prod) => {
+                        try {
+                          window.history.pushState(
+                            { _retailInternal: true },
+                            '',
+                            window.location.pathname + window.location.search
+                          )
+                        } catch (e) {
+                          /* noop */
+                        }
+                        setGridSelectedId(prod.id)
+                      }}
                     />
                   </div>
                 ) : (
@@ -1696,7 +1810,18 @@ export default function RetailProductsScreen() {
             priceMutation={priceMutation}
             stockMutation={stockMutation}
             onClose={() => setGridSelectedId(null)}
-            onDeleteRequest={(id) => setConfirmDeleteId(id)}
+            onDeleteRequest={(id) => {
+              try {
+                window.history.pushState(
+                  { _retailInternal: true },
+                  '',
+                  window.location.pathname + window.location.search
+                )
+              } catch (e) {
+                /* noop */
+              }
+              setConfirmDeleteId(id)
+            }}
           />
         </>
       )}

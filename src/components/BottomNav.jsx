@@ -51,8 +51,8 @@ export default function BottomNav() {
       icon: (on) =>
         on ? (
           <svg
-            width="22"
-            height="22"
+            width="24"
+            height="24"
             viewBox="0 0 24 24"
             fill="none"
             stroke={col(true)}
@@ -60,7 +60,6 @@ export default function BottomNav() {
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <path d="M0 0h24v24H0z" fill="none" />
             <circle cx="15" cy="15" r="4" fill={col(true)} stroke="none" />
             <path d="M18.5 18.5l2.5 2.5" />
             <path d="M4 6h16" />
@@ -69,8 +68,8 @@ export default function BottomNav() {
           </svg>
         ) : (
           <svg
-            width="22"
-            height="22"
+            width="24"
+            height="24"
             viewBox="0 0 24 24"
             fill="none"
             stroke={col(false)}
@@ -78,7 +77,6 @@ export default function BottomNav() {
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <path d="M0 0h24v24H0z" fill="none" />
             <path d="M11 15a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
             <path d="M18.5 18.5l2.5 2.5" />
             <path d="M4 6h16" />

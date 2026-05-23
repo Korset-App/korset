@@ -1,4 +1,4 @@
-import { parseJson } from './model.js'
+import { normalizeNutrition, parseJson } from './model.js'
 import { buildProductSearchDiagnostics } from './searchDiagnostics.js'
 import { getImageUrl } from '../../utils/imageUrl.js'
 import { enrichQuantity } from '../../utils/parseQuantity.js'
@@ -31,7 +31,7 @@ export function mapSearchRowToProduct(row) {
     packagingType: gp.packaging_type || null,
     fatPercent: gp.fat_percent ?? null,
     nutriscore: gp.nutriscore,
-    nutritionPer100: parseJson(gp.nutriments_json, {}),
+    nutritionPer100: normalizeNutrition(gp.nutriments_json),
     alcohol100g: gp.alcohol_100g ?? null,
     saturatedFat100g: gp.saturated_fat_100g ?? null,
     novaGroup: gp.nova_group ?? null,

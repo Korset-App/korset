@@ -123,9 +123,13 @@
   "product.category": "Категория",
   "product.halalLabel": "Халал",
   "product.manufacturerLabel": "Производитель",
+  "product.countryOfOrigin": "Страна",
+  "product.fatPercent": "Жирность",
   "product.unknownProduct": "Неизвестный товар",
   "product.specWeight": "Вес",
   "product.specStorage": "Хранение",
   "product.specCaloriesPerUnit": "Ккал на штуку",
-  "catalog.globalTitle": "Каталог Körset"
+  "catalog.globalTitle": "Каталог Körset",
+  "catalog.searchError": "Ошибка поиска",
+  "catalog.searchErrorHint": "Показаны локальные результаты"
 }

@@ -434,6 +434,22 @@ export default function SetupProfileScreen() {
     }
   }
 
+  const stepRef = useRef(step)
+
+  useEffect(() => {
+    stepRef.current = step
+  })
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (stepRef.current > 1) {
+        goBack()
+      }
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
+
   const handleNameChange = (event) => {
     const value = event.target.value
     const regex = /^[a-zA-Zа-яА-ЯәіңғүұқөһӘІҢҒҮҰҚӨҺ0-9\s]*$/
@@ -577,6 +593,15 @@ export default function SetupProfileScreen() {
     if (step === 1) {
       if (!canContinueName) return
       setStepDirection('forward')
+      try {
+        window.history.pushState(
+          { _setupStep: true },
+          '',
+          window.location.pathname + window.location.search
+        )
+      } catch (e) {
+        /* noop */
+      }
       setStep(2)
       return
     }

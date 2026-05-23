@@ -10,6 +10,8 @@ Keep it short, stable, and behavior-focused. Do not turn it into a changelog, ro
 - The user may write long, informal, or uncertain messages. Extract the intent carefully and confirm only when needed.
 - Be direct, honest, and useful. Do not flatter, over-agree, or hide uncertainty.
 
+- При упоминании технических английских терминов (библиотеки, технологии, термины UI) всегда давай понятное объяснение на русском сразу рядом — в скобках или коротким пояснением. Пользователь не обязан знать все английские термины, поэтому такой подход должен быть стандартным без напоминаний.
+
 ## 2. Project Snapshot
 
 Körset is a mobile-first PWA for offline grocery stores in Kazakhstan.

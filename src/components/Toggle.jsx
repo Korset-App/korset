@@ -34,7 +34,7 @@ export default function Toggle({ checked, onChange, disabled = false }) {
           width: 18,
           height: 18,
           borderRadius: '50%',
-          background: '#fff',
+          background: 'var(--text-inverse)',
           boxShadow: checked ? '0 2px 6px rgba(0,0,0,0.18)' : '0 1px 3px rgba(0,0,0,0.12)',
           transition: 'left 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.28s ease',
         }}

@@ -775,6 +775,36 @@ export default function LandingScreen() {
 
   const [activeFaq, setActiveFaq] = useState(null)
 
+  const menuOpenRef = useRef(false)
+  const activeFaqRef = useRef(null)
+  const activeFeatureTabRef = useRef(0)
+
+  useEffect(() => {
+    menuOpenRef.current = menuOpen
+  }, [menuOpen])
+
+  useEffect(() => {
+    activeFaqRef.current = activeFaq
+  }, [activeFaq])
+
+  useEffect(() => {
+    activeFeatureTabRef.current = activeFeatureTab
+  }, [activeFeatureTab])
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (menuOpenRef.current) {
+        setMenuOpen(false)
+      } else if (activeFaqRef.current) {
+        setActiveFaq(null)
+      } else if (activeFeatureTabRef.current !== 0) {
+        setActiveFeatureTab(0)
+      }
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
+
   const d = useMemo(
     () => ({
       nav: {
@@ -933,7 +963,10 @@ export default function LandingScreen() {
               className={`lp-burger ${menuOpen ? 'lp-burger--open' : ''}`}
               aria-label="Menu"
               aria-expanded={menuOpen}
-              onClick={() => setMenuOpen((v) => !v)}
+              onClick={() => {
+                if (!menuOpen) window.history.pushState(null, '')
+                setMenuOpen((v) => !v)
+              }}
             >
               <span />
               <span />
@@ -1307,7 +1340,10 @@ export default function LandingScreen() {
                 aria-selected={activeFeatureTab === i}
                 aria-controls={`lp-fpane-${i}`}
                 className={`lp-features__tab${activeFeatureTab === i ? ' lp-features__tab--active' : ''}`}
-                onClick={() => setActiveFeatureTab(i)}
+                onClick={() => {
+                  if (i !== 0) window.history.pushState(null, '')
+                  setActiveFeatureTab(i)
+                }}
               >
                 {card.title}
               </button>
@@ -1511,7 +1547,10 @@ export default function LandingScreen() {
                     <button
                       className="lp-faq__question"
                       aria-expanded={isOpen}
-                      onClick={() => setActiveFaq(isOpen ? null : i)}
+                      onClick={() => {
+                        if (!isOpen) window.history.pushState(null, '')
+                        setActiveFaq(isOpen ? null : i)
+                      }}
                     >
                       <span>{item.q}</span>
                       <ChevronIcon className="lp-faq__chevron" />

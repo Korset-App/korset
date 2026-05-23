@@ -368,3 +368,30 @@ node scripts/check-i18n.mjs
 - Data Moat strategy: `docs/vault/knowledge/data-moat-pipeline-strategy.md`
 - Full audit legacy plan: `docs/vault/plans/audit-full.md`
 - Recent detailed session notes: `docs/vault/changelog/`
+
+---
+
+## 12. Current Product Normalization Focus
+
+Active planning note: `docs/vault/plans/2026-05-23-product-card-normalization-professional-plan.md`.
+Changelog note: `docs/vault/changelog/2026-05-23-product-card-normalization-planning.md`.
+Stage 1 audit: `docs/vault/plans/2026-05-23-product-card-normalization-stage1-audit.md`.
+Stage 1 QA fixture: `tests/fixtures/product-card-normalization-samples.json`.
+Stage 2 changelog: `docs/vault/changelog/2026-05-23-product-card-normalization-stage2.md`.
+Stage 3 changelog: `docs/vault/changelog/2026-05-23-product-card-normalization-stage3.md`.
+Stage 4 changelog: `docs/vault/changelog/2026-05-23-product-card-normalization-stage4.md`.
+Stage 5 changelog: `docs/vault/changelog/2026-05-23-product-card-normalization-stage5.md`.
+Stage 6 changelog: `docs/vault/changelog/2026-05-23-product-card-normalization-stage6.md`.
+Stage 7 changelog: `docs/vault/changelog/2026-05-23-product-card-normalization-stage7.md`.
+
+Before rebuilding Compare, finish the professional ProductScreen/product normalization workstream:
+
+- canonical nutrition mapping for Arbuz keys is fixed: `energy_kcal`, `protein_100g`, `fat_100g`, `carbohydrates_100g` now map to `kcal`, `protein`, `fat`, `carbs`;
+- ProductScreen full-loading contract is centralized in `src/domain/product/productScreenData.js`; stale route-state/full products are ignored and full fetch results are marked with `productScreenFull: true`;
+- ProductScreen characteristics are centralized in `src/domain/product/productSpecs.js`; `specs_json.storage_conditions`, shelf-life aliases, fat percentage, clean subcategory, manufacturer, and country are normalized for display;
+- conservative runtime flavor extraction is implemented in `src/domain/product/attributeExtractor.js`; normalized products keep `flavorMeta`, and ProductScreen shows flavor only when extraction confidence is high;
+- product-aware unit-price visibility is centralized in `src/domain/product/unitPrice.js`; ProductScreen/SpecsGrid show price per 100 g/ml or per unit only when the comparison is useful and quantity is reliable;
+- ProductScreen section visibility/order is centralized in `src/domain/product/productScreenSections.js`; visible facts render as nutrition, ingredients, characteristics, then description, with empty sections hidden;
+- hide missing sections in ProductScreen instead of exposing "not enough data" messages;
+- do not show packaging type, data source, data quality, NOVA group, Nutri-Score, or technical categories;
+- keep product scoring for the later Compare workstream.

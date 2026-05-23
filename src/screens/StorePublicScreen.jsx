@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { useI18n } from '../i18n/index.js'
@@ -35,6 +35,21 @@ export default function StorePublicScreen() {
   const { t } = useI18n()
   const { currentStore: store, isStoreLoading, rememberStore } = useStore()
   const [showFullDesc, setShowFullDesc] = useState(false)
+  const showFullDescRef = useRef(false)
+
+  useEffect(() => {
+    showFullDescRef.current = showFullDesc
+  }, [showFullDesc])
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (showFullDescRef.current) {
+        setShowFullDesc(false)
+      }
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
 
   if (isStoreLoading) {
     return (
@@ -190,7 +205,10 @@ export default function StorePublicScreen() {
             }}
           >
             <button
-              onClick={() => setShowFullDesc((v) => !v)}
+              onClick={() => {
+                if (!showFullDesc) window.history.pushState(null, '')
+                setShowFullDesc((v) => !v)
+              }}
               style={{
                 width: '100%',
                 padding: '14px 16px',

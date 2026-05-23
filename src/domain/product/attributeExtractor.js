@@ -128,6 +128,91 @@ const HALAL_PATTERNS = [
   /\bхаляльн/i,
 ]
 
+const FLAVOR_ENTRIES = [
+  { value: 'Абрикос', variants: ['абрикос', 'өрік'] },
+  { value: 'Апельсин', variants: ['апельсин', 'апельсинов', 'orange'] },
+  { value: 'Банан', variants: ['банан', 'бананов'] },
+  { value: 'Ваниль', variants: ['ваниль', 'ванильн', 'vanilla'] },
+  { value: 'Вишня', variants: ['вишн', 'cherry'] },
+  { value: 'Вяленые томаты', variants: ['вяленые томаты', 'вялеными томатами'] },
+  { value: 'Грибы', variants: ['гриб', 'грибн'] },
+  { value: 'Огурчики и зелень', variants: ['маринованными огурчиками и зеленью'] },
+  { value: 'Зелень', variants: ['зеленью', 'зелень'] },
+  { value: 'Карамель', variants: ['карамел', 'caramel'] },
+  { value: 'Клубника', variants: ['клубнич', 'клубник', 'strawberry'] },
+  { value: 'Кокос', variants: ['кокос', 'coconut'] },
+  { value: 'Крем-брюле', variants: ['крем-брюле', 'крем брюле'] },
+  { value: 'Лимон', variants: ['лимон', 'lemon'] },
+  { value: 'Лосось', variants: ['лосос', 'семг', 'сёмг'] },
+  { value: 'Манго', variants: ['манго', 'mango'] },
+  { value: 'Малина', variants: ['малин', 'raspberry'] },
+  { value: 'Миндаль', variants: ['миндал', 'almond'] },
+  { value: 'Острый перец', variants: ['острый перец', 'перец острый'] },
+  { value: 'Паприка', variants: ['паприк'] },
+  { value: 'Персик', variants: ['персик', 'персиков', 'peach'] },
+  { value: 'Сливочный', variants: ['сливочн'] },
+  { value: 'Сыр', variants: ['сырн', 'сыром', 'сыр'] },
+  { value: 'Томаты', variants: ['томат', 'помидор'] },
+  { value: 'Фундук', variants: ['фундук', 'hazelnut'] },
+  { value: 'Шоколад', variants: ['шоколад', 'chocolate'] },
+  { value: 'Яблоко', variants: ['яблок', 'apple'] },
+]
+
+const AMBIGUOUS_WITH_CATEGORIES = new Set(['deli', 'meat', 'fish', 'ready_meals'])
+const PRODUCT_TYPE_TOKENS = new Set([
+  'сыр',
+  'сыры',
+  'сырок',
+  'сырки',
+  'сырный',
+  'сырные',
+  'масло',
+  'молоко',
+  'сливки',
+  'сливочный',
+  'яйцо',
+  'яйца',
+  'томат',
+  'томаты',
+])
+
+function normalizeFlavorText(value) {
+  if (value === null || value === undefined) return null
+  const trimmed = String(value)
+    .replace(/[«»"“”]/g, '')
+    .replace(/\s+/g, ' ')
+    .replace(/\s+\d+[,.]?\d*\s*(?:г|гр|кг|мл|л|шт|g|kg|ml|l)\b.*$/i, '')
+    .replace(/[,.):;]+$/g, '')
+    .trim()
+  if (!trimmed || trimmed.length < 3 || trimmed.length > 48) return null
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase()
+}
+
+function normalizeSearchText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[«»"“”]/g, ' ')
+    .replace(/[.,;:()[\]{}]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function isProductTypeOnly(value) {
+  const normalized = normalizeSearchText(value)
+  return PRODUCT_TYPE_TOKENS.has(normalized)
+}
+
+function findFlavorEntry(value) {
+  const normalized = normalizeSearchText(value)
+  if (!normalized) return null
+  return FLAVOR_ENTRIES.find((entry) =>
+    entry.variants.some((variant) => {
+      const escaped = variant.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      return new RegExp(`(?:^|\\s)${escaped}[\\p{L}-]*(?=\\s|$)`, 'iu').test(normalized)
+    })
+  )
+}
+
 export function extractPackaging(name) {
   if (!name) return null
   const upper = name.toUpperCase()
@@ -264,6 +349,37 @@ export function extractHalalFromName(name, currentStatus = 'unknown') {
   if (currentStatus === 'no') return 'no'
   if (HALAL_PATTERNS.some((p) => p.test(name))) return 'yes'
   return currentStatus
+}
+
+export function extractFlavorAttribute({ name, category } = {}) {
+  if (!name) return null
+
+  const explicit = name.match(/(?:со\s+вкусом|вкусом|taste\s+of)\s+["«“]?([^",»”;()]+)["»”]?/i)
+  if (explicit) {
+    const value = normalizeFlavorText(explicit[1])
+    if (value && !isProductTypeOnly(value)) {
+      return { value, confidence: 'high', source: 'explicit_flavor_phrase' }
+    }
+  }
+
+  const withMatch = name.match(/(?:^|\s)с\s+([а-яёa-z-]+)(?:\s|,|$)/i)
+  if (withMatch) {
+    const entry = findFlavorEntry(withMatch[1])
+    if (entry) {
+      const confidence = AMBIGUOUS_WITH_CATEGORIES.has(category) ? 'medium' : 'high'
+      return {
+        value: entry.value,
+        confidence,
+        source: confidence === 'high' ? 'with_known_flavor' : 'ambiguous_with_known_flavor',
+      }
+    }
+  }
+
+  const entry = findFlavorEntry(name)
+  if (!entry) return null
+  if (isProductTypeOnly(entry.value) && !(category === 'snacks' && entry.value === 'Сыр'))
+    return null
+  return { value: entry.value, confidence: 'high', source: 'known_flavor_token' }
 }
 
 export function extractAllAttributes({ name, category, halalStatus, dietTags }) {

@@ -986,7 +986,7 @@ export default function AuthScreen() {
                     color: 'var(--text)',
                     padding: 14,
                     borderRadius: 14,
-                    fontSize: 14,
+                    fontSize: 16,
                     fontWeight: 500,
                     fontFamily: 'var(--font-display)',
                     cursor: googleLoading ? 'default' : 'pointer',

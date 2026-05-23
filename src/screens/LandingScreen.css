@@ -1,4 +1,4 @@
-@import './landing/landing-tokens.css';
+﻿@import './landing/landing-tokens.css';
 
 /* в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ
    LANDING V3 вЂ” Premium Dark
@@ -343,6 +343,7 @@
   inset: var(--lp-header-h) 0 0 0;
   z-index: 55;
   padding: clamp(24px, 6vw, 48px);
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   background: rgba(10, 10, 18, 0.94);
   backdrop-filter: blur(28px) saturate(160%);
   -webkit-backdrop-filter: blur(28px) saturate(160%);

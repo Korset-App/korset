@@ -1,0 +1,923 @@
+{
+  "generatedAt": "2026-05-23T11:50:57.173Z",
+  "store": {
+    "id": "cebbe5fe-0512-4b24-96c9-3af7c948b3a4",
+    "code": "store-one",
+    "name": "MARS"
+  },
+  "coverage": {
+    "total": 10222,
+    "ingredients": 8905,
+    "description": 5451,
+    "anyNutrition": 8364,
+    "fullMainNutrition": 6289,
+    "legacyNutritionKeyGap": 8193,
+    "energyKcal": 8172,
+    "protein100g": 6972,
+    "fat100g": 6883,
+    "carbohydrates100g": 7405,
+    "sugarAny": 145,
+    "saltAny": 129,
+    "storageConditions": 2175,
+    "storage": 0,
+    "fatPercent": 1158,
+    "packagingType": 203,
+    "nutritionImage": 0,
+    "ingredientsImage": 0
+  },
+  "samples": [
+    {
+      "id": "nutrition_full_arbuz_keys",
+      "reason": "КБЖУ есть в Arbuz-style ключах; карточка должна показать калории/белки/жиры/углеводы.",
+      "ean": "4870265540056",
+      "name": "Яйцо Казгер-Құс куриное, премиум, в лотке 20 шт",
+      "brand": "Казгер-Құс",
+      "category": "dairy_eggs",
+      "subcategory": "eggs",
+      "quantity": "30 шт",
+      "priceKzt": 650,
+      "bucket": "general",
+      "facts": {
+        "hasDescription": false,
+        "hasIngredients": true,
+        "hasNutrition": true,
+        "hasFullMainNutrition": true,
+        "legacyNutritionKeyGap": true,
+        "nutritionKeysPresent": {
+          "energy": true,
+          "protein": true,
+          "fat": true,
+          "carbs": true,
+          "sugar": false,
+          "salt": false
+        },
+        "hasStorageConditions": true,
+        "storageKey": "storage_conditions",
+        "hasFatPercent": false,
+        "hasPackagingType": false,
+        "hasNutriscore": false,
+        "hasNutritionImage": false,
+        "hasIngredientsImage": false
+      },
+      "expectations": {
+        "showNutrition": true,
+        "showSugarSaltOnlyIfPresent": true
+      }
+    },
+    {
+      "id": "nutrition_partial_hide_missing",
+      "reason": "Частичное КБЖУ; карточка должна показать только надёжные значения и не выглядеть пустой.",
+      "ean": "4602481005060",
+      "name": "Чечил SnekOFF паутинка сливочная, 100 г",
+      "brand": "SnekOFF",
+      "category": "dairy_eggs",
+      "subcategory": "cheese",
+      "quantity": null,
+      "priceKzt": 750,
+      "bucket": "dairy_flavored_candidates",
+      "facts": {
+        "hasDescription": false,
+        "hasIngredients": true,
+        "hasNutrition": true,
+        "hasFullMainNutrition": false,
+        "legacyNutritionKeyGap": true,
+        "nutritionKeysPresent": {
+          "energy": true,
+          "protein": true,
+          "fat": true,
+          "carbs": false,
+          "sugar": false,
+          "salt": false
+        },
+        "hasStorageConditions": true,
+        "storageKey": "storage_conditions",
+        "hasFatPercent": false,
+        "hasPackagingType": false,
+        "hasNutriscore": false,
+        "hasNutritionImage": false,
+        "hasIngredientsImage": false
+      },
+      "expectations": {
+        "showNutritionIfAnyMainValue": true,
+        "hideMissingNutritionRows": true
+      }
+    },
+    {
+      "id": "no_nutrition_hide_section",
+      "reason": "Нет КБЖУ; карточка должна скрыть блок питания.",
+      "ean": "4014400901412",
+      "name": "Конфеты Merci апельсин и миндаль 100 г",
+      "brand": "Merci",
+      "category": "sweets",
+      "subcategory": "candy",
+      "quantity": "шт",
+      "priceKzt": 550,
+      "bucket": "sweets",
+      "facts": {
+        "hasDescription": true,
+        "hasIngredients": true,
+        "hasNutrition": false,
+        "hasFullMainNutrition": false,
+        "legacyNutritionKeyGap": false,
+        "nutritionKeysPresent": {
+          "energy": false,
+          "protein": false,
+          "fat": false,
+          "carbs": false,
+          "sugar": false,
+          "salt": false
+        },
+        "hasStorageConditions": false,
+        "storageKey": null,
+        "hasFatPercent": false,
+        "hasPackagingType": false,
+        "hasNutriscore": false,
+        "hasNutritionImage": false,
+        "hasIngredientsImage": false
+      },
+      "expectations": {
+        "showNutrition": false
+      }
+    },
+    {
+      "id": "ingredients_without_description",
+      "reason": "Есть состав, но нет описания; карточка должна показать состав и скрыть описание.",
+      "ean": "2500100067609",
+      "name": "Яйца Foodz куриные фермерские/домашние 10 шт",
+      "brand": "Foodz",
+      "category": "dairy_eggs",
+      "subcategory": "eggs",
+      "quantity": null,
+      "priceKzt": 600,
+      "bucket": "general",
+      "facts": {
+        "hasDescription": false,
+        "hasIngredients": true,
+        "hasNutrition": true,
+        "hasFullMainNutrition": true,
+        "legacyNutritionKeyGap": true,
+        "nutritionKeysPresent": {
+          "energy": true,
+          "protein": true,
+          "fat": true,
+          "carbs": true,
+          "sugar": false,
+          "salt": false
+        },
+        "hasStorageConditions": false,
+        "storageKey": null,
+        "hasFatPercent": false,
+        "hasPackagingType": false,
+        "hasNutriscore": false,
+        "hasNutritionImage": false,
+        "hasIngredientsImage": false
+      },
+      "expectations": {
+        "showIngredients": true,
+        "showDescription": false
+      }
+    },
+    {
+      "id": "description_and_ingredients",
+      "reason": "Есть описание и состав; карточка должна показать оба блока в правильном порядке.",
+      "ean": "2029896000015",
+      "name": "Яйца Птицыно-Курицыно фермерские, перепелиные 20 шт",
+      "brand": "Птицыно-Курицыно",
+      "category": "dairy_eggs",
+      "subcategory": "eggs",
+      "quantity": "шт",
+      "priceKzt": 900,
+      "bucket": "general",
+      "facts": {
+        "hasDescription": true,
+        "hasIngredients": true,
+        "hasNutrition": true,
+        "hasFullMainNutrition": true,
+        "legacyNutritionKeyGap": true,
+        "nutritionKeysPresent": {
+          "energy": true,
+          "protein": true,
+          "fat": true,
+          "carbs": true,
+          "sugar": false,
+          "salt": false
+        },
+        "hasStorageConditions": true,
+        "storageKey": "storage_conditions",
+        "hasFatPercent": false,
+        "hasPackagingType": false,
+        "hasNutriscore": false,
+        "hasNutritionImage": false,
+        "hasIngredientsImage": false
+      },
+      "expectations": {
+        "showIngredients": true,
+        "showDescription": true
+      }
+    },
+    {
+      "id": "storage_conditions_mapping",
+      "reason": "Условия хранения лежат в specs_json.storage_conditions; карточка должна показать их как хранение.",
+      "ean": "4870214160151",
+      "name": "Яйцо QarQus первая категория 10 шт",
+      "brand": "QarQus",
+      "category": "dairy_eggs",
+      "subcategory": "eggs",
+      "quantity": null,
+      "priceKzt": 800,
+      "bucket": "general",
+      "facts": {
+        "hasDescription": false,
+        "hasIngredients": true,
+        "hasNutrition": true,
+        "hasFullMainNutrition": true,
+        "legacyNutritionKeyGap": true,
+        "nutritionKeysPresent": {
+          "energy": true,
+          "protein": true,
+          "fat": true,
+          "carbs": true,
+          "sugar": false,
+          "salt": false
+        },
+        "hasStorageConditions": true,
+        "storageKey": "storage_conditions",
+        "hasFatPercent": false,
+        "hasPackagingType": false,
+        "hasNutriscore": false,
+        "hasNutritionImage": false,
+        "hasIngredientsImage": false
+      },
+      "expectations": {
+        "showStorage": true
+      }
+    },
+    {
+      "id": "fat_percent_characteristic",
+      "reason": "Жирность уже извлечена; карточка должна показать её как характеристику, если применимо.",
+      "ean": "4870007497691",
+      "name": "Молоко Mileo 2,5 %, 1 л",
+      "brand": "Mileo",
+      "category": "dairy_eggs",
+      "subcategory": "milk",
+      "quantity": null,
+      "priceKzt": 550,
+      "bucket": "milk_kefir_sour_cream",
+      "facts": {
+        "hasDescription": false,
+        "hasIngredients": true,
+        "hasNutrition": false,
+        "hasFullMainNutrition": false,
+        "legacyNutritionKeyGap": false,
+        "nutritionKeysPresent": {
+          "energy": false,
+          "protein": false,
+          "fat": false,
+          "carbs": false,
+          "sugar": false,
+          "salt": false
+        },
+        "hasStorageConditions": true,
+        "storageKey": "storage_conditions",
+        "hasFatPercent": true,
+        "hasPackagingType": false,
+        "hasNutriscore": false,
+        "hasNutritionImage": false,
+        "hasIngredientsImage": false
+      },
+      "expectations": {
+        "showFatPercent": true
+      }
+    },
+    {
+      "id": "packaging_internal_only",
+      "reason": "Тип упаковки есть, но по решению владельца не должен показываться в карточке.",
+      "ean": "4870207510154",
+      "name": "Вода Samal негазированная стекло 0,5 л",
+      "brand": "Samal",
+      "category": "water_beverages",
+      "subcategory": "water",
+      "quantity": null,
+      "priceKzt": 350,
+      "bucket": "drinks",
+      "facts": {
+        "hasDescription": false,
+        "hasIngredients": true,
+        "hasNutrition": false,
+        "hasFullMainNutrition": false,
+        "legacyNutritionKeyGap": false,
+        "nutritionKeysPresent": {
+          "energy": false,
+          "protein": false,
+          "fat": false,
+          "carbs": false,
+          "sugar": false,
+          "salt": false
+        },
+        "hasStorageConditions": false,
+        "storageKey": null,
+        "hasFatPercent": false,
+        "hasPackagingType": true,
+        "hasNutriscore": false,
+        "hasNutritionImage": false,
+        "hasIngredientsImage": false
+      },
+      "expectations": {
+        "showPackagingType": false
+      }
+    },
+    {
+      "id": "flavor_candidate_dairy",
+      "reason": "Кандидат на вкус в молочном/десертном продукте.",
+      "ean": "4607023239309",
+      "name": "Сыр Тысяча Озёр творожный с лососем, 140 г",
+      "brand": "Тысяча Озёр",
+      "category": "dairy_eggs",
+      "subcategory": "cheese",
+      "quantity": null,
+      "priceKzt": 450,
+      "bucket": "dairy_flavored_candidates",
+      "facts": {
+        "hasDescription": false,
+        "hasIngredients": true,
+        "hasNutrition": true,
+        "hasFullMainNutrition": true,
+        "legacyNutritionKeyGap": true,
+        "nutritionKeysPresent": {
+          "energy": true,
+          "protein": true,
+          "fat": true,
+          "carbs": true,
+          "sugar": false,
+          "salt": false
+        },
+        "hasStorageConditions": true,
+        "storageKey": "storage_conditions",
+        "hasFatPercent": false,
+        "hasPackagingType": false,
+        "hasNutriscore": false,
+        "hasNutritionImage": false,
+        "hasIngredientsImage": false
+      },
+      "expectations": {
+        "showFlavorIfHighConfidence": true
+      }
+    },
+    {
+      "id": "flavor_candidate_drink",
+      "reason": "Кандидат на вкус в напитках.",
+      "ean": "2020658602812",
+      "name": "Напиток Adrenaline тонизирующий апельсин 250 мл",
+      "brand": "Adrenaline Rush",
+      "category": "water_beverages",
+      "subcategory": "energy",
+      "quantity": "шт",
+      "priceKzt": 350,
+      "bucket": "drinks",
+      "facts": {
+        "hasDescription": true,
+        "hasIngredients": true,
+        "hasNutrition": true,
+        "hasFullMainNutrition": false,
+        "legacyNutritionKeyGap": true,
+        "nutritionKeysPresent": {
+          "energy": true,
+          "protein": true,
+          "fat": false,
+          "carbs": true,
+          "sugar": false,
+          "salt": false
+        },
+        "hasStorageConditions": false,
+        "storageKey": null,
+        "hasFatPercent": false,
+        "hasPackagingType": false,
+        "hasNutriscore": false,
+        "hasNutritionImage": false,
+        "hasIngredientsImage": false
+      },
+      "expectations": {
+        "showFlavorIfHighConfidence": true
+      }
+    },
+    {
+      "id": "flavor_candidate_sweets",
+      "reason": "Кандидат на вкус в сладостях.",
+      "ean": "7622201751623",
+      "name": "Крекер соленый TuC Паприка, 100 г",
+      "brand": "TuC",
+      "category": "sweets",
+      "subcategory": "cookies",
+      "quantity": "шт",
+      "priceKzt": 1050,
+      "bucket": "sweets",
+      "facts": {
+        "hasDescription": true,
+        "hasIngredients": true,
+        "hasNutrition": true,
+        "hasFullMainNutrition": true,
+        "legacyNutritionKeyGap": true,
+        "nutritionKeysPresent": {
+          "energy": true,
+          "protein": true,
+          "fat": true,
+          "carbs": true,
+          "sugar": false,
+          "salt": false
+        },
+        "hasStorageConditions": false,
+        "storageKey": null,
+        "hasFatPercent": false,
+        "hasPackagingType": false,
+        "hasNutriscore": false,
+        "hasNutritionImage": false,
+        "hasIngredientsImage": false
+      },
+      "expectations": {
+        "showFlavorIfHighConfidence": true
+      }
+    },
+    {
+      "id": "flavor_candidate_snacks",
+      "reason": "Кандидат на вкус в снеках.",
+      "ean": "4690388123291",
+      "name": "Сухарики Хрусteam барная коллекция сырные палочки 140 г",
+      "brand": "Хрусteam",
+      "category": "snacks",
+      "subcategory": "crackers",
+      "quantity": "шт",
+      "priceKzt": 800,
+      "bucket": "chips_snacks",
+      "facts": {
+        "hasDescription": false,
+        "hasIngredients": true,
+        "hasNutrition": true,
+        "hasFullMainNutrition": true,
+        "legacyNutritionKeyGap": true,
+        "nutritionKeysPresent": {
+          "energy": true,
+          "protein": true,
+          "fat": true,
+          "carbs": true,
+          "sugar": false,
+          "salt": false
+        },
+        "hasStorageConditions": false,
+        "storageKey": null,
+        "hasFatPercent": false,
+        "hasPackagingType": false,
+        "hasNutriscore": false,
+        "hasNutritionImage": false,
+        "hasIngredientsImage": false
+      },
+      "expectations": {
+        "showFlavorIfHighConfidence": true
+      }
+    },
+    {
+      "id": "no_flavor_control",
+      "reason": "Контрольный товар без вкуса; карточка не должна придумывать вкус.",
+      "ean": "4640604170028",
+      "name": "Яйцо Казгер-Құс С1 куриное, в лотке 30 шт",
+      "brand": "Казгер-Құс",
+      "category": "dairy_eggs",
+      "subcategory": "eggs",
+      "quantity": null,
+      "priceKzt": 450,
+      "bucket": "general",
+      "facts": {
+        "hasDescription": false,
+        "hasIngredients": true,
+        "hasNutrition": true,
+        "hasFullMainNutrition": true,
+        "legacyNutritionKeyGap": true,
+        "nutritionKeysPresent": {
+          "energy": true,
+          "protein": true,
+          "fat": true,
+          "carbs": true,
+          "sugar": false,
+          "salt": false
+        },
+        "hasStorageConditions": true,
+        "storageKey": "storage_conditions",
+        "hasFatPercent": false,
+        "hasPackagingType": false,
+        "hasNutriscore": false,
+        "hasNutritionImage": false,
+        "hasIngredientsImage": false
+      },
+      "expectations": {
+        "showFlavor": false
+      }
+    },
+    {
+      "id": "unit_price_review_weight_volume",
+      "reason": "Цена за 100 г/мл должна пройти правила уместности.",
+      "ean": "2000000335612",
+      "name": "DORITOS mexic.s.190 г",
+      "brand": "Doritos",
+      "category": "snacks",
+      "subcategory": null,
+      "quantity": "180 g",
+      "priceKzt": 900,
+      "bucket": "chips_snacks",
+      "facts": {
+        "hasDescription": false,
+        "hasIngredients": true,
+        "hasNutrition": true,
+        "hasFullMainNutrition": true,
+        "legacyNutritionKeyGap": false,
+        "nutritionKeysPresent": {
+          "energy": true,
+          "protein": true,
+          "fat": true,
+          "carbs": true,
+          "sugar": true,
+          "salt": true
+        },
+        "hasStorageConditions": false,
+        "storageKey": null,
+        "hasFatPercent": false,
+        "hasPackagingType": false,
+        "hasNutriscore": true,
+        "hasNutritionImage": false,
+        "hasIngredientsImage": false
+      },
+      "expectations": {
+        "reviewUnitPriceVisibility": true
+      }
+    },
+    {
+      "id": "nutrition_sugar_or_salt_present",
+      "reason": "Редкий случай, где сахар или соль реально есть; карточка должна показать только присутствующие показатели.",
+      "ean": "8690624203820",
+      "name": "Чипсы DORITOS Перец Острый 70 г",
+      "brand": "Doritos",
+      "category": "snacks",
+      "subcategory": null,
+      "quantity": "70 г",
+      "priceKzt": 800,
+      "bucket": "chips_snacks",
+      "facts": {
+        "hasDescription": false,
+        "hasIngredients": true,
+        "hasNutrition": true,
+        "hasFullMainNutrition": true,
+        "legacyNutritionKeyGap": false,
+        "nutritionKeysPresent": {
+          "energy": true,
+          "protein": true,
+          "fat": true,
+          "carbs": true,
+          "sugar": true,
+          "salt": true
+        },
+        "hasStorageConditions": false,
+        "storageKey": null,
+        "hasFatPercent": false,
+        "hasPackagingType": false,
+        "hasNutriscore": true,
+        "hasNutritionImage": false,
+        "hasIngredientsImage": false
+      },
+      "expectations": {
+        "showSugarSaltOnlyIfPresent": true
+      }
+    },
+    {
+      "id": "bucket_yogurt_or_curd",
+      "reason": "Категорийный контроль: йогурт/сырок/творожный десерт.",
+      "ean": "4600493813208",
+      "name": "Сыр Тысяча Озёр творожный с маринованными огурчиками и зеленью, 140 г",
+      "brand": "Тысяча Озёр",
+      "category": "dairy_eggs",
+      "subcategory": "cheese",
+      "quantity": null,
+      "priceKzt": 900,
+      "bucket": "dairy_flavored_candidates",
+      "facts": {
+        "hasDescription": false,
+        "hasIngredients": true,
+        "hasNutrition": true,
+        "hasFullMainNutrition": true,
+        "legacyNutritionKeyGap": true,
+        "nutritionKeysPresent": {
+          "energy": true,
+          "protein": true,
+          "fat": true,
+          "carbs": true,
+          "sugar": false,
+          "salt": false
+        },
+        "hasStorageConditions": true,
+        "storageKey": "storage_conditions",
+        "hasFatPercent": false,
+        "hasPackagingType": false,
+        "hasNutriscore": false,
+        "hasNutritionImage": false,
+        "hasIngredientsImage": false
+      },
+      "expectations": {
+        "reviewProductCardSections": true
+      }
+    },
+    {
+      "id": "bucket_milk_kefir_sour_cream",
+      "reason": "Категорийный контроль: молоко/кефир/сметана/сливки.",
+      "ean": "4606779743801",
+      "name": "ПУДИНГ EHRMANN ЭРМИГУРТ КАРАМЕЛЬНЫЙ 3 0 % 100 г СТАК карам",
+      "brand": "Ehrmann",
+      "category": "dairy_eggs",
+      "subcategory": "cream",
+      "quantity": "шт",
+      "priceKzt": 450,
+      "bucket": "milk_kefir_sour_cream",
+      "facts": {
+        "hasDescription": true,
+        "hasIngredients": true,
+        "hasNutrition": true,
+        "hasFullMainNutrition": true,
+        "legacyNutritionKeyGap": true,
+        "nutritionKeysPresent": {
+          "energy": true,
+          "protein": true,
+          "fat": true,
+          "carbs": true,
+          "sugar": false,
+          "salt": false
+        },
+        "hasStorageConditions": false,
+        "storageKey": null,
+        "hasFatPercent": false,
+        "hasPackagingType": false,
+        "hasNutriscore": false,
+        "hasNutritionImage": false,
+        "hasIngredientsImage": false
+      },
+      "expectations": {
+        "reviewProductCardSections": true
+      }
+    },
+    {
+      "id": "bucket_drinks",
+      "reason": "Категорийный контроль: напитки.",
+      "ean": "4650075422199",
+      "name": "МОЯ СЕМЬЯ 950 мл яйц",
+      "brand": "Моя семья",
+      "category": "water_beverages",
+      "subcategory": "juice",
+      "quantity": "шт",
+      "priceKzt": 500,
+      "bucket": "drinks",
+      "facts": {
+        "hasDescription": true,
+        "hasIngredients": true,
+        "hasNutrition": true,
+        "hasFullMainNutrition": false,
+        "legacyNutritionKeyGap": true,
+        "nutritionKeysPresent": {
+          "energy": true,
+          "protein": false,
+          "fat": false,
+          "carbs": true,
+          "sugar": false,
+          "salt": false
+        },
+        "hasStorageConditions": false,
+        "storageKey": null,
+        "hasFatPercent": false,
+        "hasPackagingType": false,
+        "hasNutriscore": false,
+        "hasNutritionImage": false,
+        "hasIngredientsImage": false
+      },
+      "expectations": {
+        "reviewProductCardSections": true
+      }
+    },
+    {
+      "id": "bucket_sweets",
+      "reason": "Категорийный контроль: сладости/печенье/шоколад.",
+      "ean": "4870003820303",
+      "name": "Десерт Шоколадный пудинг Sweet bliss, 225 г",
+      "brand": "Sweet bliss",
+      "category": "sweets",
+      "subcategory": "pastries",
+      "quantity": "шт",
+      "priceKzt": 1150,
+      "bucket": "sweets",
+      "facts": {
+        "hasDescription": true,
+        "hasIngredients": true,
+        "hasNutrition": true,
+        "hasFullMainNutrition": true,
+        "legacyNutritionKeyGap": true,
+        "nutritionKeysPresent": {
+          "energy": true,
+          "protein": true,
+          "fat": true,
+          "carbs": true,
+          "sugar": false,
+          "salt": false
+        },
+        "hasStorageConditions": false,
+        "storageKey": null,
+        "hasFatPercent": false,
+        "hasPackagingType": false,
+        "hasNutriscore": false,
+        "hasNutritionImage": false,
+        "hasIngredientsImage": false
+      },
+      "expectations": {
+        "reviewProductCardSections": true
+      }
+    },
+    {
+      "id": "bucket_snacks",
+      "reason": "Категорийный контроль: чипсы/снеки/сухарики.",
+      "ean": "4660298503605",
+      "name": "ТМ BOMBBAR Кукурузные палочки протеиновые со вкусом \"Вяленые томаты\" 60 г",
+      "brand": "Bombbar",
+      "category": "snacks",
+      "subcategory": "chips",
+      "quantity": "шт",
+      "priceKzt": 1050,
+      "bucket": "chips_snacks",
+      "facts": {
+        "hasDescription": true,
+        "hasIngredients": true,
+        "hasNutrition": true,
+        "hasFullMainNutrition": true,
+        "legacyNutritionKeyGap": true,
+        "nutritionKeysPresent": {
+          "energy": true,
+          "protein": true,
+          "fat": true,
+          "carbs": true,
+          "sugar": false,
+          "salt": false
+        },
+        "hasStorageConditions": false,
+        "storageKey": null,
+        "hasFatPercent": false,
+        "hasPackagingType": false,
+        "hasNutriscore": false,
+        "hasNutritionImage": false,
+        "hasIngredientsImage": false
+      },
+      "expectations": {
+        "reviewProductCardSections": true
+      }
+    },
+    {
+      "id": "bucket_ice_cream",
+      "reason": "Категорийный контроль: мороженое.",
+      "ean": "4870144000596",
+      "name": "Мороженое Деп крем-брюле, в вафельном стакане 60 г",
+      "brand": "Деп",
+      "category": "frozen",
+      "subcategory": "ice_cream",
+      "quantity": null,
+      "priceKzt": 600,
+      "bucket": "ice_cream",
+      "facts": {
+        "hasDescription": false,
+        "hasIngredients": true,
+        "hasNutrition": true,
+        "hasFullMainNutrition": true,
+        "legacyNutritionKeyGap": true,
+        "nutritionKeysPresent": {
+          "energy": true,
+          "protein": true,
+          "fat": true,
+          "carbs": true,
+          "sugar": false,
+          "salt": false
+        },
+        "hasStorageConditions": true,
+        "storageKey": "storage_conditions",
+        "hasFatPercent": false,
+        "hasPackagingType": false,
+        "hasNutriscore": false,
+        "hasNutritionImage": false,
+        "hasIngredientsImage": false
+      },
+      "expectations": {
+        "reviewProductCardSections": true
+      }
+    },
+    {
+      "id": "bucket_sauces_spices",
+      "reason": "Категорийный контроль: соусы/специи, где цена за 100 г часто может выглядеть спорно.",
+      "ean": "4606260001793",
+      "name": "Горчица столовая Русский Аппетит, 120 г",
+      "brand": "Русский Аппетит",
+      "category": "sauces_spices",
+      "subcategory": "sauce",
+      "quantity": "шт",
+      "priceKzt": 1200,
+      "bucket": "sauces_spices",
+      "facts": {
+        "hasDescription": true,
+        "hasIngredients": true,
+        "hasNutrition": true,
+        "hasFullMainNutrition": true,
+        "legacyNutritionKeyGap": true,
+        "nutritionKeysPresent": {
+          "energy": true,
+          "protein": true,
+          "fat": true,
+          "carbs": true,
+          "sugar": false,
+          "salt": false
+        },
+        "hasStorageConditions": false,
+        "storageKey": null,
+        "hasFatPercent": false,
+        "hasPackagingType": false,
+        "hasNutriscore": false,
+        "hasNutritionImage": false,
+        "hasIngredientsImage": false
+      },
+      "expectations": {
+        "reviewProductCardSections": true,
+        "reviewUnitPriceVisibility": true
+      }
+    },
+    {
+      "id": "bucket_dry_grocery",
+      "reason": "Категорийный контроль: бакалея.",
+      "ean": "4870091001752",
+      "name": "Макароны Перья Султан, 1,6 кг",
+      "brand": "Султан",
+      "category": "grocery",
+      "subcategory": "pasta",
+      "quantity": "шт",
+      "priceKzt": 300,
+      "bucket": "dry_grocery",
+      "facts": {
+        "hasDescription": true,
+        "hasIngredients": true,
+        "hasNutrition": true,
+        "hasFullMainNutrition": true,
+        "legacyNutritionKeyGap": true,
+        "nutritionKeysPresent": {
+          "energy": true,
+          "protein": true,
+          "fat": true,
+          "carbs": true,
+          "sugar": false,
+          "salt": false
+        },
+        "hasStorageConditions": false,
+        "storageKey": null,
+        "hasFatPercent": false,
+        "hasPackagingType": false,
+        "hasNutriscore": false,
+        "hasNutritionImage": false,
+        "hasIngredientsImage": false
+      },
+      "expectations": {
+        "reviewProductCardSections": true
+      }
+    },
+    {
+      "id": "ambiguous_flavor_control",
+      "reason": "Неоднозначное название: возможный вкус/тип продукта нужно показывать только при высокой уверенности.",
+      "ean": "4630018742195",
+      "name": "Сосиски Bizhan с сыром, 440 г",
+      "brand": "Bizhan",
+      "category": "deli",
+      "subcategory": "sausage",
+      "quantity": null,
+      "priceKzt": 1200,
+      "bucket": "general",
+      "facts": {
+        "hasDescription": false,
+        "hasIngredients": true,
+        "hasNutrition": true,
+        "hasFullMainNutrition": false,
+        "legacyNutritionKeyGap": true,
+        "nutritionKeysPresent": {
+          "energy": true,
+          "protein": true,
+          "fat": true,
+          "carbs": false,
+          "sugar": false,
+          "salt": false
+        },
+        "hasStorageConditions": true,
+        "storageKey": "storage_conditions",
+        "hasFatPercent": false,
+        "hasPackagingType": false,
+        "hasNutriscore": false,
+        "hasNutritionImage": false,
+        "hasIngredientsImage": false
+      },
+      "expectations": {
+        "showFlavorOnlyIfHighConfidence": true
+      }
+    }
+  ]
+}

@@ -240,6 +240,14 @@ test('PKU + high protein (>20g) → warning', () => {
   assert.equal(r.verdict, 'warning')
 })
 
+test('PKU + raw Arbuz protein_100g (>20g) → warning', () => {
+  const r = checkProductFit(
+    baseProduct({ nutritionPer100: null, nutriments_json: { protein_100g: 25 } }),
+    baseProfile({ healthConditions: ['pku'] })
+  )
+  assert.equal(r.verdict, 'warning')
+})
+
 test('PKU + low protein, no aspartame → safe', () => {
   const r = checkProductFit(
     baseProduct({ nutritionPer100: { protein: 3 } }),
