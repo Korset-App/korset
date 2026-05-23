@@ -169,6 +169,10 @@ export function setupBot() {
     await handleUserText(ctx)
   })
 
+  b.catch((err) => {
+    console.error('[bot] Unhandled error:', err?.message || err, err?.stack || '')
+  })
+
   return b
 }
 
