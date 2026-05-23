@@ -1531,7 +1531,7 @@ export default function LandingScreen() {
                 Остались вопросы? Напишите нам в Telegram, и мы поможем.
               </p>
               <a
-                href="https://t.me/korset_app"
+                href="https://t.me/korset_support_bot"
                 target="_blank"
                 rel="noreferrer"
                 className="lp-btn lp-btn--ghost"

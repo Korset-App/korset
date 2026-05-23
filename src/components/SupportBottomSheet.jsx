@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useI18n } from '../i18n/index.js'
 
-const TELEGRAM_URL = 'https://t.me/korset_support'
+const TELEGRAM_URL = 'https://t.me/korset_support_bot'
 
 export default function SupportBottomSheet({ open, onClose }) {
   const { t } = useI18n()
