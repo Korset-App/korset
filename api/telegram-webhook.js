@@ -1,10 +1,6 @@
-import { webhookCallback } from 'grammy'
 import { setupBot, getBot } from '../src/telegram-bot/bot.js'
 
 const bot = setupBot()
-const webhookHandler = webhookCallback(bot, 'http', {
-  timeoutMilliseconds: 9000,
-})
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
@@ -25,9 +21,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    await webhookHandler(req, res)
+    await bot.handleUpdate(req.body)
+    res.status(200).end()
   } catch (err) {
-    console.error('[telegram-webhook] Error:', err?.message || err)
+    console.error('[telegram-webhook] Error:', err?.message || err?.stack || err)
     res.status(200).end()
   }
 }
