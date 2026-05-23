@@ -133,6 +133,7 @@ Infrastructure:
 - Offline app shell, IndexedDB catalog cache, pending scan queue, OfflineBanner.
 - RAG memory через Supabase pgvector и `docs/vault/`.
 - Dark/light themes через semantic CSS tokens.
+- Telegram Support Bot (@korset_support_bot): `api/telegram-webhook.js`, Supabase `support_tickets`/`support_messages`, RU/KZ i18n. Raw Telegram API (без grammy). Spec: `docs/vault/plans/2026-05-23-telegram-support-bot-spec.md`.
 
 ---
 
@@ -383,6 +384,10 @@ Stage 4 changelog: `docs/vault/changelog/2026-05-23-product-card-normalization-s
 Stage 5 changelog: `docs/vault/changelog/2026-05-23-product-card-normalization-stage5.md`.
 Stage 6 changelog: `docs/vault/changelog/2026-05-23-product-card-normalization-stage6.md`.
 Stage 7 changelog: `docs/vault/changelog/2026-05-23-product-card-normalization-stage7.md`.
+Stage 8 QA report: `docs/vault/plans/2026-05-24-product-card-normalization-stage8-qa.md`.
+Stage 8 changelog: `docs/vault/changelog/2026-05-24-product-card-normalization-stage8.md`.
+Stage 9 Compare readiness: `docs/vault/plans/2026-05-24-product-card-normalization-stage9-compare-readiness.md`.
+Stage 9 changelog: `docs/vault/changelog/2026-05-24-product-card-normalization-stage9.md`.
 
 Before rebuilding Compare, finish the professional ProductScreen/product normalization workstream:
 
@@ -392,6 +397,8 @@ Before rebuilding Compare, finish the professional ProductScreen/product normali
 - conservative runtime flavor extraction is implemented in `src/domain/product/attributeExtractor.js`; normalized products keep `flavorMeta`, and ProductScreen shows flavor only when extraction confidence is high;
 - product-aware unit-price visibility is centralized in `src/domain/product/unitPrice.js`; ProductScreen/SpecsGrid show price per 100 g/ml or per unit only when the comparison is useful and quantity is reliable;
 - ProductScreen section visibility/order is centralized in `src/domain/product/productScreenSections.js`; visible facts render as nutrition, ingredients, characteristics, then description, with empty sections hidden;
+- Stage 8 fixture QA passed 24/24 on real MARS/store-one samples; flavor extraction was tuned for `апельсин и миндаль` and `Огурчики и зелень`;
+- Stage 9 Compare readiness handoff is complete: future Compare can trust normalized nutrition, ingredients, safety signals, halal status, fat percentage, high-confidence flavor, storage/shelf-life, manufacturer/country, category, parsed quantity, shared unit-price helper output, and direct price; latest targeted verification passed 61/61 unit tests plus targeted ESLint;
 - hide missing sections in ProductScreen instead of exposing "not enough data" messages;
 - do not show packaging type, data source, data quality, NOVA group, Nutri-Score, or technical categories;
 - keep product scoring for the later Compare workstream.
