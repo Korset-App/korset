@@ -16,7 +16,9 @@ export default function RetailBottomNav() {
   }
 
   const active = getActive()
-  const storeSlug = currentStore?.slug || 'store-one'
+  const storeSlug = currentStore?.slug
+
+  if (!storeSlug) return null
 
   const TABS = [
     {

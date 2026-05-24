@@ -125,6 +125,14 @@ Retail:
 - Import: CSV/XLS/XLSX, template download, bulk update, unknown-EAN staging, auto-resolve.
 - Settings: данные магазина, logo upload, QR для магазина, notification toggles, clear catalog danger-zone.
 - EAN Recovery: отдельный экран + `/api/ean-recovery`.
+- Multi-store: RetailEntryScreen поддерживает >1 магазина на владельца (выбор магазина). Управление: `scripts/create-store.mjs`, `scripts/deactivate-store.mjs`.
+
+Stores:
+
+- 3 активных минимаркета в Усть-Каменогорске: Марс (slug: mars, ~10K products), Нұрлы (slug: nurly, ~2.5K products), Калина (slug: kalina, ~2K products).
+- Добавление магазина: `node scripts/create-store.mjs --slug xxx --name "Name" --type minimarket --city "City" --owner-email xxx@korset.kz --owner-password Pass!`
+- Деактивация: `node scripts/deactivate-store.mjs --slug xxx`
+- Сидирование каталога: `node scripts/seed-store-catalog.mjs --store-slug xxx --max-products N --category-weights '{...}'`
 
 Infrastructure:
 
@@ -170,6 +178,11 @@ Infrastructure:
 - ✅ **Парсинг подкатегории «Шоколад, батончики, паста»**: Успешно завершен глубокий боевой импорт (326 уникальных продуктов из всех вложенных подразделов шоколада, плиток, батончиков и шоколадных паст. Получено **253 уникальных EAN-продукта** после дедупликации, 276 EAN-кодов сопоставлены с Нацкаталогом РК, 181 создано с нуля, 72 обогащено деталями КБЖУ и составами, классифицированы в `sweets / chocolate`, отфильтрованы СТМ Arbuz Select).
 - ✅ **Парсинг подкатегории «Конфеты, зефир, мармелад» (повторный, 2026-05-24)**: Глубокий реимпорт через Catalog API (`--strategy=catalog`, catalogId: 225041). Категория содержит **8 дочерних подкатегорий** (Сладкие подарки, Полезные батончики, Конфеты весовые, Конфеты/карамель/леденцы, Зефир/мармелад/пастила, Конфеты в коробках, Восточные сладости, Жевательная резинка). Обнаружено **739 продуктов** через API, **715 обработано** (СТМ Arbuz Select и жент отфильтрованы). После EAN-дедупликации получено **469 уникальных EAN-продуктов**: 327 создано с нуля, 142 обогащено. **716 NPC-матчей** (почти каждый продукт получил от 1 до 15+ штрих-кодов через Нацкаталог РК). Только 10 продуктов остались с `arbuz_`-фолбеком. Ошибок: 0. Классифицированы в `sweets / candy`, `sweets / halva`, `sweets / honey_jam`.
 - ✅ **Halal enrichment (2026-05-24)**: Пофикшен баг — 16 продуктов с "халал/халяль" в названии отмечены `halal_status = yes` (были `unknown` из-за того, что старый `arbuz-catalog-parser.cjs` не вызывал `extractAllAttributes`). Исследованы публичные халал-API: Verify Halal, Halal Food Checker (RapidAPI), Halal AI — все без публичного API. Собран реестр **1130 сертифицированных предприятий** с HalalDamu.KZ (875 уникальных, категории: общепит 352, кондитерка 141, фастфуд 93, полуфабрикаты 89, мясные 66, молочные 49 и др.). Данные сохранены в `data/halaldamu-registry-certified.json`. Автоматический brand-кроссреференсинг даёт много ложных срабатываний — требуется ручная верификация.
+- ✅ **Ingredient-based halal analysis (2026-05-24)**: Проанализированы `ingredients_raw` **9532 продуктов** (все с `halal_status=unknown`). Результаты: 0 явных халал-маркеров в ингредиентах, **23 продукта с E120 (кармин) и E904 (шеллак)** → marked `no`, **53 продукта со свининой в названии** → marked `no`. **156 продуктов с подозрительными E-кодами** (E322, E471, E476, E415 и др.) — отчёт сохранён, автообновление не применялось (источник не верифицирован). Итог: `yes=598 (5.0%)`, `no=84 (0.7%)`, `unknown=11180 (94.3%)`. Скрипты: `scripts/halal-ingredient-analysis.cjs`, `scripts/fix-haram-from-name.cjs`. Отчёт: `data/halal-e-code-report.json`.
+- ✅ **AHIK registry scraped (2026-05-24)**: Собран реестр **668 уникальных предприятий** с halal-kz.kz (AHIK, JAKIM-recognised). 368 active, 298 expired, 2 stopped. Категории: услуги (97), молочные (53), мясокомбинаты (44), вода/напитки (42), кондитерка (28), полуфабрикаты (28). Данные: `data/ahik-registry-enterprises.json`.
+- ❌ **Open Food Facts halal enrichment**: Протестировано — очень низкое покрытие KZ (0.2% совпадений). 205 халал-продуктов из KZ/RU в OFF, 0 совпадений с нашей БД.
+- ⚠️ **Brand cross-reference v3**: Объединённые реестры (1527 компаний) + keyword matching. 9 точных совпадений (Рахат, Баян Сулу). Keyword matching даёт много false positives (common words: bakery, gold, fresh, cook).
+- ✅ **Ingredient-based halal анализ выполнен**: 9532 продуктов проанализированы, 76 новых `no` (E120/E904 + свинина в названии). Отчёт по E-кодам: `data/halal-e-code-report.json`.
 - ✅ **База знаний по скрапингу (2026-05-17)**: Создана база знаний и подробное руководство [arbuz-scraping-handbook.md](file:///c:/projects/korset/docs/vault/operations/arbuz-scraping-handbook.md) для максимально плавной передачи контекста и эффективного парсинга в будущих чатах.
 - ✅ **Синхронизация каталога пилотного магазина MARS**: Выполнен скрипт посева `scripts/seed-store-catalog.cjs` — **10 228 активных продуктов** успешно пересинхронизированы!
 - ✅ **Каталог и штрихкоды**: Отображение количества продуктов в UX каталога (`showCatalogMeta = true` in `CatalogScreen.jsx` активирована).

@@ -1866,7 +1866,8 @@ export default function ProfileScreen() {
                         label: t('profile.retailManage'),
                         labelStyle: { color: 'var(--primary)', fontWeight: 600 },
                         iconStyle: { background: 'var(--primary-dim)' },
-                        onClick: () => navigate(`/retail/${currentStore?.slug || 'store-one'}`),
+                        onClick: () =>
+                          currentStore?.slug && navigate(`/retail/${currentStore.slug}`),
                       },
                     ],
                   },

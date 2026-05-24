@@ -53,7 +53,7 @@ async function eanApi(action, payload) {
 export default function EanRecoveryScreen() {
   const { t } = useI18n()
   const { currentStore } = useStore()
-  const storeSlug = currentStore?.slug || currentStore?.code || 'store-one'
+  const storeSlug = currentStore?.slug || currentStore?.code
 
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)

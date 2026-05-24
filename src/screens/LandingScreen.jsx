@@ -461,7 +461,7 @@ function MockupNoInstall() {
             />
             <circle cx="5" cy="4" r="1.2" fill="var(--lp-ok)" />
           </svg>
-          <span>korset.app/s/mars</span>
+          <span>korset.app/s/ваш-магазин</span>
         </div>
         <div className="lp-feat-screen__qr-badge">Открывается за 1 сек</div>
       </div>

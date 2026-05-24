@@ -1,13 +1,31 @@
 export const STORES = [
   {
-    id: 'store-one',
-    slug: 'store-one',
-    name: 'Магазин 1',
+    id: 'mars',
+    slug: 'mars',
+    name: 'Марс',
     city: 'Усть-Каменогорск',
-    address: 'Тестовый магазин Körset',
-    logo: '/logo.png',
-    description:
-      'Тестовый магазин Körset с реальными продуктовыми SKU для демонстрации и дальнейшей обкатки магазинного сценария.',
+    address: 'ул. Абая, левобережный район',
+    type: 'minimarket',
+    isActive: true,
+    defaultLanguage: 'ru',
+  },
+  {
+    id: 'nurly',
+    slug: 'nurly',
+    name: 'Нұрлы',
+    city: 'Усть-Каменогорск',
+    address: 'пр. Абылай хана, район Ушанова',
+    type: 'minimarket',
+    isActive: true,
+    defaultLanguage: 'ru',
+  },
+  {
+    id: 'kalina',
+    slug: 'kalina',
+    name: 'Калина',
+    city: 'Усть-Каменогорск',
+    address: 'ул. Мира, район Стройка',
+    type: 'minimarket',
     isActive: true,
     defaultLanguage: 'ru',
   },
@@ -37,7 +55,9 @@ export const STORE_ONE_EANS = [
 ]
 
 export const STORE_PRODUCT_MAP = {
-  'store-one': STORE_ONE_EANS,
+  mars: STORE_ONE_EANS,
+  nurly: STORE_ONE_EANS,
+  kalina: STORE_ONE_EANS,
 }
 
 export const ALLOW_GLOBAL_SCAN_FOR_NOW = true

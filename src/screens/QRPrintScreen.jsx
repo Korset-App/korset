@@ -20,10 +20,10 @@ export default function QRPrintScreen() {
   }
 
   const products = useMemo(
-    () => getStoreCatalogProducts(currentStore?.slug || 'store-one'),
+    () => (currentStore?.slug ? getStoreCatalogProducts(currentStore.slug) : []),
     [currentStore]
   )
-  const storeSlug = currentStore?.slug || 'store-one'
+  const storeSlug = currentStore?.slug
 
   return (
     <div className="screen">

@@ -133,11 +133,84 @@ function NoStoreScreen({ userEmail }) {
   )
 }
 
+function StorePicker({ stores, onSelect }) {
+  return (
+    <div
+      style={{
+        minHeight: '100dvh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px 24px',
+        gap: 24,
+        background: 'var(--bg-app)',
+        textAlign: 'center',
+      }}
+    >
+      <span
+        className="material-symbols-outlined"
+        style={{ fontSize: 48, color: 'rgba(56,189,248,0.6)' }}
+      >
+        storefront
+      </span>
+      <div
+        style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: 22,
+          fontWeight: 800,
+          color: 'var(--text)',
+        }}
+      >
+        Ваши магазины
+      </div>
+      <div
+        style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', maxWidth: 360 }}
+      >
+        {stores.map((store) => (
+          <button
+            key={store.code}
+            onClick={() => onSelect(store.code)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '16px 20px',
+              borderRadius: 14,
+              background: 'rgba(56,189,248,0.06)',
+              border: '1px solid rgba(56,189,248,0.15)',
+              color: 'var(--text)',
+              cursor: 'pointer',
+              textAlign: 'left',
+              fontFamily: 'var(--font-body)',
+              transition: 'background 0.15s',
+            }}
+          >
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: 22, color: 'var(--retail-accent)' }}
+            >
+              store
+            </span>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 700 }}>{store.name}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 2 }}>
+                {store.code}
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function RetailEntryScreen() {
   const { user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const [status, setStatus] = useState('idle') // idle | fetching | not_found | error
+  const [status, setStatus] = useState('idle') // idle | fetching | not_found | pick | error
+  const [ownedStores, setOwnedStores] = useState([])
 
   useEffect(() => {
     if (authLoading || !user) return
@@ -149,14 +222,16 @@ export default function RetailEntryScreen() {
       .select('code, name')
       .eq('owner_id', user.id)
       .eq('is_active', true)
-      .limit(1)
-      .maybeSingle()
+      .order('name')
       .then(({ data, error }) => {
         if (cancelled) return
-        if (!error && data?.code) {
-          navigate(`/retail/${data.code}/dashboard`, { replace: true })
-        } else {
+        if (error || !data || data.length === 0) {
           setStatus('not_found')
+        } else if (data.length === 1) {
+          navigate(`/retail/${data[0].code}/dashboard`, { replace: true })
+        } else {
+          setOwnedStores(data)
+          setStatus('pick')
         }
       })
       .catch(() => {
@@ -167,6 +242,15 @@ export default function RetailEntryScreen() {
       cancelled = true
     }
   }, [user, authLoading, navigate])
+
+  if (status === 'pick' && ownedStores.length > 0) {
+    return (
+      <StorePicker
+        stores={ownedStores}
+        onSelect={(code) => navigate(`/retail/${code}/dashboard`, { replace: true })}
+      />
+    )
+  }
 
   if (authLoading) return <FullScreenLoader label="Проверяем доступ..." />
 
