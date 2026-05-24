@@ -1,4 +1,6 @@
-import 'dotenv/config'
+import dotenv from 'dotenv'
+dotenv.config()
+dotenv.config({ path: '.env.local', override: true })
 
 const DEFAULT_URL = 'https://korset.vercel.app/api/telegram-webhook'
 
