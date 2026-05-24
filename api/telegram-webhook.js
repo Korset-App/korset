@@ -1,10 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
 import { t } from '../src/telegram-bot/i18n.js'
 import { getAIResponse } from '../src/telegram-bot/ai.js'
+import { verifyWebhookSecret } from '../src/telegram-bot/verifyWebhook.js'
 
 const API = 'https://api.telegram.org'
 const TOKEN = process.env.TELEGRAM_SUPPORT_BOT_TOKEN
 const OPERATOR = process.env.TELEGRAM_OPERATOR_CHAT_ID
+const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET
 
 const sb = createClient(
   process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
@@ -345,12 +347,30 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     return res.status(200).json({
       status: 'ok',
-      env: { token: !!TOKEN, operator: !!OPERATOR, openai: !!process.env.OPENAI_API_KEY },
+      env: {
+        token: !!TOKEN,
+        operator: !!OPERATOR,
+        openai: !!process.env.OPENAI_API_KEY,
+        webhookSecret: !!WEBHOOK_SECRET,
+      },
       version: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || 'dev',
     })
   }
 
   if (req.method !== 'POST' || !TOKEN) return res.status(405).end()
+
+  const { valid, reason } = verifyWebhookSecret(
+    req.headers['x-telegram-bot-api-secret-token'],
+    WEBHOOK_SECRET,
+  )
+  if (!valid) {
+    if (reason === 'not_configured') {
+      console.error('[webhook] TELEGRAM_WEBHOOK_SECRET is not set — rejecting all requests')
+      return res.status(500).json({ error: 'Webhook not configured' })
+    }
+    console.warn('[webhook] Rejected unauthorized request from %s (reason: %s)', req.headers['x-forwarded-for'] || 'unknown', reason)
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
 
   const body = req.body
   if (!body) return res.status(200).end()
