@@ -45,6 +45,106 @@ const NON_VEGAN_INGREDIENT_MARKERS = [
   'bacon',
 ]
 
+const NON_VEGETARIAN_INGREDIENT_MARKERS = [
+  'мяс',
+  'говяд',
+  'свинин',
+  'свиной',
+  'баранин',
+  'конин',
+  'крольч',
+  'курин',
+  'индейк',
+  'утк',
+  'гус',
+  'рыб',
+  'тунец',
+  'лосос',
+  'кревет',
+  'краб',
+  'мидии',
+  'желатин',
+  'фарш',
+  'бекон',
+  'ветчин',
+  'сало',
+  'meat',
+  'beef',
+  'pork',
+  'chicken',
+  'turkey',
+  'fish',
+  'tuna',
+  'salmon',
+  'shrimp',
+  'crab',
+  'gelatin',
+  'gelatine',
+  'lard',
+  'bacon',
+]
+
+const HALAL_AMBIGUOUS_INGREDIENT_MARKERS = [
+  'желатин',
+  'ароматизатор',
+  'ароматизаторы',
+  'натуральный ароматизатор',
+  'ферменты',
+  'сычужный фермент',
+  'эмульгатор e471',
+  'e471',
+  'e472',
+  'глицерин',
+  'кармин',
+  'кошениль',
+  'gelatin',
+  'gelatine',
+  'flavouring',
+  'flavoring',
+  'natural flavor',
+  'rennet',
+  'enzymes',
+  'glycerin',
+  'glycerol',
+  'carmine',
+]
+
+const LACTOSE_FREE_MARKERS = ['безлактоз', 'без лактоз', 'lactose free', 'lactose-free']
+
+const LACTOSE_RISK_MARKERS = [
+  'лактоза',
+  'молоко',
+  'молочн',
+  'сливки',
+  'сыворотк',
+  'сухое молоко',
+  'молочный порошок',
+  'сгущ',
+  'йогурт',
+  'кефир',
+  'творог',
+  'сыр',
+  'казеин',
+  'lactose',
+  'milk',
+  'cream',
+  'whey',
+  'casein',
+  'yogurt',
+  'cheese',
+]
+
+const CHILD_UNFRIENDLY_INGREDIENT_MARKERS = [
+  'кофеин',
+  'таурин',
+  'гуарана',
+  'энергетик',
+  'energy drink',
+  'caffeine',
+  'taurine',
+  'guarana',
+]
+
 export { ALLERGEN_NAMES }
 
 function getHalalStatus(product) {
@@ -80,6 +180,7 @@ export function checkProductFit(product, profile) {
   const customAllergens = profile.customAllergens || []
   const healthConditions = profile.healthConditions || []
   const goals = profile.dietGoals || []
+  const wantsLactoseFree = goals.includes('lactose_free') || goals.includes('dairy_free')
 
   const ingredientsRaw = (
     product.ingredients ||
@@ -91,9 +192,20 @@ export function checkProductFit(product, profile) {
   const dietTags = product.dietTags || []
   const nutrition = product.nutritionPer100 || product.nutriments || product.nutriments_json || {}
   const sugar100g = nutrition.sugar ?? nutrition.sugars ?? nutrition.sugars_100g
+  const carbs100g =
+    nutrition.carbs ??
+    nutrition.carbohydrates ??
+    nutrition.carbohydrates_100g ??
+    nutrition.carbohydrate ??
+    nutrition.carbohydrate_100g
+  const fat100g = nutrition.fat ?? nutrition.fat_100g
+  const fiber100g =
+    nutrition.fiber ?? nutrition.fiber_100g ?? nutrition.fibers ?? nutrition.fibers_100g
   const protein100g =
     nutrition.protein ?? nutrition.protein_100g ?? nutrition.proteins ?? nutrition.proteins_100g
-  const fatPercent = product.fatPercent ?? product.fat_percent ?? null
+  const fatPercent = product.fatPercent ?? product.fat_percent ?? fat100g ?? null
+  const hasKetoTag = dietTags.includes('keto')
+  const hasLowCarbTag = dietTags.includes('low_carb')
 
   // 1. Structured Allergens
   if (userAllergens.length > 0) {
@@ -292,7 +404,6 @@ export function checkProductFit(product, profile) {
 
   // 6. Halal
   const halalOn = profile.halal || profile.halalOnly || profile.religion?.includes('halal')
-  const halalStrict = profile.halalStrict
   const halalStatus = getHalalStatus(product)
   const alcoholInProduct =
     nutrition.alcohol != null && nutrition.alcohol > 0
@@ -303,7 +414,7 @@ export function checkProductFit(product, profile) {
 
   if (halalOn && halalStatus === 'no') {
     addReason({
-      severity: halalStrict ? 'warning' : 'caution',
+      severity: 'danger',
       category: 'halal',
       text: 'Не является халал',
       textKz: 'Халал емес',
@@ -393,67 +504,256 @@ export function checkProductFit(product, profile) {
         textKz: `Алкоголь/харам болуы мүмкін («${foundHaram}»)`,
         source: 'ingredient_parse',
       })
+    } else {
+      const foundAmbiguous = HALAL_AMBIGUOUS_INGREDIENT_MARKERS.find((kw) =>
+        ingredientsRaw.includes(kw)
+      )
+      addReason({
+        severity: foundAmbiguous ? 'warning' : 'caution',
+        category: 'halal',
+        text: foundAmbiguous
+          ? `Халал-статус не подтверждён; есть спорный ингредиент («${foundAmbiguous}»)`
+          : 'Халал-статус не подтверждён',
+        textKz: foundAmbiguous
+          ? `Халал мәртебесі расталмаған; күмәнді ингредиент бар («${foundAmbiguous}»)`
+          : 'Халал мәртебесі расталмаған',
+        source: foundAmbiguous ? 'ingredient_parse' : 'structured',
+      })
     }
   }
 
   // 7. Diet Goals
-  if ((goals.includes('sugar_free') || profile.sugarFree) && dietTags.includes('contains_sugar')) {
-    addReason({
-      severity: 'caution',
-      category: 'diet',
-      text: 'Содержит добавленный сахар',
-      source: 'structured',
-    })
+  if (goals.includes('sugar_free') || profile.sugarFree) {
+    const sugars100g = Number.parseFloat(sugar100g)
+    const hasSugarKeywords = SUGAR_SYNONYMS.some((kw) => ingredientsRaw.includes(kw))
+    if (dietTags.includes('contains_sugar') || hasSugarKeywords) {
+      addReason({
+        severity: 'caution',
+        category: 'diet',
+        text: 'Содержит добавленный сахар',
+        textKz: 'Құрамында қосылған қант бар',
+        source: dietTags.includes('contains_sugar') ? 'structured' : 'ingredient_parse',
+      })
+    } else if (Number.isFinite(sugars100g) && sugars100g > 5) {
+      addReason({
+        severity: 'caution',
+        category: 'diet',
+        text: `Сахара больше 5 г/100 г: ${sugars100g}г/100г`,
+        textKz: `Қант 5 г/100 г-нан жоғары: ${sugars100g}г/100г`,
+        source: 'nutriment',
+      })
+    } else if (dietTags.includes('sugar_free')) {
+      addReason({
+        severity: 'safe',
+        category: 'diet',
+        text: 'Без сахара ✓',
+        textKz: 'Қантсыз ✓',
+        source: 'structured',
+      })
+    }
   }
-  if (goals.includes('low_fat') && fatPercent != null && fatPercent > 20) {
-    addReason({
-      severity: 'caution',
-      category: 'diet',
-      text: `Высокая жирность: ${fatPercent}%`,
-      textKz: `Жоғары майлылық: ${fatPercent}%`,
-      source: 'structured',
-    })
+
+  if (goals.includes('low_fat')) {
+    const fatValue = Number.parseFloat(fatPercent)
+    if (Number.isFinite(fatValue) && fatValue > 20) {
+      addReason({
+        severity: 'caution',
+        category: 'diet',
+        text: `Высокая жирность: ${fatValue}%`,
+        textKz: `Жоғары майлылық: ${fatValue}%`,
+        source: 'nutriment',
+      })
+    } else if (Number.isFinite(fatValue) && fatValue <= 5) {
+      addReason({
+        severity: 'safe',
+        category: 'diet',
+        text: `Низкая жирность: ${fatValue}%`,
+        textKz: `Төмен майлылық: ${fatValue}%`,
+        source: 'nutriment',
+      })
+    }
   }
-  if (goals.includes('low_fat') && fatPercent != null && fatPercent <= 5) {
-    addReason({
-      severity: 'safe',
-      category: 'diet',
-      text: `Низкая жирность: ${fatPercent}%`,
-      textKz: `Төмен майлылық: ${fatPercent}%`,
-      source: 'structured',
-    })
+
+  if (goals.includes('gluten_free')) {
+    const glutenSynonyms = ALLERGEN_SYNONYMS.gluten || []
+    const foundGluten = glutenSynonyms.find((s) => ingredientsRaw.includes(s))
+    const hasStructuredGluten = prodAllergens.some(
+      (a) => a.includes('gluten') || a.includes('wheat')
+    )
+    if (foundGluten || hasStructuredGluten) {
+      addReason({
+        severity: 'caution',
+        category: 'diet',
+        text: `Содержит глютен («${foundGluten || 'structured'}»)`,
+        textKz: `Құрамында глютен бар («${foundGluten || 'structured'}»)`,
+        source: foundGluten ? 'ingredient_parse' : 'structured',
+      })
+    } else if (dietTags.includes('gluten_free')) {
+      addReason({
+        severity: 'safe',
+        category: 'diet',
+        text: 'Без глютена ✓',
+        textKz: 'Глютенсіз ✓',
+        source: 'structured',
+      })
+    }
   }
-  if (goals.includes('sugar_free') && dietTags.includes('sugar_free')) {
-    addReason({
-      severity: 'safe',
-      category: 'diet',
-      text: 'Без сахара ✓',
-      textKz: 'Қантсыз ✓',
-      source: 'structured',
+
+  if (wantsLactoseFree) {
+    const hasExplicitLactoseFree =
+      dietTags.includes('lactose_free') ||
+      LACTOSE_FREE_MARKERS.some((marker) => ingredientsRaw.includes(marker))
+    const foundLactoseRisk = LACTOSE_RISK_MARKERS.find((marker) => {
+      if (!ingredientsRaw.includes(marker)) return false
+      return !(marker === 'молочн' && /молочн[\p{L}]*\s+кислот/u.test(ingredientsRaw))
     })
-  }
-  if (goals.includes('gluten_free') && dietTags.includes('gluten_free')) {
-    addReason({
-      severity: 'safe',
-      category: 'diet',
-      text: 'Без глютена ✓',
-      textKz: 'Глютенсіз ✓',
-      source: 'structured',
-    })
-  }
-  if (
-    goals.includes('dairy_free') &&
-    (dietTags.includes('contains_dairy') ||
+    const hasStructuredMilk =
+      dietTags.includes('contains_dairy') ||
       prodAllergens.includes('milk') ||
-      prodAllergens.includes('en:milk'))
-  ) {
-    addReason({
-      severity: 'caution',
-      category: 'diet',
-      text: 'Содержит молочные продукты',
-      source: 'structured',
-    })
+      prodAllergens.includes('en:milk')
+
+    if (hasExplicitLactoseFree) {
+      addReason({
+        severity: 'safe',
+        category: 'diet',
+        text: 'Без лактозы ✓',
+        textKz: 'Лактозасыз ✓',
+        source: dietTags.includes('lactose_free') ? 'structured' : 'ingredient_parse',
+      })
+    } else if (foundLactoseRisk || hasStructuredMilk) {
+      addReason({
+        severity: 'caution',
+        category: 'diet',
+        text: foundLactoseRisk
+          ? `Может содержать лактозу («${foundLactoseRisk}»)`
+          : 'Может содержать лактозу',
+        textKz: foundLactoseRisk
+          ? `Құрамында лактоза болуы мүмкін («${foundLactoseRisk}»)`
+          : 'Құрамында лактоза болуы мүмкін',
+        source: foundLactoseRisk ? 'ingredient_parse' : 'structured',
+      })
+    }
   }
+
+  if (goals.includes('keto')) {
+    const carbsValue = Number.parseFloat(carbs100g)
+    const sugarsValue = Number.parseFloat(sugar100g)
+    const fiberValue = Number.parseFloat(fiber100g)
+    const hasCarbsData = Number.isFinite(carbsValue)
+    const hasSugarData = Number.isFinite(sugarsValue)
+    const hasFiberData = Number.isFinite(fiberValue)
+    const netCarbs =
+      hasCarbsData && hasFiberData && fiberValue > 0 && fiberValue <= carbsValue
+        ? carbsValue - fiberValue
+        : null
+    const carbBasis = netCarbs != null ? netCarbs : carbsValue
+    const hasCarbBasis = Number.isFinite(carbBasis)
+    const hasSugarSignals =
+      dietTags.includes('contains_sugar') ||
+      SUGAR_SYNONYMS.some((kw) => ingredientsRaw.includes(kw))
+    const highCarbs = hasCarbBasis && carbBasis > 10
+    const highSugar = hasSugarData && sugarsValue > 5
+    const lowCarbs = hasCarbBasis && carbBasis <= 7
+
+    if (highCarbs || highSugar || hasSugarSignals) {
+      addReason({
+        severity: 'caution',
+        category: 'diet',
+        text: highCarbs
+          ? `Для keto много углеводов: ${carbBasis}г/100г`
+          : highSugar
+            ? `Для keto много сахара: ${sugarsValue}г/100г`
+            : 'Для keto есть признаки добавленного сахара',
+        textKz: highCarbs
+          ? `Keto үшін көмірсу көп: ${carbBasis}г/100г`
+          : highSugar
+            ? `Keto үшін қант көп: ${sugarsValue}г/100г`
+            : 'Keto үшін қосылған қант белгілері бар',
+        source: highCarbs || highSugar ? 'nutriment' : 'ingredient_parse',
+      })
+    } else if (lowCarbs) {
+      addReason({
+        severity: 'safe',
+        category: 'diet',
+        text:
+          netCarbs != null
+            ? `Подходит для keto: ${netCarbs}г net carbs/100г`
+            : `Подходит для keto: ${carbsValue}г углеводов/100г`,
+        textKz:
+          netCarbs != null
+            ? `Keto үшін жарайды: ${netCarbs}г net carbs/100г`
+            : `Keto үшін жарайды: ${carbsValue}г көмірсу/100г`,
+        source: 'nutriment',
+      })
+    } else if (hasKetoTag || hasLowCarbTag) {
+      addReason({
+        severity: 'caution',
+        category: 'diet',
+        text: 'Маркировка keto/low carb есть, но БЖУ недостаточно для подтверждения',
+        textKz: 'Keto/low carb белгісі бар, бірақ растау үшін БЖУ жеткіліксіз',
+        source: 'structured',
+      })
+    } else if (hasCarbBasis) {
+      addReason({
+        severity: 'caution',
+        category: 'diet',
+        text:
+          netCarbs != null
+            ? `Погранично для keto: ${netCarbs}г net carbs/100г`
+            : `Погранично для keto: ${carbsValue}г углеводов/100г`,
+        textKz:
+          netCarbs != null
+            ? `Keto үшін шекаралық: ${netCarbs}г net carbs/100г`
+            : `Keto үшін шекаралық: ${carbsValue}г көмірсу/100г`,
+        source: 'nutriment',
+      })
+    } else {
+      addReason({
+        severity: 'caution',
+        category: 'diet',
+        text: 'Недостаточно данных, чтобы подтвердить совместимость с keto',
+        textKz: 'Keto-ға сәйкестігін растауға дерек жеткіліксіз',
+        source: 'structured',
+      })
+    }
+  }
+
+  if (goals.includes('kid_friendly')) {
+    const sugarsValue = Number.parseFloat(sugar100g)
+    const foundChildRisk = CHILD_UNFRIENDLY_INGREDIENT_MARKERS.find((m) =>
+      ingredientsRaw.includes(m)
+    )
+    const energyCategory =
+      product.subcategory === 'energy' ||
+      product.subcategory === 'energy_drinks' ||
+      product.category === 'energy_drinks'
+    if (energyCategory || foundChildRisk || (Number.isFinite(sugarsValue) && sugarsValue > 15)) {
+      addReason({
+        severity: 'caution',
+        category: 'diet',
+        text: energyCategory
+          ? 'Не лучший выбор для детей: энергетический напиток'
+          : foundChildRisk
+            ? `Не лучший выбор для детей («${foundChildRisk}»)`
+            : `Много сахара для детского рациона: ${sugarsValue}г/100г`,
+        textKz: energyCategory
+          ? 'Балаларға ең жақсы таңдау емес: энергетикалық сусын'
+          : foundChildRisk
+            ? `Балаларға ең жақсы таңдау емес («${foundChildRisk}»)`
+            : `Балалар рационы үшін қант көп: ${sugarsValue}г/100г`,
+        source: energyCategory ? 'structured' : foundChildRisk ? 'ingredient_parse' : 'nutriment',
+      })
+    } else if (dietTags.includes('kid_friendly') || product.category === 'baby_food') {
+      addReason({
+        severity: 'safe',
+        category: 'diet',
+        text: 'Подходит для детей ✓',
+        textKz: 'Балаларға жарайды ✓',
+        source: 'structured',
+      })
+    }
+  }
+
   if (goals.includes('vegan')) {
     const veganViolations = []
     if (
@@ -487,6 +787,39 @@ export function checkProductFit(product, profile) {
         category: 'diet',
         text: `Не подходит для веганов: ${veganViolations.join(', ')}`,
         textKz: `Вегандарға жарамайды: ${veganViolations.join(', ')}`,
+        source: 'structured',
+      })
+    } else if (dietTags.includes('vegan')) {
+      addReason({
+        severity: 'safe',
+        category: 'diet',
+        text: 'Подходит для веганов ✓',
+        textKz: 'Вегандарға жарайды ✓',
+        source: 'structured',
+      })
+    }
+  }
+
+  if (goals.includes('vegetarian')) {
+    const vegetarianViolations = []
+    if (ingredientsRaw) {
+      const foundAnimal = NON_VEGETARIAN_INGREDIENT_MARKERS.find((m) => ingredientsRaw.includes(m))
+      if (foundAnimal) vegetarianViolations.push(`животные ингредиенты «${foundAnimal}»`)
+    }
+    if (vegetarianViolations.length > 0) {
+      addReason({
+        severity: 'caution',
+        category: 'diet',
+        text: `Не подходит для вегетарианцев: ${vegetarianViolations.join(', ')}`,
+        textKz: `Вегетариандарға жарамайды: ${vegetarianViolations.join(', ')}`,
+        source: 'ingredient_parse',
+      })
+    } else if (dietTags.includes('vegetarian') || dietTags.includes('vegan')) {
+      addReason({
+        severity: 'safe',
+        category: 'diet',
+        text: 'Подходит для вегетарианцев ✓',
+        textKz: 'Вегетариандарға жарайды ✓',
         source: 'structured',
       })
     }

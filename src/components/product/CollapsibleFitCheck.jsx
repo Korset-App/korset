@@ -185,7 +185,8 @@ export default function CollapsibleFitCheck({ severityKey, reasons }) {
           }}
         >
           {reasons.map((r, i) => {
-            const rColor = SEVERITY_STYLES[r.type]?.color || 'var(--text-soft)'
+            const reasonKey = r.severity || r.type
+            const rColor = SEVERITY_STYLES[reasonKey]?.color || 'var(--text-soft)'
             return (
               <div
                 key={i}

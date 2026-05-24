@@ -65,6 +65,7 @@ function getQueryIntent(query) {
   const meatFreeProtein =
     hasAny(text, ['без мяса', 'етсіз', 'no meat']) && hasAny(text, ['белк', 'ақуыз', 'protein'])
   const breakfast = hasAny(text, ['завтрак', 'таңғы ас', 'breakfast'])
+  const keto = hasAny(text, ['кето', 'keto', 'кетогенн', 'низкоуглевод', 'low carb', 'low-carb'])
   if (hasAny(text, ['плов', 'палау'])) {
     recipeKeywords.push(
       { id: 'rice', terms: ['рис', 'rice'], subcategories: ['rice'], score: 14 },
@@ -188,6 +189,7 @@ function getQueryIntent(query) {
     childSnack,
     meatFreeProtein,
     breakfast,
+    keto,
     freshFruitOnly,
     dinner: hasAny(text, ['ужин', 'кешкі ас']),
     recipeKeywords,
@@ -266,7 +268,11 @@ export function findCatalogCandidates(query, products = [], profile = null, opti
       const dietScore =
         (intent.halal && product.halalStatus === 'yes' ? 6 : 0) +
         (intent.lactoseFree && product.dietTags?.includes('lactose_free') ? 8 : 0) +
-        (intent.sugarFree && product.dietTags?.includes('sugar_free') ? 6 : 0)
+        (intent.sugarFree && product.dietTags?.includes('sugar_free') ? 6 : 0) +
+        (intent.keto &&
+        (product.dietTags?.includes('keto') || product.dietTags?.includes('low_carb'))
+          ? 6
+          : 0)
       const availableBoost = product.stockStatus === 'out_of_stock' ? -6 : 2
       const priceBoost = product.priceKzt ? Math.max(0, 1500 - product.priceKzt) / 1000 : 0
       const fitPriority = buildFitPriority(product, { profile, intent })

@@ -30,6 +30,7 @@ import {
 } from '../utils/routes.js'
 import { buildProductUnitPrice } from '../domain/product/unitPrice.js'
 import { hasProductScreenCharacteristics } from '../domain/product/productScreenSections.js'
+import { resolveFitSeverityKey } from '../domain/product/fitVerdict.js'
 import { buildAuthNavigateState } from '../utils/authFlow.js'
 import { HeartIcon } from '../components/icons/HeartIcon.jsx'
 import ImageCarousel from '../components/product/ImageCarousel.jsx'
@@ -39,14 +40,6 @@ import NutritionUnified from '../components/product/NutritionUnified.jsx'
 import IngredientsBlock from '../components/product/IngredientsBlock.jsx'
 import SpecsGrid from '../components/product/SpecsGrid.jsx'
 import SectionLabel from '../components/product/SectionLabel.jsx'
-
-function resolveSeverityKey(reasons, fits) {
-  if (reasons.some((r) => r.type === 'danger')) return 'danger'
-  if (reasons.some((r) => r.type === 'warning')) return 'warning'
-  if (reasons.some((r) => r.type === 'caution')) return 'caution'
-  if (fits === false) return 'danger'
-  return 'safe'
-}
 
 function getManufacturerText(product) {
   if (!product) return ''
@@ -321,8 +314,9 @@ export default function ProductScreen() {
     )
   }
 
-  const { fits, reasons } = checkProductFit(product, profile)
-  const severityKey = resolveSeverityKey(reasons, fits)
+  const fit = checkProductFit(product, profile)
+  const { reasons } = fit
+  const severityKey = resolveFitSeverityKey(fit)
   const showAlternativeNudge = severityKey !== 'safe'
 
   const manufacturerText = getManufacturerText(product)

@@ -32,6 +32,7 @@ const ALLERGEN_NAMES = {
 const DIET_NAMES = {
   ru: {
     sugar_free: 'Без сахара',
+    lactose_free: 'Без лактозы',
     dairy_free: 'Без лактозы',
     gluten_free: 'Без глютена',
     vegan: 'Веган',
@@ -42,6 +43,7 @@ const DIET_NAMES = {
   },
   kz: {
     sugar_free: 'Қантсыз',
+    lactose_free: 'Лактозасыз',
     dairy_free: 'Лактозасыз',
     gluten_free: 'Глютенсіз',
     vegan: 'Веган',

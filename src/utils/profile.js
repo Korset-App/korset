@@ -80,6 +80,13 @@ function migrateAllergenIds(allergens) {
   return { allergens: [...new Set(migrated)], addToCustom: removedToCustom }
 }
 
+export function normalizeDietGoals(dietGoals) {
+  if (!Array.isArray(dietGoals)) return []
+  return [
+    ...new Set(dietGoals.map((id) => (id === 'dairy_free' ? 'lactose_free' : id)).filter(Boolean)),
+  ]
+}
+
 export function loadProfile() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
@@ -101,7 +108,7 @@ export function loadProfile() {
         halalStrict: Boolean(parsed.halalStrict),
         allergens: migratedAllergens,
         customAllergens: mergedCustom,
-        dietGoals: Array.isArray(parsed.dietGoals) ? parsed.dietGoals : [],
+        dietGoals: normalizeDietGoals(parsed.dietGoals),
         healthConditions: Array.isArray(parsed.healthConditions) ? parsed.healthConditions : [],
       }
     }
@@ -129,7 +136,7 @@ export function saveProfile(profile) {
       customAllergens: Array.isArray(profile.customAllergens)
         ? [...new Set(profile.customAllergens)]
         : [],
-      dietGoals: Array.isArray(profile.dietGoals) ? [...new Set(profile.dietGoals)] : [],
+      dietGoals: normalizeDietGoals(profile.dietGoals),
       healthConditions: Array.isArray(profile.healthConditions)
         ? [...new Set(profile.healthConditions)]
         : [],
@@ -144,7 +151,8 @@ export function applyPreset(presetId) {
   const presets = {
     halal: { ...DEFAULT_PROFILE, presetId, halal: true, halalOnly: true },
     sugar_free: { ...DEFAULT_PROFILE, presetId, dietGoals: ['sugar_free'], sugarFree: true },
-    dairy_free: { ...DEFAULT_PROFILE, presetId, dietGoals: ['dairy_free'], allergens: ['milk'] },
+    lactose_free: { ...DEFAULT_PROFILE, presetId, dietGoals: ['lactose_free'] },
+    dairy_free: { ...DEFAULT_PROFILE, presetId, dietGoals: ['lactose_free'] },
   }
   return presets[presetId] || { ...DEFAULT_PROFILE }
 }

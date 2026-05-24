@@ -1,3 +1,5 @@
+import { ALLERGEN_SYNONYMS } from '../../constants/allergenSynonyms.js'
+
 const HALAL_CONFIDENCE_PRIORITY = {
   confirmed_halal: 1,
   likely_compatible: 2,
@@ -153,6 +155,18 @@ export function getAllergyConfidence(product = {}, profile = {}) {
       level: 'insufficient_data',
       source: 'missing_ingredients',
       matches: [],
+    }
+  }
+
+  const ingredientMatches = profileAllergens.filter((allergen) => {
+    const synonyms = ALLERGEN_SYNONYMS[allergen] || []
+    return synonyms.some((synonym) => ingredients.includes(normalizeText(synonym)))
+  })
+  if (ingredientMatches.length > 0) {
+    return {
+      level: 'direct_match',
+      source: 'ingredient_parse',
+      matches: ingredientMatches,
     }
   }
 

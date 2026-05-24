@@ -21,6 +21,7 @@ import {
   getAlternativeScenarioLabelKey,
   normalizeAlternativeScenario,
 } from '../domain/product/alternativeScenarios.js'
+import { getFitBadgeMeta, resolveFitSeverityKey } from '../domain/product/fitVerdict.js'
 import { buildComparePath, buildProductAIPath, buildProductPath } from '../utils/routes.js'
 import { getDisplayQuantity } from '../utils/parseQuantity.js'
 import { trackAlternativeEvent } from '../utils/alternativeAnalytics.js'
@@ -296,6 +297,8 @@ export default function AlternativesScreen() {
 
 function SourceProductCard({ product, localName, profile, lang, t }) {
   const fit = checkProductFit(product, profile)
+  const severityKey = resolveFitSeverityKey(fit)
+  const badge = getFitBadgeMeta(severityKey)
   const quantity = getDisplayQuantity(product, lang)
   return (
     <div className="alternatives-source">
@@ -307,9 +310,7 @@ function SourceProductCard({ product, localName, profile, lang, t }) {
           {[product.brand, quantity, formatPrice(product.priceKzt)].filter(Boolean).join(' · ')}
         </div>
       </div>
-      <span className={`alternatives-fit-badge ${fit.verdict || 'safe'}`}>
-        {fit.fits ? t('alternatives.sourceFits') : t('alternatives.sourceRisk')}
-      </span>
+      <span className={`alternatives-fit-badge ${badge.key}`}>{t(badge.labelKey)}</span>
     </div>
   )
 }

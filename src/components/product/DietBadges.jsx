@@ -4,7 +4,7 @@ import { DIET_PREFERENCES } from '../../constants/dietGoals.js'
 const DIET_BADGE_COLORS = {
   halal: '#10B981',
   sugar_free: '#8B5CF6',
-  dairy_free: '#06B6D4',
+  lactose_free: '#06B6D4',
   gluten_free: '#F59E0B',
   vegan: '#10B981',
   vegetarian: '#22C55E',
@@ -12,7 +12,7 @@ const DIET_BADGE_COLORS = {
   kid_friendly: '#3B82F6',
 }
 
-const BADGE_KEYS = ['halal', 'sugar_free', 'gluten_free', 'dairy_free', 'vegan']
+const BADGE_KEYS = ['halal', 'sugar_free', 'gluten_free', 'lactose_free', 'vegan']
 
 function matchBadge(key, product) {
   const diet = product.dietTags || []

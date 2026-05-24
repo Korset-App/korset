@@ -1,7 +1,11 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { findProductAlternatives, findProductInCatalog } from '../../src/domain/product/alternatives.js'
+import {
+  findProductAlternatives,
+  findProductInCatalog,
+  rankAlternativesForProfile,
+} from '../../src/domain/product/alternatives.js'
 
 const product = (overrides = {}) => ({
   ean: '100',
@@ -81,4 +85,26 @@ test('findProductAlternatives falls back from group to category and caps results
 
   assert.equal(alternatives.length, 6)
   assert.ok(alternatives.every((item) => item.ean !== original.ean))
+})
+
+test('rankAlternativesForProfile marks caution alternatives as check, not avoid', () => {
+  const original = product({ ean: '100', group: 'milk' })
+  const candidates = [
+    product({
+      ean: '200',
+      name: 'Same group with sugar',
+      group: 'milk',
+      dietTags: ['contains_sugar'],
+      alternativeMeta: { relationRank: 0, baseRank: 10 },
+    }),
+  ]
+
+  const alternatives = rankAlternativesForProfile({
+    product: original,
+    candidates,
+    profile: { dietGoals: ['sugar_free'] },
+    scenario: 'fits_me',
+  })
+
+  assert.equal(alternatives[0].alternativeMeta.profileRisk, 'check')
 })

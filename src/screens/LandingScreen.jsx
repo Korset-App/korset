@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
+import { useTheme } from '../utils/theme.js'
 import './LandingScreen.css'
 import { useI18n } from '../i18n/index.js'
 import useReveal from '../hooks/useReveal.js'
@@ -774,6 +776,8 @@ export default function LandingScreen() {
   }, [menuOpen])
 
   const [activeFaq, setActiveFaq] = useState(null)
+  const { theme, toggleTheme } = useTheme()
+  const [videoModalOpen, setVideoModalOpen] = useState(false)
 
   const menuOpenRef = useRef(false)
   const activeFaqRef = useRef(null)
@@ -937,708 +941,822 @@ export default function LandingScreen() {
   )
 
   return (
-    <main className="lp-page" ref={rootRef}>
-      <div className="lp-bg-grain" aria-hidden="true" />
+    <>
+      <Helmet>
+        <title>Körset — Умный помощник у полки</title>
+        <meta
+          name="description"
+          content="Körset — сканируйте товар в магазине и получайте Fit-Check по аллергенам, халал, диетам и КБЖУ."
+        />
+        <meta property="og:title" content="Körset — Умный помощник у полки" />
+        <meta
+          property="og:description"
+          content="Сканируйте товар в магазине и получайте Fit-Check по аллергенам, халал, диетам и КБЖУ."
+        />
+        <meta property="og:image" content="/logo.png" />
+        <meta property="og:url" content="https://korset.app" />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Körset — Умный помощник у полки" />
+        <meta
+          name="twitter:description"
+          content="Сканируйте товар в магазине и получайте Fit-Check по аллергенам, халал, диетам и КБЖУ."
+        />
+        <meta name="twitter:image" content="/logo.png" />
+        <link rel="canonical" href="https://korset.app" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: `{"@context":"https://schema.org","@type":"WebApplication","name":"Körset","url":"https://korset.app","description":"Körset — ИИ-помощник у полки: сканируйте товар и получайте Fit-Check по аллергенам, халал, диетам и КБЖУ.","applicationCategory":"LifestyleApplication","operatingSystem":"All","offers":{"@type":"Offer","price":"0","priceCurrency":"KZT"}}`,
+          }}
+        />
+      </Helmet>
+      <main className="lp-page" ref={rootRef}>
+        <div className="lp-bg-grain" aria-hidden="true" />
 
-      <header className={`lp-header ${scrolled ? 'lp-header--scrolled' : ''}`}>
-        <div className="lp-header__inner">
-          <a className="lp-brand" href="/" aria-label="Körset">
-            <img src="/korset_logo.svg" alt="Körset" className="lp-brand__logo" />
-          </a>
-
-          <nav className="lp-header__nav" aria-label="Primary">
-            <a href="#how">{d.nav.how}</a>
-            <a href="#features">{d.nav.features}</a>
-            <a href="#retail">{d.nav.retail}</a>
-            <a href="#pricing">{d.nav.pricing}</a>
-          </nav>
-
-          <div className="lp-header__actions">
-            <a className="lp-btn lp-btn--primary lp-btn--sm" href="/stores">
-              <span>{d.hero.primary}</span>
-              <ArrowIcon />
+        <header className={`lp-header ${scrolled ? 'lp-header--scrolled' : ''}`}>
+          <div className="lp-header__inner">
+            <a className="lp-brand" href="/" aria-label="Körset">
+              <img src="/korset_logo.svg" alt="Körset" className="lp-brand__logo" />
             </a>
-            <button
-              type="button"
-              className={`lp-burger ${menuOpen ? 'lp-burger--open' : ''}`}
-              aria-label="Menu"
-              aria-expanded={menuOpen}
-              onClick={() => {
-                if (!menuOpen) window.history.pushState(null, '')
-                setMenuOpen((v) => !v)
-              }}
-            >
-              <span />
-              <span />
-              <span />
-            </button>
-          </div>
-        </div>
-      </header>
 
-      <div className={`lp-mobile-menu ${menuOpen ? 'lp-mobile-menu--open' : ''}`}>
-        <nav>
-          <a href="#how" onClick={() => setMenuOpen(false)}>
-            {d.nav.how}
-          </a>
-          <a href="#features" onClick={() => setMenuOpen(false)}>
-            {d.nav.features}
-          </a>
-          <a href="#retail" onClick={() => setMenuOpen(false)}>
-            {d.nav.retail}
-          </a>
-          <a href="#pricing" onClick={() => setMenuOpen(false)}>
-            {d.nav.pricing}
-          </a>
-          <a className="lp-btn lp-btn--primary" href="/stores" onClick={() => setMenuOpen(false)}>
-            {d.hero.primary}
-            <ArrowIcon />
-          </a>
-        </nav>
-      </div>
+            <nav className="lp-header__nav" aria-label="Primary">
+              <a href="#how">{d.nav.how}</a>
+              <a href="#features">{d.nav.features}</a>
+              <a href="#retail">{d.nav.retail}</a>
+              <a href="#pricing">{d.nav.pricing}</a>
+            </nav>
 
-      <section className="lp-hero" data-testid="landing-consumer">
-        {/* Full-screen background video */}
-        <div className="lp-hero__bg" aria-hidden="true">
-          <video
-            key="hero-video-local"
-            className="lp-hero__bg-img"
-            autoPlay
-            muted
-            loop
-            playsInline
-            poster="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1920&q=80"
-            src="/here_video.mp4"
-            style={{
-              opacity: 1,
-              visibility: 'visible',
-              display: 'block',
-              filter: 'none',
-              objectFit: 'cover',
-            }}
-          />
-          <div className="lp-hero__bg-overlay" />
-        </div>
-
-        {/* Content overlaid on background */}
-        <div className="lp-hero__wrap">
-          <div className="lp-hero__copy">
-            <ul className="lp-pills" aria-label={d.hero.chipsLabel}>
-              {d.hero.chips.map((chip, i) => (
-                <li
-                  key={chip}
-                  className={`lp-pills__item lp-reveal lp-reveal--scale lp-reveal--delay-${i + 1}`}
-                >
-                  <span className="lp-pills__dot" aria-hidden="true" />
-                  {chip}
-                </li>
-              ))}
-            </ul>
-
-            <h1 className="lp-hero__title lp-reveal">
-              {d.hero.titlePrefix}{' '}
-              <span className="lp-hero__title-accent">
-                <HeroRotatingWord words={d.hero.rotating} />
-              </span>
-            </h1>
-
-            <p className="lp-hero__subtitle lp-reveal lp-reveal--delay-1">{d.hero.subtitle}</p>
-
-            <div className="lp-hero__actions lp-reveal lp-reveal--delay-2">
-              <a className="lp-btn lp-btn--primary lp-btn--lg" href="/stores">
+            <div className="lp-header__actions">
+              <button
+                className="lp-theme-toggle"
+                onClick={toggleTheme}
+                aria-label={d.nav.themeToggle}
+                title={d.nav.themeToggle}
+              >
+                {theme === 'light' ? (
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                    <path
+                      d="M9 2.25v1.5M9 14.25v1.5M2.25 9h1.5M14.25 9h1.5M4.23 4.23l1.06 1.06M12.71 12.71l1.06 1.06M4.23 13.77l1.06-1.06M12.71 5.29l1.06-1.06"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                    />
+                    <circle cx="9" cy="9" r="3.75" stroke="currentColor" strokeWidth="1.5" />
+                  </svg>
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                    <path
+                      d="M15.2 9.84A6 6 0 0 1 8.16 2.8 6 6 0 1 0 15.2 9.84z"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                )}
+              </button>
+              <a className="lp-btn lp-btn--primary lp-btn--sm" href="/stores">
                 <span>{d.hero.primary}</span>
                 <ArrowIcon />
               </a>
-              <a className="lp-btn lp-btn--ghost lp-btn--lg" href="#demo">
-                <PlayIcon />
-                <span>{d.hero.secondary}</span>
-              </a>
+              <button
+                type="button"
+                className={`lp-burger ${menuOpen ? 'lp-burger--open' : ''}`}
+                aria-label="Menu"
+                aria-expanded={menuOpen}
+                onClick={() => {
+                  if (!menuOpen) window.history.pushState(null, '')
+                  setMenuOpen((v) => !v)
+                }}
+              >
+                <span />
+                <span />
+                <span />
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <div className={`lp-mobile-menu ${menuOpen ? 'lp-mobile-menu--open' : ''}`}>
+          <nav>
+            <a href="#how" onClick={() => setMenuOpen(false)}>
+              {d.nav.how}
+            </a>
+            <a href="#features" onClick={() => setMenuOpen(false)}>
+              {d.nav.features}
+            </a>
+            <a href="#retail" onClick={() => setMenuOpen(false)}>
+              {d.nav.retail}
+            </a>
+            <a href="#pricing" onClick={() => setMenuOpen(false)}>
+              {d.nav.pricing}
+            </a>
+            <a className="lp-btn lp-btn--primary" href="/stores" onClick={() => setMenuOpen(false)}>
+              {d.hero.primary}
+              <ArrowIcon />
+            </a>
+          </nav>
+        </div>
+
+        <section className="lp-hero" data-testid="landing-consumer">
+          {/* Full-screen background video */}
+          <div className="lp-hero__bg" aria-hidden="true">
+            <video
+              key="hero-video-local"
+              className="lp-hero__bg-img"
+              autoPlay
+              muted
+              loop
+              playsInline
+              poster="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1920&q=80"
+              src="/here_video.mp4"
+              style={{
+                opacity: 1,
+                visibility: 'visible',
+                display: 'block',
+                filter: 'none',
+                objectFit: 'cover',
+              }}
+            />
+            <div className="lp-hero__bg-overlay" />
+          </div>
+
+          {/* Content overlaid on background */}
+          <div className="lp-hero__wrap">
+            <div className="lp-hero__copy">
+              <ul className="lp-pills" aria-label={d.hero.chipsLabel}>
+                {d.hero.chips.map((chip, i) => (
+                  <li
+                    key={chip}
+                    className={`lp-pills__item lp-reveal lp-reveal--scale lp-reveal--delay-${i + 1}`}
+                  >
+                    <span className="lp-pills__dot" aria-hidden="true" />
+                    {chip}
+                  </li>
+                ))}
+              </ul>
+
+              <h1 className="lp-hero__title lp-reveal">
+                {d.hero.titlePrefix}{' '}
+                <span className="lp-hero__title-accent">
+                  <HeroRotatingWord words={d.hero.rotating} />
+                </span>
+              </h1>
+
+              <p className="lp-hero__subtitle lp-reveal lp-reveal--delay-1">{d.hero.subtitle}</p>
+
+              <div className="lp-hero__actions lp-reveal lp-reveal--delay-2">
+                <a className="lp-btn lp-btn--primary lp-btn--lg" href="/stores">
+                  <span>{d.hero.primary}</span>
+                  <ArrowIcon />
+                </a>
+                <a className="lp-btn lp-btn--ghost lp-btn--lg" href="#demo">
+                  <PlayIcon />
+                  <span>{d.hero.secondary}</span>
+                </a>
+              </div>
+
+              {d.hero.tagline && (
+                <div className="lp-hero__tagline lp-reveal lp-reveal--delay-3">
+                  {d.hero.tagline.split('·').map((part) => (
+                    <span key={part}>
+                      <CheckMicroIcon />
+                      {part.trim()}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="lp-hero__scroll-cue" aria-hidden="true">
+            <span />
+          </div>
+        </section>
+
+        {/* ═══ ЭТАП 2 — Demo ═══ */}
+        <section className="lp-section lp-demo" id="demo">
+          <div className="lp-demo__inner">
+            {/* Left: copy */}
+            <div className="lp-demo__copy">
+              <span className="lp-section-badge lp-reveal">{d.demo.badge}</span>
+
+              <h2 className="lp-section-title lp-reveal lp-reveal--delay-1">{d.demo.title}</h2>
+
+              <p className="lp-section-desc lp-reveal lp-reveal--delay-2">{d.demo.desc}</p>
+
+              <ul className="lp-demo__points lp-reveal lp-reveal--delay-3">
+                {d.demo.points.map((point) => (
+                  <li key={point}>
+                    <CheckMicroIcon />
+                    {point}
+                  </li>
+                ))}
+              </ul>
+
+              <div className="lp-demo__actions lp-reveal lp-reveal--delay-4">
+                <a className="lp-btn lp-btn--primary" href="/stores">
+                  <span>{d.demo.cta}</span>
+                  <ArrowIcon />
+                </a>
+              </div>
             </div>
 
-            {d.hero.tagline && (
-              <div className="lp-hero__tagline lp-reveal lp-reveal--delay-3">
-                {d.hero.tagline.split('·').map((part) => (
-                  <span key={part}>
-                    <CheckMicroIcon />
-                    {part.trim()}
-                  </span>
-                ))}
-              </div>
-            )}
+            {/* Right: 3D phone model */}
+            <div className="lp-demo__device lp-reveal lp-reveal--scale lp-reveal--delay-2">
+              <Phone3D />
+            </div>
           </div>
-        </div>
+        </section>
 
-        <div className="lp-hero__scroll-cue" aria-hidden="true">
-          <span />
-        </div>
-      </section>
+        {/* ═══ ЭТАП 3а — How (3 шага) ═══ */}
+        <section className="lp-section lp-how" id="how" aria-labelledby="lp-how-title">
+          <div className="lp-how__inner">
+            {/* Section header */}
+            <div className="lp-how__header lp-reveal">
+              <span className="lp-section-badge">{d.how.eyebrow}</span>
+              <h2 className="lp-section-title" id="lp-how-title">
+                {d.how.title}
+              </h2>
+              <p className="lp-section-desc">{d.how.text}</p>
+            </div>
 
-      {/* ═══ ЭТАП 2 — Demo ═══ */}
-      <section className="lp-section lp-demo" id="demo">
-        <div className="lp-demo__inner">
-          {/* Left: copy */}
-          <div className="lp-demo__copy">
-            <span className="lp-section-badge lp-reveal">{d.demo.badge}</span>
+            {/* Steps */}
+            <ol className="lp-how__steps" role="list">
+              {/* Step 01 — Photo left, copy right */}
+              <li className="lp-how__step lp-how__step--photo-left">
+                <div className="lp-how__step-media lp-reveal lp-reveal--right">
+                  <figure className="lp-how__img-wrap">
+                    <img
+                      src="/landing/how_step_1.png"
+                      alt=""
+                      className="lp-how__img"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    <div className="lp-how__img-overlay" aria-hidden="true" />
+                  </figure>
+                </div>
+                <div className="lp-how__step-copy lp-reveal lp-reveal--left lp-reveal--delay-1">
+                  <span className="lp-how__step-num" aria-hidden="true">
+                    01
+                  </span>
+                  <h3 className="lp-how__step-title">{d.how.steps[0]?.title}</h3>
+                  <p className="lp-how__step-text">{d.how.steps[0]?.text}</p>
+                </div>
+              </li>
 
-            <h2 className="lp-section-title lp-reveal lp-reveal--delay-1">{d.demo.title}</h2>
+              {/* Step 02 — Copy left, photo right */}
+              <li className="lp-how__step lp-how__step--photo-right">
+                <div className="lp-how__step-copy lp-reveal lp-reveal--right lp-reveal--delay-1">
+                  <span className="lp-how__step-num" aria-hidden="true">
+                    02
+                  </span>
+                  <h3 className="lp-how__step-title">{d.how.steps[1]?.title}</h3>
+                  <p className="lp-how__step-text">{d.how.steps[1]?.text}</p>
+                </div>
+                <div className="lp-how__step-media lp-reveal lp-reveal--left">
+                  <figure className="lp-how__img-wrap">
+                    <img
+                      src="/landing/how_step_2.png"
+                      alt=""
+                      className="lp-how__img"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    <div className="lp-how__img-overlay" aria-hidden="true" />
+                  </figure>
+                </div>
+              </li>
 
-            <p className="lp-section-desc lp-reveal lp-reveal--delay-2">{d.demo.desc}</p>
+              {/* Step 03 — Mini FitCheck mockup left, copy right */}
+              <li className="lp-how__step lp-how__step--photo-left">
+                <div className="lp-how__step-media lp-reveal lp-reveal--right">
+                  <div className="lp-how__result-mockup" aria-hidden="true">
+                    <div className="lp-how__result-header">
+                      <div className="lp-how__result-logo">
+                        <img src="/icon_logo.svg" alt="" width="14" height="14" />
+                      </div>
+                      <span>Körset</span>
+                    </div>
+                    <div className="lp-how__result-card lp-how__result-card--good">
+                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <circle
+                          cx="10"
+                          cy="10"
+                          r="9"
+                          fill="rgba(52,211,153,0.18)"
+                          stroke="rgba(52,211,153,0.5)"
+                        />
+                        <path
+                          d="M6 10.4 8.4 12.8 14 7.2"
+                          stroke="#34d399"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                      <div>
+                        <div className="lp-how__result-verdict">{d.fit.cards[0]?.title}</div>
+                        <div className="lp-how__result-sub">{d.how.steps[2]?.text}</div>
+                      </div>
+                    </div>
+                    <div className="lp-how__result-rows">
+                      <div className="lp-how__result-row">
+                        <span>{d.demo.phone.allergen}</span>
+                        <span className="lp-how__result-row-ok">{d.demo.phone.allergenOk}</span>
+                      </div>
+                      <div className="lp-how__result-row">
+                        <span>{d.demo.phone.halal}</span>
+                        <span className="lp-how__result-row-ok">{d.demo.phone.halalOk}</span>
+                      </div>
+                      <div className="lp-how__result-row">
+                        <span>КБЖУ</span>
+                        <span className="lp-how__result-row-kbju">{d.demo.phone.kbju}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="lp-how__step-copy lp-reveal lp-reveal--left lp-reveal--delay-1">
+                  <span className="lp-how__step-num" aria-hidden="true">
+                    03
+                  </span>
+                  <h3 className="lp-how__step-title">{d.how.steps[2]?.title}</h3>
+                  <p className="lp-how__step-text">{d.how.steps[2]?.text}</p>
+                </div>
+              </li>
+            </ol>
+          </div>
+        </section>
 
-            <ul className="lp-demo__points lp-reveal lp-reveal--delay-3">
-              {d.demo.points.map((point) => (
-                <li key={point}>
-                  <CheckMicroIcon />
-                  {point}
-                </li>
+        {/* ═══ ЭТАП 3б — Fit-Check (3 карточки) ═══ */}
+        <section className="lp-section lp-fit" id="fit" aria-labelledby="lp-fit-title">
+          {/* Background photo */}
+          <div className="lp-fit__bg" aria-hidden="true">
+            <img
+              src="/landing/fit_bg.png"
+              alt=""
+              className="lp-fit__bg-img"
+              loading="lazy"
+              decoding="async"
+            />
+            <div className="lp-fit__bg-overlay" />
+          </div>
+
+          <div className="lp-fit__inner">
+            {/* Header */}
+            <div className="lp-fit__header lp-reveal">
+              <span className="lp-section-badge">{d.fit.eyebrow}</span>
+              <h2 className="lp-section-title" id="lp-fit-title">
+                {d.fit.title}
+              </h2>
+              <p className="lp-section-desc">{d.fit.text}</p>
+            </div>
+
+            {/* 3 Result cards */}
+            <div className="lp-fit__cards">
+              {d.fit.cards.map((card, i) => (
+                <article
+                  key={card.tone}
+                  className={`lp-fit__card lp-fit__card--${card.tone} lp-reveal lp-reveal--delay-${i + 1}`}
+                >
+                  <div className="lp-fit__card-accent" aria-hidden="true" />
+                  <header className="lp-fit__card-head">
+                    <FitIcon tone={card.tone} />
+                    <span className={`lp-fit__card-title lp-fit__card-title--${card.tone}`}>
+                      {card.title}
+                    </span>
+                  </header>
+                  <p className="lp-fit__card-text">{card.text}</p>
+                  <FitExampleProduct tone={card.tone} />
+                </article>
               ))}
-            </ul>
+            </div>
 
-            <div className="lp-demo__actions lp-reveal lp-reveal--delay-4">
-              <a className="lp-btn lp-btn--primary" href="/stores">
-                <span>{d.demo.cta}</span>
+            {/* Alternatives note */}
+            <div className="lp-fit__footer lp-reveal lp-reveal--delay-4">
+              <p className="lp-fit__alternatives">
+                <AlternativesIcon />
+                {d.fit.alternatives}
+              </p>
+              <p className="lp-fit__disclaimer">{d.fit.disclaimer}</p>
+            </div>
+          </div>
+        </section>
+
+        {/* ═══ ЭТАП 4а — Audience */}
+        <section
+          className="lp-section lp-audience"
+          id="audience"
+          aria-labelledby="lp-audience-title"
+        >
+          <div className="lp-audience__inner">
+            <div className="lp-audience__header lp-reveal">
+              <span className="lp-section-badge">{d.audience.eyebrow}</span>
+              <h2 className="lp-section-title" id="lp-audience-title">
+                {d.audience.title}
+              </h2>
+              <p className="lp-section-desc">{d.audience.text}</p>
+            </div>
+            <div className="lp-audience__grid">
+              {d.audience.cards.map((card, i) => (
+                <article
+                  key={i}
+                  className={`lp-audience__card lp-reveal lp-reveal--delay-${i + 1}`}
+                >
+                  <div className="lp-audience__card-photo">
+                    <img
+                      src={AUDIENCE_PHOTOS[i]}
+                      alt=""
+                      className="lp-audience__card-img"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    <div className="lp-audience__card-overlay" aria-hidden="true" />
+                  </div>
+                  <div className="lp-audience__card-body">
+                    <h3 className="lp-audience__card-title">{card.title}</h3>
+                    <p className="lp-audience__card-text">{card.text}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ═══ ЭТАП 4б — Features */}
+        <section
+          className="lp-section lp-features"
+          id="features"
+          aria-labelledby="lp-features-title"
+        >
+          <div className="lp-features__inner">
+            <div className="lp-features__header lp-reveal">
+              <span className="lp-section-badge">{d.features.eyebrow}</span>
+              <h2 className="lp-section-title" id="lp-features-title">
+                {d.features.title}
+              </h2>
+              <p className="lp-section-desc">{d.features.text}</p>
+            </div>
+
+            <div
+              className="lp-features__tabs lp-reveal lp-reveal--delay-1"
+              role="tablist"
+              aria-label={d.features.title}
+            >
+              {d.features.cards.map((card, i) => (
+                <button
+                  key={i}
+                  id={`lp-ftab-${i}`}
+                  role="tab"
+                  aria-selected={activeFeatureTab === i}
+                  aria-controls={`lp-fpane-${i}`}
+                  className={`lp-features__tab${activeFeatureTab === i ? ' lp-features__tab--active' : ''}`}
+                  onClick={() => {
+                    if (i !== 0) window.history.pushState(null, '')
+                    setActiveFeatureTab(i)
+                  }}
+                >
+                  {card.title}
+                </button>
+              ))}
+            </div>
+
+            {d.features.cards.map((card, i) => (
+              <div
+                key={i}
+                id={`lp-fpane-${i}`}
+                role="tabpanel"
+                aria-labelledby={`lp-ftab-${i}`}
+                hidden={activeFeatureTab !== i}
+                className="lp-features__pane"
+              >
+                <div className="lp-features__pane-grid">
+                  <div className="lp-features__pane-copy">
+                    <span className="lp-features__pane-group">{card.group}</span>
+                    <h3 className="lp-features__pane-title">{card.title}</h3>
+                    <p className="lp-features__pane-text">{card.text}</p>
+                  </div>
+                  <div className="lp-features__pane-media">
+                    <FeatureMockup index={i} phone={d.demo.phone} fit={d.fit} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ═══ ЭТАП 5а — Stats ═══ */}
+        <section className="lp-stats" id="stats" aria-label="Körset — статистика">
+          <div className="lp-stats__bg" aria-hidden="true">
+            <img
+              src="/landing/stats_bg.png"
+              alt=""
+              className="lp-stats__bg-img"
+              loading="lazy"
+              decoding="async"
+            />
+            <div className="lp-stats__bg-overlay" />
+          </div>
+          <div className="lp-stats__inner">
+            <div className="lp-stats__grid">
+              {d.stats.map((stat, i) => (
+                <div key={i} className={`lp-stats__item lp-reveal lp-reveal--delay-${i + 1}`}>
+                  <span className="lp-stats__value">{stat.value}</span>
+                  <span className="lp-stats__label">{stat.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ═══ ЭТАП 5б — Video ═══ */}
+        <section className="lp-section lp-video" id="demo-video" aria-labelledby="lp-video-title">
+          <div className="lp-video__inner">
+            <div className="lp-video__header lp-reveal">
+              <h2 className="lp-section-title" id="lp-video-title">
+                {d.video.title}
+              </h2>
+            </div>
+            <div className="lp-video__player lp-reveal lp-reveal--delay-1">
+              <figure className="lp-video__thumb">
+                <img
+                  src="/landing/video_thumb.png"
+                  alt=""
+                  className="lp-video__thumb-img"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <div className="lp-video__thumb-overlay" aria-hidden="true" />
+                <button
+                  className="lp-video__play-btn"
+                  aria-label={d.video.play}
+                  onClick={() => {
+                    window.history.pushState(null, '')
+                    setVideoModalOpen(true)
+                  }}
+                >
+                  <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true">
+                    <path d="M9 7l13 6.5L9 20V7z" fill="currentColor" />
+                  </svg>
+                </button>
+                <div className="lp-video__caption" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.2" />
+                    <path
+                      d="M7 4v3l2 1.5"
+                      stroke="currentColor"
+                      strokeWidth="1.2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  60 сек
+                </div>
+              </figure>
+            </div>
+          </div>
+        </section>
+
+        {/* ═══ ЭТАП 5в — Retail ═══ */}
+        <section className="lp-section lp-retail" id="retail" aria-labelledby="lp-retail-title">
+          <div className="lp-retail__inner">
+            <div className="lp-retail__header lp-reveal">
+              <span className="lp-section-badge">{d.retail.eyebrow}</span>
+              <h2 className="lp-section-title" id="lp-retail-title">
+                {d.retail.title}
+              </h2>
+              <p className="lp-section-desc">{d.retail.text}</p>
+            </div>
+            <div className="lp-retail__cards">
+              {d.retail.cards.map((card, i) => (
+                <article
+                  key={i}
+                  className={`lp-retail__card lp-reveal lp-reveal--delay-${(i % 3) + 1}`}
+                >
+                  <div className="lp-retail__card-icon">
+                    <RetailIcon name={card.icon} />
+                  </div>
+                  <div>
+                    <h3 className="lp-retail__card-title">{card.title}</h3>
+                    <p className="lp-retail__card-text">{card.text}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+            <div className="lp-retail__cta lp-reveal lp-reveal--delay-2">
+              <a href="/retail" className="lp-btn lp-btn--primary lp-btn--lg">
+                {d.retail.cta}
                 <ArrowIcon />
               </a>
             </div>
           </div>
+        </section>
 
-          {/* Right: 3D phone model */}
-          <div className="lp-demo__device lp-reveal lp-reveal--scale lp-reveal--delay-2">
-            <Phone3D />
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ ЭТАП 3а — How (3 шага) ═══ */}
-      <section className="lp-section lp-how" id="how" aria-labelledby="lp-how-title">
-        <div className="lp-how__inner">
-          {/* Section header */}
-          <div className="lp-how__header lp-reveal">
-            <span className="lp-section-badge">{d.how.eyebrow}</span>
-            <h2 className="lp-section-title" id="lp-how-title">
-              {d.how.title}
-            </h2>
-            <p className="lp-section-desc">{d.how.text}</p>
-          </div>
-
-          {/* Steps */}
-          <ol className="lp-how__steps" role="list">
-            {/* Step 01 — Photo left, copy right */}
-            <li className="lp-how__step lp-how__step--photo-left">
-              <div className="lp-how__step-media lp-reveal lp-reveal--right">
-                <figure className="lp-how__img-wrap">
-                  <img
-                    src="/landing/how_step_1.png"
-                    alt=""
-                    className="lp-how__img"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                  <div className="lp-how__img-overlay" aria-hidden="true" />
-                </figure>
-              </div>
-              <div className="lp-how__step-copy lp-reveal lp-reveal--left lp-reveal--delay-1">
-                <span className="lp-how__step-num" aria-hidden="true">
-                  01
-                </span>
-                <h3 className="lp-how__step-title">{d.how.steps[0]?.title}</h3>
-                <p className="lp-how__step-text">{d.how.steps[0]?.text}</p>
-              </div>
-            </li>
-
-            {/* Step 02 — Copy left, photo right */}
-            <li className="lp-how__step lp-how__step--photo-right">
-              <div className="lp-how__step-copy lp-reveal lp-reveal--right lp-reveal--delay-1">
-                <span className="lp-how__step-num" aria-hidden="true">
-                  02
-                </span>
-                <h3 className="lp-how__step-title">{d.how.steps[1]?.title}</h3>
-                <p className="lp-how__step-text">{d.how.steps[1]?.text}</p>
-              </div>
-              <div className="lp-how__step-media lp-reveal lp-reveal--left">
-                <figure className="lp-how__img-wrap">
-                  <img
-                    src="/landing/how_step_2.png"
-                    alt=""
-                    className="lp-how__img"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                  <div className="lp-how__img-overlay" aria-hidden="true" />
-                </figure>
-              </div>
-            </li>
-
-            {/* Step 03 — Mini FitCheck mockup left, copy right */}
-            <li className="lp-how__step lp-how__step--photo-left">
-              <div className="lp-how__step-media lp-reveal lp-reveal--right">
-                <div className="lp-how__result-mockup" aria-hidden="true">
-                  <div className="lp-how__result-header">
-                    <div className="lp-how__result-logo">
-                      <img src="/icon_logo.svg" alt="" width="14" height="14" />
-                    </div>
-                    <span>Körset</span>
-                  </div>
-                  <div className="lp-how__result-card lp-how__result-card--good">
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                      <circle
-                        cx="10"
-                        cy="10"
-                        r="9"
-                        fill="rgba(52,211,153,0.18)"
-                        stroke="rgba(52,211,153,0.5)"
-                      />
-                      <path
-                        d="M6 10.4 8.4 12.8 14 7.2"
-                        stroke="#34d399"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    <div>
-                      <div className="lp-how__result-verdict">{d.fit.cards[0]?.title}</div>
-                      <div className="lp-how__result-sub">{d.how.steps[2]?.text}</div>
-                    </div>
-                  </div>
-                  <div className="lp-how__result-rows">
-                    <div className="lp-how__result-row">
-                      <span>{d.demo.phone.allergen}</span>
-                      <span className="lp-how__result-row-ok">{d.demo.phone.allergenOk}</span>
-                    </div>
-                    <div className="lp-how__result-row">
-                      <span>{d.demo.phone.halal}</span>
-                      <span className="lp-how__result-row-ok">{d.demo.phone.halalOk}</span>
-                    </div>
-                    <div className="lp-how__result-row">
-                      <span>КБЖУ</span>
-                      <span className="lp-how__result-row-kbju">{d.demo.phone.kbju}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="lp-how__step-copy lp-reveal lp-reveal--left lp-reveal--delay-1">
-                <span className="lp-how__step-num" aria-hidden="true">
-                  03
-                </span>
-                <h3 className="lp-how__step-title">{d.how.steps[2]?.title}</h3>
-                <p className="lp-how__step-text">{d.how.steps[2]?.text}</p>
-              </div>
-            </li>
-          </ol>
-        </div>
-      </section>
-
-      {/* ═══ ЭТАП 3б — Fit-Check (3 карточки) ═══ */}
-      <section className="lp-section lp-fit" id="fit" aria-labelledby="lp-fit-title">
-        {/* Background photo */}
-        <div className="lp-fit__bg" aria-hidden="true">
-          <img
-            src="/landing/fit_bg.png"
-            alt=""
-            className="lp-fit__bg-img"
-            loading="lazy"
-            decoding="async"
-          />
-          <div className="lp-fit__bg-overlay" />
-        </div>
-
-        <div className="lp-fit__inner">
-          {/* Header */}
-          <div className="lp-fit__header lp-reveal">
-            <span className="lp-section-badge">{d.fit.eyebrow}</span>
-            <h2 className="lp-section-title" id="lp-fit-title">
-              {d.fit.title}
-            </h2>
-            <p className="lp-section-desc">{d.fit.text}</p>
-          </div>
-
-          {/* 3 Result cards */}
-          <div className="lp-fit__cards">
-            {d.fit.cards.map((card, i) => (
-              <article
-                key={card.tone}
-                className={`lp-fit__card lp-fit__card--${card.tone} lp-reveal lp-reveal--delay-${i + 1}`}
-              >
-                <div className="lp-fit__card-accent" aria-hidden="true" />
-                <header className="lp-fit__card-head">
-                  <FitIcon tone={card.tone} />
-                  <span className={`lp-fit__card-title lp-fit__card-title--${card.tone}`}>
-                    {card.title}
-                  </span>
-                </header>
-                <p className="lp-fit__card-text">{card.text}</p>
-                <FitExampleProduct tone={card.tone} />
-              </article>
-            ))}
-          </div>
-
-          {/* Alternatives note */}
-          <div className="lp-fit__footer lp-reveal lp-reveal--delay-4">
-            <p className="lp-fit__alternatives">
-              <AlternativesIcon />
-              {d.fit.alternatives}
-            </p>
-            <p className="lp-fit__disclaimer">{d.fit.disclaimer}</p>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ ЭТАП 4а — Audience */}
-      <section className="lp-section lp-audience" id="audience" aria-labelledby="lp-audience-title">
-        <div className="lp-audience__inner">
-          <div className="lp-audience__header lp-reveal">
-            <span className="lp-section-badge">{d.audience.eyebrow}</span>
-            <h2 className="lp-section-title" id="lp-audience-title">
-              {d.audience.title}
-            </h2>
-            <p className="lp-section-desc">{d.audience.text}</p>
-          </div>
-          <div className="lp-audience__grid">
-            {d.audience.cards.map((card, i) => (
-              <article key={i} className={`lp-audience__card lp-reveal lp-reveal--delay-${i + 1}`}>
-                <div className="lp-audience__card-photo">
-                  <img
-                    src={AUDIENCE_PHOTOS[i]}
-                    alt=""
-                    className="lp-audience__card-img"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                  <div className="lp-audience__card-overlay" aria-hidden="true" />
-                </div>
-                <div className="lp-audience__card-body">
-                  <h3 className="lp-audience__card-title">{card.title}</h3>
-                  <p className="lp-audience__card-text">{card.text}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ ЭТАП 4б — Features */}
-      <section className="lp-section lp-features" id="features" aria-labelledby="lp-features-title">
-        <div className="lp-features__inner">
-          <div className="lp-features__header lp-reveal">
-            <span className="lp-section-badge">{d.features.eyebrow}</span>
-            <h2 className="lp-section-title" id="lp-features-title">
-              {d.features.title}
-            </h2>
-            <p className="lp-section-desc">{d.features.text}</p>
-          </div>
-
-          <div
-            className="lp-features__tabs lp-reveal lp-reveal--delay-1"
-            role="tablist"
-            aria-label={d.features.title}
-          >
-            {d.features.cards.map((card, i) => (
-              <button
-                key={i}
-                id={`lp-ftab-${i}`}
-                role="tab"
-                aria-selected={activeFeatureTab === i}
-                aria-controls={`lp-fpane-${i}`}
-                className={`lp-features__tab${activeFeatureTab === i ? ' lp-features__tab--active' : ''}`}
-                onClick={() => {
-                  if (i !== 0) window.history.pushState(null, '')
-                  setActiveFeatureTab(i)
-                }}
-              >
-                {card.title}
-              </button>
-            ))}
-          </div>
-
-          {d.features.cards.map((card, i) => (
-            <div
-              key={i}
-              id={`lp-fpane-${i}`}
-              role="tabpanel"
-              aria-labelledby={`lp-ftab-${i}`}
-              hidden={activeFeatureTab !== i}
-              className="lp-features__pane"
-            >
-              <div className="lp-features__pane-grid">
-                <div className="lp-features__pane-copy">
-                  <span className="lp-features__pane-group">{card.group}</span>
-                  <h3 className="lp-features__pane-title">{card.title}</h3>
-                  <p className="lp-features__pane-text">{card.text}</p>
-                </div>
-                <div className="lp-features__pane-media">
-                  <FeatureMockup index={i} phone={d.demo.phone} fit={d.fit} />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ═══ ЭТАП 5а — Stats ═══ */}
-      <section className="lp-stats" id="stats" aria-label="Körset — статистика">
-        <div className="lp-stats__bg" aria-hidden="true">
-          <img
-            src="/landing/stats_bg.png"
-            alt=""
-            className="lp-stats__bg-img"
-            loading="lazy"
-            decoding="async"
-          />
-          <div className="lp-stats__bg-overlay" />
-        </div>
-        <div className="lp-stats__inner">
-          <div className="lp-stats__grid">
-            {d.stats.map((stat, i) => (
-              <div key={i} className={`lp-stats__item lp-reveal lp-reveal--delay-${i + 1}`}>
-                <span className="lp-stats__value">{stat.value}</span>
-                <span className="lp-stats__label">{stat.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ ЭТАП 5б — Video ═══ */}
-      <section className="lp-section lp-video" id="demo-video" aria-labelledby="lp-video-title">
-        <div className="lp-video__inner">
-          <div className="lp-video__header lp-reveal">
-            <h2 className="lp-section-title" id="lp-video-title">
-              {d.video.title}
-            </h2>
-          </div>
-          <div className="lp-video__player lp-reveal lp-reveal--delay-1">
-            <figure className="lp-video__thumb">
-              <img
-                src="/landing/video_thumb.png"
-                alt=""
-                className="lp-video__thumb-img"
-                loading="lazy"
-                decoding="async"
-              />
-              <div className="lp-video__thumb-overlay" aria-hidden="true" />
-              <button className="lp-video__play-btn" aria-label={d.video.play}>
-                <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true">
-                  <path d="M9 7l13 6.5L9 20V7z" fill="currentColor" />
-                </svg>
-              </button>
-              <div className="lp-video__caption" aria-hidden="true">
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.2" />
-                  <path
-                    d="M7 4v3l2 1.5"
-                    stroke="currentColor"
-                    strokeWidth="1.2"
-                    strokeLinecap="round"
-                  />
-                </svg>
-                60 сек
-              </div>
-            </figure>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ ЭТАП 5в — Retail ═══ */}
-      <section className="lp-section lp-retail" id="retail" aria-labelledby="lp-retail-title">
-        <div className="lp-retail__inner">
-          <div className="lp-retail__header lp-reveal">
-            <span className="lp-section-badge">{d.retail.eyebrow}</span>
-            <h2 className="lp-section-title" id="lp-retail-title">
-              {d.retail.title}
-            </h2>
-            <p className="lp-section-desc">{d.retail.text}</p>
-          </div>
-          <div className="lp-retail__cards">
-            {d.retail.cards.map((card, i) => (
-              <article
-                key={i}
-                className={`lp-retail__card lp-reveal lp-reveal--delay-${(i % 3) + 1}`}
-              >
-                <div className="lp-retail__card-icon">
-                  <RetailIcon name={card.icon} />
-                </div>
-                <div>
-                  <h3 className="lp-retail__card-title">{card.title}</h3>
-                  <p className="lp-retail__card-text">{card.text}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-          <div className="lp-retail__cta lp-reveal lp-reveal--delay-2">
-            <a href="/retail" className="lp-btn lp-btn--primary lp-btn--lg">
-              {d.retail.cta}
-              <ArrowIcon />
-            </a>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ ЭТАП 6а — Pricing ═══ */}
-      <section className="lp-section lp-pricing" id="pricing" aria-labelledby="lp-pricing-title">
-        <div className="lp-pricing__bg-glow" aria-hidden="true" />
-        <div className="lp-pricing__inner">
-          <div className="lp-pricing__header lp-reveal">
-            <span className="lp-section-badge">{d.pricing.eyebrow}</span>
-            <h2 className="lp-section-title" id="lp-pricing-title">
-              {d.pricing.title}
-            </h2>
-            <p className="lp-section-desc">{d.pricing.text}</p>
-          </div>
-          <div className="lp-pricing__grid">
-            {d.pricing.plans.map((plan, i) => (
-              <article
-                key={plan.id}
-                className={`lp-pricing__card lp-pricing__card--${plan.id} lp-reveal lp-reveal--delay-${i + 1}`}
-              >
-                {plan.badge && <div className="lp-pricing__badge">{plan.badge}</div>}
-                <div className="lp-pricing__card-head">
-                  <h3 className="lp-pricing__card-title">{plan.title}</h3>
-                  {plan.price && <div className="lp-pricing__card-price">{plan.price}</div>}
-                </div>
-                <ul className="lp-pricing__card-feats">
-                  {plan.features.map((feat, j) => (
-                    <li key={j}>
-                      <CheckMicroIcon />
-                      <span>{feat}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="lp-pricing__card-foot">
-                  {plan.note && <div className="lp-pricing__card-note">{plan.note}</div>}
-                  <a
-                    href="/retail"
-                    className={`lp-btn lp-btn--full ${plan.id === 'pro' ? 'lp-btn--primary' : 'lp-btn--ghost'}`}
-                  >
-                    {plan.cta}
-                  </a>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ ЭТАП 6б — FAQ ═══ */}
-      <section className="lp-section lp-faq" id="faq" aria-labelledby="lp-faq-title">
-        <div className="lp-faq__inner">
-          <div className="lp-faq__layout">
-            <div className="lp-faq__sidebar lp-reveal">
-              <span className="lp-section-badge">{d.faq.eyebrow}</span>
-              <h2 className="lp-section-title" id="lp-faq-title">
-                {d.faq.title}
+        {/* ═══ ЭТАП 6а — Pricing ═══ */}
+        <section className="lp-section lp-pricing" id="pricing" aria-labelledby="lp-pricing-title">
+          <div className="lp-pricing__bg-glow" aria-hidden="true" />
+          <div className="lp-pricing__inner">
+            <div className="lp-pricing__header lp-reveal">
+              <span className="lp-section-badge">{d.pricing.eyebrow}</span>
+              <h2 className="lp-section-title" id="lp-pricing-title">
+                {d.pricing.title}
               </h2>
-              <p className="lp-faq__sidebar-text">
-                Остались вопросы? Напишите нам в Telegram, и мы поможем.
-              </p>
-              <a
-                href="https://t.me/korset_support_bot"
-                target="_blank"
-                rel="noreferrer"
-                className="lp-btn lp-btn--ghost"
-              >
-                Написать в поддержку
-              </a>
+              <p className="lp-section-desc">{d.pricing.text}</p>
             </div>
-            <div className="lp-faq__list lp-reveal lp-reveal--delay-1">
-              {d.faq.items.map((item, i) => {
-                const isOpen = activeFaq === i
-                return (
-                  <div key={i} className={`lp-faq__item ${isOpen ? 'lp-faq__item--active' : ''}`}>
-                    <button
-                      className="lp-faq__question"
-                      aria-expanded={isOpen}
-                      onClick={() => {
-                        if (!isOpen) window.history.pushState(null, '')
-                        setActiveFaq(isOpen ? null : i)
-                      }}
-                    >
-                      <span>{item.q}</span>
-                      <ChevronIcon className="lp-faq__chevron" />
-                    </button>
-                    <div className="lp-faq__answer" aria-hidden={!isOpen}>
-                      <div className="lp-faq__answer-inner">{item.a}</div>
-                    </div>
+            <div className="lp-pricing__grid">
+              {d.pricing.plans.map((plan, i) => (
+                <article
+                  key={plan.id}
+                  className={`lp-pricing__card lp-pricing__card--${plan.id} lp-reveal lp-reveal--delay-${i + 1}`}
+                >
+                  {plan.badge && <div className="lp-pricing__badge">{plan.badge}</div>}
+                  <div className="lp-pricing__card-head">
+                    <h3 className="lp-pricing__card-title">{plan.title}</h3>
+                    {plan.price && <div className="lp-pricing__card-price">{plan.price}</div>}
                   </div>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ ЭТАП 7а — Финальный CTA ═══ */}
-      <section className="lp-section lp-cta" aria-labelledby="lp-cta-title">
-        <div className="lp-cta__inner lp-reveal">
-          <div className="lp-cta__content">
-            <h2 className="lp-section-title lp-cta__title" id="lp-cta-title">
-              {d.cta.title}
-            </h2>
-            <p className="lp-cta__text">{d.cta.text}</p>
-            <div className="lp-cta__actions">
-              <a href="/retail" className="lp-btn lp-btn--primary lp-btn--lg">
-                {d.cta.primary}
-              </a>
-              <a href="#demo-video" className="lp-btn lp-btn--ghost lp-btn--lg">
-                <PlayIcon />
-                {d.cta.secondary}
-              </a>
-            </div>
-          </div>
-          <div className="lp-cta__bg" aria-hidden="true">
-            <div className="lp-cta__glow" />
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ ЭТАП 7б — Footer ═══ */}
-      <footer className="lp-footer" id="footer">
-        <div className="lp-footer__inner">
-          <div className="lp-footer__top">
-            <div className="lp-footer__brand-col">
-              <div className="lp-footer__brand-wrap">
-                <a className="lp-brand lp-footer__brand" href="/" aria-label="Körset">
-                  <img src="/korset_logo.svg" alt="Körset" className="lp-brand__logo" />
-                </a>
-              </div>
-              <h3 className="lp-footer__title">{d.footer.title}</h3>
-              <p className="lp-footer__text">{d.footer.text}</p>
-            </div>
-            <div className="lp-footer__links">
-              {d.footer.groups.map((group, i) => (
-                <div key={i} className="lp-footer__group">
-                  <h4 className="lp-footer__group-title">{group.title}</h4>
-                  <ul>
-                    {group.links.map((link, j) => (
+                  <ul className="lp-pricing__card-feats">
+                    {plan.features.map((feat, j) => (
                       <li key={j}>
-                        <a href={link.href}>{link.label}</a>
+                        <CheckMicroIcon />
+                        <span>{feat}</span>
                       </li>
                     ))}
                   </ul>
-                </div>
+                  <div className="lp-pricing__card-foot">
+                    {plan.note && <div className="lp-pricing__card-note">{plan.note}</div>}
+                    <a
+                      href="/retail"
+                      className={`lp-btn lp-btn--full ${plan.id === 'pro' ? 'lp-btn--primary' : 'lp-btn--ghost'}`}
+                    >
+                      {plan.cta}
+                    </a>
+                  </div>
+                </article>
               ))}
             </div>
           </div>
-          <div className="lp-footer__bottom">
-            <div className="lp-footer__copy">{d.footer.copyright}</div>
-            <div className="lp-footer__made">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                aria-hidden="true"
-                style={{ color: 'var(--lp-brand)', marginRight: 6, verticalAlign: 'text-bottom' }}
-              >
-                <path
-                  d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
-                  fill="currentColor"
-                />
-              </svg>
-              {d.footer.made}
+        </section>
+
+        {/* ═══ ЭТАП 6б — FAQ ═══ */}
+        <section className="lp-section lp-faq" id="faq" aria-labelledby="lp-faq-title">
+          <div className="lp-faq__inner">
+            <div className="lp-faq__layout">
+              <div className="lp-faq__sidebar lp-reveal">
+                <span className="lp-section-badge">{d.faq.eyebrow}</span>
+                <h2 className="lp-section-title" id="lp-faq-title">
+                  {d.faq.title}
+                </h2>
+                <p className="lp-faq__sidebar-text">
+                  Остались вопросы? Напишите нам в Telegram, и мы поможем.
+                </p>
+                <a
+                  href="https://t.me/korset_support_bot"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="lp-btn lp-btn--ghost"
+                >
+                  Написать в поддержку
+                </a>
+              </div>
+              <div className="lp-faq__list lp-reveal lp-reveal--delay-1">
+                {d.faq.items.map((item, i) => {
+                  const isOpen = activeFaq === i
+                  return (
+                    <div key={i} className={`lp-faq__item ${isOpen ? 'lp-faq__item--active' : ''}`}>
+                      <button
+                        className="lp-faq__question"
+                        aria-expanded={isOpen}
+                        onClick={() => {
+                          if (!isOpen) window.history.pushState(null, '')
+                          setActiveFaq(isOpen ? null : i)
+                        }}
+                      >
+                        <span>{item.q}</span>
+                        <ChevronIcon className="lp-faq__chevron" />
+                      </button>
+                      <div className="lp-faq__answer" aria-hidden={!isOpen}>
+                        <div className="lp-faq__answer-inner">{item.a}</div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           </div>
-        </div>
-      </footer>
-    </main>
+        </section>
+
+        {/* ═══ ЭТАП 7а — Финальный CTA ═══ */}
+        <section className="lp-section lp-cta" aria-labelledby="lp-cta-title">
+          <div className="lp-cta__inner lp-reveal">
+            <div className="lp-cta__content">
+              <h2 className="lp-section-title lp-cta__title" id="lp-cta-title">
+                {d.cta.title}
+              </h2>
+              <p className="lp-cta__text">{d.cta.text}</p>
+              <div className="lp-cta__actions">
+                <a href="/retail" className="lp-btn lp-btn--primary lp-btn--lg">
+                  {d.cta.primary}
+                </a>
+                <a href="#demo-video" className="lp-btn lp-btn--ghost lp-btn--lg">
+                  <PlayIcon />
+                  {d.cta.secondary}
+                </a>
+              </div>
+            </div>
+            <div className="lp-cta__bg" aria-hidden="true">
+              <div className="lp-cta__glow" />
+            </div>
+          </div>
+        </section>
+
+        {/* ═══ ЭТАП 7б — Footer ═══ */}
+        <footer className="lp-footer" id="footer">
+          <div className="lp-footer__inner">
+            <div className="lp-footer__top">
+              <div className="lp-footer__brand-col">
+                <div className="lp-footer__brand-wrap">
+                  <a className="lp-brand lp-footer__brand" href="/" aria-label="Körset">
+                    <img src="/korset_logo.svg" alt="Körset" className="lp-brand__logo" />
+                  </a>
+                </div>
+                <h3 className="lp-footer__title">{d.footer.title}</h3>
+                <p className="lp-footer__text">{d.footer.text}</p>
+              </div>
+              <div className="lp-footer__links">
+                {d.footer.groups.map((group, i) => (
+                  <div key={i} className="lp-footer__group">
+                    <h4 className="lp-footer__group-title">{group.title}</h4>
+                    <ul>
+                      {group.links.map((link, j) => (
+                        <li key={j}>
+                          <a href={link.href}>{link.label}</a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="lp-footer__bottom">
+              <div className="lp-footer__copy">{d.footer.copyright}</div>
+              <div className="lp-footer__made">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                  style={{ color: 'var(--lp-brand)', marginRight: 6, verticalAlign: 'text-bottom' }}
+                >
+                  <path
+                    d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+                    fill="currentColor"
+                  />
+                </svg>
+                {d.footer.made}
+              </div>
+            </div>
+          </div>
+        </footer>
+
+        {videoModalOpen && (
+          <div
+            className="lp-video-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label={d.video.play}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setVideoModalOpen(false)
+            }}
+          >
+            <div className="lp-video-modal__inner">
+              <button
+                className="lp-video-modal__close"
+                aria-label="Close"
+                onClick={() => setVideoModalOpen(false)}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M6 6L18 18M18 6L6 18"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </button>
+              <video
+                className="lp-video-modal__video"
+                src="/here_video.mp4"
+                controls
+                autoPlay
+                playsInline
+                poster="/landing/video_thumb.png"
+              />
+            </div>
+          </div>
+        )}
+      </main>
+    </>
   )
 }

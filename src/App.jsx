@@ -1,5 +1,6 @@
 import { useEffect, lazy, Suspense } from 'react'
 import { Routes, Route, useLocation, Navigate, useNavigate } from 'react-router-dom'
+import { HelmetProvider } from 'react-helmet-async'
 import BottomNav from './components/BottomNav.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import OfflineBanner from './components/OfflineBanner.jsx'
@@ -154,19 +155,21 @@ import { UserDataProvider } from './contexts/UserDataContext.jsx'
 
 export default function App() {
   return (
-    <ErrorBoundary>
-      <AuthProvider>
-        <UserDataProvider>
-          <OfflineProvider>
-            <StoreProvider>
-              <ProfileProvider>
-                <AppInner />
-                <SpeedInsights />
-              </ProfileProvider>
-            </StoreProvider>
-          </OfflineProvider>
-        </UserDataProvider>
-      </AuthProvider>
-    </ErrorBoundary>
+    <HelmetProvider>
+      <ErrorBoundary>
+        <AuthProvider>
+          <UserDataProvider>
+            <OfflineProvider>
+              <StoreProvider>
+                <ProfileProvider>
+                  <AppInner />
+                  <SpeedInsights />
+                </ProfileProvider>
+              </StoreProvider>
+            </OfflineProvider>
+          </UserDataProvider>
+        </AuthProvider>
+      </ErrorBoundary>
+    </HelmetProvider>
   )
 }

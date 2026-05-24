@@ -18,6 +18,7 @@ import {
   markSyncComplete,
   mergeProfiles,
 } from '../utils/profileSync.js'
+import { normalizeDietGoals } from '../utils/profile.js'
 import SyncResolveModal from '../components/SyncResolveModal.jsx'
 
 const ProfileContext = createContext(null)
@@ -34,6 +35,7 @@ const DEFAULT_PROFILE = {
 
 function normalizeProfile(raw) {
   const profile = { ...DEFAULT_PROFILE, ...(raw || {}) }
+  profile.dietGoals = normalizeDietGoals(profile.dietGoals)
   profile.notifications = {
     ...DEFAULT_NOTIFICATION_SETTINGS,
     ...(raw?.notifications || {}),
@@ -54,9 +56,10 @@ function loadProfileLocal() {
 
 /** Persists profile to localStorage and syncs settings sidecars. */
 function persistProfileToLocal(profile) {
-  localStorage.setItem('korset_profile', JSON.stringify(profile))
-  saveNotificationSettings(profile.notifications)
-  writePrivacySettings(profile.privacy)
+  const normalized = normalizeProfile(profile)
+  localStorage.setItem('korset_profile', JSON.stringify(normalized))
+  saveNotificationSettings(normalized.notifications)
+  writePrivacySettings(normalized.privacy)
 }
 
 export function ProfileProvider({ children }) {

@@ -36,6 +36,20 @@ test('extractFlavorAttribute detects high-confidence flavor after product contex
   )
 })
 
+test('extractFlavorAttribute detects simple compound flavor tokens', () => {
+  assert.deepEqual(
+    extractFlavorAttribute({
+      name: 'Конфеты Merci апельсин и миндаль 100 г',
+      category: 'sweets',
+    }),
+    {
+      value: 'Апельсин и миндаль',
+      confidence: 'high',
+      source: 'compound_known_flavor_tokens',
+    }
+  )
+})
+
 test('extractFlavorAttribute does not confuse product type or brand words with flavor', () => {
   assert.equal(
     extractFlavorAttribute({
@@ -85,6 +99,20 @@ test('extractFlavorAttribute treats cheese as flavor for snacks, not as generic 
   )
 })
 
+test('extractFlavorAttribute keeps catalog multi-word savory flavors', () => {
+  assert.deepEqual(
+    extractFlavorAttribute({
+      name: 'Сыр Тысяча Озёр творожный с маринованными огурчиками и зеленью, 140 г',
+      category: 'dairy_eggs',
+    }),
+    {
+      value: 'Огурчики и зелень',
+      confidence: 'high',
+      source: 'known_flavor_token',
+    }
+  )
+})
+
 test('normalizeGlobalProduct exposes only high-confidence flavor for ProductScreen specs', () => {
   const flavored = normalizeGlobalProduct({
     id: '11111111-1111-4111-8111-111111111114',
@@ -127,4 +155,24 @@ test('extractAllAttributes keeps flavor out of database attribute payload for no
 
   assert.equal(Object.hasOwn(attrs, 'flavor'), false)
   assert.equal(Object.hasOwn(attrs, 'flavor_meta_json'), false)
+})
+
+test('extractAllAttributes adds keto diet tag from product name', () => {
+  const attrs = extractAllAttributes({
+    name: 'Кето батончик протеиновый без сахара 50 г',
+    category: 'healthy',
+  })
+
+  const tags = JSON.parse(attrs.diet_tags_json)
+  assert.ok(tags.includes('keto'))
+})
+
+test('extractAllAttributes adds low_carb diet tag from product name', () => {
+  const attrs = extractAllAttributes({
+    name: 'Низкоуглеводный протеиновый батончик 50 г',
+    category: 'healthy',
+  })
+
+  const tags = JSON.parse(attrs.diet_tags_json)
+  assert.ok(tags.includes('low_carb'))
 })

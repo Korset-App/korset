@@ -139,31 +139,54 @@ function cleanQueryForNpc(name) {
 async function npcSearchByName(name, brand = null) {
   if (!NPC_API_KEY || !name) return null
   const cleaned = cleanQueryForNpc(name)
+  const coreWords = cleaned.split(/\s+/).slice(0, 3).join(' ')
+
+  // Build multiple query strategies
   const queriesToTry = [cleaned]
   if (brand && !cleaned.toLowerCase().includes(brand.toLowerCase())) {
     queriesToTry.push(`${brand} ${cleaned}`)
+    queriesToTry.push(`${brand} ${coreWords}`)
   }
-  const uniqueQueries = [...new Set(queriesToTry.filter(q => q && q.length > 2))]
+  if (coreWords.length > 3 && coreWords !== cleaned) {
+    queriesToTry.push(coreWords)
+  }
+  if (brand) {
+    queriesToTry.push(brand + ' ' + coreWords.split(' ').slice(0, 2).join(' '))
+  }
+
+  const uniqueQueries = [...new Set(queriesToTry.filter(q => q && q.length > 2))].slice(0, 4)
+
+  let allGtins = new Set()
 
   for (const q of uniqueQueries) {
     try {
       const r = await httpReq('POST', 'https://nationalcatalog.kz/gw/search/api/v1/search', {
         'X-API-KEY': NPC_API_KEY,
         'Content-Type': 'application/json',
-      }, { query: q.substring(0, 80), page: 1, size: 5 })
+      }, { query: q.substring(0, 80), page: 1, size: 8 })
 
       if (r.status === 200) {
         const items = JSON.parse(r.body).items || []
-        if (items.length > 0) {
-          const withGtin = items.find(item => item.gtin && /^\d+$/.test(item.gtin.trim()))
-          if (withGtin) return withGtin
-          return items[0]
+        for (const item of items) {
+          if (item.gtin && /^\d{8,14}$/.test(item.gtin.trim())) {
+            allGtins.add(item.gtin.trim())
+          }
         }
       }
     } catch {}
     await sleep(DELAY_MS)
   }
-  return null
+
+  if (allGtins.size === 0) return null
+  const gtins = [...allGtins]
+
+  // Return all valid EAN-13 barcodes
+  const validEans = gtins
+    .map(g => { const bc = classifyBarcode(g); return bc.valid && bc.ean13 ? bc.ean13 : null })
+    .filter(Boolean)
+
+  if (validEans.length === 0) return null
+  return { primary: validEans[0], alternates: [...new Set(validEans.slice(1))] }
 }
 
 function parseArgs() {
@@ -418,7 +441,9 @@ async function main() {
       title: 'Конфеты, зефир, мармелад',
       url: 'https://arbuz.kz/ru/almaty/catalog/cat/225041-konfety_zefir_marmelad',
       subcategories: ['candy', 'halva', 'honey_jam'],
-      pages: 25
+      pages: 25,
+      catalogId: 225041,
+      childCatalogIds: [224674, 225642, 20357, 225044, 204506, 198955, 204504, 19844]
     }
   }
 
@@ -705,12 +730,32 @@ async function main() {
       await sleep(300)
     }
   }
+  }
+  
+  // Always run search-based discovery for candy_sweets (even after catalog API)
   if (opts.mode === 'candy_sweets') {
     console.log('\n── SEARCH-BASED CANDY & SWEETS DISCOVERY ──')
     const searchQueries = [
       'Chupa Chups', 'Рахат конфеты', 'Toffifee', 'Merci', 'Raffaello', 'Ferrero Rocher',
-      'Skittles', 'M&Ms', 'Haribo', 'конфеты', 'зефир', 'мармелад', 'леденцы', 'драже',
-      'халва', 'козинаки', 'рахат-лукум', 'джем', 'варенье'
+      'Skittles', 'M&Ms', 'Haribo', 'Mars', 'Snickers', 'Twix', 'Bounty', 'Milky Way',
+      'Nuts', 'Alpen Gold', 'Milka', 'Lindt', 'Ritter Sport', 'Kinder', 'Nutella',
+      'конфеты', 'зефир', 'мармелад', 'леденцы', 'драже', 'карамель', 'ирис',
+      'халва', 'козинаки', 'рахат-лукум', 'рахат лукум', 'щербет', 'чак-чак', 'грильяж',
+      'джем', 'варенье', 'мед', 'мёд', 'сироп', 'топпинг',
+      'жевательная резинка', 'жвачка', 'Orbit', 'Eclipse', 'Dirol', 'Hubba Bubba',
+      'Mentos', 'Tic Tac', 'Halls', 'Rondo',
+      'полезные батончики', 'мюсли батончик', 'протеиновый батончик', 'Corny', 'Bombbar',
+      'подарочный набор конфет', 'сладкий подарок', 'конфеты в коробке',
+      'пастила', 'фруктовые чипсы', 'Chi-wa-wa', 'Hitschies', 'Katjes', 'Fruitella',
+      'M&M\'s', 'Skittles', 'Haribo', 'Fazer', 'Karl Fazer', 'Geisha', 'Liqueur Fazer',
+      'Merci', 'Raffaello', 'Ferrero', 'Mon Chéri', 'Pocket Coffee',
+      'Maltesers', 'Toblerone', 'Kazakhstan', 'Рахат', 'Баян Сулу', 'Каз',
+      'конфеты весовые', 'конфеты развесные', 'карамель весы',
+      'леденцы чуш', 'чупа чупс', 'lollipop',
+      'сладости', 'sweets', 'candy', 'bonbon', 'praline',
+      'sugar free', 'без сахара', 'диабетические',
+      'Mersalat', 'Dilmah', 'Ahmad', 'Alokozay',
+      'Piu buono', 'Maitre Truffout', 'Woogie', 'Zion', 'Sans',
     ]
     for (const query of searchQueries) {
       console.log(`  Searching for brand/keyword: "${query}"...`)
@@ -718,7 +763,7 @@ async function main() {
         const found = await apiSearch(query, token, 100)
         let searchCount = 0
         for (const item of found) {
-          const targetCatalogIds = [225041]
+          const targetCatalogIds = [225041, 224674, 225642, 20357, 225044, 204506, 198955, 204504, 19844]
           const catalogIdNum = item.catalogId ? parseInt(item.catalogId, 10) : null
           const parentCatalogIdNum = item.parentCatalogId ? parseInt(item.parentCatalogId, 10) : null
 
@@ -736,7 +781,6 @@ async function main() {
       }
       await sleep(300)
     }
-  }
   }
 
   let productList = Array.from(uniqueProducts.values())
@@ -780,14 +824,15 @@ async function main() {
         if (bc.valid && bc.ean13) ean = bc.ean13
       }
 
-      // If EAN is missing, search NPC
+      // If EAN is missing, search NPC (with multiple strategies)
+      let alternateEans = []
       if (!ean) {
-        const npcItem = await npcSearchByName(full.name, full.brandName)
-        if (npcItem && npcItem.gtin) {
-          const bc = classifyBarcode(npcItem.gtin.trim())
-          if (bc.valid && bc.ean13) {
-            ean = bc.ean13
-            stats.npcMatches++
+        const npcResult = await npcSearchByName(full.name, full.brandName)
+        if (npcResult && npcResult.primary) {
+          ean = npcResult.primary
+          stats.npcMatches++
+          if (npcResult.alternates && npcResult.alternates.length > 0) {
+            alternateEans = npcResult.alternates
           }
         }
       }
@@ -1054,6 +1099,7 @@ async function main() {
 
       const productRecord = {
         ean,
+        alternate_eans: alternateEans.length > 0 ? alternateEans : null,
         name: normalizeName(full.name, { brand: full.brandName }),
         brand: full.brandName || null,
         ingredients_raw: rawComposition,

@@ -51,8 +51,8 @@ function halalRiskRank(product = {}, profile = {}) {
 
 function getProfileRisk(product = {}, profile = {}) {
   const fit = checkProductFit(product, profile)
-  if (fit?.fits === false) return 'avoid'
   if (fit?.verdict === 'warning' || fit?.verdict === 'caution') return 'check'
+  if (fit?.verdict === 'danger' || fit?.fits === false) return 'avoid'
   if (halalRiskRank(product, profile) >= 3) return 'avoid'
   return 'ok'
 }

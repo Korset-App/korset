@@ -130,6 +130,7 @@ Retail:
 Stores:
 
 - 3 активных минимаркета в Усть-Каменогорске: Марс (slug: mars, ~10K products), Нұрлы (slug: nurly, ~2.5K products), Калина (slug: kalina, ~2K products).
+- `/stores` — modern store selector между лендингом и consumer store context: theme-aware dark/light logos, RU/KZ i18n, поиск по магазину/району/адресу/типу, компактные карточки с логотипом/fallback, статусом, адресом, графиком-заглушкой и Telegram B2B CTA. Декоративная hero-плашка, псевдо-статистика, grid/orb фон и shine-эффекты намеренно убраны. После owner feedback dark theme возвращена к спокойному минималистичному виду; фиолетовый акцент должен использоваться в тексте/типографике, а не в фоне, панели или карточках. Mars address нормализуется до `ул. Абая`. Пилотные магазины `mars`/`nurly`/`kalina` используют локальные SVG-логотипы из `public/store-logos/`; прочие магазины сохраняют uploaded `logo_url`. Логика карточек вынесена в `src/domain/stores/listing.js`, стили — `src/screens/StoresScreen.css`.
 - Добавление магазина: `node scripts/create-store.mjs --slug xxx --name "Name" --type minimarket --city "City" --owner-email xxx@korset.kz --owner-password Pass!`
 - Деактивация: `node scripts/deactivate-store.mjs --slug xxx`
 - Сидирование каталога: `node scripts/seed-store-catalog.mjs --store-slug xxx --max-products N --category-weights '{...}'`
@@ -416,3 +417,36 @@ Before rebuilding Compare, finish the professional ProductScreen/product normali
 - hide missing sections in ProductScreen instead of exposing "not enough data" messages;
 - do not show packaging type, data source, data quality, NOVA group, Nutri-Score, or technical categories;
 - keep product scoring for the later Compare workstream.
+
+## 13. Current Halal Enrichment Focus
+
+Current halal work is moving from ad hoc scripts to a shared evidence helper and a report-first enrichment audit.
+
+- Shared helper: `src/domain/product/halalEvidence.js`
+- Audit pipeline: `scripts/halal-enrichment-audit.cjs`
+- Unit coverage: `tests/unit/halalEvidence.test.mjs`
+- The new pipeline keeps explicit yes/no decisions separate from review-only ambiguous cases.
+- Next step is to reuse the helper in the older halal import scripts instead of letting each script invent its own rule set.
+
+## 14. Current Keto Fit-Check Focus
+
+Keto handling is now being tightened around structured tags and nutrition quality instead of only total carbs.
+
+- `src/domain/product/attributeExtractor.js` now extracts `keto` from product names, so marketing labels can become a structured diet tag.
+- `src/domain/product/attributeExtractor.js` also recognizes `low_carb` phrasing, so low-carb marketing language can be preserved as a structured signal.
+- `src/utils/fitCheck.js` now evaluates keto using net carbs when fiber is available, not just total carbs.
+- Explicit `keto` or `low_carb` tags no longer override contradictory high-carb or high-sugar nutrition, and tag-only products with no carb data stay cautious.
+- When keto data is missing or weak, the verdict stays cautious instead of inventing a green result.
+- Unit coverage now includes fiber/net-carb cases, keto-tag contradiction checks, and the label-only caution path.
+- Live audit on the active catalog (`11,862` products) showed `12.1%` safe and `87.9%` caution for keto, with no warning/danger verdicts.
+- The catalog currently has zero explicit keto/low-carb tags. Nutrition coverage is uneven: carbs are known for `8,544` products, sugar for `145`, fiber for `74`, and `3,290` products still have neither carbs nor sugar after strict blank/null handling.
+- `scripts/_tmp_keto_audit.mjs` now treats blank/null nutrition as missing instead of converting it to zero, so future keto coverage reports do not overstate data quality.
+- Audit report: `C:\tmp\korset-keto-audit.json`.
+
+## 15. Current Enrichment Reality Check
+
+- Read-only enrichment ROI audit (`scripts/_tmp_enrichment_roi_audit.mjs`) over `11,862` active products showed: ingredients known `85.4%`, carbs `71.2%`, sugar `0.4%`, fiber `0.1%`, real EAN `82.0%`, image present `99.6%`.
+- Recommended paths: `9,732` products through EAN/source cascade, `2,113` through back-label photo/OCR, `17` through manual/store photo.
+- Arbuz dry-run sample (`node scripts\arbuz-enrich.cjs --dry-run --limit=30`) found candidates for `26/30`, composition for `12/30`, KBJU for `13/30`, halal marker for `4/30`, but also exposed likely false positives. Do not mass-write Arbuz matches until matching has stricter confidence gates.
+- Product decision: broad automatic enrichment can improve coverage, but sugar/fiber for keto/diabetes-grade Fit-Check likely requires back-label photo/OCR plus review; weak external matches must stay review-only.
+- Details: `docs/vault/changelog/2026-05-25-enrichment-roi-audit.md`; report: `C:\tmp\korset-enrichment-roi-audit.json`.

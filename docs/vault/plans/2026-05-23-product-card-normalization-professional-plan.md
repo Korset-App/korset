@@ -196,6 +196,10 @@ Stage 6 status: completed on 2026-05-23. Details: `docs/vault/changelog/2026-05-
 
 Stage 7 status: completed on 2026-05-23. Details: `docs/vault/changelog/2026-05-23-product-card-normalization-stage7.md`.
 
+Stage 8 status: completed on 2026-05-24. Details: `docs/vault/plans/2026-05-24-product-card-normalization-stage8-qa.md` and `docs/vault/changelog/2026-05-24-product-card-normalization-stage8.md`.
+
+Stage 9 status: completed on 2026-05-24. Details: `docs/vault/plans/2026-05-24-product-card-normalization-stage9-compare-readiness.md` and `docs/vault/changelog/2026-05-24-product-card-normalization-stage9.md`.
+
 ### Stage 1: Data Contract Audit And Sample Set
 
 Goal: create a precise product data map and a real-product QA set before changing behavior.
@@ -334,6 +338,8 @@ Tasks:
 
 Expected outcome: normalization is tuned on the actual Kazakhstan grocery catalog, not just synthetic examples.
 
+Implementation note: completed at fixture/domain QA level. Stage 1 real MARS/store-one fixture passed 24/24 with 0 contract issues. Flavor extraction was tuned for simple compound flavors and one real multi-word savory flavor. Browser/mobile smoke and fresh live Supabase QA remain useful before pilot-ready signoff.
+
 ### Stage 9: Compare Readiness Handoff
 
 Goal: prepare clean inputs for the future Compare workstream.
@@ -353,6 +359,8 @@ Do later in Compare:
 - Build category-aware scoring and final recommendation logic.
 
 Expected outcome: the future Compare session starts from stable product facts instead of trying to compensate for broken cards.
+
+Implementation note: completed as a handoff contract. The future Compare workstream can trust canonical nutrition, ingredients, allergens, halal status, fat percentage, high-confidence flavor, storage, shelf life, manufacturer, country, normalized category, parsed quantity, shared unit-price helper output, and direct price. Data source, data quality, raw technical categories, NOVA group, Nutri-Score, packaging type, low/medium confidence flavor, and generic completeness score remain internal/non-scoring until a dedicated Compare design approves them.
 
 ## Verification Strategy
 

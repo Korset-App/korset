@@ -86,6 +86,18 @@ const DIET_PATTERNS = [
   { tag: 'vegan', patterns: [/\bvegan\b/i] },
   { tag: 'vegetarian', patterns: [/\bвегетариан/i, /\bvegetarian\b/i] },
   {
+    tag: 'keto',
+    patterns: [/(?:^|[^\p{L}\p{N}])(?:кето|keto|кетогенн|ketogenic|keto[_\-\s]?friendly)/iu],
+  },
+  {
+    tag: 'low_carb',
+    patterns: [
+      /(?:^|[^\p{L}\p{N}])низкоуглевод/iu,
+      /\blow[_\-\s]?carb\b/i,
+      /\blow[_\-\s]?carb[_\-\s]?friendly\b/i,
+    ],
+  },
+  {
     tag: 'fitness',
     patterns: [
       /\bфитнес\b/i,
@@ -203,14 +215,61 @@ function isProductTypeOnly(value) {
 }
 
 function findFlavorEntry(value) {
+  return findFlavorMatches(value)[0]?.entry || null
+}
+
+function findFlavorMatches(value) {
   const normalized = normalizeSearchText(value)
-  if (!normalized) return null
-  return FLAVOR_ENTRIES.find((entry) =>
-    entry.variants.some((variant) => {
+  if (!normalized) return []
+  const matches = []
+  for (const entry of FLAVOR_ENTRIES) {
+    for (const variant of entry.variants) {
+      if (variant.includes(' ')) {
+        const index = normalized.indexOf(variant)
+        if (index >= 0) {
+          matches.push({
+            entry,
+            index,
+            end: index + variant.length,
+          })
+          break
+        }
+      }
       const escaped = variant.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-      return new RegExp(`(?:^|\\s)${escaped}[\\p{L}-]*(?=\\s|$)`, 'iu').test(normalized)
-    })
+      const regex = new RegExp(`(?:^|\\s)(${escaped}[\\p{L}-]*)(?=\\s|$)`, 'iu')
+      const match = regex.exec(normalized)
+      if (match) {
+        matches.push({
+          entry,
+          index: match.index + match[0].indexOf(match[1]),
+          end: match.index + match[0].length,
+        })
+        break
+      }
+    }
+  }
+  return matches.sort((a, b) => a.index - b.index)
+}
+
+function canUseFlavorEntry(entry, category) {
+  return !isProductTypeOnly(entry.value) || (category === 'snacks' && entry.value === 'Сыр')
+}
+
+function findCompoundFlavor(name, category) {
+  const normalized = normalizeSearchText(name)
+  const matches = findFlavorMatches(name).filter((match) =>
+    canUseFlavorEntry(match.entry, category)
   )
+  for (let i = 0; i < matches.length - 1; i += 1) {
+    const first = matches[i]
+    const second = matches[i + 1]
+    if (first.entry.value === second.entry.value) continue
+    const between = normalized.slice(first.end, second.index)
+    if (/^\s+(?:и|and)\s+$/i.test(between)) {
+      return `${first.entry.value} и ${second.entry.value.toLowerCase()}`
+    }
+  }
+  return null
 }
 
 export function extractPackaging(name) {
@@ -362,6 +421,15 @@ export function extractFlavorAttribute({ name, category } = {}) {
     }
   }
 
+  const normalizedName = normalizeSearchText(name)
+  for (const entry of FLAVOR_ENTRIES) {
+    if (
+      entry.variants.some((variant) => variant.includes(' ') && normalizedName.includes(variant))
+    ) {
+      return { value: entry.value, confidence: 'high', source: 'known_flavor_token' }
+    }
+  }
+
   const withMatch = name.match(/(?:^|\s)с\s+([а-яёa-z-]+)(?:\s|,|$)/i)
   if (withMatch) {
     const entry = findFlavorEntry(withMatch[1])
@@ -375,10 +443,18 @@ export function extractFlavorAttribute({ name, category } = {}) {
     }
   }
 
+  const compoundFlavor = findCompoundFlavor(name, category)
+  if (compoundFlavor) {
+    return {
+      value: compoundFlavor,
+      confidence: 'high',
+      source: 'compound_known_flavor_tokens',
+    }
+  }
+
   const entry = findFlavorEntry(name)
   if (!entry) return null
-  if (isProductTypeOnly(entry.value) && !(category === 'snacks' && entry.value === 'Сыр'))
-    return null
+  if (!canUseFlavorEntry(entry, category)) return null
   return { value: entry.value, confidence: 'high', source: 'known_flavor_token' }
 }
 

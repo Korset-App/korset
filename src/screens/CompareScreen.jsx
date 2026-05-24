@@ -9,6 +9,7 @@ import { useLocalName } from '../utils/localName.js'
 import { getAnyKnownProductByRef } from '../utils/storeCatalog.js'
 import { buildProductAIPath } from '../utils/routes.js'
 import { buildProductComparison } from '../domain/product/comparison.js'
+import { getFitBadgeMeta, resolveFitSeverityKey } from '../domain/product/fitVerdict.js'
 
 // ── Comparison helpers ───────────────────────────────────────────────────────
 // ── Flavor extraction ─────────────────────────────────────────────────────────
@@ -414,72 +415,99 @@ export default function CompareScreen() {
           {[
             { product: productA, fit: fitA, side: 'A' },
             { product: productB, fit: fitB, side: 'B' },
-          ].map(({ product, fit, side }) => (
-            <div
-              key={side}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                padding: '8px 10px 10px',
-                borderLeft: side === 'B' ? '1px solid rgba(255,255,255,0.06)' : 'none',
-              }}
-            >
+          ].map(({ product, fit, side }) => {
+            const severityKey = resolveFitSeverityKey(fit)
+            const badge = getFitBadgeMeta(severityKey)
+            const badgeStyle = {
+              safe: {
+                background: 'rgba(16,185,129,0.15)',
+                color: '#34D399',
+                border: 'rgba(52,211,153,0.3)',
+              },
+              caution: {
+                background: 'rgba(251,191,36,0.15)',
+                color: '#FBBF24',
+                border: 'rgba(251,191,36,0.3)',
+              },
+              warning: {
+                background: 'rgba(249,115,22,0.15)',
+                color: '#FB923C',
+                border: 'rgba(249,115,22,0.3)',
+              },
+              danger: {
+                background: 'rgba(239,68,68,0.15)',
+                color: '#F87171',
+                border: 'rgba(248,113,113,0.3)',
+              },
+            }[badge.key]
+
+            return (
               <div
-                className="catalog-img-box"
+                key={side}
                 style={{
-                  width: 72,
-                  height: 72,
-                  borderRadius: 14,
-                  // Keep inline border and overflow to override if needed,
-                  // but rely on catalog-img-box for the premium radial light source
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  overflow: 'hidden',
-                  marginBottom: 7,
-                  flexShrink: 0,
-                }}
-              >
-                <ProductPhoto product={product} />
-              </div>
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: 'var(--text)',
-                  textAlign: 'center',
-                  lineHeight: 1.3,
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
-                  marginBottom: 6,
-                  width: '100%',
-                  fontFamily: 'var(--font-display)',
-                }}
-              >
-                {side === 'A' ? localNameA : localNameB}
-              </div>
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  padding: '3px 10px',
-                  borderRadius: 999,
-                  background: fit.fits ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
-                  color: fit.fits ? '#34D399' : '#F87171',
-                  border: `1px solid ${fit.fits ? 'rgba(52,211,153,0.3)' : 'rgba(248,113,113,0.3)'}`,
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
-                  gap: 4,
+                  padding: '8px 10px 10px',
+                  borderLeft: side === 'B' ? '1px solid rgba(255,255,255,0.06)' : 'none',
                 }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: 12 }}>
-                  {fit.fits ? 'check_circle' : 'cancel'}
-                </span>
-                {fit.fits ? t('compare.fitBadge') : t('compare.notFitBadge')}
+                <div
+                  className="catalog-img-box"
+                  style={{
+                    width: 72,
+                    height: 72,
+                    borderRadius: 14,
+                    // Keep inline border and overflow to override if needed,
+                    // but rely on catalog-img-box for the premium radial light source
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    overflow: 'hidden',
+                    marginBottom: 7,
+                    flexShrink: 0,
+                  }}
+                >
+                  <ProductPhoto product={product} />
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: 'var(--text)',
+                    textAlign: 'center',
+                    lineHeight: 1.3,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    marginBottom: 6,
+                    width: '100%',
+                    fontFamily: 'var(--font-display)',
+                  }}
+                >
+                  {side === 'A' ? localNameA : localNameB}
+                </div>
+                <div
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    padding: '3px 10px',
+                    borderRadius: 999,
+                    background: badgeStyle.background,
+                    color: badgeStyle.color,
+                    border: `1px solid ${badgeStyle.border}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 12 }}>
+                    {badge.icon}
+                  </span>
+                  {t(badge.labelKey)}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
 

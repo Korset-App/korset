@@ -108,6 +108,23 @@ test('getAllergyConfidence flags direct profile allergen matches', () => {
   )
 })
 
+test('getAllergyConfidence flags ingredient-level profile allergen matches', () => {
+  assert.deepEqual(
+    getAllergyConfidence(
+      {
+        allergens: [],
+        ingredients: 'Сыворотка молочная, сахар',
+      },
+      { allergens: ['milk'] }
+    ),
+    {
+      level: 'direct_match',
+      source: 'ingredient_parse',
+      matches: ['milk'],
+    }
+  )
+})
+
 test('getAllergyConfidence asks for package check when user has allergies and ingredients are missing', () => {
   assert.deepEqual(
     getAllergyConfidence(

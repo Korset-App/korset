@@ -267,18 +267,26 @@ test('halal profile + halalStatus=yes → safe with confirmation', () => {
   assert.ok(hasReasonByCategory(r, 'halal'))
 })
 
-test('halal profile + halalStatus=no (non-strict) → caution', () => {
+test('halal profile + halalStatus=no → danger', () => {
   const r = checkProductFit(
     baseProduct({ halalStatus: 'no' }),
+    baseProfile({ halal: true })
+  )
+  assert.equal(r.verdict, 'danger')
+})
+
+test('halal profile + halalStatus=unknown → caution', () => {
+  const r = checkProductFit(
+    baseProduct({ halalStatus: 'unknown', ingredients: 'Молоко, сахар, какао' }),
     baseProfile({ halal: true })
   )
   assert.equal(r.verdict, 'caution')
 })
 
-test('halal profile + halalStatus=no + halalStrict=true → warning', () => {
+test('halal profile + unknown halal + gelatin → warning', () => {
   const r = checkProductFit(
-    baseProduct({ halalStatus: 'no' }),
-    baseProfile({ halal: true, halalStrict: true })
+    baseProduct({ halalStatus: 'unknown', ingredients: 'Сахар, желатин, ароматизатор' }),
+    baseProfile({ halal: true })
   )
   assert.equal(r.verdict, 'warning')
 })
@@ -313,10 +321,58 @@ test('sugar_free goal + dietTags has contains_sugar → caution', () => {
   assert.equal(r.verdict, 'caution')
 })
 
-test('dairy_free goal + dietTags has contains_dairy → caution', () => {
+test('sugar_free goal + sugar in ingredients → caution', () => {
   const r = checkProductFit(
-    baseProduct({ dietTags: ['contains_dairy'] }),
+    baseProduct({ ingredients: 'Молоко, сахар, какао' }),
+    baseProfile({ dietGoals: ['sugar_free'] })
+  )
+  assert.equal(r.verdict, 'caution')
+})
+
+test('sugar_free goal + high sugar nutriment → caution', () => {
+  const r = checkProductFit(
+    baseProduct({ nutritionPer100: { sugar: 12 } }),
+    baseProfile({ dietGoals: ['sugar_free'] })
+  )
+  assert.equal(r.verdict, 'caution')
+})
+
+test('lactose_free goal + explicit lactose_free dairy tag → safe', () => {
+  const r = checkProductFit(
+    baseProduct({ allergens: ['milk'], dietTags: ['lactose_free'], ingredients: 'Молоко безлактозное' }),
+    baseProfile({ dietGoals: ['lactose_free'] })
+  )
+  assert.equal(r.verdict, 'safe')
+})
+
+test('lactose_free goal + lactose in ingredients → caution', () => {
+  const r = checkProductFit(
+    baseProduct({ ingredients: 'Молоко цельное, лактоза, сахар' }),
+    baseProfile({ dietGoals: ['lactose_free'] })
+  )
+  assert.equal(r.verdict, 'caution')
+})
+
+test('lactose_free goal + lactic acid does not trigger lactose caution', () => {
+  const r = checkProductFit(
+    baseProduct({ ingredients: 'Вода, регулятор кислотности: молочная кислота' }),
+    baseProfile({ dietGoals: ['lactose_free'] })
+  )
+  assert.equal(r.verdict, 'safe')
+})
+
+test('legacy dairy_free goal is treated as lactose_free', () => {
+  const r = checkProductFit(
+    baseProduct({ ingredients: 'Молоко цельное, сахар' }),
     baseProfile({ dietGoals: ['dairy_free'] })
+  )
+  assert.equal(r.verdict, 'caution')
+})
+
+test('gluten_free goal + gluten in ingredients → caution', () => {
+  const r = checkProductFit(
+    baseProduct({ ingredients: 'Мука пшеничная, вода, соль' }),
+    baseProfile({ dietGoals: ['gluten_free'] })
   )
   assert.equal(r.verdict, 'caution')
 })
@@ -327,6 +383,131 @@ test('vegan goal + product has milk allergen → caution', () => {
     baseProfile({ dietGoals: ['vegan'] })
   )
   assert.equal(r.verdict, 'caution')
+})
+
+test('vegetarian goal + meat in ingredients → caution', () => {
+  const r = checkProductFit(
+    baseProduct({ ingredients: 'Говядина, соль, специи' }),
+    baseProfile({ dietGoals: ['vegetarian'] })
+  )
+  assert.equal(r.verdict, 'caution')
+})
+
+test('low_fat goal + nutrition fat over threshold → caution', () => {
+  const r = checkProductFit(
+    baseProduct({ nutritionPer100: { fat: 22 } }),
+    baseProfile({ dietGoals: ['low_fat'] })
+  )
+  assert.equal(r.verdict, 'caution')
+})
+
+test('low_fat goal + nutrition fat under threshold → safe confirmation', () => {
+  const r = checkProductFit(
+    baseProduct({ nutritionPer100: { fat: 3 } }),
+    baseProfile({ dietGoals: ['low_fat'] })
+  )
+  assert.equal(r.verdict, 'safe')
+  assert.ok(r.reasons.some((x) => x.category === 'diet' && x.severity === 'safe'))
+})
+
+test('keto goal + high carbs → caution', () => {
+  const r = checkProductFit(
+    baseProduct({ nutritionPer100: { carbs: 28, sugar: 4 } }),
+    baseProfile({ dietGoals: ['keto'] })
+  )
+  assert.equal(r.verdict, 'caution')
+})
+
+test('keto goal + low carbs and low sugar → safe confirmation', () => {
+  const r = checkProductFit(
+    baseProduct({ nutritionPer100: { carbs: 4, sugar: 1 } }),
+    baseProfile({ dietGoals: ['keto'] })
+  )
+  assert.equal(r.verdict, 'safe')
+  assert.ok(r.reasons.some((x) => x.category === 'diet' && x.severity === 'safe'))
+})
+
+test('keto goal + fiber lowers net carbs → safe confirmation', () => {
+  const r = checkProductFit(
+    baseProduct({ nutritionPer100: { carbs: 12, fiber: 7, sugar: 2 } }),
+    baseProfile({ dietGoals: ['keto'] })
+  )
+  assert.equal(r.verdict, 'safe')
+  assert.ok(r.reasons.some((x) => x.text.includes('net carbs')))
+})
+
+test('keto goal + explicit keto tag is safe when nutrition is not contradictory', () => {
+  const r = checkProductFit(
+    baseProduct({ dietTags: ['keto'], nutritionPer100: { carbs: 3, sugar: 1 } }),
+    baseProfile({ dietGoals: ['keto'] })
+  )
+  assert.equal(r.verdict, 'safe')
+})
+
+test('keto goal + keto tag but high carbs stays caution', () => {
+  const r = checkProductFit(
+    baseProduct({ dietTags: ['keto'], nutritionPer100: { carbs: 24, sugar: 5 } }),
+    baseProfile({ dietGoals: ['keto'] })
+  )
+  assert.equal(r.verdict, 'caution')
+})
+
+test('keto goal + label-only keto tag without nutrition stays caution', () => {
+  const r = checkProductFit(
+    baseProduct({ dietTags: ['keto'] }),
+    baseProfile({ dietGoals: ['keto'] })
+  )
+  assert.equal(r.verdict, 'caution')
+})
+
+test('keto goal + low_carb tag with low carbs stays safe', () => {
+  const r = checkProductFit(
+    baseProduct({ dietTags: ['low_carb'], nutritionPer100: { carbs: 6, fiber: 2, sugar: 1 } }),
+    baseProfile({ dietGoals: ['keto'] })
+  )
+  assert.equal(r.verdict, 'safe')
+})
+
+test('keto goal + no clear signals and no nutrition data stays caution', () => {
+  const r = checkProductFit(
+    baseProduct({ name: 'Plain Product', ingredients: 'Вода, соль' }),
+    baseProfile({ dietGoals: ['keto'] })
+  )
+  assert.equal(r.verdict, 'caution')
+})
+
+test('kid_friendly goal + energy drink subcategory → caution', () => {
+  const r = checkProductFit(
+    baseProduct({ category: 'water_beverages', subcategory: 'energy' }),
+    baseProfile({ dietGoals: ['kid_friendly'] })
+  )
+  assert.equal(r.verdict, 'caution')
+})
+
+test('kid_friendly goal + high sugar → caution', () => {
+  const r = checkProductFit(
+    baseProduct({ nutritionPer100: { sugar: 18 } }),
+    baseProfile({ dietGoals: ['kid_friendly'] })
+  )
+  assert.equal(r.verdict, 'caution')
+})
+
+test('vegan goal + vegan diet tag → safe confirmation', () => {
+  const r = checkProductFit(
+    baseProduct({ dietTags: ['vegan'] }),
+    baseProfile({ dietGoals: ['vegan'] })
+  )
+  assert.equal(r.verdict, 'safe')
+  assert.ok(r.reasons.some((x) => x.category === 'diet' && x.severity === 'safe'))
+})
+
+test('vegetarian goal + vegan diet tag → safe confirmation', () => {
+  const r = checkProductFit(
+    baseProduct({ dietTags: ['vegan'] }),
+    baseProfile({ dietGoals: ['vegetarian'] })
+  )
+  assert.equal(r.verdict, 'safe')
+  assert.ok(r.reasons.some((x) => x.category === 'diet' && x.severity === 'safe'))
 })
 
 // ─── 10. Verdict priority + display logic (4 cases) ─────────────
@@ -414,7 +595,7 @@ test('profile.religion includes "halal" → halal logic activates', () => {
     baseProduct({ halalStatus: 'no' }),
     baseProfile({ religion: ['halal'] })
   )
-  assert.equal(r.verdict, 'caution')
+  assert.equal(r.verdict, 'danger')
 })
 
 // ─── 13. Audit findings: расширенный словарный аудит ────────────
@@ -583,10 +764,10 @@ test('audit#6b: halal + "хром" (металл) does NOT trigger haram', () =>
     }),
     baseProfile({ halal: true })
   )
-  assert.equal(r.verdict, 'safe')
+  assert.equal(r.verdict, 'caution')
 })
 
-test('audit#6b: halal + "ароматизатор" (без алкоголя) does NOT trigger haram', () => {
+test('audit#6b: halal + "ароматизатор" (без алкоголя) is ambiguous, not haram', () => {
   const r = checkProductFit(
     baseProduct({
       halalStatus: 'unknown',
@@ -594,7 +775,7 @@ test('audit#6b: halal + "ароматизатор" (без алкоголя) doe
     }),
     baseProfile({ halal: true })
   )
-  assert.equal(r.verdict, 'safe')
+  assert.equal(r.verdict, 'warning')
 })
 
 test('audit#6b: halal + "виноград" does NOT trigger haram', () => {
@@ -605,7 +786,7 @@ test('audit#6b: halal + "виноград" does NOT trigger haram', () => {
     }),
     baseProfile({ halal: true })
   )
-  assert.equal(r.verdict, 'safe')
+  assert.equal(r.verdict, 'caution')
 })
 
 // БАГ #7: vegan — расширенная проверка

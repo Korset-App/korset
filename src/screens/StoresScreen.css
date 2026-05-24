@@ -1,0 +1,705 @@
+.stores-screen {
+  position: relative;
+  min-height: 100%;
+  padding: max(14px, env(safe-area-inset-top, 0px)) 16px calc(34px + env(safe-area-inset-bottom, 0px));
+  background: var(--bg-app);
+  isolation: isolate;
+}
+
+.stores-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.stores-icon-btn,
+.stores-brand,
+.stores-search,
+.stores-panel,
+.stores-card,
+.stores-owner-card {
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 color-mix(in srgb, var(--border-bright) 30%, transparent);
+}
+
+@supports not ((backdrop-filter: blur(8px)) or (-webkit-backdrop-filter: blur(8px))) {
+  .stores-icon-btn,
+  .stores-brand,
+  .stores-search,
+  .stores-panel,
+  .stores-card,
+  .stores-owner-card {
+    background: var(--bg-card);
+  }
+}
+
+.stores-icon-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 15px;
+  display: grid;
+  place-items: center;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.stores-icon-btn .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.stores-brand {
+  height: 42px;
+  min-width: 118px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+  text-decoration: none;
+}
+
+.stores-brand__logo {
+  width: 82px;
+  height: auto;
+  display: block;
+}
+
+.stores-brand__logo--light {
+  display: none;
+}
+
+.stores-hero {
+  position: relative;
+  padding: 4px 2px 18px;
+}
+
+.stores-hero__title {
+  margin: 0;
+  max-width: none;
+  font-family: var(--font-display);
+  font-size: clamp(34px, 9vw, 38px);
+  font-weight: 600;
+  line-height: 1.02;
+  letter-spacing: -0.026em;
+  color: var(--text);
+}
+
+.stores-hero__accent {
+  color: var(--primary-bright);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--primary-bright) 38%, transparent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 6px;
+}
+
+.stores-hero__text {
+  max-width: 31rem;
+  margin: 9px 0 0;
+  color: var(--text-sub);
+  font-size: 14px;
+  line-height: 1.48;
+}
+
+.stores-panel {
+  position: relative;
+  border-radius: 30px;
+  padding: 12px;
+}
+
+.stores-panel::before {
+  content: none;
+}
+
+.stores-search {
+  position: relative;
+  z-index: 1;
+  height: 52px;
+  border-radius: 19px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px 0 14px;
+  transition:
+    border-color 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.stores-search__icon {
+  flex: 0 0 auto;
+  color: var(--text-dim);
+  display: grid;
+  place-items: center;
+}
+
+.stores-search__icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.stores-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font: 600 14px/1.2 var(--font-body);
+}
+
+.stores-search input::placeholder {
+  color: var(--text-dim);
+}
+
+.stores-search button {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--glass-soft-border);
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  background: var(--bg-card-hover);
+  color: var(--text-sub);
+  cursor: pointer;
+}
+
+.stores-search button .material-symbols-outlined {
+  font-size: 17px;
+}
+
+.stores-list-head {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 4px 10px;
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.stores-list-head span:first-child {
+  color: var(--text-sub);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: 0.015em;
+}
+
+.stores-list {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 12px;
+}
+
+.stores-card {
+  position: relative;
+  min-height: 118px;
+  border-radius: 23px;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  align-items: center;
+  gap: 13px;
+  overflow: hidden;
+  text-align: left;
+  color: var(--text);
+  cursor: pointer;
+  animation: storesCardIn 0.44s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--stores-card-index, 0) * 38ms);
+  transition:
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  content-visibility: auto;
+  contain-intrinsic-size: 118px;
+  background: color-mix(in srgb, var(--bg-card) 88%, var(--surface));
+}
+
+.stores-card[data-tone='violet'] {
+  --stores-tone: var(--primary-bright);
+  --stores-tone-soft: color-mix(in srgb, var(--primary-bright) 22%, transparent);
+  --stores-tone-faint: color-mix(in srgb, var(--primary-bright) 9%, transparent);
+}
+
+.stores-card[data-tone='mint'] {
+  --stores-tone: var(--success-bright);
+  --stores-tone-soft: color-mix(in srgb, var(--success-bright) 19%, transparent);
+  --stores-tone-faint: color-mix(in srgb, var(--success-bright) 8%, transparent);
+}
+
+.stores-card[data-tone='amber'] {
+  --stores-tone: var(--warning);
+  --stores-tone-soft: color-mix(in srgb, var(--warning) 19%, transparent);
+  --stores-tone-faint: color-mix(in srgb, var(--warning) 8%, transparent);
+}
+
+.stores-card[data-tone='sky'] {
+  --stores-tone: var(--accent-sky);
+  --stores-tone-soft: color-mix(in srgb, var(--accent-sky) 20%, transparent);
+  --stores-tone-faint: color-mix(in srgb, var(--accent-sky) 8%, transparent);
+}
+
+@media (hover: hover) {
+  .stores-card:hover,
+  .stores-icon-btn:hover,
+  .stores-owner-card a:hover {
+    transform: translateY(-2px);
+  }
+
+  .stores-card:hover {
+    border-color: var(--border-bright);
+    box-shadow:
+      0 16px 36px rgba(0, 0, 0, 0.24),
+      inset 0 1px 0 color-mix(in srgb, var(--border-bright) 36%, transparent);
+  }
+}
+
+.stores-card:active,
+.stores-icon-btn:active,
+.stores-owner-card a:active {
+  transform: scale(0.985);
+}
+
+.stores-card:focus-visible,
+.stores-icon-btn:focus-visible,
+.stores-search:focus-within,
+.stores-owner-card a:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary-bright) 70%, transparent);
+  outline-offset: 3px;
+}
+
+.stores-search:focus-within {
+  border-color: var(--border-bright);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 color-mix(in srgb, var(--border-bright) 34%, transparent);
+}
+
+.stores-card__logo,
+.stores-card__body {
+  position: relative;
+  z-index: 1;
+}
+
+.stores-card__logo {
+  width: 76px;
+  height: 76px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--border-bright) 34%, transparent);
+}
+
+.stores-card__logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.stores-card__logo-letter {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--text);
+  text-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+}
+
+.stores-card__body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stores-card__topline,
+.stores-card__footer,
+.stores-card__meta,
+.stores-card__hours,
+.stores-card__cta {
+  display: flex;
+  align-items: center;
+}
+
+.stores-card__topline {
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.stores-status,
+.stores-card__type {
+  min-height: 22px;
+  border-radius: 999px;
+  padding: 4px 7px;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1;
+}
+
+.stores-status {
+  gap: 6px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.stores-status--available {
+  border: 1px solid var(--success-border);
+  background: var(--success-dim);
+  color: var(--success-bright);
+}
+
+.stores-status__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.stores-card__type {
+  border: 1px solid var(--glass-soft-border);
+  background: color-mix(in srgb, var(--bg-card-hover) 64%, transparent);
+  color: var(--text-dim);
+  text-transform: lowercase;
+}
+
+.stores-card__name {
+  display: block;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 25px;
+  font-weight: 650;
+  line-height: 1.04;
+  letter-spacing: -0.018em;
+}
+
+.stores-card__meta,
+.stores-card__hours {
+  color: var(--text-sub);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.stores-card__meta {
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.stores-card__separator {
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.55;
+}
+
+.stores-card__meta .material-symbols-outlined,
+.stores-card__hours .material-symbols-outlined {
+  font-size: 14px;
+  flex: 0 0 auto;
+}
+
+.stores-card__footer {
+  margin-top: auto;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.stores-card__hours {
+  gap: 4px;
+  min-width: 0;
+}
+
+.stores-card__cta {
+  flex: 0 0 auto;
+  min-height: 30px;
+  border: 1px solid color-mix(in srgb, var(--text-sub) 20%, transparent);
+  border-radius: 999px;
+  padding: 0 10px 0 12px;
+  gap: 8px;
+  color: var(--text-sub);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: 0;
+  background: color-mix(in srgb, var(--bg-card-hover) 58%, transparent);
+  transition:
+    border-color 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    color 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.stores-card__cta::after {
+  content: '';
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-top: 1.6px solid currentColor;
+  border-right: 1.6px solid currentColor;
+  transform: rotate(45deg);
+  margin-left: 1px;
+}
+
+.stores-card:hover .stores-card__cta {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--text-sub) 36%, transparent);
+  background: color-mix(in srgb, var(--bg-card-hover) 78%, transparent);
+}
+
+.stores-empty {
+  position: relative;
+  z-index: 1;
+  margin-top: 12px;
+  padding: 28px 18px;
+  border: 1px dashed var(--glass-border);
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--glass-bg) 48%, transparent);
+  text-align: center;
+}
+
+.stores-empty .material-symbols-outlined {
+  color: var(--primary-bright);
+  font-size: 34px;
+}
+
+.stores-empty h2 {
+  margin: 8px 0 4px;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 650;
+  line-height: 1;
+}
+
+.stores-empty p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.stores-owner-card {
+  margin-top: 14px;
+  border-radius: 24px;
+  padding: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.stores-owner-card div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.stores-owner-card span {
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.stores-owner-card strong {
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 650;
+  line-height: 1.05;
+}
+
+.stores-owner-card a {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 10px 13px;
+  background: var(--primary);
+  color: var(--text-inverse);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: none;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.stores-card--skeleton {
+  cursor: default;
+  animation: none;
+}
+
+.stores-skeleton-pulse,
+.stores-skeleton-line {
+  background: linear-gradient(90deg, var(--skel-base), var(--skel-hi), var(--skel-base));
+  background-size: 220% 100%;
+  animation: storesSkeleton 1.35s ease-in-out infinite;
+}
+
+.stores-skeleton-line {
+  height: 13px;
+  border-radius: 999px;
+}
+
+.stores-skeleton-line--lg {
+  width: 74%;
+  height: 22px;
+}
+
+.stores-skeleton-line--short {
+  width: 48%;
+}
+
+@keyframes storesCardIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes storesSkeleton {
+  to {
+    background-position: -220% 0;
+  }
+}
+
+:root[data-theme='light'] .stores-screen {
+  background:
+    radial-gradient(circle at 50% -18%, color-mix(in srgb, var(--accent-sky) 12%, transparent), transparent 34%),
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-app) 78%, var(--text-inverse)) 0%, var(--bg-app) 46%),
+    var(--bg-app);
+}
+
+:root[data-theme='light'] .stores-brand__logo--dark {
+  display: none;
+}
+
+:root[data-theme='light'] .stores-brand__logo--light {
+  display: block;
+}
+
+:root[data-theme='light'] .stores-icon-btn,
+:root[data-theme='light'] .stores-brand,
+:root[data-theme='light'] .stores-search,
+:root[data-theme='light'] .stores-panel,
+:root[data-theme='light'] .stores-card,
+:root[data-theme='light'] .stores-owner-card {
+  border-color: color-mix(in srgb, var(--border-bright) 72%, var(--glass-border));
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--text-inverse) 78%, transparent), color-mix(in srgb, var(--glass-muted) 80%, transparent)),
+    color-mix(in srgb, var(--bg-card) 90%, transparent);
+  box-shadow:
+    0 18px 46px color-mix(in srgb, var(--border-bright) 34%, transparent),
+    0 1px 0 color-mix(in srgb, var(--text-inverse) 92%, transparent) inset;
+}
+
+:root[data-theme='light'] .stores-search {
+  border-color: color-mix(in srgb, var(--border-bright) 86%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--text-inverse) 88%, transparent), color-mix(in srgb, var(--glass-muted) 74%, transparent)),
+    var(--bg-card);
+  box-shadow:
+    0 12px 30px color-mix(in srgb, var(--border-bright) 24%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--text-inverse) 96%, transparent);
+}
+
+:root[data-theme='light'] .stores-search:focus-within {
+  border-color: color-mix(in srgb, var(--primary-bright) 48%, var(--border-bright));
+  box-shadow:
+    0 15px 38px color-mix(in srgb, var(--primary-glow) 28%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--primary-bright) 16%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--text-inverse) 96%, transparent);
+}
+
+:root[data-theme='light'] .stores-card {
+  border-color: color-mix(in srgb, var(--border-bright) 84%, var(--glass-border));
+  background:
+    linear-gradient(155deg, color-mix(in srgb, var(--text-inverse) 86%, transparent), transparent 44%),
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 88%, transparent), color-mix(in srgb, var(--glass-muted) 72%, transparent));
+  box-shadow:
+    0 15px 36px color-mix(in srgb, var(--border-bright) 28%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--text-inverse) 58%, transparent) inset;
+}
+
+:root[data-theme='light'] .stores-card__logo {
+  border-color: color-mix(in srgb, var(--border-bright) 70%, var(--text-inverse));
+  background: color-mix(in srgb, var(--text-inverse) 72%, var(--glass-muted));
+  box-shadow:
+    0 10px 22px color-mix(in srgb, var(--border-bright) 20%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--text-inverse) 92%, transparent);
+}
+
+:root[data-theme='light'] .stores-card__cta {
+  border-color: color-mix(in srgb, var(--border-bright) 52%, transparent);
+  background: color-mix(in srgb, var(--text-inverse) 74%, transparent);
+}
+
+@media (max-width: 370px) {
+  .stores-screen {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .stores-hero__title {
+    font-size: 31px;
+  }
+
+  .stores-card {
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: 11px;
+    padding: 12px;
+    min-height: 116px;
+  }
+
+  .stores-card__logo {
+    width: 64px;
+    height: 64px;
+    border-radius: 19px;
+  }
+
+  .stores-card__name {
+    font-size: 25px;
+  }
+
+  .stores-card__footer {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+}
+
+@media (min-width: 431px) {
+  .stores-screen {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stores-card,
+  .stores-icon-btn,
+  .stores-owner-card a,
+  .stores-skeleton-pulse,
+  .stores-skeleton-line {
+    animation: none;
+    transition: none;
+  }
+}
