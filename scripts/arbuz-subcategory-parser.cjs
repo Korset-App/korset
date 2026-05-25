@@ -444,6 +444,69 @@ async function main() {
       pages: 25,
       catalogId: 225041,
       childCatalogIds: [224674, 225642, 20357, 225044, 204506, 198955, 204504, 19844]
+    },
+    honey_jam: {
+      title: 'Варенье, мед, джемы, сиропы',
+      url: 'https://arbuz.kz/ru/almaty/catalog/cat/225248-varene_med_dzhemy_siropy',
+      subcategories: ['honey_jam'],
+      pages: 8,
+      catalogId: 225248
+    },
+    pasta: {
+      title: 'Макароны и лапша',
+      url: 'https://arbuz.kz/ru/almaty/catalog/cat/224399-makarony_i_lapsha',
+      subcategories: ['pasta', 'rice', 'cereals'],
+      pages: 8,
+      catalogId: 224399
+    },
+    cereals_legumes: {
+      title: 'Крупы, бобовые',
+      url: 'https://arbuz.kz/ru/almaty/catalog/cat/224398-krupy_bobovye',
+      subcategories: ['cereals', 'rice', 'pasta'],
+      pages: 64,
+      catalogId: 224398
+    },
+    canned: {
+      title: 'Консервация',
+      url: 'https://arbuz.kz/ru/almaty/catalog/cat/20205-konservaciya',
+      subcategories: ['canned_veg', 'canned_fish', 'canned_meat'],
+      pages: 12,
+      catalogId: 20205
+    },
+    cooking_oil: {
+      title: 'Масло растительное',
+      url: 'https://arbuz.kz/ru/almaty/catalog/cat/225448-maslo_rastitelnoe',
+      subcategories: ['cooking_oil'],
+      pages: 4,
+      catalogId: 225448
+    },
+    mayo_ketchup: {
+      title: 'Майонез, кетчуп, горчица',
+      url: 'https://arbuz.kz/ru/almaty/catalog/cat/224588-maionez_ketchup_gorchica',
+      subcategories: ['mayo_ketchup', 'condiments', 'sauce', 'soy_sauce', 'spices'],
+      pages: 4,
+      catalogId: 224588
+    },
+    sauces_vinegars: {
+      title: 'Соусы и уксусы',
+      url: 'https://arbuz.kz/ru/almaty/catalog/cat/225450-sousy_i_uksusy',
+      subcategories: ['sauce', 'condiments', 'soy_sauce', 'spices'],
+      pages: 12,
+      catalogId: 225450
+    },
+    sugar_salt_spices: {
+      title: 'Сахар, соль, специи',
+      url: 'https://arbuz.kz/ru/almaty/catalog/cat/224402-sahar_sol_specii',
+      subcategories: ['sugar', 'salt', 'spices', 'condiments', 'flour', 'sugar_free'],
+      pages: 14,
+      catalogId: 224402
+    },
+    breakfast: {
+      title: 'Сухие завтраки',
+      url: 'https://arbuz.kz/ru/almaty/catalog/cat/224533-suhie_zavtraki',
+      subcategories: ['breakfast'],
+      pages: 5,
+      catalogId: 224533
     }
   }
 
@@ -1045,6 +1108,161 @@ async function main() {
       } else if (opts.mode === 'chocolate') {
         category = 'sweets'
         subcategory = 'chocolate'
+      } else if (opts.mode === 'honey_jam') {
+        category = 'sweets'
+        subcategory = 'honey_jam'
+      } else if (opts.mode === 'canned') {
+        const lowerName = (full.name || '').toLowerCase()
+        if (
+          lowerName.includes('тунец') || lowerName.includes('сайр') ||
+          lowerName.includes('сардин') || lowerName.includes('скумбри') ||
+          lowerName.includes('горбуш') || lowerName.includes('сельдь') ||
+          lowerName.includes('кильк') || lowerName.includes('шпрот') ||
+          lowerName.includes('лосос') || lowerName.includes('рыбн') ||
+          lowerName.includes('fish') || lowerName.includes('tuna') ||
+          lowerName.includes('sardine') || lowerName.includes('печень треск')
+        ) {
+          category = 'fish'
+          subcategory = 'canned_fish'
+        } else if (
+          lowerName.includes('тушён') || lowerName.includes('тушен') ||
+          lowerName.includes('мясн') || lowerName.includes('говяд') ||
+          lowerName.includes('свинин') || lowerName.includes('куриц') ||
+          lowerName.includes('паштет') || lowerName.includes('pâté')
+        ) {
+          category = 'deli'
+          subcategory = 'canned_meat'
+        } else {
+          category = 'fruits_veg'
+          subcategory = 'canned_veg'
+        }
+      } else if (opts.mode === 'cooking_oil') {
+        category = 'grocery'
+        subcategory = 'cooking_oil'
+      } else if (opts.mode === 'mayo_ketchup') {
+        category = 'sauces_spices'
+        const lowerName = (full.name || '').toLowerCase()
+        if (
+          lowerName.includes('майонез') ||
+          lowerName.includes('кетчуп')
+        ) {
+          subcategory = 'mayo_ketchup'
+        } else if (
+          lowerName.includes('горчиц') ||
+          lowerName.includes('хрен') ||
+          lowerName.includes('томатная паста') ||
+          lowerName.includes('бульон') ||
+          lowerName.includes('приправ') ||
+          lowerName.includes('уксус')
+        ) {
+          subcategory = 'condiments'
+        } else if (
+          lowerName.includes('соевый соус') ||
+          lowerName.includes('soy')
+        ) {
+          subcategory = 'soy_sauce'
+        } else if (
+          lowerName.includes('перец') ||
+          lowerName.includes('специ')
+        ) {
+          subcategory = 'spices'
+        } else {
+          subcategory = 'sauce'
+        }
+      } else if (opts.mode === 'sauces_vinegars') {
+        category = 'sauces_spices'
+        const lowerName = (full.name || '').toLowerCase()
+        if (
+          lowerName.includes('уксус') ||
+          lowerName.includes('горчиц') ||
+          lowerName.includes('хрен') ||
+          lowerName.includes('томатная паста') ||
+          lowerName.includes('бульон') ||
+          lowerName.includes('приправ') ||
+          lowerName.includes('корнишон')
+        ) {
+          subcategory = 'condiments'
+        } else if (
+          lowerName.includes('соевый соус') ||
+          lowerName.includes('soy') ||
+          lowerName.includes('терияк') ||
+          lowerName.includes('teriyaki')
+        ) {
+          subcategory = 'soy_sauce'
+        } else if (
+          lowerName.includes('перец') ||
+          lowerName.includes('специ') ||
+          lowerName.includes('лавров') ||
+          lowerName.includes('паприк')
+        ) {
+          subcategory = 'spices'
+        } else {
+          subcategory = 'sauce'
+        }
+      } else if (opts.mode === 'sugar_salt_spices') {
+        const lowerName = (full.name || '').toLowerCase()
+        if (
+          lowerName.includes('мук') ||
+          lowerName.includes('крахмал') ||
+          lowerName.includes('блин')
+        ) {
+          category = 'grocery'
+          subcategory = 'flour'
+        } else if (
+          lowerName.includes('соль') ||
+          lowerName.includes('лимо') ||
+          lowerName.includes('сода')
+        ) {
+          category = 'grocery'
+          subcategory = 'salt'
+        } else if (
+          lowerName.includes('сахар') ||
+          lowerName.includes('ваниль') ||
+          lowerName.includes('ванилин') ||
+          lowerName.includes('пудр')
+        ) {
+          category = 'grocery'
+          subcategory = 'sugar'
+        } else if (
+          lowerName.includes('стеви') ||
+          lowerName.includes('эритрит') ||
+          lowerName.includes('сахарозам') ||
+          lowerName.includes('sugar free')
+        ) {
+          category = 'healthy'
+          subcategory = 'sugar_free'
+        } else {
+          category = 'sauces_spices'
+          subcategory = 'spices'
+        }
+      } else if (opts.mode === 'breakfast') {
+        category = 'grocery'
+        subcategory = 'breakfast'
+      } else if (opts.mode === 'pasta' || opts.mode === 'cereals_legumes') {
+        const lowerName = (full.name || '').toLowerCase()
+        if (
+          lowerName.includes('рис') ||
+          lowerName.includes('rice')
+        ) {
+          subcategory = 'rice'
+        } else if (
+          lowerName.includes('круп') ||
+          lowerName.includes('гречк') ||
+          lowerName.includes('овсян') ||
+          lowerName.includes('пшено') ||
+          lowerName.includes('перлов') ||
+          lowerName.includes('манн') ||
+          lowerName.includes('чечевиц') ||
+          lowerName.includes('горох') ||
+          lowerName.includes('фасол') ||
+          lowerName.includes('бобов') ||
+          lowerName.includes('кускус') ||
+          lowerName.includes('булгур')
+        ) {
+          subcategory = 'cereals'
+        } else {
+          subcategory = 'pasta'
+        }
       } else if (opts.mode === 'candy_sweets') {
         category = 'sweets'
         const lowerName = (full.name || '').toLowerCase()
@@ -1083,7 +1301,21 @@ async function main() {
         expectedCategory = 'deli'
       } else if (opts.mode === 'nuts_dried_fruits' || opts.mode === 'chips' || opts.mode === 'snacks_appetizers') {
         expectedCategory = 'snacks'
-      } else if (opts.mode === 'coffee_cocoa' || opts.mode === 'tea' || opts.mode === 'cookies_bakery' || opts.mode === 'chocolate' || opts.mode === 'candy_sweets') {
+      } else if (opts.mode === 'pasta' || opts.mode === 'cereals_legumes') {
+        expectedCategory = 'grocery'
+      } else if (opts.mode === 'canned') {
+        expectedCategory = category
+      } else if (opts.mode === 'cooking_oil') {
+        expectedCategory = 'grocery'
+      } else if (opts.mode === 'mayo_ketchup') {
+        expectedCategory = 'sauces_spices'
+      } else if (opts.mode === 'sauces_vinegars') {
+        expectedCategory = 'sauces_spices'
+      } else if (opts.mode === 'sugar_salt_spices') {
+        expectedCategory = category
+      } else if (opts.mode === 'breakfast') {
+        expectedCategory = category
+      } else if (opts.mode === 'coffee_cocoa' || opts.mode === 'tea' || opts.mode === 'cookies_bakery' || opts.mode === 'chocolate' || opts.mode === 'candy_sweets' || opts.mode === 'honey_jam') {
         expectedCategory = category
       }
 
@@ -1216,7 +1448,7 @@ async function main() {
   console.log(`Products enriched: ${statsSummary.enriched}`)
   console.log(`Errors: ${statsSummary.errors}`)
 
-  const outFile = path.join(OUT_DIR, `dairy-audit-${new Date().toISOString().replace(/[:.]/g, '-')}.json`)
+  const outFile = path.join(OUT_DIR, `${opts.mode}-audit-${new Date().toISOString().replace(/[:.]/g, '-')}.json`)
   fs.writeFileSync(outFile, JSON.stringify({ testedAt: new Date().toISOString(), stats: statsSummary, results: processedProducts }, null, 2))
   console.log(`\nSaved audit file: ${outFile}`)
 }

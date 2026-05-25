@@ -202,6 +202,8 @@
   "retail.settings.nameLabel": "Название магазина",
   "retail.settings.addressLabel": "Фактический адрес",
   "retail.settings.phoneLabel": "Телефон",
+  "retail.settings.openingHoursLabel": "График работы",
+  "retail.settings.openingHoursPlaceholder": "Например: ежедневно 09:00-23:00",
   "retail.settings.descTitle": "ОПИСАНИЕ",
   "retail.settings.shortDescLabel": "Краткое описание",
   "retail.settings.shortDescHint": "(Видно на главном экране)",

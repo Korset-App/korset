@@ -202,6 +202,8 @@
   "retail.settings.nameLabel": "Дүкен атауы",
   "retail.settings.addressLabel": "Мекенжай",
   "retail.settings.phoneLabel": "Телефон",
+  "retail.settings.openingHoursLabel": "Жұмыс уақыты",
+  "retail.settings.openingHoursPlaceholder": "Мысалы: күн сайын 09:00-23:00",
   "retail.settings.descTitle": "СИПАТТАМА",
   "retail.settings.shortDescLabel": "Қысқаша сипаттама",
   "retail.settings.shortDescHint": "(Басты экранда көрінеді)",

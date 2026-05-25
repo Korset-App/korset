@@ -29,6 +29,7 @@ export function buildRetailStoreSettingsPayload(settings = {}) {
     name: cleanString(settings.name, 160),
     address: cleanString(settings.address, 240),
     phone: normalizeKzPhone(settings.phone),
+    opening_hours: cleanString(settings.opening_hours, 240),
     short_description: cleanString(settings.short_description, 240),
     description: cleanString(settings.description, 1200),
     instagram_url: cleanString(settings.instagram_url, 300),

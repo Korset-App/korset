@@ -40,6 +40,7 @@ export default function RetailSettingsScreen() {
     name: currentStore?.name || '',
     address: currentStore?.address || '',
     phone: initLocalPhone(currentStore?.phone),
+    opening_hours: currentStore?.opening_hours || '',
     short_description: currentStore?.short_description || '',
     description: currentStore?.description || '',
     instagram_url: currentStore?.instagram_url || '',
@@ -87,6 +88,7 @@ export default function RetailSettingsScreen() {
         name: currentStore.name || prev.name,
         address: currentStore.address || prev.address,
         phone: initLocalPhone(currentStore.phone) || prev.phone,
+        opening_hours: currentStore.opening_hours || prev.opening_hours,
         short_description: currentStore.short_description || prev.short_description,
         description: currentStore.description || prev.description,
         instagram_url: currentStore.instagram_url || prev.instagram_url,
@@ -428,6 +430,20 @@ export default function RetailSettingsScreen() {
                 onChange={(e) => handlePhoneInput('phone', e.target.value)}
                 placeholder="+7 (700) 000-00-00"
                 inputMode="numeric"
+                style={INPUT_STYLE}
+              />
+            </div>
+
+            <div style={DIVIDER} />
+
+            <div style={{ padding: '16px 16px' }}>
+              <div style={FIELD_LABEL}>{t('retail.settings.openingHoursLabel')}</div>
+              <input
+                type="text"
+                value={settings.opening_hours}
+                onChange={(e) => handleChange('opening_hours', e.target.value)}
+                placeholder={t('retail.settings.openingHoursPlaceholder')}
+                maxLength={240}
                 style={INPUT_STYLE}
               />
             </div>

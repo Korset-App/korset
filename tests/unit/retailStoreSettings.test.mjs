@@ -12,6 +12,7 @@ test('buildRetailStoreSettingsPayload trims AI store notes and stores empty note
     phone: '7001112233',
     short_description: 'Local store',
     description: 'Neighborhood minimarket',
+    opening_hours: '  Mon-Sun 09:00-23:00\nNo breaks ',
     instagram_url: '',
     whatsapp_number: '7012223344',
     twogis_url: '',
@@ -22,6 +23,7 @@ test('buildRetailStoreSettingsPayload trims AI store notes and stores empty note
   assert.equal(payload.whatsapp_number, '77012223344')
   assert.equal(payload.instagram_url, null)
   assert.equal(payload.twogis_url, null)
+  assert.equal(payload.opening_hours, 'Mon-Sun 09:00-23:00 No breaks')
   assert.equal(payload.ai_store_notes.includes('\n'), false)
   assert.equal(payload.ai_store_notes.includes('\t'), false)
   assert.equal(payload.ai_store_notes.length, 2000)
