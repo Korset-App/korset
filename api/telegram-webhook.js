@@ -38,6 +38,12 @@ function answer(cbId, text) {
   return fetchTg('answerCallbackQuery', { callback_query_id: cbId, text: text || '' })
 }
 
+function sendPhoto(chatId, fileId, caption, extra = {}) {
+  return fetchTg('sendPhoto', { chat_id: chatId, photo: fileId, caption, parse_mode: 'HTML', ...extra })
+}
+
+// ─── Keyboards ───────────────────────────────────────────────
+
 function mainKB(lang) {
   return {
     inline_keyboard: [
@@ -70,25 +76,27 @@ function backKB(lang) {
   return { inline_keyboard: [[{ text: t(lang, 'back'), callback_data: 'main_menu' }]] }
 }
 
-function closeKB(ticketId, lang) {
-  return { inline_keyboard: [[{ text: t(lang, 'closeTicket'), callback_data: `close_${ticketId}` }]] }
-}
-
 function takeKB(ticketId) {
-  return { inline_keyboard: [[{ text: '✅ Взять тикет', callback_data: `take_${ticketId}` }]] }
-}
-
-function ratingKB(ticketId) {
   return {
-    inline_keyboard: [[
-      { text: '😡', callback_data: `rate_${ticketId}_1` },
-      { text: '😐', callback_data: `rate_${ticketId}_2` },
-      { text: '😊', callback_data: `rate_${ticketId}_3` },
-      { text: '🤩', callback_data: `rate_${ticketId}_4` },
-      { text: '💎', callback_data: `rate_${ticketId}_5` },
-    ]],
+    inline_keyboard: [
+      [{ text: '✅ Взять тикет', callback_data: `take_${ticketId}` }],
+    ],
   }
 }
+
+function operatorActiveKB(ticketId) {
+  return {
+    inline_keyboard: [
+      [{ text: '🔒 Закрыть тикет', callback_data: `op_close_${ticketId}` }],
+    ],
+  }
+}
+
+// ─── Helpers ─────────────────────────────────────────────────
+
+const RATE_LIMIT_WINDOW_S = 60
+const RATE_LIMIT_MAX = 6
+const TICKET_STALE_HOURS = 24
 
 function langOf(from) {
   return from?.language_code === 'kz' ? 'kz' : 'ru'
@@ -96,6 +104,37 @@ function langOf(from) {
 
 function nameOf(from) {
   return from?.first_name || 'гость'
+}
+
+function isOperator(chatId) {
+  return String(chatId) === String(OPERATOR)
+}
+
+async function checkRateLimit(userId) {
+  const since = new Date(Date.now() - RATE_LIMIT_WINDOW_S * 1000).toISOString()
+  const { count } = await sb
+    .from('support_messages')
+    .select('*', { head: true, count: 'exact' })
+    .eq('sender_type', 'user')
+    .gte('created_at', since)
+    .filter('ticket_id', 'in', `(SELECT id FROM support_tickets WHERE telegram_user_id = ${userId})`)
+  return (count || 0) < RATE_LIMIT_MAX
+}
+
+async function closeStaleTickets(userId) {
+  const staleSince = new Date(Date.now() - TICKET_STALE_HOURS * 3600 * 1000).toISOString()
+  const { data: stale } = await sb
+    .from('support_tickets')
+    .select('id')
+    .eq('telegram_user_id', userId)
+    .in('status', ['in_progress', 'waiting_operator', 'ai_answered'])
+    .lt('updated_at', staleSince)
+  if (!stale?.length) return
+  const ids = stale.map(s => s.id)
+  await sb
+    .from('support_tickets')
+    .update({ status: 'closed', closed_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .in('id', ids)
 }
 
 async function getTicket(userId, username, firstName, lang) {
@@ -126,38 +165,72 @@ async function setStatus(ticketId, status) {
   await sb.from('support_tickets').update(upd).eq('id', ticketId)
 }
 
-async function fetchMessages(ticketId) {
+async function fetchMessages(ticketId, limit = 10) {
   const { data } = await sb.from('support_messages')
     .select('sender_type, message_text, created_at')
     .eq('ticket_id', ticketId)
     .order('created_at', { ascending: false })
+    .limit(limit)
+  return data || []
+}
+
+async function getFullTicket(ticketId) {
+  const { data } = await sb.from('support_tickets').select('*').eq('id', ticketId).single()
+  return data
+}
+
+async function findTicketByOperatorMessage(msgId) {
+  const { data } = await sb.from('support_messages')
+    .select('ticket_id').eq('telegram_message_id', msgId).limit(1)
+  return data?.[0]?.ticket_id || null
+}
+
+async function getOperatorActiveTicket() {
+  const { data } = await sb.from('support_tickets')
+    .select('id, status, telegram_user_id, telegram_first_name, telegram_username, telegram_language_code, created_at')
+    .in('status', ['waiting_operator', 'in_progress'])
+    .order('updated_at', { ascending: false })
+    .limit(1)
+  return data?.[0] || null
+}
+
+async function getOperatorAllActiveTickets() {
+  const { data } = await sb.from('support_tickets')
+    .select('id, status, telegram_user_id, telegram_first_name, telegram_username, telegram_language_code, created_at')
+    .in('status', ['waiting_operator', 'in_progress'])
+    .order('updated_at', { ascending: false })
     .limit(10)
   return data || []
 }
 
+// ─── Operator notification ───────────────────────────────────
+
 async function notifyOperator(ticketId, lang, fromName, text, username, history) {
   if (!OPERATOR) return
-  const header = `🔔 <b>Новый вопрос</b>\nОт: ${username || fromName}\n`
+  const header = `🔔 <b>Новый вопрос</b>\nОт: ${username ? '@' + username : fromName}\n`
   const preview = text ? `\n\n<code>${text.slice(0, 500)}</code>` : ''
   const histBlock = history?.length
     ? `\n\n📋 <b>История:</b>\n${history.slice(-3).map(m => `[${m.sender_type}] ${(m.message_text || '').slice(0, 200)}`).join('\n')}`
     : ''
   const msg = await send(OPERATOR, header + preview + histBlock, { reply_markup: takeKB(ticketId) })
   if (msg?.ok && msg?.result?.message_id) {
-    await logMsg(ticketId, 'operator', 'notified', msg.result.message_id)
+    await logMsg(ticketId, 'system', 'notified', msg.result.message_id)
   }
 }
 
-async function forwardToOperator(chatId, from, lang, text, ticketId) {
-  const ticket = ticketId ? { id: ticketId } : await getTicket(from.id, from.username, from.first_name, lang)
-  if (!ticketId) await logMsg(ticket.id, 'user', text || 'Запрос на оператора')
-  await setStatus(ticket.id, 'waiting_operator')
-  const history = await fetchMessages(ticket.id)
-  await notifyOperator(ticket.id, lang, nameOf(from), text || '', from.username, history)
-  return ticket
+async function forwardUserMessageToOperator(ticket, from, text) {
+  if (!OPERATOR) return
+  const username = from?.username ? '@' + from.username : nameOf(from)
+  const shortId = ticket.id.slice(0, 8)
+  const msg = await send(OPERATOR, `💬 <b>${username}</b> (#${shortId}):\n\n${text}`, {
+    reply_markup: operatorActiveKB(ticket.id),
+  })
+  if (msg?.ok && msg?.result?.message_id) {
+    await logMsg(ticket.id, 'user', text, msg.result.message_id)
+  }
 }
 
-// ─── Handlers ───────────────────────────────────────────────
+// ─── User handlers ───────────────────────────────────────────
 
 async function onStart(chatId, from) {
   const lang = langOf(from)
@@ -182,11 +255,25 @@ async function onSupport(chatId, from) {
 
 async function onUserMessage(chatId, from, text) {
   const lang = langOf(from)
+
+  if (!await checkRateLimit(from.id)) {
+    await send(chatId, t(lang, 'rateLimited'))
+    return
+  }
+
+  await closeStaleTickets(from.id)
+
   const ticket = await getTicket(from.id, from.username, from.first_name, lang)
   await logMsg(ticket.id, 'user', text)
 
   if (!text || text.trim().length === 0) {
-    await send(chatId, 'Пожалуйста, напишите ваш вопрос текстом.')
+    await send(chatId, t(lang, 'emptyMessage'))
+    return
+  }
+
+  if (['in_progress', 'waiting_operator'].includes(ticket.status)) {
+    await forwardUserMessageToOperator(ticket, from, text)
+    await send(chatId, t(lang, 'messageForwarded'))
     return
   }
 
@@ -202,49 +289,177 @@ async function onUserMessage(chatId, from, text) {
   } else {
     await logMsg(ticket.id, 'ai', `[AI skipped — ${ai.category}] ${text}`)
     await send(chatId, t(lang, 'transferToOperator'))
+    await setStatus(ticket.id, 'waiting_operator')
     const history = await fetchMessages(ticket.id)
     await notifyOperator(ticket.id, lang, nameOf(from), text, from.username, history)
-    await setStatus(ticket.id, 'waiting_operator')
   }
 }
 
-async function onPhoto(chatId, from, photo, caption) {
+async function onUserPhoto(chatId, from, photo, caption) {
   const lang = langOf(from)
-  const ticket = await getTicket(from.id, from.username, from.first_name, lang)
   const text = caption || '[Фото]'
+  const ticket = await getTicket(from.id, from.username, from.first_name, lang)
   await logMsg(ticket.id, 'user', text)
+
+  if (['in_progress', 'waiting_operator'].includes(ticket.status)) {
+    const username = from?.username ? '@' + from.username : nameOf(from)
+    const shortId = ticket.id.slice(0, 8)
+    const fileId = photo[photo.length - 1].file_id
+    const msg = await sendPhoto(OPERATOR, fileId, `📷 <b>${username}</b> (#${shortId}):`, {
+      reply_markup: operatorActiveKB(ticket.id),
+    })
+    if (msg?.ok && msg?.result?.message_id) {
+      await logMsg(ticket.id, 'user', '[Фото]', msg.result.message_id)
+    }
+    await send(chatId, t(lang, 'messageForwarded'))
+    return
+  }
+
   await send(chatId, t(lang, 'transferToOperator'))
+  await setStatus(ticket.id, 'waiting_operator')
   const history = await fetchMessages(ticket.id)
   await notifyOperator(ticket.id, lang, nameOf(from), text, from.username, history)
-  await setStatus(ticket.id, 'waiting_operator')
 }
 
-async function onOperatorReply(msg) {
-  const replyTo = msg.reply_to_message
+// ─── Operator handlers ──────────────────────────────────────
+
+async function onOperatorText(msg) {
   const chatId = msg.chat.id
   const replyText = msg.text || ''
-  if (!replyTo) {
-    await send(chatId, 'Ответьте на сообщение с уведомлением, чтобы отправить ответ.')
-    return
+  const replyTo = msg.reply_to_message
+
+  let ticketId = null
+
+  if (replyTo) {
+    ticketId = await findTicketByOperatorMessage(replyTo.message_id)
   }
-  const { data: tickets } = await sb.from('support_messages')
-    .select('ticket_id').eq('telegram_message_id', replyTo.message_id).limit(1)
-  if (!tickets?.length) {
-    await send(chatId, 'Не удалось найти тикет для этого ответа.')
-    return
+
+  if (!ticketId) {
+    const active = await getOperatorActiveTicket()
+    if (active) {
+      ticketId = active.id
+    } else {
+      const all = await getOperatorAllActiveTickets()
+      if (all.length === 0) {
+        await send(chatId, 'Нет активных тикетов для ответа.')
+      } else {
+        await send(chatId, 'Несколько активных тикетов. Ответьте (reply) на сообщение нужного тикета или используйте /tickets чтобы посмотреть список.')
+      }
+      return
+    }
   }
-  const ticketId = tickets[0].ticket_id
-  const { data: ticket } = await sb.from('support_tickets').select('*').eq('id', ticketId).single()
+
+  const ticket = await getFullTicket(ticketId)
   if (!ticket) {
     await send(chatId, 'Тикет не найден.')
     return
   }
+
   await logMsg(ticketId, 'operator', replyText)
   await setStatus(ticketId, 'in_progress')
+
   const ulang = ticket.telegram_language_code || 'ru'
-  const formatted = `<b>✉️ Оператор ответил:</b>\n\n${replyText}`
-  await send(ticket.telegram_user_id, formatted, { reply_markup: ratingKB(ticketId) })
-  await send(chatId, `✅ Ответ отправлен пользователю. Тикет #${ticketId.slice(0, 8)}`)
+  await send(ticket.telegram_user_id, `<b>✉️ ${t(ulang, 'operatorReplied')}</b>\n\n${replyText}`, {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: t(ulang, 'closeTicket'), callback_data: `close_${ticketId}` }],
+        [{ text: t(ulang, 'replyToOperator'), callback_data: `reply_${ticketId}` }],
+      ],
+    },
+  })
+
+  const shortId = ticketId.slice(0, 8)
+  const username = ticket.telegram_username ? '@' + ticket.telegram_username : ticket.telegram_first_name || '—'
+  await send(chatId, `✅ Ответ отправлен ${username} (#${shortId})`, {
+    reply_markup: operatorActiveKB(ticketId),
+  })
+}
+
+async function onOperatorPhoto(msg) {
+  const chatId = msg.chat.id
+  const caption = msg.caption || ''
+  const replyTo = msg.reply_to_message
+  const photo = msg.photo
+  const fileId = photo[photo.length - 1].file_id
+
+  let ticketId = null
+
+  if (replyTo) {
+    ticketId = await findTicketByOperatorMessage(replyTo.message_id)
+  }
+
+  if (!ticketId) {
+    const active = await getOperatorActiveTicket()
+    if (active) {
+      ticketId = active.id
+    } else {
+      await send(chatId, 'Отправьте фото ответом (reply) на сообщение тикета.')
+      return
+    }
+  }
+
+  const ticket = await getFullTicket(ticketId)
+  if (!ticket) {
+    await send(chatId, 'Тикет не найден.')
+    return
+  }
+
+  await logMsg(ticketId, 'operator', caption || '[Фото]')
+  await setStatus(ticketId, 'in_progress')
+
+  const ulang = ticket.telegram_language_code || 'ru'
+  await sendPhoto(ticket.telegram_user_id, fileId, `<b>✉️ ${t(ulang, 'operatorReplied')}</b>\n\n${caption || ''}`, {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: t(ulang, 'closeTicket'), callback_data: `close_${ticketId}` }],
+        [{ text: t(ulang, 'replyToOperator'), callback_data: `reply_${ticketId}` }],
+      ],
+    },
+  })
+
+  const shortId = ticketId.slice(0, 8)
+  const username = ticket.telegram_username ? '@' + ticket.telegram_username : ticket.telegram_first_name || '—'
+  await send(chatId, `✅ Фото отправлено ${username} (#${shortId})`, {
+    reply_markup: operatorActiveKB(ticketId),
+  })
+}
+
+async function onOperatorTickets(chatId) {
+  const tickets = await getOperatorAllActiveTickets()
+  if (tickets.length === 0) {
+    await send(chatId, '📋 Нет открытых тикетов.')
+    return
+  }
+
+  const lines = ['📋 <b>Открытые тикеты:</b>\n']
+  for (const tk of tickets) {
+    const shortId = tk.id.slice(0, 8)
+    const name = tk.telegram_first_name || tk.telegram_username || '—'
+    const statusEmoji = tk.status === 'in_progress' ? '🔄' : '⏳'
+    const time = new Date(tk.created_at).toLocaleString('ru-RU', { timeZone: 'Asia/Almaty' })
+    lines.push(`${statusEmoji} <b>#${shortId}</b> — ${name} (${tk.status})\n   ${time}`)
+  }
+  lines.push('\nОтветьте (reply) на сообщение тикета, чтобы написать клиенту.')
+  await send(chatId, lines.join('\n'))
+}
+
+async function onOperatorClose(chatId) {
+  const active = await getOperatorActiveTicket()
+  if (!active) {
+    await send(chatId, 'Нет активных тикетов для закрытия.')
+    return
+  }
+  await setStatus(active.id, 'closed')
+  const ticket = await getFullTicket(active.id)
+  const shortId = active.id.slice(0, 8)
+  const username = ticket?.telegram_username ? '@' + ticket.telegram_username : ticket?.telegram_first_name || '—'
+  await send(chatId, `🔒 Тикет #${shortId} (${username}) закрыт.`)
+  if (ticket) {
+    const ulang = ticket.telegram_language_code || 'ru'
+    await send(ticket.telegram_user_id, t(ulang, 'ticketClosedByOperator'), {
+      reply_markup: mainKB(ulang),
+    })
+  }
 }
 
 // ─── Callbacks ──────────────────────────────────────────────
@@ -298,17 +513,29 @@ async function onCallback(cb) {
   if (data === 'transfer') {
     await edit(chatId, msgId, t(lang, 'transferToOperator'))
     const from = cb.from
-    const ticket = await forwardToOperator(chatId, from, lang, cb.message?.text || '', null)
-    if (ticket?.id) {
-      await logMsg(ticket.id, 'user', cb.message?.text || 'Запрос на оператора')
-    }
+    const ticket = await getTicket(from.id, from.username, from.first_name, lang)
+    await logMsg(ticket.id, 'user', cb.message?.text || 'Запрос на оператора')
+    await setStatus(ticket.id, 'waiting_operator')
+    const history = await fetchMessages(ticket.id)
+    await notifyOperator(ticket.id, lang, nameOf(from), cb.message?.text || '', from.username, history)
     return answer(cb.id)
   }
 
   if (data.startsWith('close_')) {
     const ticketId = data.replace('close_', '')
-    try { await setStatus(ticketId, 'closed') } catch {}
+    try { await setStatus(ticketId, 'closed') } catch (_e) {}
     await edit(chatId, msgId, t(lang, 'resolved'), { reply_markup: mainKB(lang) })
+    return answer(cb.id)
+  }
+
+  if (data.startsWith('reply_')) {
+    const ticketId = data.replace('reply_', '')
+    const ticket = await getFullTicket(ticketId)
+    if (!ticket) return answer(cb.id, 'Тикет не найден')
+    const ulang = ticket.telegram_language_code || 'ru'
+    await send(chatId, t(ulang, 'askQuestion'))
+    if (isOperator(chatId)) return answer(cb.id)
+    await setStatus(ticketId, 'in_progress')
     return answer(cb.id)
   }
 
@@ -318,7 +545,7 @@ async function onCallback(cb) {
     const rating = parseInt(parts[2], 10)
     try {
       await sb.from('support_tickets').update({ rating, updated_at: new Date().toISOString() }).eq('id', ticketId)
-    } catch {}
+    } catch (_e) {}
     const thanks = rating >= 4 ? '🙌 Спасибо за высокую оценку!' : 'Спасибо за ваш отзыв!'
     await edit(chatId, msgId, thanks + '\n\n' + t(lang, 'resolved'), { reply_markup: mainKB(lang) })
     return answer(cb.id)
@@ -326,19 +553,51 @@ async function onCallback(cb) {
 
   if (data.startsWith('take_')) {
     const ticketId = data.replace('take_', '')
-    if (chatId == OPERATOR) {
-      try { await setStatus(ticketId, 'in_progress') } catch {}
-      const msgs = await fetchMessages(ticketId)
-      const preview = (msgs || []).reverse().slice(-5).map(m =>
-        `[${m.sender_type}] ${(m.message_text || '').slice(0, 200)}`
-      ).join('\n\n')
-      await edit(chatId, msgId,
-        `✅ Тикет #${ticketId.slice(0, 8)} взят в работу\n\n` +
-        `Последние сообщения:\n${preview || '—'}`
-      )
+    if (!isOperator(chatId)) {
+      return answer(cb.id, 'Только оператор может взять тикет.')
     }
+    try { await setStatus(ticketId, 'in_progress') } catch (_e) {}
+    const msgs = await fetchMessages(ticketId, 5)
+    const ticket = await getFullTicket(ticketId)
+    const preview = (msgs || []).reverse().map(m =>
+      `[${m.sender_type}] ${(m.message_text || '').slice(0, 200)}`
+    ).join('\n\n')
+    const username = ticket?.telegram_username ? '@' + ticket.telegram_username : ticket?.telegram_first_name || '—'
+    const shortId = ticketId.slice(0, 8)
+    await edit(chatId, msgId,
+      `✅ <b>Тикет #${shortId} взят в работу</b>\nОт: ${username}\n\nПоследние сообщения:\n${preview || '—'}`,
+      { reply_markup: operatorActiveKB(ticketId) }
+    )
+    const ulang = ticket?.telegram_language_code || 'ru'
+    await send(ticket.telegram_user_id, t(ulang, 'operatorAssigned'), {
+      reply_markup: {
+        inline_keyboard: [[{ text: t(ulang, 'closeTicket'), callback_data: `close_${ticketId}` }]],
+      },
+    })
     return answer(cb.id)
   }
+
+  if (data.startsWith('op_close_')) {
+    const ticketId = data.replace('op_close_', '')
+    if (!isOperator(chatId)) {
+      return answer(cb.id, 'Только оператор может закрыть тикет.')
+    }
+    try {
+      await setStatus(ticketId, 'closed')
+    } catch (_e) {}
+    const ticket = await getFullTicket(ticketId)
+    const shortId = ticketId.slice(0, 8)
+    await edit(chatId, msgId, `🔒 Тикет #${shortId} закрыт`)
+    if (ticket) {
+      const ulang = ticket.telegram_language_code || 'ru'
+      await send(ticket.telegram_user_id, t(ulang, 'ticketClosedByOperator'), {
+        reply_markup: mainKB(ulang),
+      })
+    }
+    return answer(cb.id, 'Тикет закрыт')
+  }
+
+  return answer(cb.id)
 }
 
 // ─── Main ───────────────────────────────────────────────────
@@ -381,8 +640,24 @@ export default async function handler(req, res) {
       const chatId = msg.chat.id
       const from = msg.from
 
-      if (chatId == OPERATOR && msg.reply_to_message) {
-        await onOperatorReply(msg)
+      if (isOperator(chatId)) {
+        const text = msg.text || ''
+        if (text === '/tickets') {
+          await onOperatorTickets(chatId)
+          return res.status(200).end()
+        }
+        if (text === '/close') {
+          await onOperatorClose(chatId)
+          return res.status(200).end()
+        }
+        if (msg.photo) {
+          await onOperatorPhoto(msg)
+          return res.status(200).end()
+        }
+        if (msg.reply_to_message || text) {
+          await onOperatorText(msg)
+          return res.status(200).end()
+        }
         return res.status(200).end()
       }
 
@@ -399,7 +674,7 @@ export default async function handler(req, res) {
       } else if (text) {
         await onUserMessage(chatId, from, text)
       } else if (msg.photo) {
-        await onPhoto(chatId, from, msg.photo, msg.caption)
+        await onUserPhoto(chatId, from, msg.photo, msg.caption)
       }
 
       return res.status(200).end()
