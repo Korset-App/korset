@@ -6,6 +6,7 @@ import { DIET_PREFERENCES } from '../constants/dietGoals.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useProfile } from '../contexts/ProfileContext.jsx'
 import { useStore } from '../contexts/StoreContext.jsx'
+import SegmentedToggle from '../components/SegmentedToggle.jsx'
 import {
   HOME_STORY_KEYS,
   buildFitCheckSetupState,
@@ -138,6 +139,52 @@ function BrandContactIcon({ type }) {
   return <HomeIcon name="call" />
 }
 
+function SunGlyph({ filled }) {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill={filled ? 'currentColor' : 'none'}
+      stroke="currentColor"
+      strokeWidth={filled ? 1.6 : 2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={`home-theme-glyph home-theme-glyph--sun${filled ? ' is-filled' : ''}`}
+    >
+      <circle cx="12" cy="12" r="4.6" />
+      <line x1="12" y1="2" x2="12" y2="4" />
+      <line x1="12" y1="20" x2="12" y2="22" />
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+      <line x1="2" y1="12" x2="4" y2="12" />
+      <line x1="20" y1="12" x2="22" y2="12" />
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+    </svg>
+  )
+}
+
+function MoonGlyph({ filled }) {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill={filled ? 'currentColor' : 'none'}
+      stroke="currentColor"
+      strokeWidth={filled ? 1.4 : 2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={`home-theme-glyph home-theme-glyph--moon${filled ? ' is-filled' : ''}`}
+    >
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+  )
+}
+
 export default function HomeScreen() {
   const navigate = useNavigate()
   const { lang, t } = useI18n()
@@ -147,7 +194,6 @@ export default function HomeScreen() {
   const { currentStore, isStoreApp, isStoreLoading, routes } = useStore()
   const avatarButtonRef = useRef(null)
   const installSectionRef = useRef(null)
-  const storeSectionRef = useRef(null)
   const [activeStoryIndex, setActiveStoryIndex] = useState(null)
   const [activeSlideIndex, setActiveSlideIndex] = useState(0)
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false)
@@ -261,6 +307,8 @@ export default function HomeScreen() {
     currentStore.twogis_url
   )
   const storeHours = getStoreHours(currentStore, t)
+  const korsetWordmarkSrc =
+    theme === 'light' ? '/brand/korset-wordmark-dark.png' : '/brand/korset-wordmark-white.png'
 
   function dismissInstall() {
     setInstallDismissed(true)
@@ -278,10 +326,6 @@ export default function HomeScreen() {
 
   function scrollToInstall() {
     installSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }
-
-  function scrollToStore() {
-    storeSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
 
   function navigateProfileTab(tab) {
@@ -395,14 +439,21 @@ export default function HomeScreen() {
             <div className="home-store-header__copy">
               <div className="home-store-title-line">
                 <h1>{getStoreName(currentStore)}</h1>
-                <span>{t('home.poweredBy')}</span>
+                <span className="home-powered-by" aria-label={t('home.poweredBy')}>
+                  by
+                  <img src={korsetWordmarkSrc} alt="Körset" />
+                </span>
               </div>
               <p>
                 <HomeIcon name="schedule" />
                 <span>{storeHours}</span>
               </p>
             </div>
-            <button className="home-store-about-button" type="button" onClick={scrollToStore}>
+            <button
+              className="home-store-about-button"
+              type="button"
+              onClick={() => navigate(routes.publicPage)}
+            >
               <span>{t('home.storeAbout')}</span>
               <AboutChevronIcon />
             </button>
@@ -486,35 +537,35 @@ export default function HomeScreen() {
                   <div className="home-avatar-menu__switches">
                     <div>
                       <span>{t('home.menuLanguage')}</span>
-                      <div className="home-segment home-segment--language">
-                        {['ru', 'kz'].map((item) => (
-                          <button
-                            className={lang === item ? 'is-active' : ''}
-                            key={item}
-                            type="button"
-                            onClick={() => setLang(item)}
-                          >
-                            {item.toUpperCase()}
-                          </button>
-                        ))}
-                      </div>
+                      <SegmentedToggle
+                        ariaLabel={t('home.menuLanguage')}
+                        activeKey={lang}
+                        onChange={(item) => setLang(item)}
+                        options={[
+                          { key: 'ru', label: 'RU', ariaLabel: t('common.langRu') },
+                          { key: 'kz', label: 'KZ', ariaLabel: t('common.langKzAria') },
+                        ]}
+                      />
                     </div>
                     <div>
                       <span>{t('home.menuTheme')}</span>
-                      <div className="home-segment home-segment--theme">
-                        {['dark', 'light'].map((item) => (
-                          <button
-                            className={theme === item ? 'is-active' : ''}
-                            key={item}
-                            type="button"
-                            aria-label={t(`home.theme.${item}`)}
-                            title={t(`home.theme.${item}`)}
-                            onClick={() => handleThemeChange(item)}
-                          >
-                            <HomeIcon name={item === 'dark' ? 'dark_mode' : 'light_mode'} />
-                          </button>
-                        ))}
-                      </div>
+                      <SegmentedToggle
+                        ariaLabel={t('home.menuTheme')}
+                        activeKey={theme === 'light' ? 'light' : 'dark'}
+                        onChange={handleThemeChange}
+                        options={[
+                          {
+                            key: 'light',
+                            ariaLabel: t('home.theme.light'),
+                            render: (active) => <SunGlyph filled={active} />,
+                          },
+                          {
+                            key: 'dark',
+                            ariaLabel: t('home.theme.dark'),
+                            render: (active) => <MoonGlyph filled={active} />,
+                          },
+                        ]}
+                      />
                     </div>
                   </div>
                   {!isInstalled && (
@@ -723,7 +774,7 @@ export default function HomeScreen() {
         </section>
       )}
 
-      <section ref={storeSectionRef} className="home-store-card">
+      <section className="home-store-card">
         <div className="home-store-card__top">
           <StoreLogo store={currentStore} />
           <div>

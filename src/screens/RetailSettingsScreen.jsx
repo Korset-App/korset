@@ -54,6 +54,7 @@ export default function RetailSettingsScreen() {
   const [isSaving, setIsSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState(null) // 'ok' | 'error'
   const [saveErrorMessage, setSaveErrorMessage] = useState('')
+  const [saveWarningMessage, setSaveWarningMessage] = useState('')
   const [savingToggle, setSavingToggle] = useState(null)
   const [showClearModal, setShowClearModal] = useState(false)
   const [isClearing, setIsClearing] = useState(false)
@@ -107,6 +108,7 @@ export default function RetailSettingsScreen() {
     setSettings((p) => ({ ...p, [key]: val }))
     setSaveStatus(null)
     setSaveErrorMessage('')
+    setSaveWarningMessage('')
   }
 
   // Auto-save toggle to Supabase immediately on click
@@ -127,10 +129,16 @@ export default function RetailSettingsScreen() {
     setIsSaving(true)
     setSaveStatus(null)
     setSaveErrorMessage('')
-    const { error } = await updateStoreSettings(buildRetailStoreSettingsPayload(settings))
+    setSaveWarningMessage('')
+    const { error, warning } = await updateStoreSettings(buildRetailStoreSettingsPayload(settings))
     setIsSaving(false)
     setSaveStatus(error ? 'error' : 'ok')
     setSaveErrorMessage(error || '')
+    setSaveWarningMessage(
+      warning?.missingColumn === 'opening_hours'
+        ? t('retail.settings.openingHoursSchemaWarning')
+        : ''
+    )
     setTimeout(() => setSaveStatus(null), 3000)
   }
 
@@ -689,7 +697,10 @@ export default function RetailSettingsScreen() {
             <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
               check_circle
             </span>
-            {t('retail.settings.saved')}
+            <span>
+              {t('retail.settings.saved')}
+              {saveWarningMessage ? ` ${saveWarningMessage}` : ''}
+            </span>
           </div>
         )}
         {saveStatus === 'error' && (

@@ -20,6 +20,10 @@ import {
   buildScanPath,
   buildStorePublicPath,
 } from '../utils/routes.js'
+import {
+  getMissingStoreSettingsColumn,
+  omitStoreSettingsColumn,
+} from '../domain/retail/storeSettings.js'
 import { useOffline } from './OfflineContext.jsx'
 
 const StoreContext = createContext(null)
@@ -324,12 +328,28 @@ export function StoreProvider({ children }) {
   const updateStoreSettings = useCallback(
     async (payload) => {
       if (!currentStore?.id) return { error: 'No store loaded' }
-      const { error } = await supabase.from('stores').update(payload).eq('id', currentStore.id)
-      if (error) return { error: error.message }
-      const updated = { ...currentStore, ...payload }
+      const updateStore = (nextPayload) =>
+        supabase.from('stores').update(nextPayload).eq('id', currentStore.id)
+
+      let appliedPayload = payload
+      let warning = null
+      let { error } = await updateStore(appliedPayload)
+
+      const missingColumn = getMissingStoreSettingsColumn(error)
+      if (missingColumn) {
+        appliedPayload = omitStoreSettingsColumn(payload, missingColumn)
+        warning = { missingColumn }
+        if (Object.keys(appliedPayload).length === 0) {
+          return { error: error.message, warning }
+        }
+        ;({ error } = await updateStore(appliedPayload))
+      }
+
+      if (error) return { error: error.message, warning }
+      const updated = { ...currentStore, ...appliedPayload }
       setCurrentStore(updated)
       saveStoreToCache(updated.slug || updated.code, updated)
-      return { error: null }
+      return { error: null, warning }
     },
     [currentStore]
   )

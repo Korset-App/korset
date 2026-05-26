@@ -212,7 +212,7 @@ export default function AboutScreen() {
             }}
           >
             <img
-              src="/icon_logo.svg"
+              src="/brand/korset-icon.svg"
               alt="Korset Logo"
               style={{ width: '100%', height: '100%', objectFit: 'contain' }}
             />
@@ -220,7 +220,7 @@ export default function AboutScreen() {
 
           <div style={{ marginBottom: 6 }}>
             <img
-              src={isLight ? '/logo-light.png' : '/logo-wordmark-white.png'}
+              src={isLight ? '/brand/korset-wordmark-dark.png' : '/brand/korset-wordmark-white.png'}
               alt="Körset"
               style={{ height: 34, objectFit: 'contain', display: 'block', margin: '0 auto' }}
             />

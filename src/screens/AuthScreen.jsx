@@ -413,7 +413,7 @@ export default function AuthScreen() {
             }}
           >
             <img
-              src="/icon_logo.svg"
+              src="/brand/korset-icon.svg"
               alt="Körset"
               style={{ width: 56, height: 56, marginBottom: 18, borderRadius: 16, flexShrink: 0 }}
             />

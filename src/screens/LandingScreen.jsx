@@ -201,7 +201,7 @@ function FeatScreenShell({ children }) {
     <div className="lp-feat-screen">
       <div className="lp-feat-screen__bar" aria-hidden="true">
         <div className="lp-feat-screen__bar-logo">
-          <img src="/icon_logo.svg" alt="" width="12" height="12" />
+          <img src="/brand/korset-icon.svg" alt="" width="12" height="12" />
         </div>
         <span>Körset</span>
       </div>
@@ -619,7 +619,7 @@ function DemoPhone({ texts }) {
           {/* App header */}
           <div className="lp-phone__appbar">
             <div className="lp-phone__appbar-logo">
-              <img src="/icon_logo.svg" alt="" width="16" height="16" />
+              <img src="/brand/korset-icon.svg" alt="" width="16" height="16" />
             </div>
             <span>Körset</span>
             <div className="lp-phone__appbar-scan" aria-hidden="true">
@@ -953,7 +953,7 @@ export default function LandingScreen() {
           property="og:description"
           content="Сканируйте товар в магазине и получайте Fit-Check по аллергенам, халал, диетам и КБЖУ."
         />
-        <meta property="og:image" content="/logo.png" />
+        <meta property="og:image" content="/brand/korset-app-icon.png" />
         <meta property="og:url" content="https://korset.app" />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
@@ -962,7 +962,7 @@ export default function LandingScreen() {
           name="twitter:description"
           content="Сканируйте товар в магазине и получайте Fit-Check по аллергенам, халал, диетам и КБЖУ."
         />
-        <meta name="twitter:image" content="/logo.png" />
+        <meta name="twitter:image" content="/brand/korset-app-icon.png" />
         <link rel="canonical" href="https://korset.app" />
         <script
           type="application/ld+json"
@@ -977,7 +977,7 @@ export default function LandingScreen() {
         <header className={`lp-header ${scrolled ? 'lp-header--scrolled' : ''}`}>
           <div className="lp-header__inner">
             <a className="lp-brand" href="/" aria-label="Körset">
-              <img src="/korset_logo.svg" alt="Körset" className="lp-brand__logo" />
+              <img src="/brand/korset-wordmark-white.svg" alt="Körset" className="lp-brand__logo" />
             </a>
 
             <nav className="lp-header__nav" aria-label="Primary">
@@ -1236,7 +1236,7 @@ export default function LandingScreen() {
                   <div className="lp-how__result-mockup" aria-hidden="true">
                     <div className="lp-how__result-header">
                       <div className="lp-how__result-logo">
-                        <img src="/icon_logo.svg" alt="" width="14" height="14" />
+                        <img src="/brand/korset-icon.svg" alt="" width="14" height="14" />
                       </div>
                       <span>Körset</span>
                     </div>
@@ -1677,7 +1677,11 @@ export default function LandingScreen() {
               <div className="lp-footer__brand-col">
                 <div className="lp-footer__brand-wrap">
                   <a className="lp-brand lp-footer__brand" href="/" aria-label="Körset">
-                    <img src="/korset_logo.svg" alt="Körset" className="lp-brand__logo" />
+                    <img
+                      src="/brand/korset-wordmark-white.svg"
+                      alt="Körset"
+                      className="lp-brand__logo"
+                    />
                   </a>
                 </div>
                 <h3 className="lp-footer__title">{d.footer.title}</h3>

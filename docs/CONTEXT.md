@@ -109,7 +109,7 @@ Consumer:
 - ProductScreen: Fit-Check, факты товара, цена/store overlay, unknown-EAN request flow, переходы к AI/compare/alternatives.
 - CompareScreen: сравнение двух товаров через scan flow.
 - AIScreen/AIAssistantScreen: product/general/compare AI modes, серверный `/api/ai.js`, RAG через `vault_embeddings`.
-- CatalogScreen: 18 нормализованных категорий, bento showcase, магазинный бейдж в хедере ведёт на `/stores/:storeSlug`, поиск с отдельным scan shortcut на `/s/:storeSlug/scan`, обучающая подсказка на главном виде категорий, view toggle list/grid, минималистичные выпадающие панели с поддержкой мульти-выбора подкатегорий, продвинутая сортировка (по Fit-Check, цене, белку, сахару) с иконками, 4-уровневый Fit-Check badge, единые тёмные премиальные category-card градиенты с белыми названиями, mix-blend-mode на изображениях, skeleton loading state, Virtuoso, offline fallback. Счётчики товаров отключены (`showCatalogMeta = false`).
+- CatalogScreen: 18 нормализованных категорий, bento showcase, магазинный бейдж в хедере ведёт на `/stores/:storeSlug`, поиск с отдельным scan shortcut на `/s/:storeSlug/scan`, обучающая подсказка на главном виде категорий, view toggle list/grid, минималистичные выпадающие панели с поддержкой мульти-выбора подкатегорий, продвинутая сортировка (по Fit-Check, цене, белку, сахару) с иконками, 4-уровневый Fit-Check badge, единые тёмные премиальные category-card градиенты с белыми названиями, mix-blend-mode на изображениях, skeleton loading state, Virtuoso, offline fallback. Карточка товара вынесена в `src/components/catalog/CatalogProductCard.jsx`, стили карточки — в `src/components/catalog/CatalogProductCard.css`; `CatalogScreen.jsx` отвечает за данные/навигацию и делегирует list/grid карточки компоненту. Счётчики товаров отключены (`showCatalogMeta = false`).
 - History, favorites, profile, account и service screens.
 
 Auth/profile:
@@ -126,6 +126,7 @@ Retail:
 - Products management: price/stock/shelf editing, barcode search, list/grid режим.
 - Import: CSV/XLS/XLSX, template download, bulk update, unknown-EAN staging, auto-resolve.
 - Settings: данные магазина, opening hours, logo upload, QR для магазина, notification toggles, clear catalog danger-zone.
+- Repair migration `045_repair_store_opening_hours.sql` added so `public.stores.opening_hours` exists in fresh/prod databases again; live Supabase must still receive the migration to persist the field.
 - EAN Recovery: отдельный экран + `/api/ean-recovery`.
 - Multi-store: RetailEntryScreen поддерживает >1 магазина на владельца (выбор магазина). Управление: `scripts/create-store.mjs`, `scripts/deactivate-store.mjs`.
 

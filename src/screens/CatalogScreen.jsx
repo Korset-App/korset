@@ -26,6 +26,7 @@ import { getDisplayQuantity } from '../utils/parseQuantity.js'
 import { CATEGORY_SHOWCASE_ORDER, getCategoryShowcase } from '../domain/product/catalogShowcase.js'
 import { getProductSearchDiagnosticsAttrs } from '../domain/product/searchDiagnostics.js'
 import { searchStoreProductsRPC } from '../domain/product/search.js'
+import CatalogProductCard from '../components/catalog/CatalogProductCard.jsx'
 import {
   sortCatalogSearchProducts,
   analyzeCatalogSearchQuery,
@@ -195,37 +196,6 @@ const IconGrid = (
     <rect x="17" y="17" width="8" height="8" rx="1" />
   </svg>
 )
-
-function ProductThumb({ product }) {
-  const [imgOk, setImgOk] = useState(true)
-  const src = product.image || product.imageUrl || product.images?.[0]
-  if (src && imgOk) {
-    return (
-      <img
-        src={src}
-        alt={product.name}
-        className="product-img-blend"
-        onError={() => setImgOk(false)}
-        style={{ padding: 8 }}
-      />
-    )
-  }
-  return (
-    <div
-      style={{
-        width: '100%',
-        height: '100%',
-        display: 'grid',
-        placeItems: 'center',
-        fontSize: 28,
-        fontWeight: 800,
-        color: 'var(--primary-bright)',
-      }}
-    >
-      {product.name?.[0] || '•'}
-    </div>
-  )
-}
 
 function getVerdictConfig(fit, t) {
   const v = fit.verdict
@@ -768,88 +738,22 @@ export default function CatalogScreen() {
         comparePin?.ean === product.ean ? 'close' : comparePin ? 'add' : 'compare_arrows'
       const searchDiagnosticsAttrs = getProductSearchDiagnosticsAttrs(product)
       return (
-        <div
-          {...searchDiagnosticsAttrs}
-          onClick={() => handleNavigate(product)}
-          style={{
-            background: 'var(--glass-muted)',
-            border: '1px solid var(--glass-soft-border)',
-            borderRadius: 18,
-            padding: 12,
-            display: 'flex',
-            flexDirection: 'column',
-            cursor: 'pointer',
-            position: 'relative',
-            height: '100%',
-            minHeight: 260,
-          }}
-        >
-          <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 2 }}>
-            <div className={`catalog-verdict-badge ${verdict.cls}`}>
-              <span className="material-symbols-outlined">{verdict.icon}</span>
-              {verdict.label}
-            </div>
-          </div>
-
-          <div
-            className="catalog-img-box"
-            style={{ width: '100%', aspectRatio: '1/1', marginBottom: 10 }}
-          >
-            <ProductThumb product={product} />
-          </div>
-
-          <div
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 13,
-              fontWeight: 700,
-              color: 'var(--text)',
-              lineHeight: 1.3,
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-              marginBottom: 4,
-              minHeight: '2.6em',
-            }}
-          >
-            {getLocalName(product)}
-          </div>
-
-          <div
-            style={{
-              fontSize: 11,
-              color: 'var(--text-soft)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              marginBottom: 2,
-              minHeight: '1.4em',
-            }}
-          >
-            {[product.brand, getDisplayQuantity(product, lang)].filter(Boolean).join(' · ') ||
-              '\u00A0'}
-          </div>
-
-          <div style={{ marginTop: 'auto', paddingTop: 8 }}>
-            <div
-              style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: 16,
-                fontWeight: 900,
-                color: 'var(--primary-bright)',
-              }}
-            >
-              {formatPrice(product.priceKzt)}
-            </div>
-          </div>
-          <button
-            className={`catalog-compare-btn-grid ${compareState}`}
-            onClick={(e) => handleCompare(product, e)}
-          >
-            <span className="material-symbols-outlined">{compareIcon}</span>
-          </button>
-        </div>
+        <CatalogProductCard
+          mode="grid"
+          product={product}
+          productName={getLocalName(product)}
+          productMeta={
+            [product.brand, getDisplayQuantity(product, lang)].filter(Boolean).join(' · ') ||
+            '\u00A0'
+          }
+          price={formatPrice(product.priceKzt)}
+          verdict={verdict}
+          compareState={compareState}
+          compareIcon={compareIcon}
+          searchDiagnosticsAttrs={searchDiagnosticsAttrs}
+          onOpen={() => handleNavigate(product)}
+          onCompare={(e) => handleCompare(product, e)}
+        />
       )
     },
     [profile, comparePin, handleCompare, handleNavigate, t, lang]
@@ -871,90 +775,22 @@ export default function CatalogScreen() {
             : t('compare.compareMode')
       const searchDiagnosticsAttrs = getProductSearchDiagnosticsAttrs(product)
       return (
-        <div
-          {...searchDiagnosticsAttrs}
-          onClick={() => handleNavigate(product)}
-          style={{
-            background: 'var(--glass-muted)',
-            border: '1px solid var(--glass-soft-border)',
-            borderRadius: 18,
-            padding: 12,
-            margin: '0 20px',
-            display: 'grid',
-            gridTemplateColumns: '80px 1fr',
-            gap: 10,
-            cursor: 'pointer',
-          }}
-        >
-          <div className="catalog-img-box" style={{ width: 80, height: 80 }}>
-            <ProductThumb product={product} />
-          </div>
-
-          <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                gap: 8,
-              }}
-            >
-              <div
-                style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: 'var(--text)',
-                  lineHeight: 1.35,
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
-                  flex: 1,
-                }}
-              >
-                {getLocalName(product)}
-              </div>
-              <div className={`catalog-verdict-badge ${verdict.cls}`}>
-                <span className="material-symbols-outlined">{verdict.icon}</span>
-                {verdict.label}
-              </div>
-            </div>
-
-            <div style={{ fontSize: 12, color: 'var(--text-soft)' }}>
-              {[product.brand || t('catalog.noBrand'), getDisplayQuantity(product, lang)]
-                .filter(Boolean)
-                .join(' · ')}
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginTop: 'auto',
-              }}
-            >
-              <div
-                style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: 20,
-                  fontWeight: 900,
-                  color: 'var(--primary-bright)',
-                }}
-              >
-                {formatPrice(product.priceKzt)}
-              </div>
-              <button
-                className={`catalog-compare-btn ${compareState}`}
-                onClick={(e) => handleCompare(product, e)}
-              >
-                <span className="material-symbols-outlined">{compareIcon}</span>
-                {compareLabel}
-              </button>
-            </div>
-          </div>
-        </div>
+        <CatalogProductCard
+          mode="list"
+          product={product}
+          productName={getLocalName(product)}
+          productMeta={[product.brand || t('catalog.noBrand'), getDisplayQuantity(product, lang)]
+            .filter(Boolean)
+            .join(' · ')}
+          price={formatPrice(product.priceKzt)}
+          verdict={verdict}
+          compareState={compareState}
+          compareIcon={compareIcon}
+          compareLabel={compareLabel}
+          searchDiagnosticsAttrs={searchDiagnosticsAttrs}
+          onOpen={() => handleNavigate(product)}
+          onCompare={(e) => handleCompare(product, e)}
+        />
       )
     },
     [profile, comparePin, handleCompare, handleNavigate, t, lang]

@@ -163,12 +163,12 @@ export default function StoresScreen() {
         <a className="stores-brand" href="/" aria-label="Körset">
           <img
             className="stores-brand__logo stores-brand__logo--dark"
-            src="/logo-wordmark-white.png"
+            src="/brand/korset-wordmark-white.png"
             alt=""
           />
           <img
             className="stores-brand__logo stores-brand__logo--light"
-            src="/logo-light.png"
+            src="/brand/korset-wordmark-dark.png"
             alt=""
           />
         </a>

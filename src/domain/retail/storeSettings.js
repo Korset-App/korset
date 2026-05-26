@@ -1,4 +1,19 @@
 const AI_STORE_NOTES_LIMIT = 2000
+const STORE_SETTINGS_COLUMNS = new Set([
+  'name',
+  'address',
+  'phone',
+  'opening_hours',
+  'short_description',
+  'description',
+  'instagram_url',
+  'whatsapp_number',
+  'twogis_url',
+  'ai_store_notes',
+  'notify_oos_enabled',
+  'notify_daily_enabled',
+  'logo_url',
+])
 
 function cleanString(value, max = 500) {
   if (typeof value !== 'string') return null
@@ -37,4 +52,22 @@ export function buildRetailStoreSettingsPayload(settings = {}) {
     twogis_url: cleanString(settings.twogis_url, 300),
     ai_store_notes: cleanString(settings.ai_store_notes, AI_STORE_NOTES_LIMIT),
   }
+}
+
+export function getMissingStoreSettingsColumn(error) {
+  const message = String(error?.message || '')
+  if (!message) return null
+
+  const schemaCacheMatch = message.match(/Could not find the '([^']+)' column of 'stores'/i)
+  const postgresMatch = message.match(/column\s+stores\.([a-z0-9_]+)\s+does not exist/i)
+  const column = schemaCacheMatch?.[1] || postgresMatch?.[1] || null
+
+  return column && STORE_SETTINGS_COLUMNS.has(column) ? column : null
+}
+
+export function omitStoreSettingsColumn(payload = {}, column) {
+  if (!column || !Object.prototype.hasOwnProperty.call(payload, column)) return payload
+  const nextPayload = { ...payload }
+  delete nextPayload[column]
+  return nextPayload
 }

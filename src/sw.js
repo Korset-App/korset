@@ -54,7 +54,7 @@ self.addEventListener('push', (event) => {
   const title = payload.title || 'Körset'
   const options = {
     body: payload.body || 'У вас новое уведомление.',
-    icon: '/logo.png',
+    icon: '/brand/korset-app-icon.png',
     badge: '/favicon.png',
     data: {
       url: payload.url || '/profile',

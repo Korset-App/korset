@@ -1,0 +1,136 @@
+.catalog-product-card {
+  background: var(--glass-muted);
+  border: 1px solid var(--glass-soft-border);
+  border-radius: 18px;
+  cursor: pointer;
+}
+
+.catalog-product-card--grid {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 260px;
+  padding: 12px;
+  position: relative;
+}
+
+.catalog-product-card--list {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 10px;
+  margin: 0 20px;
+  padding: 12px;
+}
+
+.catalog-product-card__verdict--grid {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+}
+
+.catalog-product-card__thumb--grid {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  margin-bottom: 10px;
+}
+
+.catalog-product-card__thumb--list {
+  width: 80px;
+  height: 80px;
+}
+
+.catalog-product-card__image {
+  padding: 8px;
+}
+
+.catalog-product-card__image-fallback {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--primary-bright);
+}
+
+.catalog-product-card__body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.catalog-product-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.catalog-product-card__title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.catalog-product-card__title--grid {
+  font-size: 13px;
+  line-height: 1.3;
+  -webkit-line-clamp: 2;
+  margin-bottom: 4px;
+  min-height: 2.6em;
+}
+
+.catalog-product-card__title--list {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.35;
+  -webkit-line-clamp: 2;
+}
+
+.catalog-product-card__meta {
+  color: var(--text-soft);
+}
+
+.catalog-product-card__meta--grid {
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 2px;
+  min-height: 1.4em;
+}
+
+.catalog-product-card__meta--list {
+  font-size: 12px;
+}
+
+.catalog-product-card__footer--grid {
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.catalog-product-card__footer--list {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+}
+
+.catalog-product-card__price {
+  font-family: var(--font-display);
+  font-weight: 900;
+  color: var(--primary-bright);
+}
+
+.catalog-product-card__price--grid {
+  font-size: 16px;
+}
+
+.catalog-product-card__price--list {
+  font-size: 20px;
+}
