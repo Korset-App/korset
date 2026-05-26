@@ -2227,24 +2227,23 @@ body {
   min-height: 0;
   padding: 0;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--tone-hi) 28%, var(--glass-soft-border));
+  border: 1px solid transparent;
   border-radius: clamp(18px, 5.3vw, 22px);
   background:
     radial-gradient(
       circle at 78% 4%,
-      color-mix(in srgb, var(--tone-hi) 20%, transparent) 0%,
+      color-mix(in srgb, var(--tone-hi) 14%, transparent) 0%,
       transparent 30%
     ),
     radial-gradient(
       circle at 22% 12%,
-      color-mix(in srgb, var(--tone-hi) 34%, transparent) 0%,
+      color-mix(in srgb, var(--tone-hi) 24%, transparent) 0%,
       transparent 36%
     ),
-    linear-gradient(145deg, var(--tone-a) 0%, color-mix(in srgb, var(--tone-b) 72%, var(--bg-app)) 100%);
+    linear-gradient(145deg, var(--tone-a) 0%, var(--tone-b) 100%);
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--text-inverse) 16%, transparent),
-    0 14px 34px color-mix(in srgb, var(--tone-b) 24%, transparent),
-    0 2px 12px color-mix(in srgb, var(--bg-app) 44%, transparent);
+    inset 0 1px 0 color-mix(in srgb, var(--text-inverse) 10%, transparent),
+    0 10px 22px color-mix(in srgb, var(--tone-b) 14%, transparent);
   cursor: pointer;
   isolation: isolate;
   touch-action: manipulation;
@@ -2366,110 +2365,110 @@ body {
 }
 
 .catalog-category-card[data-tone='berry'] {
-  --tone-a: #41106e;
-  --tone-b: #7c22b7;
+  --tone-a: #551486;
+  --tone-b: #8d2fc2;
   --tone-hi: #e7b6ff;
 }
 
 .catalog-category-card[data-tone='green'] {
-  --tone-a: #145d35;
-  --tone-b: #258a4e;
+  --tone-a: #1c7a46;
+  --tone-b: #35b765;
   --tone-hi: #c8ffd8;
 }
 
 .catalog-category-card[data-tone='citrus'] {
-  --tone-a: #7b4c08;
-  --tone-b: #c08516;
+  --tone-a: #af7e0f;
+  --tone-b: #e0be2f;
   --tone-hi: #fff7a6;
 }
 
 .catalog-category-card[data-tone='aqua'] {
-  --tone-a: #0c4867;
-  --tone-b: #14789a;
+  --tone-a: #126b91;
+  --tone-b: #1fa0c0;
   --tone-hi: #b8f4ff;
 }
 
 .catalog-category-card[data-tone='paper'] {
-  --tone-a: #25324a;
-  --tone-b: #465b7c;
+  --tone-a: #536780;
+  --tone-b: #8aa4bf;
   --tone-hi: #dfeeff;
 }
 
 .catalog-category-card[data-tone='plum'] {
-  --tone-a: #371162;
-  --tone-b: #6819a5;
+  --tone-a: #4b147c;
+  --tone-b: #8425bd;
   --tone-hi: #e6c0ff;
 }
 
 .catalog-category-card[data-tone='mint'] {
-  --tone-a: #0f665f;
-  --tone-b: #168a81;
+  --tone-a: #158b81;
+  --tone-b: #28bcb0;
   --tone-hi: #d4fff8;
 }
 
 .catalog-category-card[data-tone='coral'] {
-  --tone-a: #8c292f;
-  --tone-b: #c5443e;
+  --tone-a: #bc3d42;
+  --tone-b: #e36555;
   --tone-hi: #ffd0bd;
 }
 
 .catalog-category-card[data-tone='teal'] {
-  --tone-a: #0b514e;
-  --tone-b: #117872;
+  --tone-a: #0e756f;
+  --tone-b: #18a096;
   --tone-hi: #b8fff7;
 }
 
 .catalog-category-card[data-tone='tomato'] {
-  --tone-a: #842825;
-  --tone-b: #be4037;
+  --tone-a: #b43a35;
+  --tone-b: #dc584d;
   --tone-hi: #ffc6ba;
 }
 
 .catalog-category-card[data-tone='wheat'] {
-  --tone-a: #765013;
-  --tone-b: #b57b21;
+  --tone-a: #b7832b;
+  --tone-b: #e1b85a;
   --tone-hi: #fff2bf;
 }
 
 .catalog-category-card[data-tone='ice'] {
-  --tone-a: #16415d;
-  --tone-b: #236a8a;
+  --tone-a: #397a9c;
+  --tone-b: #72b6dc;
   --tone-hi: #cdeeff;
 }
 
 .catalog-category-card[data-tone='lime'] {
-  --tone-a: #496b18;
-  --tone-b: #3f8d3d;
+  --tone-a: #76a522;
+  --tone-b: #55b851;
   --tone-hi: #f3ffb3;
 }
 
 .catalog-category-card[data-tone='cream'] {
-  --tone-a: #8b4d1a;
-  --tone-b: #bd6f2c;
+  --tone-a: #c58942;
+  --tone-b: #e4b16d;
   --tone-hi: #fff0ca;
 }
 
 .catalog-category-card[data-tone='blue'] {
-  --tone-a: #114a70;
-  --tone-b: #1c7199;
+  --tone-a: #176d9a;
+  --tone-b: #2694bc;
   --tone-hi: #b8eeff;
 }
 
 .catalog-category-card[data-tone='leaf'] {
-  --tone-a: #2f6f25;
-  --tone-b: #348d48;
+  --tone-a: #5aaf42;
+  --tone-b: #47b968;
   --tone-hi: #e3ffd1;
 }
 
 .catalog-category-card[data-tone='clean'] {
-  --tone-a: #26344c;
-  --tone-b: #41627e;
+  --tone-a: #5d7590;
+  --tone-b: #a4c7e8;
   --tone-hi: #e9f4ff;
 }
 
 .catalog-category-card[data-tone='violet'] {
-  --tone-a: #17225d;
-  --tone-b: #5330a5;
+  --tone-a: #22348a;
+  --tone-b: #6540bd;
   --tone-hi: #d9c8ff;
 }
 
@@ -2541,11 +2540,11 @@ body {
   bottom: 0;
   left: 0;
   z-index: 2;
-  height: 52%;
+  height: 44%;
   background: linear-gradient(
     180deg,
     transparent 0%,
-    color-mix(in srgb, var(--bg-app) 58%, transparent) 100%
+    color-mix(in srgb, var(--bg-app) 46%, transparent) 100%
   );
   content: '';
   pointer-events: none;
@@ -2555,7 +2554,7 @@ body {
   background: linear-gradient(
     180deg,
     transparent 0%,
-    color-mix(in srgb, var(--bg-app) 62%, transparent) 100%
+    color-mix(in srgb, var(--bg-app) 50%, transparent) 100%
   );
 }
 
@@ -2582,8 +2581,8 @@ body {
 
 @media (hover: hover) {
   .catalog-category-card:hover {
-    transform: translateY(-3px) scale(1.012);
-    box-shadow: 0 20px 42px color-mix(in srgb, var(--tone-b) 28%, transparent);
+    transform: translateY(-2px);
+    box-shadow: 0 14px 28px color-mix(in srgb, var(--tone-b) 18%, transparent);
   }
 
   .catalog-category-card:hover .catalog-category-media img {
@@ -2598,18 +2597,18 @@ body {
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--text-inverse) 10%, transparent) 0%,
+      color-mix(in srgb, var(--text-inverse) 7%, transparent) 0%,
       transparent 28%,
-      color-mix(in srgb, var(--bg-app) 24%, transparent) 100%
+      color-mix(in srgb, var(--bg-app) 16%, transparent) 100%
     ),
     linear-gradient(
       150deg,
-      color-mix(in srgb, var(--tone-hi) 18%, transparent) 0%,
+      color-mix(in srgb, var(--tone-hi) 12%, transparent) 0%,
       transparent 32%,
       transparent 72%,
-      color-mix(in srgb, var(--bg-app) 28%, transparent) 100%
+      color-mix(in srgb, var(--bg-app) 18%, transparent) 100%
     );
-  opacity: 0.84;
+  opacity: 0.72;
   pointer-events: none;
 }
 
@@ -2669,7 +2668,7 @@ body {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   text-shadow:
-    0 2px 10px color-mix(in srgb, var(--bg-app) 78%, transparent),
+    0 2px 8px color-mix(in srgb, var(--bg-app) 68%, transparent),
     0 0 1px color-mix(in srgb, var(--text-inverse) 58%, transparent);
 }
 
@@ -2686,32 +2685,31 @@ body {
 }
 
 :root[data-theme='light'] .catalog-category-card {
-  border-color: color-mix(in srgb, var(--tone-hi) 34%, var(--glass-border));
+  border-color: transparent;
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--text-inverse) 18%, transparent),
-    0 12px 28px color-mix(in srgb, var(--tone-b) 20%, transparent),
-    0 2px 10px color-mix(in srgb, var(--text-dim) 12%, transparent);
+    inset 0 1px 0 color-mix(in srgb, var(--text-inverse) 10%, transparent),
+    0 10px 22px color-mix(in srgb, var(--tone-b) 14%, transparent);
 }
 
 :root[data-theme='light'] .catalog-category-card[data-tone='mint'] {
-  --tone-a: #0f665f;
-  --tone-b: #168a81;
+  --tone-a: #158b81;
+  --tone-b: #28bcb0;
   --tone-hi: #bdf7ef;
 }
 
 :root[data-theme='light'] .catalog-category-card[data-tone='leaf'] {
-  --tone-a: #2f6f25;
-  --tone-b: #348d48;
+  --tone-a: #5aaf42;
+  --tone-b: #47b968;
   --tone-hi: #d7f8bf;
 }
 
 :root[data-theme='light'] .catalog-category-card[data-tone='paper'],
 :root[data-theme='light'] .catalog-category-card[data-tone='ice'],
 :root[data-theme='light'] .catalog-category-card[data-tone='clean'] {
-  border-color: color-mix(in srgb, var(--primary-bright) 34%, var(--border-bright));
+  border-color: transparent;
   box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--text) 15%, transparent),
-    0 16px 30px color-mix(in srgb, var(--text-dim) 18%, transparent);
+    inset 0 1px 0 color-mix(in srgb, var(--text-inverse) 10%, transparent),
+    0 10px 22px color-mix(in srgb, var(--text-dim) 12%, transparent);
 }
 
 :root[data-theme='light'] .catalog-category-media img {
@@ -2794,29 +2792,27 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  max-width: 46%;
-  min-height: 38px;
-  padding: 8px 12px;
-  border: 1px solid color-mix(in srgb, var(--primary-bright) 26%, var(--glass-soft-border));
-  border-radius: 16px;
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--primary) 14%, transparent), transparent),
-    var(--glass-muted);
-  color: color-mix(in srgb, var(--primary-bright) 86%, var(--text));
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--text-inverse) 8%, transparent),
-    0 10px 24px color-mix(in srgb, var(--primary) 12%, transparent);
+  gap: 7px;
+  max-width: 48%;
+  min-height: 40px;
+  padding: 8px 13px;
+  border: 1.5px solid var(--input-border);
+  border-radius: 14px;
+  background: var(--input-bg);
+  color: var(--text);
+  box-shadow: none;
   font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 650;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   line-height: 1;
+  text-transform: uppercase;
   cursor: pointer;
   flex-shrink: 0;
   transition:
     border-color 0.18s ease,
     background 0.18s ease,
-    transform 0.18s ease;
+    color 0.18s ease;
 }
 
 .catalog-store-pill span:last-child {
@@ -2827,20 +2823,16 @@ body {
 }
 
 .catalog-store-pill .material-symbols-outlined {
-  font-size: 19px;
+  font-size: 20px;
+  color: var(--text-soft);
   flex-shrink: 0;
 }
 
 .catalog-store-pill:hover,
 .catalog-store-pill:focus-visible {
-  border-color: color-mix(in srgb, var(--primary-bright) 52%, var(--glass-soft-border));
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--primary) 22%, transparent), transparent),
-    var(--glass-bg);
-}
-
-.catalog-store-pill:hover {
-  transform: translateY(-1px);
+  border-color: var(--badge-border);
+  background: var(--glass-bg);
+  color: var(--text);
 }
 
 .catalog-store-pill:focus-visible {
@@ -2909,22 +2901,19 @@ body {
   width: 52px;
   height: 50px;
   border-radius: 16px;
-  border: 1.5px solid color-mix(in srgb, var(--primary-bright) 36%, var(--input-border));
-  background:
-    radial-gradient(circle at 50% 10%, color-mix(in srgb, var(--primary-bright) 18%, transparent), transparent 58%),
-    var(--input-bg);
-  color: var(--primary-bright);
+  border: 1.5px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--text-soft);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   flex-shrink: 0;
-  box-shadow: 0 10px 24px color-mix(in srgb, var(--primary) 10%, transparent);
+  box-shadow: none;
   transition:
     border-color 0.18s ease,
     background 0.18s ease,
-    box-shadow 0.18s ease,
-    transform 0.18s ease;
+    color 0.18s ease;
 }
 
 .catalog-scan-shortcut .material-symbols-outlined {
@@ -2933,15 +2922,9 @@ body {
 
 .catalog-scan-shortcut:hover,
 .catalog-scan-shortcut:focus-visible {
-  border-color: color-mix(in srgb, var(--primary-bright) 64%, var(--input-border));
-  background:
-    radial-gradient(circle at 50% 10%, color-mix(in srgb, var(--primary-bright) 24%, transparent), transparent 58%),
-    var(--glass-bg);
-  box-shadow: 0 12px 28px color-mix(in srgb, var(--primary) 16%, transparent);
-}
-
-.catalog-scan-shortcut:hover {
-  transform: translateY(-1px);
+  border-color: var(--badge-border);
+  background: var(--glass-bg);
+  color: var(--primary-bright);
 }
 
 .catalog-scan-shortcut:focus-visible {
