@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ProfileAvatar from '../components/ProfileAvatar.jsx'
+import { DietIcon } from './ProfileScreen.jsx'
 import { ALLERGENS } from '../constants/allergens.js'
 import { DIET_PREFERENCES } from '../constants/dietGoals.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
@@ -193,12 +194,14 @@ export default function HomeScreen() {
   const { profile, updateProfile } = useProfile()
   const { currentStore, isStoreApp, isStoreLoading, routes } = useStore()
   const avatarButtonRef = useRef(null)
+  const fitSectionRef = useRef(null)
   const installSectionRef = useRef(null)
   const [activeStoryIndex, setActiveStoryIndex] = useState(null)
   const [activeSlideIndex, setActiveSlideIndex] = useState(0)
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false)
-  const [fitPanelOpen, setFitPanelOpen] = useState(false)
   const [fitSaved, setFitSaved] = useState(false)
+  const [fitSetupDismissed, setFitSetupDismissed] = useState(false)
+  const [fitSetupStep, setFitSetupStep] = useState(1)
   const [draftDietGoals, setDraftDietGoals] = useState(profile?.dietGoals || [])
   const [draftHalal, setDraftHalal] = useState(Boolean(profile?.halal))
   const [draftNoPreferences, setDraftNoPreferences] = useState(Boolean(profile?.noDietPreferences))
@@ -215,13 +218,17 @@ export default function HomeScreen() {
     import('html5-qrcode').catch(() => {})
   }, [])
 
-  function openFitPanel() {
+  function openFitSetup() {
     setDraftDietGoals(profile?.dietGoals || [])
     setDraftHalal(Boolean(profile?.halal))
     setDraftNoPreferences(Boolean(profile?.noDietPreferences))
     setDraftAllergens(profile?.allergens || [])
     setDraftNoAllergies(Boolean(profile?.noAllergies))
-    setFitPanelOpen(true)
+    setFitSetupStep(1)
+    setFitSetupDismissed(false)
+    window.setTimeout(() => {
+      fitSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 50)
   }
 
   useEffect(() => {
@@ -249,7 +256,7 @@ export default function HomeScreen() {
       if (event.key === 'Escape') {
         setActiveStoryIndex(null)
         setAvatarMenuOpen(false)
-        setFitPanelOpen(false)
+        setFitSetupDismissed(true)
       }
       if (activeStoryIndex !== null && event.key === 'ArrowRight') moveStorySlide(1)
       if (activeStoryIndex !== null && event.key === 'ArrowLeft') moveStorySlide(-1)
@@ -265,8 +272,11 @@ export default function HomeScreen() {
   }, [activeStoryIndex])
 
   const topAllergens = useMemo(
-    () => ALLERGENS.filter((item) => item.frequency >= 2).slice(0, 10),
+    () => ALLERGENS.filter((item) => item.frequency >= 2).slice(0, 5),
     []
+  )
+  const visibleDietPreferences = DIET_PREFERENCES.filter((item) =>
+    ['halal', 'sugar_free', 'lactose_free', 'gluten_free'].includes(item.id)
   )
 
   if (!isStoreApp) {
@@ -297,6 +307,7 @@ export default function HomeScreen() {
   const storeFacts = buildHomeStoreFacts(currentStore)
   const actions = buildHomeQuickActions({ routes })
   const fitSetup = buildFitCheckSetupState(profile)
+  const fitSetupVisible = !fitSetup.isComplete && !fitSetupDismissed
   const activeStory = activeStoryIndex === null ? null : HOME_STORY_KEYS[activeStoryIndex]
   const installHelpVisible = !isInstalled && !installDismissed
   const isIos = isIosDevice()
@@ -383,7 +394,7 @@ export default function HomeScreen() {
   function handleStoryCta() {
     if (!activeStory) return
     if (activeStory.cta === 'scan') navigate(routes.scan)
-    if (activeStory.cta === 'fit') openFitPanel()
+    if (activeStory.cta === 'fit') openFitSetup()
     if (activeStory.cta === 'install') scrollToInstall()
     if (activeStory.cta === 'learn' || activeStory.cta === 'store') navigate(routes.publicPage)
     setActiveStoryIndex(null)
@@ -425,9 +436,10 @@ export default function HomeScreen() {
     })
     setFitSaved(true)
     window.setTimeout(() => {
-      setFitPanelOpen(false)
+      setFitSetupDismissed(true)
+      setFitSetupStep(1)
       setFitSaved(false)
-    }, 1200)
+    }, 900)
   }
 
   return (
@@ -607,122 +619,184 @@ export default function HomeScreen() {
       </header>
 
       <section className="home-scan-stage" aria-label={t('home.scanBtn')}>
-        <button className="home-scan-button" type="button" onClick={() => navigate(routes.scan)}>
-          <span className="home-scan-button__glyph">
-            <HomeIcon name="barcode_scanner" />
-          </span>
-          <span className="home-scan-button__copy">
-            <strong>{t('home.scanProduct')}</strong>
-            <span>{t('home.scanProductSub')}</span>
-          </span>
-        </button>
-      </section>
-
-      <section className={`home-fit-card${fitPanelOpen ? ' is-open' : ''}`}>
-        <button
-          className="home-fit-card__summary"
-          type="button"
-          onClick={() => {
-            if (fitPanelOpen) setFitPanelOpen(false)
-            else openFitPanel()
-          }}
-          aria-expanded={fitPanelOpen}
-        >
-          <span>
-            <i>{fitSetup.isComplete ? t('home.fitSetupReadyPill') : t('home.fitSetupLabel')}</i>
-            <strong>
-              {fitSetup.isComplete ? t('home.fitSetupReadyTitle') : t('home.fitSetupTitle')}
-            </strong>
-            <small>
-              {fitSetup.isComplete ? t('home.fitSetupReadyText') : t('home.fitSetupText')}
-            </small>
-          </span>
-          <HomeIcon name={fitPanelOpen ? 'expand_less' : 'expand_more'} />
-        </button>
-
-        {fitPanelOpen && (
-          <div className="home-fit-card__editor">
-            <div className="home-fit-step">
-              <div className="home-fit-step__head">
-                <span>1</span>
-                <div>
-                  <h3>{t('home.fitPreferencesTitle')}</h3>
-                  <p>{t('home.fitPreferencesText')}</p>
-                </div>
-              </div>
-              <div className="home-chip-grid">
-                <button
-                  className={`home-choice-chip${draftNoPreferences ? ' is-active' : ''}`}
-                  type="button"
-                  onClick={toggleNoPreferences}
-                >
-                  {t('home.noPreferences')}
-                </button>
-                <button
-                  className={`home-choice-chip${draftHalal && !draftNoPreferences ? ' is-active' : ''}`}
-                  type="button"
-                  onClick={() => {
-                    setDraftNoPreferences(false)
-                    setDraftHalal((value) => !value)
-                  }}
-                >
-                  {t('home.preferenceHalal')}
-                </button>
-                {DIET_PREFERENCES.filter((item) => item.id !== 'halal').map((item) => (
-                  <button
-                    className={`home-choice-chip${
-                      draftDietGoals.includes(item.id) && !draftNoPreferences ? ' is-active' : ''
-                    }`}
-                    key={item.id}
-                    type="button"
-                    onClick={() => toggleDietGoal(item.id)}
-                  >
-                    {getLocalizedLabel(item, lang)}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="home-fit-step">
-              <div className="home-fit-step__head">
-                <span>2</span>
-                <div>
-                  <h3>{t('home.fitAllergensTitle')}</h3>
-                  <p>{t('home.fitAllergensText')}</p>
-                </div>
-              </div>
-              <div className="home-chip-grid">
-                <button
-                  className={`home-choice-chip${draftNoAllergies ? ' is-active' : ''}`}
-                  type="button"
-                  onClick={toggleNoAllergies}
-                >
-                  {t('home.noAllergies')}
-                </button>
-                {topAllergens.map((item) => (
-                  <button
-                    className={`home-choice-chip${
-                      draftAllergens.includes(item.id) && !draftNoAllergies ? ' is-active' : ''
-                    }`}
-                    key={item.id}
-                    type="button"
-                    onClick={() => toggleAllergen(item.id)}
-                  >
-                    {getLocalizedLabel(item, lang)}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="home-fit-card__footer">
-              <p>{fitSaved ? t('home.fitSaved') : t('home.fitProfileHint')}</p>
-              <button type="button" onClick={saveFitSetup}>
-                {t('home.fitSave')}
-              </button>
-            </div>
+        <div className="home-scan-card">
+          <div className="home-scan-card__copy">
+            <p className="home-scan-card__eyebrow">{t('home.scanEyebrow')}</p>
+            <h2>{t('home.scanProduct')}</h2>
+            <p className="home-scan-card__text">{t('home.scanProductSub')}</p>
+            <button
+              className="home-scan-card__cta"
+              type="button"
+              onClick={() => navigate(routes.scan)}
+            >
+              <HomeIcon name="barcode_scanner" />
+              <span>{t('home.scanBtn')}</span>
+            </button>
           </div>
-        )}
+          <div className="home-scan-card__visual" aria-hidden="true">
+            <img src="/landing/how_step_2.png" alt="" />
+            <span className="home-scan-card__badge">{t('home.scanVisualBadge')}</span>
+          </div>
+        </div>
       </section>
+
+      {fitSetupVisible && (
+        <section ref={fitSectionRef} className="home-fit-card home-fit-card--setup">
+          <div className="home-fit-card__top">
+            <span className="home-fit-card__mark" aria-hidden="true">
+              <HomeIcon name={fitSetupStep === 1 ? 'tune' : 'verified'} />
+            </span>
+            <div className="home-fit-card__headline">
+              <p className="home-fit-card__eyebrow">{t('home.fitSetupLabel')}</p>
+              <div className="home-fit-card__meta">
+                <span className="home-fit-card__status">
+                  {fitSetupStep === 1
+                    ? t('home.fitSetupStage1Badge')
+                    : t('home.fitSetupStage2Badge')}
+                </span>
+                <span className="home-fit-card__step">
+                  {fitSetupStep === 1 ? t('home.fitSetupStage1Pill') : t('home.fitSetupStage2Pill')}
+                </span>
+              </div>
+              <h2>
+                {fitSetupStep === 1 ? t('home.fitSetupStage1Title') : t('home.fitSetupStage2Title')}
+              </h2>
+              <p className="home-fit-card__lede">
+                {fitSetupStep === 1 ? t('home.fitSetupStage1Text') : t('home.fitSetupStage2Text')}
+              </p>
+            </div>
+            <button
+              className="home-fit-card__dismiss"
+              type="button"
+              aria-label={t('common.close')}
+              onClick={() => setFitSetupDismissed(true)}
+            >
+              <HomeIcon name="close" />
+            </button>
+          </div>
+
+          <div className="home-fit-card__grid">
+            {fitSetupStep === 1 ? (
+              <div className="home-fit-step">
+                <div className="home-fit-step__head">
+                  <span>1</span>
+                  <div>
+                    <h3>{t('home.fitPreferencesTitle')}</h3>
+                  </div>
+                </div>
+                <div className="home-fit-step__actions">
+                  <p>{t('home.fitSetupStep1Hint')}</p>
+                  <button type="button" onClick={() => setFitSetupStep(2)}>
+                    <span>{t('home.fitNext')}</span>
+                    <HomeIcon name="arrow_forward" />
+                  </button>
+                </div>
+                <div className="home-chip-grid home-chip-grid--icon">
+                  <button
+                    className={`home-choice-chip home-choice-chip--icon${draftHalal && !draftNoPreferences ? ' is-active' : ''}`}
+                    type="button"
+                    onClick={() => {
+                      setDraftNoPreferences(false)
+                      setDraftHalal((value) => !value)
+                    }}
+                  >
+                    <span className="home-choice-chip__icon" aria-hidden="true">
+                      <DietIcon name="halal" size={18} />
+                    </span>
+                    <span>{t('home.preferenceHalal')}</span>
+                  </button>
+                  {visibleDietPreferences
+                    .filter((item) => item.id !== 'halal')
+                    .map((item) => (
+                      <button
+                        className={`home-choice-chip home-choice-chip--icon${
+                          draftDietGoals.includes(item.id) && !draftNoPreferences
+                            ? ' is-active'
+                            : ''
+                        }`}
+                        key={item.id}
+                        type="button"
+                        onClick={() => toggleDietGoal(item.id)}
+                      >
+                        <span className="home-choice-chip__icon" aria-hidden="true">
+                          <DietIcon name={item.icon} size={18} />
+                        </span>
+                        <span>{getLocalizedLabel(item, lang)}</span>
+                      </button>
+                    ))}
+                  <button
+                    className={`home-choice-chip home-choice-chip--icon home-choice-chip--full${
+                      draftNoPreferences ? ' is-active' : ''
+                    }`}
+                    type="button"
+                    onClick={toggleNoPreferences}
+                  >
+                    <span className="home-choice-chip__icon" aria-hidden="true">
+                      <HomeIcon name="verified" />
+                    </span>
+                    <span>{t('home.noPreferences')}</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="home-fit-step">
+                <div className="home-fit-step__head">
+                  <span>2</span>
+                  <div>
+                    <h3>{t('home.fitAllergensTitle')}</h3>
+                  </div>
+                </div>
+                <div className="home-fit-step__actions">
+                  <p>{t('home.fitSetupStep2Hint')}</p>
+                  <div className="home-fit-card__actions">
+                    <button
+                      type="button"
+                      className="home-fit-card__back"
+                      onClick={() => setFitSetupStep(1)}
+                    >
+                      <HomeIcon name="arrow_back" />
+                      <span>{t('home.fitBack')}</span>
+                    </button>
+                    <button type="button" onClick={saveFitSetup}>
+                      <span>{t('home.fitSetupCta')}</span>
+                      <HomeIcon name="check" />
+                    </button>
+                  </div>
+                </div>
+                <div className="home-chip-grid home-chip-grid--icon">
+                  {topAllergens.map((item) => (
+                    <button
+                      className={`home-choice-chip home-choice-chip--icon${
+                        draftAllergens.includes(item.id) && !draftNoAllergies ? ' is-active' : ''
+                      }`}
+                      key={item.id}
+                      type="button"
+                      onClick={() => toggleAllergen(item.id)}
+                    >
+                      <span className="home-choice-chip__icon" aria-hidden="true">
+                        <DietIcon name={item.icon} size={18} />
+                      </span>
+                      <span>{getLocalizedLabel(item, lang)}</span>
+                    </button>
+                  ))}
+                  <button
+                    className={`home-choice-chip home-choice-chip--icon home-choice-chip--full${
+                      draftNoAllergies ? ' is-active' : ''
+                    }`}
+                    type="button"
+                    onClick={toggleNoAllergies}
+                  >
+                    <span className="home-choice-chip__icon" aria-hidden="true">
+                      <HomeIcon name="verified" />
+                    </span>
+                    <span>{t('home.noAllergies')}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       <section className="home-actions" aria-label={t('home.quickActions')}>
         {actions.map((action) => (

@@ -108,8 +108,8 @@ Consumer:
 - Product resolution через store catalog/global products, IndexedDB offline cache и enrichment paths.
 - ProductScreen: Fit-Check, факты товара, цена/store overlay, unknown-EAN request flow, переходы к AI/compare/alternatives.
 - CompareScreen: сравнение двух товаров через scan flow.
-- AIScreen/AIAssistantScreen: product/general/compare AI modes, серверный `/api/ai.js`, RAG через `vault_embeddings`.
-- CatalogScreen: 18 нормализованных категорий, bento showcase, магазинный бейдж в хедере ведёт на `/stores/:storeSlug`, поиск с отдельным scan shortcut на `/s/:storeSlug/scan`, обучающая подсказка на главном виде категорий, view toggle list/grid, минималистичные выпадающие панели с поддержкой мульти-выбора подкатегорий, продвинутая сортировка (по Fit-Check, цене, белку, сахару) с иконками, 4-уровневый Fit-Check badge, единые тёмные премиальные category-card градиенты с белыми названиями, mix-blend-mode на изображениях, skeleton loading state, Virtuoso, offline fallback. Карточка товара вынесена в `src/components/catalog/CatalogProductCard.jsx`, стили карточки — в `src/components/catalog/CatalogProductCard.css`; `CatalogScreen.jsx` отвечает за данные/навигацию и делегирует list/grid карточки компоненту. Счётчики товаров отключены (`showCatalogMeta = false`).
+- AIScreen/AIAssistantScreen: product/general/compare AI modes, серверный `/api/ai.js`, RAG через `vault_embeddings`. Current AI UI redesign brief: `docs/vault/plans/2026-05-27-ai-assistant-visual-redesign-brief.md` — focus is premium mobile visual polish for `/s/:storeSlug/ai`, glass sticky header, capability cards, no noisy popular/quick sections, and separate owner decisions for local chat history, image input, and voice input.
+- CatalogScreen: 18 нормализованных категорий, bento showcase, магазинный бейдж в хедере ведёт на `/stores/:storeSlug`, поиск с отдельным scan shortcut на `/s/:storeSlug/scan`, обучающая подсказка на главном виде категорий, view toggle list/grid, минималистичные выпадающие панели с поддержкой мульти-выбора подкатегорий, продвинутая сортировка (по Fit-Check, цене, белку, сахару) с иконками, 4-уровневый Fit-Check badge, единые тёмные премиальные category-card градиенты с белыми названиями, mix-blend-mode на изображениях, skeleton loading state, Virtuoso, offline fallback. Карточка товара вынесена в `src/components/catalog/CatalogProductCard.jsx`, стили карточки — в `src/components/catalog/CatalogProductCard.css`, модель компактных бейджей/ккал — в `src/domain/catalog/catalogProductCardModel.js`; карточка показывает Fit-Check, доступные теги (халал/диетические) и ккал без пустого места, а compare CTA отображается иконкой. `CatalogScreen.jsx` отвечает за данные/навигацию и делегирует list/grid карточки компоненту. Счётчики товаров отключены (`showCatalogMeta = false`).
 - History, favorites, profile, account и service screens.
 
 Auth/profile:
@@ -127,6 +127,7 @@ Retail:
 - Import: CSV/XLS/XLSX, template download, bulk update, unknown-EAN staging, auto-resolve.
 - Settings: данные магазина, opening hours, logo upload, QR для магазина, notification toggles, clear catalog danger-zone.
 - Repair migration `045_repair_store_opening_hours.sql` added so `public.stores.opening_hours` exists in fresh/prod databases again; live Supabase must still receive the migration to persist the field.
+- Repair migration `046_fix_stores_billing_guard.sql` added to replace the stale `stores.expires_at` check with `stores.plan_expires_at`; this unblocks ordinary store profile updates on live databases where the old guard survived.
 - EAN Recovery: отдельный экран + `/api/ean-recovery`.
 - Multi-store: RetailEntryScreen поддерживает >1 магазина на владельца (выбор магазина). Управление: `scripts/create-store.mjs`, `scripts/deactivate-store.mjs`.
 
@@ -302,7 +303,7 @@ Design:
 - Dark и light themes поддерживаются.
 - Не возвращать raw hardcoded white/black цвета для core UI surfaces/text.
 - Catalog top-level — 18-card bento showcase.
-- Consumer home `/s/:storeSlug` — staged pilot upgrade implemented through Stage 5. Current IA: compact store header with avatar mini-menu, clickable stories, scan CTA, soft Fit-Check setup, catalog/AI quick actions, PWA install banner, compact store facts/contacts, and lightweight focus/interaction polish. History is no longer on the main canvas. Details: `docs/vault/plans/2026-05-25-home-screen-pilot-upgrade-plan.md`, `docs/vault/changelog/2026-05-26-home-screen-pilot-stage5.md`.
+- Consumer home `/s/:storeSlug` — staged pilot upgrade implemented through Stage 5. Current IA: compact store header with avatar mini-menu, clickable stories, scan CTA, temporary expanded setup panel for diet/halal/allergy filters that hides after save/close, catalog/AI quick actions, PWA install banner, compact store facts/contacts, and lightweight focus/interaction polish. History is no longer on the main canvas. Details: `docs/vault/plans/2026-05-25-home-screen-pilot-upgrade-plan.md`, `docs/vault/changelog/2026-05-26-home-screen-pilot-stage5.md`, `docs/vault/changelog/2026-05-27-home-fit-setup-panel.md`.
 - Landing V3 имеет отдельную visual system; детали — в Vault plans/changelog.
 
 Data:

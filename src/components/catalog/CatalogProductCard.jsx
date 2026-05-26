@@ -29,6 +29,36 @@ function VerdictBadge({ verdict }) {
   )
 }
 
+function AttributeBadge({ badge }) {
+  return (
+    <span className={`catalog-product-card__badge catalog-product-card__badge--${badge.className}`}>
+      <span className="material-symbols-outlined" aria-hidden="true">
+        {badge.icon}
+      </span>
+      {badge.label}
+    </span>
+  )
+}
+
+function CardBadges({ verdict, badges, kcalLabel }) {
+  return (
+    <div className="catalog-product-card__badges">
+      <VerdictBadge verdict={verdict} />
+      {badges.map((badge) => (
+        <AttributeBadge key={badge.id} badge={badge} />
+      ))}
+      {kcalLabel && (
+        <span className="catalog-product-card__badge catalog-product-card__badge--kcal">
+          <span className="material-symbols-outlined" aria-hidden="true">
+            local_fire_department
+          </span>
+          {kcalLabel}
+        </span>
+      )}
+    </div>
+  )
+}
+
 export default function CatalogProductCard({
   mode,
   product,
@@ -36,6 +66,8 @@ export default function CatalogProductCard({
   productMeta,
   price,
   verdict,
+  badges = [],
+  kcalLabel = null,
   compareState,
   compareIcon,
   compareLabel,
@@ -50,10 +82,6 @@ export default function CatalogProductCard({
         className="catalog-product-card catalog-product-card--grid"
         onClick={onOpen}
       >
-        <div className="catalog-product-card__verdict catalog-product-card__verdict--grid">
-          <VerdictBadge verdict={verdict} />
-        </div>
-
         <div className="catalog-img-box catalog-product-card__thumb catalog-product-card__thumb--grid">
           <ProductThumb product={product} />
         </div>
@@ -66,6 +94,8 @@ export default function CatalogProductCard({
           {productMeta}
         </div>
 
+        <CardBadges verdict={verdict} badges={badges} kcalLabel={kcalLabel} />
+
         <div className="catalog-product-card__footer catalog-product-card__footer--grid">
           <div className="catalog-product-card__price catalog-product-card__price--grid">
             {price}
@@ -75,6 +105,7 @@ export default function CatalogProductCard({
         <button
           type="button"
           className={`catalog-compare-btn-grid ${compareState}`}
+          aria-label={compareLabel}
           onClick={onCompare}
         >
           <span className="material-symbols-outlined">{compareIcon}</span>
@@ -98,24 +129,25 @@ export default function CatalogProductCard({
           <div className="catalog-product-card__title catalog-product-card__title--list">
             {productName}
           </div>
-          <VerdictBadge verdict={verdict} />
+          <div className="catalog-product-card__price catalog-product-card__price--list">
+            {price}
+          </div>
         </div>
 
         <div className="catalog-product-card__meta catalog-product-card__meta--list">
           {productMeta}
         </div>
 
+        <CardBadges verdict={verdict} badges={badges} kcalLabel={kcalLabel} />
+
         <div className="catalog-product-card__footer catalog-product-card__footer--list">
-          <div className="catalog-product-card__price catalog-product-card__price--list">
-            {price}
-          </div>
           <button
             type="button"
             className={`catalog-compare-btn ${compareState}`}
+            aria-label={compareLabel}
             onClick={onCompare}
           >
             <span className="material-symbols-outlined">{compareIcon}</span>
-            {compareLabel}
           </button>
         </div>
       </div>

@@ -26,6 +26,10 @@ import { getDisplayQuantity } from '../utils/parseQuantity.js'
 import { CATEGORY_SHOWCASE_ORDER, getCategoryShowcase } from '../domain/product/catalogShowcase.js'
 import { getProductSearchDiagnosticsAttrs } from '../domain/product/searchDiagnostics.js'
 import { searchStoreProductsRPC } from '../domain/product/search.js'
+import {
+  buildCatalogProductCardBadges,
+  getCatalogProductCardKcal,
+} from '../domain/catalog/catalogProductCardModel.js'
 import CatalogProductCard from '../components/catalog/CatalogProductCard.jsx'
 import {
   sortCatalogSearchProducts,
@@ -735,7 +739,15 @@ export default function CatalogScreen() {
       const compareState =
         comparePin?.ean === product.ean ? 'active-pin' : comparePin ? 'select-second' : 'default'
       const compareIcon =
-        comparePin?.ean === product.ean ? 'close' : comparePin ? 'add' : 'compare_arrows'
+        comparePin?.ean === product.ean ? 'close' : comparePin ? 'add' : 'barcode_scanner'
+      const compareLabel =
+        comparePin?.ean === product.ean
+          ? t('compare.cancel')
+          : comparePin
+            ? t('compare.btnLabel')
+            : t('compare.compareMode')
+      const badges = buildCatalogProductCardBadges(product, t)
+      const kcal = getCatalogProductCardKcal(product)
       const searchDiagnosticsAttrs = getProductSearchDiagnosticsAttrs(product)
       return (
         <CatalogProductCard
@@ -748,8 +760,11 @@ export default function CatalogScreen() {
           }
           price={formatPrice(product.priceKzt)}
           verdict={verdict}
+          badges={badges}
+          kcalLabel={kcal ? t('catalog.badge.kcal', { value: kcal }) : null}
           compareState={compareState}
           compareIcon={compareIcon}
+          compareLabel={compareLabel}
           searchDiagnosticsAttrs={searchDiagnosticsAttrs}
           onOpen={() => handleNavigate(product)}
           onCompare={(e) => handleCompare(product, e)}
@@ -766,13 +781,15 @@ export default function CatalogScreen() {
       const compareState =
         comparePin?.ean === product.ean ? 'active-pin' : comparePin ? 'select-second' : 'default'
       const compareIcon =
-        comparePin?.ean === product.ean ? 'close' : comparePin ? 'add' : 'compare_arrows'
+        comparePin?.ean === product.ean ? 'close' : comparePin ? 'add' : 'barcode_scanner'
       const compareLabel =
         comparePin?.ean === product.ean
           ? t('compare.cancel')
           : comparePin
             ? t('compare.btnLabel')
             : t('compare.compareMode')
+      const badges = buildCatalogProductCardBadges(product, t)
+      const kcal = getCatalogProductCardKcal(product)
       const searchDiagnosticsAttrs = getProductSearchDiagnosticsAttrs(product)
       return (
         <CatalogProductCard
@@ -784,6 +801,8 @@ export default function CatalogScreen() {
             .join(' · ')}
           price={formatPrice(product.priceKzt)}
           verdict={verdict}
+          badges={badges}
+          kcalLabel={kcal ? t('catalog.badge.kcal', { value: kcal }) : null}
           compareState={compareState}
           compareIcon={compareIcon}
           compareLabel={compareLabel}
