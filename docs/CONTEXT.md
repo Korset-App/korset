@@ -102,12 +102,14 @@ Retail:
 
 Consumer:
 
+- HomeScreen `/s/:storeSlug` is now a full mobile-first store entry screen, not the old lightweight layout: brand/store header with avatar menu, horizontal story highlight cards with story viewer, primary scan CTA, inline Fit-Check setup, AI/catalog shortcuts, and a store card. Source files: `src/screens/HomeScreen.jsx`, `src/screens/HomeScreen.css`, `src/domain/home/homeScreenModel.js`; detailed handoff: `docs/vault/changelog/2026-05-26-home-screen-full-redesign.md`.
+
 - Сканер штрихкодов с ручным вводом EAN.
 - Product resolution через store catalog/global products, IndexedDB offline cache и enrichment paths.
 - ProductScreen: Fit-Check, факты товара, цена/store overlay, unknown-EAN request flow, переходы к AI/compare/alternatives.
 - CompareScreen: сравнение двух товаров через scan flow.
 - AIScreen/AIAssistantScreen: product/general/compare AI modes, серверный `/api/ai.js`, RAG через `vault_embeddings`.
-- CatalogScreen: 18 нормализованных категорий, bento showcase, поиск (иконка + кнопка ×), view toggle list/grid, минималистичные выпадающие панели с поддержкой мульти-выбора подкатегорий, продвинутая сортировка (по Fit-Check, цене, белку, сахару) с иконками, 4-уровневый Fit-Check badge, mix-blend-mode на изображениях, skeleton loading state, Virtuoso, offline fallback. Счётчики товаров отключены (`showCatalogMeta = false`).
+- CatalogScreen: 18 нормализованных категорий, bento showcase, магазинный бейдж в хедере ведёт на `/stores/:storeSlug`, поиск с отдельным scan shortcut на `/s/:storeSlug/scan`, обучающая подсказка на главном виде категорий, view toggle list/grid, минималистичные выпадающие панели с поддержкой мульти-выбора подкатегорий, продвинутая сортировка (по Fit-Check, цене, белку, сахару) с иконками, 4-уровневый Fit-Check badge, единые тёмные премиальные category-card градиенты с белыми названиями, mix-blend-mode на изображениях, skeleton loading state, Virtuoso, offline fallback. Счётчики товаров отключены (`showCatalogMeta = false`).
 - History, favorites, profile, account и service screens.
 
 Auth/profile:

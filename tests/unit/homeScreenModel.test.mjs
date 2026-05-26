@@ -31,7 +31,7 @@ test('home quick actions keep only catalog and AI on the main canvas', () => {
 
   assert.deepEqual(
     actions.map((action) => action.key),
-    ['catalog', 'ai']
+    ['ai', 'catalog']
   )
   assert.equal(actions.some((action) => action.path === '/s/mars/history'), false)
 })
@@ -51,18 +51,31 @@ test('home store facts expose only shopper-useful public facts', () => {
   ])
 })
 
-test('fit-check setup state treats halal allergens and sugar as completion signals', () => {
+test('fit-check setup state treats preference and allergen steps as completion signals', () => {
   const state = buildFitCheckSetupState({
     halal: true,
     allergens: ['peanut'],
     dietGoals: ['sugar_free'],
   })
 
-  assert.equal(state.completedCount, 3)
+  assert.equal(state.completedCount, 2)
   assert.equal(state.isComplete, true)
   assert.deepEqual(state.signals, {
-    halal: true,
+    preferences: true,
     allergens: true,
-    sugar: true,
+  })
+})
+
+test('fit-check setup state can be completed with explicit no-preference choices', () => {
+  const state = buildFitCheckSetupState({
+    noDietPreferences: true,
+    noAllergies: true,
+  })
+
+  assert.equal(state.completedCount, 2)
+  assert.equal(state.isComplete, true)
+  assert.deepEqual(state.signals, {
+    preferences: true,
+    allergens: true,
   })
 })

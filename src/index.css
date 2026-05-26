@@ -2213,8 +2213,8 @@ body {
   --tone-a: var(--primary);
   --tone-b: var(--primary-mid);
   --tone-hi: var(--primary-bright);
-  --cat-title: var(--text-on-accent-dark);
-  --cat-meta: color-mix(in srgb, var(--text-on-accent-dark) 70%, transparent);
+  --cat-title: var(--text-inverse);
+  --cat-meta: color-mix(in srgb, var(--text-inverse) 74%, transparent);
   --cat-title-size: clamp(18px, 5.6vw, 26px);
   --cat-image-scale: 1;
   --cat-image-x: 50%;
@@ -2231,12 +2231,20 @@ body {
   border-radius: clamp(18px, 5.3vw, 22px);
   background:
     radial-gradient(
-      circle at 22% 12%,
-      color-mix(in srgb, var(--tone-hi) 46%, transparent) 0%,
-      transparent 34%
+      circle at 78% 4%,
+      color-mix(in srgb, var(--tone-hi) 20%, transparent) 0%,
+      transparent 30%
     ),
-    linear-gradient(135deg, var(--tone-a) 0%, var(--tone-b) 100%);
-  box-shadow: 0 10px 24px color-mix(in srgb, var(--tone-b) 16%, transparent);
+    radial-gradient(
+      circle at 22% 12%,
+      color-mix(in srgb, var(--tone-hi) 34%, transparent) 0%,
+      transparent 36%
+    ),
+    linear-gradient(145deg, var(--tone-a) 0%, color-mix(in srgb, var(--tone-b) 72%, var(--bg-app)) 100%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--text-inverse) 16%, transparent),
+    0 14px 34px color-mix(in srgb, var(--tone-b) 24%, transparent),
+    0 2px 12px color-mix(in srgb, var(--bg-app) 44%, transparent);
   cursor: pointer;
   isolation: isolate;
   touch-action: manipulation;
@@ -2358,110 +2366,110 @@ body {
 }
 
 .catalog-category-card[data-tone='berry'] {
-  --tone-a: #61169a;
-  --tone-b: #8b2ac6;
+  --tone-a: #41106e;
+  --tone-b: #7c22b7;
   --tone-hi: #e7b6ff;
 }
 
 .catalog-category-card[data-tone='green'] {
-  --tone-a: #219856;
-  --tone-b: #48c978;
+  --tone-a: #145d35;
+  --tone-b: #258a4e;
   --tone-hi: #c8ffd8;
 }
 
 .catalog-category-card[data-tone='citrus'] {
-  --tone-a: #d7ea14;
-  --tone-b: #f6e64c;
+  --tone-a: #7b4c08;
+  --tone-b: #c08516;
   --tone-hi: #fff7a6;
 }
 
 .catalog-category-card[data-tone='aqua'] {
-  --tone-a: #13779b;
-  --tone-b: #22a7c8;
+  --tone-a: #0c4867;
+  --tone-b: #14789a;
   --tone-hi: #b8f4ff;
 }
 
 .catalog-category-card[data-tone='paper'] {
-  --tone-a: #f8fbff;
-  --tone-b: #dfeeff;
-  --tone-hi: var(--text-inverse);
+  --tone-a: #25324a;
+  --tone-b: #465b7c;
+  --tone-hi: #dfeeff;
 }
 
 .catalog-category-card[data-tone='plum'] {
-  --tone-a: #571996;
-  --tone-b: #7a20b6;
+  --tone-a: #371162;
+  --tone-b: #6819a5;
   --tone-hi: #e6c0ff;
 }
 
 .catalog-category-card[data-tone='mint'] {
-  --tone-a: #27bbb0;
-  --tone-b: #3dd1c4;
+  --tone-a: #0f665f;
+  --tone-b: #168a81;
   --tone-hi: #d4fff8;
 }
 
 .catalog-category-card[data-tone='coral'] {
-  --tone-a: #dc4d51;
-  --tone-b: #f06a58;
+  --tone-a: #8c292f;
+  --tone-b: #c5443e;
   --tone-hi: #ffd0bd;
 }
 
 .catalog-category-card[data-tone='teal'] {
-  --tone-a: #0f837e;
-  --tone-b: #19a69d;
+  --tone-a: #0b514e;
+  --tone-b: #117872;
   --tone-hi: #b8fff7;
 }
 
 .catalog-category-card[data-tone='tomato'] {
-  --tone-a: #c74343;
-  --tone-b: #e35c52;
+  --tone-a: #842825;
+  --tone-b: #be4037;
   --tone-hi: #ffc6ba;
 }
 
 .catalog-category-card[data-tone='wheat'] {
-  --tone-a: #e2b85a;
-  --tone-b: #f2cf78;
+  --tone-a: #765013;
+  --tone-b: #b57b21;
   --tone-hi: #fff2bf;
 }
 
 .catalog-category-card[data-tone='ice'] {
-  --tone-a: #cdeeff;
-  --tone-b: #8dd1f0;
-  --tone-hi: var(--text-inverse);
+  --tone-a: #16415d;
+  --tone-b: #236a8a;
+  --tone-hi: #cdeeff;
 }
 
 .catalog-category-card[data-tone='lime'] {
-  --tone-a: #b5db2b;
-  --tone-b: #63c25a;
+  --tone-a: #496b18;
+  --tone-b: #3f8d3d;
   --tone-hi: #f3ffb3;
 }
 
 .catalog-category-card[data-tone='cream'] {
-  --tone-a: #f3d495;
-  --tone-b: #f4b879;
+  --tone-a: #8b4d1a;
+  --tone-b: #bd6f2c;
   --tone-hi: #fff0ca;
 }
 
 .catalog-category-card[data-tone='blue'] {
-  --tone-a: #1675a5;
-  --tone-b: #2595c2;
+  --tone-a: #114a70;
+  --tone-b: #1c7199;
   --tone-hi: #b8eeff;
 }
 
 .catalog-category-card[data-tone='leaf'] {
-  --tone-a: #8bd75d;
-  --tone-b: #50bf70;
+  --tone-a: #2f6f25;
+  --tone-b: #348d48;
   --tone-hi: #e3ffd1;
 }
 
 .catalog-category-card[data-tone='clean'] {
-  --tone-a: #e9f4ff;
-  --tone-b: #b9ddff;
-  --tone-hi: var(--text-inverse);
+  --tone-a: #26344c;
+  --tone-b: #41627e;
+  --tone-hi: #e9f4ff;
 }
 
 .catalog-category-card[data-tone='violet'] {
-  --tone-a: #1d2d76;
-  --tone-b: #6840bd;
+  --tone-a: #17225d;
+  --tone-b: #5330a5;
   --tone-hi: #d9c8ff;
 }
 
@@ -2533,11 +2541,11 @@ body {
   bottom: 0;
   left: 0;
   z-index: 2;
-  height: 34%;
+  height: 52%;
   background: linear-gradient(
     180deg,
     transparent 0%,
-    color-mix(in srgb, var(--text-inverse) 20%, transparent) 100%
+    color-mix(in srgb, var(--bg-app) 58%, transparent) 100%
   );
   content: '';
   pointer-events: none;
@@ -2547,7 +2555,7 @@ body {
   background: linear-gradient(
     180deg,
     transparent 0%,
-    color-mix(in srgb, var(--bg-app) 42%, transparent) 100%
+    color-mix(in srgb, var(--bg-app) 62%, transparent) 100%
   );
 }
 
@@ -2589,11 +2597,17 @@ body {
   z-index: 1;
   background:
     linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--text-inverse) 10%, transparent) 0%,
+      transparent 28%,
+      color-mix(in srgb, var(--bg-app) 24%, transparent) 100%
+    ),
+    linear-gradient(
       150deg,
-      color-mix(in srgb, var(--tone-hi) 22%, transparent) 0%,
+      color-mix(in srgb, var(--tone-hi) 18%, transparent) 0%,
       transparent 32%,
       transparent 72%,
-      color-mix(in srgb, var(--bg-app) 20%, transparent) 100%
+      color-mix(in srgb, var(--bg-app) 28%, transparent) 100%
     );
   opacity: 0.84;
   pointer-events: none;
@@ -2633,19 +2647,11 @@ body {
   max-width: calc(100% - 14px);
   padding: 1px 4px 2px;
   border-radius: 7px;
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--text-inverse) 18%, transparent) 0%,
-    transparent 100%
-  );
+  background: transparent;
 }
 
 .catalog-category-card[data-text='light'] .catalog-category-copy {
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--bg-app) 32%, transparent) 0%,
-    transparent 100%
-  );
+  background: transparent;
 }
 
 .catalog-category-title {
@@ -2662,7 +2668,9 @@ body {
   text-wrap: balance;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
-  text-shadow: 0 1px 8px color-mix(in srgb, var(--bg-app) 20%, transparent);
+  text-shadow:
+    0 2px 10px color-mix(in srgb, var(--bg-app) 78%, transparent),
+    0 0 1px color-mix(in srgb, var(--text-inverse) 58%, transparent);
 }
 
 .catalog-category-count {
@@ -2678,21 +2686,22 @@ body {
 }
 
 :root[data-theme='light'] .catalog-category-card {
-  border-color: color-mix(in srgb, var(--tone-b) 52%, var(--glass-border));
+  border-color: color-mix(in srgb, var(--tone-hi) 34%, var(--glass-border));
   box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--text) 12%, transparent),
-    0 10px 24px color-mix(in srgb, var(--tone-b) 16%, transparent);
+    inset 0 1px 0 color-mix(in srgb, var(--text-inverse) 18%, transparent),
+    0 12px 28px color-mix(in srgb, var(--tone-b) 20%, transparent),
+    0 2px 10px color-mix(in srgb, var(--text-dim) 12%, transparent);
 }
 
 :root[data-theme='light'] .catalog-category-card[data-tone='mint'] {
-  --tone-a: #20aaa0;
-  --tone-b: #32c4b7;
+  --tone-a: #0f665f;
+  --tone-b: #168a81;
   --tone-hi: #bdf7ef;
 }
 
 :root[data-theme='light'] .catalog-category-card[data-tone='leaf'] {
-  --tone-a: #65bc43;
-  --tone-b: #37aa5e;
+  --tone-a: #2f6f25;
+  --tone-b: #348d48;
   --tone-hi: #d7f8bf;
 }
 
@@ -2781,6 +2790,64 @@ body {
 }
 :root[data-theme='light'] .product-img-blend { mix-blend-mode: normal; }
 
+.catalog-store-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  max-width: 46%;
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--primary-bright) 26%, var(--glass-soft-border));
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--primary) 14%, transparent), transparent),
+    var(--glass-muted);
+  color: color-mix(in srgb, var(--primary-bright) 86%, var(--text));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--text-inverse) 8%, transparent),
+    0 10px 24px color-mix(in srgb, var(--primary) 12%, transparent);
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    transform 0.18s ease;
+}
+
+.catalog-store-pill span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.catalog-store-pill .material-symbols-outlined {
+  font-size: 19px;
+  flex-shrink: 0;
+}
+
+.catalog-store-pill:hover,
+.catalog-store-pill:focus-visible {
+  border-color: color-mix(in srgb, var(--primary-bright) 52%, var(--glass-soft-border));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--primary) 22%, transparent), transparent),
+    var(--glass-bg);
+}
+
+.catalog-store-pill:hover {
+  transform: translateY(-1px);
+}
+
+.catalog-store-pill:focus-visible {
+  outline: 2px solid var(--primary-bright);
+  outline-offset: 3px;
+}
+
 .catalog-search-wrap {
   flex: 1;
   position: relative;
@@ -2837,6 +2904,58 @@ body {
 }
 .catalog-search-input:focus { border-color: var(--badge-border); box-shadow: 0 0 0 3px var(--primary-dim); background: var(--glass-bg); }
 .catalog-search-input::placeholder { color: var(--text-dim); }
+
+.catalog-scan-shortcut {
+  width: 52px;
+  height: 50px;
+  border-radius: 16px;
+  border: 1.5px solid color-mix(in srgb, var(--primary-bright) 36%, var(--input-border));
+  background:
+    radial-gradient(circle at 50% 10%, color-mix(in srgb, var(--primary-bright) 18%, transparent), transparent 58%),
+    var(--input-bg);
+  color: var(--primary-bright);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--primary) 10%, transparent);
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.catalog-scan-shortcut .material-symbols-outlined {
+  font-size: 25px;
+}
+
+.catalog-scan-shortcut:hover,
+.catalog-scan-shortcut:focus-visible {
+  border-color: color-mix(in srgb, var(--primary-bright) 64%, var(--input-border));
+  background:
+    radial-gradient(circle at 50% 10%, color-mix(in srgb, var(--primary-bright) 24%, transparent), transparent 58%),
+    var(--glass-bg);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--primary) 16%, transparent);
+}
+
+.catalog-scan-shortcut:hover {
+  transform: translateY(-1px);
+}
+
+.catalog-scan-shortcut:focus-visible {
+  outline: 2px solid var(--primary-bright);
+  outline-offset: 3px;
+}
+
+.catalog-search-guide {
+  margin: 0 0 14px;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+}
 
 .catalog-search-history-row {
   display: flex;

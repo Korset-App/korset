@@ -16,7 +16,12 @@ import { useI18n } from '../i18n/index.js'
 import { getLocalName } from '../utils/localName.js'
 
 import { getCatalogFromIndexedDB } from '../utils/offlineDB.js'
-import { buildProductPath, buildComparePath } from '../utils/routes.js'
+import {
+  buildProductPath,
+  buildComparePath,
+  buildScanPath,
+  buildStorePublicPath,
+} from '../utils/routes.js'
 import { getDisplayQuantity } from '../utils/parseQuantity.js'
 import { CATEGORY_SHOWCASE_ORDER, getCategoryShowcase } from '../domain/product/catalogShowcase.js'
 import { getProductSearchDiagnosticsAttrs } from '../domain/product/searchDiagnostics.js'
@@ -705,6 +710,16 @@ export default function CatalogScreen() {
     [currentStore, navigate, rememberCatalogSearch]
   )
 
+  const activeStoreSlug = currentStore?.slug || storeSlug || null
+
+  const handleStoreInfoClick = useCallback(() => {
+    navigate(activeStoreSlug ? buildStorePublicPath(activeStoreSlug) : '/stores')
+  }, [activeStoreSlug, navigate])
+
+  const handleScanClick = useCallback(() => {
+    navigate(buildScanPath(activeStoreSlug))
+  }, [activeStoreSlug, navigate])
+
   useEffect(() => {
     return () => {
       if (categoryExitTimerRef.current) clearTimeout(categoryExitTimerRef.current)
@@ -999,23 +1014,16 @@ export default function CatalogScreen() {
               >
                 {showSubcategories ? getCategoryLabel(selectedCategory, lang) : t('catalog.title')}
               </div>
-              <div
-                style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: 30,
-                  fontWeight: 500,
-                  color: 'rgba(167,139,250,0.7)',
-                  lineHeight: 1,
-                  letterSpacing: 0.2,
-                  textAlign: 'right',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  maxWidth: '44%',
-                  flexShrink: 0,
-                }}
+              <button
+                type="button"
+                className="catalog-store-pill"
+                onClick={handleStoreInfoClick}
+                aria-label={t('catalog.storeInfo', { storeName: storeTitle })}
               >
-                {storeTitle}
+                <span className="material-symbols-outlined" aria-hidden="true">
+                  storefront
+                </span>
+                <span>{storeTitle}</span>
                 {showCatalogMeta && !hasQuery && showSubcategories && (
                   <>
                     {' '}
@@ -1040,12 +1048,19 @@ export default function CatalogScreen() {
                       : `${displayList.length} ${t('catalog.productsCount')}`}
                   </>
                 )}
-              </div>
+              </button>
             </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 10, marginBottom: 14, alignItems: 'center' }}>
+        <div
+          style={{
+            display: 'flex',
+            gap: 10,
+            marginBottom: showCategories ? 8 : 14,
+            alignItems: 'center',
+          }}
+        >
           <div className="catalog-search-wrap">
             <span className="catalog-search-icon">{IconSearch}</span>
             <input
@@ -1089,6 +1104,16 @@ export default function CatalogScreen() {
               </div>
             )}
           </div>
+          <button
+            type="button"
+            className="catalog-scan-shortcut"
+            onClick={handleScanClick}
+            aria-label={t('catalog.scanProduct')}
+          >
+            <span className="material-symbols-outlined" aria-hidden="true">
+              barcode_scanner
+            </span>
+          </button>
           {!showCategories && (
             <div className="catalog-view-toggle">
               <button
@@ -1114,6 +1139,8 @@ export default function CatalogScreen() {
             </div>
           )}
         </div>
+
+        {showCategories && <p className="catalog-search-guide">{t('catalog.searchGuide')}</p>}
 
         {showRecentSearches && (
           <div
