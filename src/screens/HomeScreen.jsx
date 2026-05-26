@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ProfileAvatar from '../components/ProfileAvatar.jsx'
 import { ALLERGENS } from '../constants/allergens.js'
@@ -17,27 +17,38 @@ import { useTheme } from '../utils/theme.js'
 import LandingScreen from './LandingScreen.jsx'
 import './HomeScreen.css'
 
+const STORE_LOGO_FALLBACKS = {
+  mars: '/store-logos/mars.svg',
+  nurly: '/store-logos/nurly.svg',
+  kalina: '/store-logos/kalina.svg',
+}
+
 function HomeIcon({ name, className = '' }) {
   return <span className={`material-symbols-outlined ${className}`}>{name}</span>
 }
 
-function StoreLogo({ store }) {
-  const logo = store.logo_url || store.logo
+function getStoreLogoUrl(store = {}) {
+  return STORE_LOGO_FALLBACKS[store.slug || store.code] || store.logo_url || store.logo
+}
+
+function StoreLogo({ store, className = '' }) {
+  const logo = getStoreLogoUrl(store)
   const initial = store.name?.[0]?.toUpperCase() || 'K'
 
   if (logo) {
-    return <img className="home-store-logo" src={logo} alt={store.name} />
+    return <img className={`home-store-logo ${className}`.trim()} src={logo} alt={store.name} />
   }
 
-  return <div className="home-store-logo home-store-logo--fallback">{initial}</div>
+  return (
+    <div className={`home-store-logo home-store-logo--fallback ${className}`.trim()}>{initial}</div>
+  )
 }
 
-function BrandMark() {
+function KorsetServiceMark() {
   return (
-    <span className="home-brand-mark" aria-hidden="true">
-      <span />
-      <span />
-      <span />
+    <span className="home-service-brand" aria-label="Körset">
+      <img src="/icon_logo.svg" alt="" aria-hidden="true" />
+      <span>Körset</span>
     </span>
   )
 }
@@ -123,6 +134,9 @@ export default function HomeScreen() {
   const { avatarId, displayName, user } = useAuth()
   const { profile, updateProfile } = useProfile()
   const { currentStore, isStoreApp, isStoreLoading, routes } = useStore()
+  const avatarButtonRef = useRef(null)
+  const installSectionRef = useRef(null)
+  const storeSectionRef = useRef(null)
   const [activeStoryIndex, setActiveStoryIndex] = useState(null)
   const [activeSlideIndex, setActiveSlideIndex] = useState(0)
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false)
@@ -135,8 +149,8 @@ export default function HomeScreen() {
   const [draftNoAllergies, setDraftNoAllergies] = useState(Boolean(profile?.noAllergies))
   const [installPrompt, setInstallPrompt] = useState(null)
   const [installDismissed, setInstallDismissed] = useState(() => {
-    if (typeof window === 'undefined') return true
-    return localStorage.getItem('korset_home_install_dismissed') === '1'
+    if (typeof window === 'undefined') return false
+    return sessionStorage.getItem('korset_home_install_dismissed') === '1'
   })
   const [isInstalled, setIsInstalled] = useState(isStandalonePwa)
 
@@ -162,7 +176,7 @@ export default function HomeScreen() {
       setIsInstalled(true)
       setInstallPrompt(null)
       setInstallDismissed(true)
-      localStorage.setItem('korset_home_install_dismissed', '1')
+      sessionStorage.setItem('korset_home_install_dismissed', '1')
     }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
@@ -227,16 +241,20 @@ export default function HomeScreen() {
   const actions = buildHomeQuickActions({ routes })
   const fitSetup = buildFitCheckSetupState(profile)
   const activeStory = activeStoryIndex === null ? null : HOME_STORY_KEYS[activeStoryIndex]
-  const installAvailable = !isInstalled && !installDismissed && (installPrompt || isIosDevice())
+  const installHelpVisible = !isInstalled && !installDismissed
+  const isIos = isIosDevice()
   const hasContacts = Boolean(
     currentStore.phone ||
     currentStore.whatsapp_number ||
     currentStore.instagram_url ||
     currentStore.twogis_url
   )
+  const storeHours = currentStore.opening_hours || t('home.openingHoursFallback')
+  const storeKind = currentStore.type ? t(`stores.type.${currentStore.type}`) : t('home.storeTools')
+
   function dismissInstall() {
     setInstallDismissed(true)
-    localStorage.setItem('korset_home_install_dismissed', '1')
+    sessionStorage.setItem('korset_home_install_dismissed', '1')
   }
 
   async function handleInstallClick() {
@@ -245,10 +263,49 @@ export default function HomeScreen() {
       await installPrompt.userChoice.catch(() => null)
       setInstallPrompt(null)
       dismissInstall()
+    }
+  }
+
+  function scrollToInstall() {
+    installSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+
+  function scrollToStore() {
+    storeSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+
+  function navigateProfileTab(tab) {
+    setAvatarMenuOpen(false)
+    navigate(`${routes.profile}?tab=${tab}`)
+  }
+
+  function handleMenuInstallClick() {
+    setAvatarMenuOpen(false)
+    setInstallDismissed(false)
+    sessionStorage.removeItem('korset_home_install_dismissed')
+    window.setTimeout(scrollToInstall, 50)
+  }
+
+  function handleThemeChange(nextTheme) {
+    if (nextTheme === theme) return
+    if (typeof document !== 'undefined' && avatarButtonRef.current) {
+      const rect = avatarButtonRef.current.getBoundingClientRect()
+      document.documentElement.style.setProperty(
+        '--home-theme-x',
+        `${rect.left + rect.width / 2}px`
+      )
+      document.documentElement.style.setProperty(
+        '--home-theme-y',
+        `${rect.top + rect.height / 2}px`
+      )
+      document.body.classList.add('home-theme-reveal')
+      window.setTimeout(() => document.body.classList.remove('home-theme-reveal'), 460)
+    }
+    if (document.startViewTransition) {
+      document.startViewTransition(() => setTheme(nextTheme))
       return
     }
-    setActiveStoryIndex(4)
-    setActiveSlideIndex(0)
+    setTheme(nextTheme)
   }
 
   function moveStorySlide(direction) {
@@ -273,7 +330,7 @@ export default function HomeScreen() {
     if (!activeStory) return
     if (activeStory.cta === 'scan') navigate(routes.scan)
     if (activeStory.cta === 'fit') openFitPanel()
-    if (activeStory.cta === 'install') handleInstallClick()
+    if (activeStory.cta === 'install') scrollToInstall()
     if (activeStory.cta === 'learn' || activeStory.cta === 'store') navigate(routes.publicPage)
     setActiveStoryIndex(null)
     setActiveSlideIndex(0)
@@ -323,16 +380,32 @@ export default function HomeScreen() {
     <main className="screen home-screen">
       <header className="home-hero">
         <div className="home-brand-row">
-          <button className="home-brand-lockup" type="button" onClick={() => navigate(routes.home)}>
-            <BrandMark />
-            <span>Körset</span>
-            <i aria-hidden="true">&</i>
-            <strong>{getStoreName(currentStore)}</strong>
-          </button>
+          <div className="home-store-header">
+            <div className="home-store-header__service">
+              <KorsetServiceMark />
+              <span>{t('home.poweredBy')}</span>
+            </div>
+            <div className="home-store-header__main">
+              <StoreLogo store={currentStore} className="home-store-logo--header" />
+              <div className="home-store-header__copy">
+                <h1>{getStoreName(currentStore)}</h1>
+                <p>
+                  <span>{storeKind}</span>
+                  <i aria-hidden="true" />
+                  <span>{storeHours}</span>
+                </p>
+              </div>
+              <button className="home-store-about-button" type="button" onClick={scrollToStore}>
+                <span>{t('home.storeAbout')}</span>
+                <HomeIcon name="arrow_downward" />
+              </button>
+            </div>
+          </div>
 
           <div className="home-avatar-wrap">
             <button
-              className="home-avatar-button"
+              ref={avatarButtonRef}
+              className={`home-avatar-button${avatarMenuOpen ? ' is-open' : ''}`}
               type="button"
               aria-label={t('profile.title')}
               aria-expanded={avatarMenuOpen}
@@ -349,35 +422,60 @@ export default function HomeScreen() {
                   aria-label={t('common.close')}
                   onClick={() => setAvatarMenuOpen(false)}
                 />
-                <div className="home-avatar-menu">
+                <div className="home-avatar-menu" role="menu">
                   <div className="home-avatar-menu__identity">
-                    <ProfileAvatar avatarId={avatarId} name={profileName} rounded="circle" />
                     <div>
                       <strong>{profileName}</strong>
-                      <span>{getStoreName(currentStore)}</span>
+                      <span>{t('home.menuAccountHint')}</span>
+                    </div>
+                    <div className="home-avatar-menu__portrait">
+                      <button
+                        className="home-avatar-menu__portrait-button"
+                        type="button"
+                        aria-label={t('common.close')}
+                        onClick={() => setAvatarMenuOpen(false)}
+                      >
+                        <ProfileAvatar avatarId={avatarId} name={profileName} rounded="circle" />
+                      </button>
+                      <button
+                        className="home-avatar-menu__edit"
+                        type="button"
+                        aria-label={t('home.menuEditProfile')}
+                        onClick={() => {
+                          setAvatarMenuOpen(false)
+                          navigate(`${routes.profile}/edit`)
+                        }}
+                      >
+                        <HomeIcon name="edit" />
+                      </button>
                     </div>
                   </div>
                   <button
                     className="home-avatar-menu__item"
                     type="button"
-                    onClick={() => {
-                      setAvatarMenuOpen(false)
-                      navigate(routes.profile)
-                    }}
+                    onClick={() => navigateProfileTab('preferences')}
                   >
-                    <HomeIcon name="person" />
-                    <span>{t('home.menuProfile')}</span>
+                    <HomeIcon name="tune" />
+                    <span>{t('home.menuPreferences')}</span>
+                    <HomeIcon name="chevron_right" />
                   </button>
                   <button
                     className="home-avatar-menu__item"
                     type="button"
-                    onClick={() => {
-                      setAvatarMenuOpen(false)
-                      openFitPanel()
-                    }}
+                    onClick={() => navigateProfileTab('favorites')}
                   >
-                    <HomeIcon name="tune" />
-                    <span>{t('home.menuPreferences')}</span>
+                    <HomeIcon name="favorite" />
+                    <span>{t('home.menuFavorites')}</span>
+                    <HomeIcon name="chevron_right" />
+                  </button>
+                  <button
+                    className="home-avatar-menu__item"
+                    type="button"
+                    onClick={() => navigateProfileTab('history')}
+                  >
+                    <HomeIcon name="history" />
+                    <span>{t('home.menuChecks')}</span>
+                    <HomeIcon name="chevron_right" />
                   </button>
                   <div className="home-avatar-menu__switches">
                     <div>
@@ -403,22 +501,20 @@ export default function HomeScreen() {
                             className={theme === item ? 'is-active' : ''}
                             key={item}
                             type="button"
-                            onClick={() => setTheme(item)}
+                            onClick={() => handleThemeChange(item)}
                           >
-                            {t(`home.theme.${item}`)}
+                            <HomeIcon name={item === 'dark' ? 'dark_mode' : 'light_mode'} />
+                            <span>{t(`home.theme.${item}`)}</span>
                           </button>
                         ))}
                       </div>
                     </div>
                   </div>
-                  {installAvailable && (
+                  {!isInstalled && (
                     <button
-                      className="home-avatar-menu__item"
+                      className="home-avatar-menu__install"
                       type="button"
-                      onClick={() => {
-                        setAvatarMenuOpen(false)
-                        handleInstallClick()
-                      }}
+                      onClick={handleMenuInstallClick}
                     >
                       <HomeIcon name="install_mobile" />
                       <span>{t('home.menuInstall')}</span>
@@ -587,13 +683,29 @@ export default function HomeScreen() {
         ))}
       </section>
 
-      {installAvailable && (
-        <section className="home-install-banner" aria-label={t('home.installTitle')}>
+      {installHelpVisible && (
+        <section
+          ref={installSectionRef}
+          className="home-install-banner"
+          aria-label={t('home.installTitle')}
+        >
           <div>
-            <strong>{isIosDevice() ? t('home.installIosTitle') : t('home.installTitle')}</strong>
-            <p>{isIosDevice() ? t('home.installIosText') : t('home.installText')}</p>
+            <strong>{isIos ? t('home.installIosTitle') : t('home.installTitle')}</strong>
+            <p>
+              {isIos
+                ? t('home.installIosText')
+                : installPrompt
+                  ? t('home.installText')
+                  : t('home.installBrowserText')}
+            </p>
+            {!installPrompt && (
+              <ol className="home-install-steps">
+                <li>{isIos ? t('home.installStepShare') : t('home.installStepMenu')}</li>
+                <li>{isIos ? t('home.installStepHome') : t('home.installStepInstall')}</li>
+              </ol>
+            )}
           </div>
-          <button type="button" onClick={handleInstallClick}>
+          <button type="button" onClick={installPrompt ? handleInstallClick : scrollToInstall}>
             {t('home.installCta')}
           </button>
           <button type="button" onClick={dismissInstall} aria-label={t('common.close')}>
@@ -602,7 +714,7 @@ export default function HomeScreen() {
         </section>
       )}
 
-      <section className="home-store-card">
+      <section ref={storeSectionRef} className="home-store-card">
         <div className="home-store-card__top">
           <StoreLogo store={currentStore} />
           <div>

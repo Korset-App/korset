@@ -414,7 +414,10 @@ export default function ProfileScreen() {
 
   const [allergenInput, setAllergenInput] = useState('')
   // Active stats tab: 'favorites' | 'preferences' | 'history' | null
-  const [activeTab, setActiveTab] = useState(null)
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = new URLSearchParams(location.search).get('tab')
+    return ['favorites', 'preferences', 'history'].includes(tab) ? tab : null
+  })
   const [authPromptOpen, setAuthPromptOpen] = useState(false)
   const [supportOpen, setSupportOpen] = useState(false)
   const [scannerSettingsExpanded, setScannerSettingsExpanded] = useState(false)

@@ -48,3 +48,24 @@ If live saving still fails for opening hours, check whether the production Supab
   - `C:\tmp\korset-home-430.png`
 
 Known smoke caveat: the temporary static-server smoke logs one generic `Unexpected token '<'` page error while still rendering the screen and returning no bad network responses. This should be rechecked on the normal Vite dev server or deployed preview if the error appears in real browser usage.
+
+## Header And Avatar Menu Follow-Up
+
+Later on 2026-05-26, the top area was refined again based on owner feedback:
+
+- Removed the custom drawn header mark and decorative grid background.
+- Switched the header to store-first co-branding: compact Körset service chip, local store logo/name as the primary identity, store type/opening-hours line, and a small "about store" action that scrolls to the store details block.
+- Added local fallback logos for pilot stores (`mars`, `nurly`, `kalina`) on the home header.
+- Reworked the avatar menu into a glass capsule opening from the avatar position. The visible avatar remains in the top-right area and closes the menu when tapped again; a separate pencil button navigates to profile editing.
+- Avatar menu now contains only user-relevant shortcuts: preferences, favorites, check history, compact language/theme controls in one row, and install-app help.
+- Profile now initializes the correct stats tab from `?tab=preferences`, `?tab=favorites`, or `?tab=history`, so home menu shortcuts open the intended profile section.
+- Install prompt visibility now uses session dismissal instead of permanent localStorage hiding. On iOS or when the browser prompt is unavailable, the home install block shows manual installation steps instead of a dead button.
+
+Additional verification:
+
+- `npx eslint src\screens\HomeScreen.jsx`
+- `node scripts\check-i18n.mjs`
+- `npm run build`
+- Static Playwright screenshots:
+  - `C:\tmp\korset-home-390.png`
+  - `C:\tmp\korset-home-avatar-menu-390.png`
