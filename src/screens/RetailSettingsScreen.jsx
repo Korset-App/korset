@@ -53,6 +53,7 @@ export default function RetailSettingsScreen() {
   const [showQR, setShowQR] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState(null) // 'ok' | 'error'
+  const [saveErrorMessage, setSaveErrorMessage] = useState('')
   const [savingToggle, setSavingToggle] = useState(null)
   const [showClearModal, setShowClearModal] = useState(false)
   const [isClearing, setIsClearing] = useState(false)
@@ -105,6 +106,7 @@ export default function RetailSettingsScreen() {
   const handleChange = (key, val) => {
     setSettings((p) => ({ ...p, [key]: val }))
     setSaveStatus(null)
+    setSaveErrorMessage('')
   }
 
   // Auto-save toggle to Supabase immediately on click
@@ -124,9 +126,11 @@ export default function RetailSettingsScreen() {
   const handleSave = async () => {
     setIsSaving(true)
     setSaveStatus(null)
+    setSaveErrorMessage('')
     const { error } = await updateStoreSettings(buildRetailStoreSettingsPayload(settings))
     setIsSaving(false)
     setSaveStatus(error ? 'error' : 'ok')
+    setSaveErrorMessage(error || '')
     setTimeout(() => setSaveStatus(null), 3000)
   }
 
@@ -702,7 +706,10 @@ export default function RetailSettingsScreen() {
             <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
               error
             </span>
-            {t('retail.settings.saveError')}
+            <span>
+              {t('retail.settings.saveError')}
+              {saveErrorMessage ? ` ${saveErrorMessage}` : ''}
+            </span>
           </div>
         )}
 

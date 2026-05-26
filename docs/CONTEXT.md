@@ -102,7 +102,7 @@ Retail:
 
 Consumer:
 
-- HomeScreen `/s/:storeSlug` is now a full mobile-first store entry screen, not the old lightweight layout: brand/store header with avatar menu, horizontal story highlight cards with story viewer, primary scan CTA, inline Fit-Check setup, AI/catalog shortcuts, and a store card. Source files: `src/screens/HomeScreen.jsx`, `src/screens/HomeScreen.css`, `src/domain/home/homeScreenModel.js`; detailed handoff: `docs/vault/changelog/2026-05-26-home-screen-full-redesign.md`.
+- HomeScreen `/s/:storeSlug` is now a full mobile-first store entry screen, not the old lightweight layout: compact store-first header (`logo + store name + by Körset + hours + about`), glass avatar menu, horizontal story highlight cards with story viewer, primary scan CTA, inline Fit-Check setup, AI/catalog shortcuts, and a store card. Source files: `src/screens/HomeScreen.jsx`, `src/screens/HomeScreen.css`, `src/domain/home/homeScreenModel.js`; detailed handoff: `docs/vault/changelog/2026-05-26-home-screen-full-redesign.md`.
 
 - Сканер штрихкодов с ручным вводом EAN.
 - Product resolution через store catalog/global products, IndexedDB offline cache и enrichment paths.

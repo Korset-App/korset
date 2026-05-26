@@ -23,6 +23,10 @@ const STORE_LOGO_FALLBACKS = {
   kalina: '/store-logos/kalina.svg',
 }
 
+const STORE_HOURS_FALLBACKS = {
+  mars: '09:00-23:00',
+}
+
 function HomeIcon({ name, className = '' }) {
   return <span className={`material-symbols-outlined ${className}`}>{name}</span>
 }
@@ -44,12 +48,11 @@ function StoreLogo({ store, className = '' }) {
   )
 }
 
-function KorsetServiceMark() {
+function AboutChevronIcon() {
   return (
-    <span className="home-service-brand" aria-label="Körset">
-      <img src="/icon_logo.svg" alt="" aria-hidden="true" />
-      <span>Körset</span>
-    </span>
+    <svg className="home-chevron-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+      <path d="M7.25 4.75L12.5 10l-5.25 5.25" />
+    </svg>
   )
 }
 
@@ -65,6 +68,14 @@ function isStandalonePwa() {
 
 function getStoreName(store) {
   return store?.name || 'Korset'
+}
+
+function getStoreHours(store, t) {
+  return (
+    store.opening_hours ||
+    STORE_HOURS_FALLBACKS[store.slug || store.code] ||
+    t('home.openingHoursFallback')
+  )
 }
 
 function getLocalizedLabel(item, lang) {
@@ -249,8 +260,7 @@ export default function HomeScreen() {
     currentStore.instagram_url ||
     currentStore.twogis_url
   )
-  const storeHours = currentStore.opening_hours || t('home.openingHoursFallback')
-  const storeKind = currentStore.type ? t(`stores.type.${currentStore.type}`) : t('home.storeTools')
+  const storeHours = getStoreHours(currentStore, t)
 
   function dismissInstall() {
     setInstallDismissed(true)
@@ -381,25 +391,21 @@ export default function HomeScreen() {
       <header className="home-hero">
         <div className="home-brand-row">
           <div className="home-store-header">
-            <div className="home-store-header__service">
-              <KorsetServiceMark />
-              <span>{t('home.poweredBy')}</span>
-            </div>
-            <div className="home-store-header__main">
-              <StoreLogo store={currentStore} className="home-store-logo--header" />
-              <div className="home-store-header__copy">
+            <StoreLogo store={currentStore} className="home-store-logo--header" />
+            <div className="home-store-header__copy">
+              <div className="home-store-title-line">
                 <h1>{getStoreName(currentStore)}</h1>
-                <p>
-                  <span>{storeKind}</span>
-                  <i aria-hidden="true" />
-                  <span>{storeHours}</span>
-                </p>
+                <span>{t('home.poweredBy')}</span>
               </div>
-              <button className="home-store-about-button" type="button" onClick={scrollToStore}>
-                <span>{t('home.storeAbout')}</span>
-                <HomeIcon name="arrow_downward" />
-              </button>
+              <p>
+                <HomeIcon name="schedule" />
+                <span>{storeHours}</span>
+              </p>
             </div>
+            <button className="home-store-about-button" type="button" onClick={scrollToStore}>
+              <span>{t('home.storeAbout')}</span>
+              <AboutChevronIcon />
+            </button>
           </div>
 
           <div className="home-avatar-wrap">
@@ -480,7 +486,7 @@ export default function HomeScreen() {
                   <div className="home-avatar-menu__switches">
                     <div>
                       <span>{t('home.menuLanguage')}</span>
-                      <div className="home-segment">
+                      <div className="home-segment home-segment--language">
                         {['ru', 'kz'].map((item) => (
                           <button
                             className={lang === item ? 'is-active' : ''}
@@ -495,16 +501,17 @@ export default function HomeScreen() {
                     </div>
                     <div>
                       <span>{t('home.menuTheme')}</span>
-                      <div className="home-segment">
+                      <div className="home-segment home-segment--theme">
                         {['dark', 'light'].map((item) => (
                           <button
                             className={theme === item ? 'is-active' : ''}
                             key={item}
                             type="button"
+                            aria-label={t(`home.theme.${item}`)}
+                            title={t(`home.theme.${item}`)}
                             onClick={() => handleThemeChange(item)}
                           >
                             <HomeIcon name={item === 'dark' ? 'dark_mode' : 'light_mode'} />
-                            <span>{t(`home.theme.${item}`)}</span>
                           </button>
                         ))}
                       </div>
@@ -539,7 +546,9 @@ export default function HomeScreen() {
             >
               <img src={story.image} alt="" aria-hidden="true" />
               <span className="home-story-card__shade" />
-              <span className="home-story-card__kicker">{t(`home.stories.${index}.kicker`)}</span>
+              <span className="home-story-card__badge" aria-hidden="true">
+                <HomeIcon name={story.icon} />
+              </span>
               <strong>{t(`home.stories.${index}.title`, buildStoryVars(currentStore))}</strong>
             </button>
           ))}

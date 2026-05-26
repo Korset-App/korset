@@ -69,3 +69,26 @@ Additional verification:
 - Static Playwright screenshots:
   - `C:\tmp\korset-home-390.png`
   - `C:\tmp\korset-home-avatar-menu-390.png`
+
+## Header Polish Follow-Up
+
+Later on 2026-05-26, the top area was adjusted again after owner review:
+
+- Collapsed the header into one compact row: store logo, store name, small `by Körset`, opening hours, and the `О магазине` action.
+- Removed the store type/`minimarket` label from the public home header.
+- Replaced the header about-arrow Material Symbol with a local SVG chevron.
+- Made avatar-menu theme switching icon-only, with compact dark/light buttons and no extra text labels.
+- Reduced story card width, restored story icon badges on the cards, and preserved a visible partial next card to communicate horizontal scroll.
+- Tightened the scan CTA and added light-theme overrides so the scanner icon remains visible.
+- Added a `mars` opening-hours display fallback (`09:00-23:00`) until the live store row has a saved `opening_hours` value.
+- Added `044_store_public_profile_fields_guard.sql` so applying migrations guarantees all store public profile columns used by Retail Settings and the home screen.
+- Retail Settings now shows the Supabase error message next to the save failure text, instead of hiding the real database error.
+
+Additional verification:
+
+- `npx eslint src\screens\HomeScreen.jsx src\screens\RetailSettingsScreen.jsx` (warnings remain pre-existing in `RetailSettingsScreen.jsx`).
+- `node scripts\check-i18n.mjs`
+- `npm run build`
+- Vite + Playwright mobile smoke at `/s/mars`, screenshots:
+  - `C:\tmp\korset-home-top-after.png`
+  - `C:\tmp\korset-home-menu-after.png`
