@@ -113,6 +113,14 @@
   cursor: pointer;
 }
 
+.home-avatar-menu__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  border: 0;
+  background: transparent;
+}
+
 .home-avatar-menu {
   position: absolute;
   top: 56px;
@@ -180,6 +188,10 @@
   text-align: left;
   box-shadow: var(--shadow-soft);
   cursor: pointer;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease;
 }
 
 .home-story__icon {
@@ -200,6 +212,10 @@
   font-size: 12px;
   font-weight: 800;
   line-height: 1.12;
+}
+
+.home-story:active {
+  transform: scale(0.985);
 }
 
 .home-story--amber .home-story__icon {
@@ -237,6 +253,20 @@
   margin-top: 14px;
   padding: 20px;
   border-radius: 24px;
+}
+
+.home-scan-panel::before {
+  position: absolute;
+  inset: 0;
+  content: '';
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--primary-dim) 72%, transparent), transparent 48%),
+    radial-gradient(circle at 92% 14%, var(--accent-sky-dim), transparent 34%);
+  pointer-events: none;
+}
+
+.home-scan-panel > * {
+  position: relative;
 }
 
 .home-eyebrow {
@@ -731,6 +761,21 @@
   cursor: pointer;
 }
 
+.home-avatar-button:focus-visible,
+.home-story:focus-visible,
+.home-scan-button:focus-visible,
+.home-fit-button:focus-visible,
+.home-action-card:focus-visible,
+.home-install-banner__actions button:focus-visible,
+.home-avatar-menu__item:focus-visible,
+.home-ghost-button:focus-visible,
+.home-pill-button:focus-visible,
+.home-story-modal__close:focus-visible,
+.home-story-modal__cta:focus-visible {
+  outline: 2px solid var(--primary-bright);
+  outline-offset: 3px;
+}
+
 @media (min-width: 390px) {
   .home-screen {
     padding-right: 18px;
@@ -770,5 +815,10 @@
   .home-story-modal__cta:hover,
   .home-story:hover {
     filter: brightness(1.04);
+  }
+
+  .home-story:hover {
+    border-color: var(--glass-strong-border);
+    background: var(--glass-muted);
   }
 }

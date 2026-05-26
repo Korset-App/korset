@@ -299,7 +299,7 @@ Design:
 - Dark и light themes поддерживаются.
 - Не возвращать raw hardcoded white/black цвета для core UI surfaces/text.
 - Catalog top-level — 18-card bento showcase.
-- Consumer home `/s/:storeSlug` — staged pilot upgrade is active. Current IA: compact store header with avatar mini-menu, clickable stories, scan CTA, soft Fit-Check setup, catalog/AI quick actions, PWA install banner, compact store facts/contacts. History is no longer on the main canvas. Details: `docs/vault/plans/2026-05-25-home-screen-pilot-upgrade-plan.md`, `docs/vault/changelog/2026-05-25-home-screen-pilot-stage3-4.md`.
+- Consumer home `/s/:storeSlug` — staged pilot upgrade implemented through Stage 5. Current IA: compact store header with avatar mini-menu, clickable stories, scan CTA, soft Fit-Check setup, catalog/AI quick actions, PWA install banner, compact store facts/contacts, and lightweight focus/interaction polish. History is no longer on the main canvas. Details: `docs/vault/plans/2026-05-25-home-screen-pilot-upgrade-plan.md`, `docs/vault/changelog/2026-05-26-home-screen-pilot-stage5.md`.
 - Landing V3 имеет отдельную visual system; детали — в Vault plans/changelog.
 
 Data:

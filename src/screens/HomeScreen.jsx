@@ -194,33 +194,41 @@ export default function HomeScreen() {
         </button>
 
         {avatarMenuOpen && (
-          <div className="home-avatar-menu">
-            {menuItems.map(([icon, label, path]) => (
+          <>
+            <button
+              className="home-avatar-menu__backdrop"
+              type="button"
+              aria-label={t('common.close')}
+              onClick={() => setAvatarMenuOpen(false)}
+            />
+            <div className="home-avatar-menu">
+              {menuItems.map(([icon, label, path]) => (
+                <button
+                  className="home-avatar-menu__item"
+                  key={label}
+                  type="button"
+                  onClick={() => {
+                    setAvatarMenuOpen(false)
+                    navigate(path)
+                  }}
+                >
+                  <HomeIcon name={icon} />
+                  <span>{label}</span>
+                </button>
+              ))}
               <button
                 className="home-avatar-menu__item"
-                key={label}
                 type="button"
                 onClick={() => {
                   setAvatarMenuOpen(false)
-                  navigate(path)
+                  handleInstallClick()
                 }}
               >
-                <HomeIcon name={icon} />
-                <span>{label}</span>
+                <HomeIcon name="install_mobile" />
+                <span>{t('home.menuInstall')}</span>
               </button>
-            ))}
-            <button
-              className="home-avatar-menu__item"
-              type="button"
-              onClick={() => {
-                setAvatarMenuOpen(false)
-                handleInstallClick()
-              }}
-            >
-              <HomeIcon name="install_mobile" />
-              <span>{t('home.menuInstall')}</span>
-            </button>
-          </div>
+            </div>
+          </>
         )}
       </header>
 
