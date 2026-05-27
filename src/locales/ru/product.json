@@ -119,6 +119,7 @@
   "catalog.badge.glutenFree": "Без глютена",
   "catalog.badge.lactoseFree": "Без лактозы",
   "catalog.badge.vegan": "Веган",
+  "catalog.badge.keto": "Кето",
   "catalog.badge.kcal": "{{value}} ккал",
   "catalog.clearSearch": "Очистить",
   "catalog.emptySearch": "Ничего не найдено по запросу",

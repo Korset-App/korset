@@ -119,6 +119,7 @@
   "catalog.badge.glutenFree": "Глютенсіз",
   "catalog.badge.lactoseFree": "Лактозасыз",
   "catalog.badge.vegan": "Веган",
+  "catalog.badge.keto": "Кето",
   "catalog.badge.kcal": "{{value}} ккал",
   "catalog.clearSearch": "Тазалау",
   "catalog.emptySearch": "Сұранысыңыз бойынша ештеңе табылмады",

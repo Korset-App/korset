@@ -8,6 +8,7 @@ import { useI18n } from '../i18n/index.js'
 import { loadSoundSettings } from '../utils/soundSettings.js'
 import { buildTermsPath, buildPrivacyPath } from '../utils/routes.js'
 import TermsConsentSheet, { isTermsAccepted } from '../components/TermsConsentSheet.jsx'
+import { CompareIcon } from '../components/icons/CompareIcon.jsx'
 import './ScanScreen.css'
 
 // Success scan sound via Web Audio API, without asset files.
@@ -182,21 +183,6 @@ function IconTorch({ on, size = 22 }) {
   )
 }
 
-function IconCompare({ active = false, size = 22 }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      aria-hidden="true"
-      style={{ transform: active ? 'scaleX(-1)' : 'none', transition: 'transform 0.22s ease' }}
-    >
-      <path d="M2 4h9v1H3v15h8v1H2zm10 19h1V2h-1zM8.28 10.28l-.56-.56L4.93 12.5l2.79 2.78.56-.56L6.57 13H11v-1H6.57zM14 12h4.08l-1.54-1.54.92-.92 2.96 2.96-2.96 2.96-.92-.92L18.08 13H14v8h9V4h-9z" />
-    </svg>
-  )
-}
-
 function IconHistory({ size = 22 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -301,7 +287,7 @@ function ScanHintSheet({ open, onClose, t }) {
       <div className="scan-sheet scan-sheet--hint" onClick={(e) => e.stopPropagation()}>
         <div className="scan-sheet__handle" />
         <div className="scan-sheet__hero">
-          <IconCompare active size={28} />
+          <CompareIcon active size={28} />
         </div>
         <h2>{t('scan.compareHintTitle')}</h2>
         <p>{t('scan.compareHintBody')}</p>
@@ -1132,7 +1118,7 @@ export default function ScanScreen() {
             active={compareModeActive}
             label={t('scan.compare')}
             tone="compare"
-            icon={<IconCompare active={compareModeActive} size={24} />}
+            icon={<CompareIcon active={compareModeActive} size={24} />}
             onClick={toggleCompareMode}
           />
           <ScanActionButton

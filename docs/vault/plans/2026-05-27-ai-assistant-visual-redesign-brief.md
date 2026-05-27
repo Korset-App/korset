@@ -13,6 +13,16 @@ Redesign the general store AI screen at `/s/:storeSlug/ai` so it feels like a po
 
 The desired feel is a modern glass, store-aware AI assistant: closer to a high-quality consumer product from a serious brand than a decorative sci-fi screen. Avoid too many sections, fake statistics, noisy chips, or generic purple-card overload.
 
+## Owner Decisions From 2026-05-27 Follow-Up
+
+- Visible header title: keep `Körset AI`.
+- Capability layout: use 6-7 swipeable capability cards, with the first 4 visible/obvious in the first viewport.
+- Visual tone: between atmospheric AI/glass and the existing Körset system; not too dark, stylish, friendly, and easy to understand.
+- Code foundation: treat the current mostly-inline `AIAssistantScreen.jsx` as a weak foundation for this redesign. Move screen styling into a dedicated CSS file and keep the JSX cleaner, with explicit data structures for capabilities and prompts.
+- Media direction: full professional implementation is desired, but image input, camera input, and voice input should each be discussed/approved as separate technical decisions before implementation.
+- Voice direction if approved: start with high-quality speech-to-text that fills the composer, not full ChatGPT-like live voice.
+- Chat history: discuss and decide separately before implementing; do not add a rushed placeholder.
+
 ## Current Implementation Notes
 
 - General AI screen: `src/screens/AIAssistantScreen.jsx`.
@@ -96,8 +106,417 @@ Voice input:
 
 ## Open Questions For Owner
 
-- Naming: should the visible title be `Körset AI`, `ChatAI`, or `Körset ChatAI`?
-- Header button now: show a disabled/placeholder history icon immediately, or leave space and add it only when local history is designed?
-- Capability density: 4 fixed cards or 6-7 swipeable cards with first 4 visible?
-- Composer media: approve only visual placeholders now, or wait until image/voice costs and privacy copy are designed?
-- Should the AI screen become visually darker/more atmospheric than home/catalog, or stay closer to the current app surfaces with only glass/premium polish?
+- Chat history: implement now as local-only conversation history, or defer until the visual foundation is complete?
+- Image/camera input: implement in the same redesign phase, or stage after text-only UI is stable?
+- Voice-to-text: implement after the text UI, or include in the same phase with a separate API endpoint?
+
+## Agreed Chat History Direction
+
+Use local-only conversation history on the device. Do not persist chat messages to Supabase for V1. Prefer IndexedDB over plain localStorage for the conversation index because the feature will become a real list of chats, not only one restored session.
+
+Initial scope:
+
+- Store-scoped history for `/s/:storeSlug/ai`.
+- Keep recent conversations only, likely 20 per store.
+- Open previous chat and continue it.
+- Start a new chat.
+- Delete one chat.
+- Clear all local AI chats for the current store.
+- Add TTL, likely 30 days unless owner chooses a different retention period.
+- Do not store uploaded images or audio files in chat history in the first implementation.
+
+## Professional Execution Plan
+
+The redesign must be staged with owner review checkpoints. Do not bundle header, cards, composer, local history, voice, and image input into one implementation pass.
+
+### Stage 0: Baseline And Local Preview
+
+Goal: establish a stable local preview and capture the current screen state before changing UI.
+
+Tasks:
+
+- Start Vite dev server on the standard local port.
+- Open `/s/mars/ai` in mobile viewport.
+- Capture current screenshots for before/after comparison.
+- Check browser console for existing errors unrelated to the redesign.
+
+Verification:
+
+- Local route renders.
+- Screenshot exists for current baseline.
+- No new code changes yet.
+
+Owner checkpoint: confirm the current baseline and target screen.
+
+### Stage 1: Architecture Audit And Component Boundary Plan
+
+Goal: map the current `AIAssistantScreen.jsx` into clear responsibilities before moving code.
+
+Tasks:
+
+- Identify logic that must remain unchanged: `sendMessage`, catalog candidate search, product group rendering, follow-ups, warnings, current local session persistence.
+- Identify visual sections: shell, header, empty state, capability carousel, message list, product groups, follow-up chips, loading bubble, composer.
+- Decide what stays inside `AIAssistantScreen.jsx` and what becomes small presentational components.
+
+Recommended boundaries:
+
+- `AIAssistantScreen.jsx`: screen state, AI request flow, composition.
+- `AIAssistantScreen.css`: all screen-level styling.
+- Optional internal components in same file first: `AIHeader`, `AIEmptyState`, `AICapabilityCarousel`, `AIComposer`, `AIMessageList`.
+- Move to separate files only if the file remains too large after cleanup; avoid premature abstraction.
+
+Verification:
+
+- No behavior changes.
+- Implementation plan updated if audit discovers hidden coupling.
+
+Owner checkpoint: approve component boundaries before refactor.
+
+### Stage 2: Style Extraction Foundation
+
+Goal: remove the weak inline-style foundation without redesigning visuals yet.
+
+Tasks:
+
+- Create `src/screens/AIAssistantScreen.css`.
+- Import it from `AIAssistantScreen.jsx`.
+- Move stable layout/message/composer styles into CSS classes.
+- Keep current visual appearance as close as possible.
+- Keep JSX readable and preserve current behavior.
+
+Verification:
+
+- `/s/mars/ai` renders the same basic UI.
+- Existing AI mocked/e2e smoke still passes if run.
+- `node scripts/check-i18n.mjs` passes if text is touched.
+- Targeted lint passes for changed files.
+
+Owner checkpoint: quick visual check that nothing broke before redesign starts.
+
+### Stage 3: AI Capability Model And Copy
+
+Goal: choose the real user-facing AI functions before designing cards.
+
+Tasks:
+
+- Review current AI abilities from code and prompts: store catalog search, alternatives, composition explanation, shopping list, Fit-Check/profile help, budget/category search, store facts.
+- Choose either 6 or 8 capability cards. Avoid 7 because the owner flagged it as visually awkward.
+- Recommended 6-card set for V1:
+  - Find product.
+  - Pick alternative.
+  - Explain composition.
+  - Build shopping list.
+  - Check if it fits me.
+  - Shop by budget.
+- Optional 8-card set only if store facts and halal/diet deserve separate cards:
+  - Find product.
+  - Pick alternative.
+  - Explain composition.
+  - Build shopping list.
+  - Check if it fits me.
+  - Shop by budget.
+  - Find halal or diet-friendly.
+  - Ask about this store.
+- Add RU/KZ i18n keys for titles, descriptions, and prompt text.
+
+Verification:
+
+- No hardcoded user-facing text remains in JSX.
+- KZ coverage exists for every new key.
+- Capability card prompts map to existing AI behavior without API changes.
+
+Owner checkpoint: approve 6 vs 8 cards and exact copy before visual card design.
+
+Stage 3 result:
+
+- Done on 2026-05-27. Details: `docs/vault/changelog/2026-05-27-ai-assistant-stage3-capability-model.md`.
+- Owner selected 6 capability cards.
+- Added `src/domain/ai/generalCapabilities.js` with the exact order:
+  - `find_product`
+  - `pick_alternative`
+  - `explain_composition`
+  - `build_shopping_list`
+  - `fit_check`
+  - `budget_pick`
+- Added RU/KZ title, description, and prompt keys for all 6 cards.
+- Added `tests/unit/aiGeneralCapabilities.test.mjs`.
+- Verification passed: capability tests 2/2, targeted AI UI unit tests 3/3, i18n check, targeted ESLint, AI Playwright smoke 5/5, and `npm run build`.
+
+### Stage 4: Glass Header Only
+
+Goal: implement the top glass header as a standalone visual layer.
+
+Tasks:
+
+- Header title stays `Körset AI`.
+- Subtitle uses store context: assistant of `{store}`.
+- Add glass background with blur/saturation, theme-aware border, and safe-area handling.
+- Keep the header sticky/fixed during scroll.
+- Add a history button slot, but only active if local history is implemented in a later stage.
+- Remove product count from header.
+
+Verification:
+
+- Header stays visible while content scrolls.
+- Blur works over changing background/content.
+- Header does not collide with browser safe area or bottom nav.
+- Dark and light themes stay readable.
+
+Owner checkpoint: approve header before changing empty state/cards.
+
+Stage 4 result:
+
+- Done on 2026-05-27. Details: `docs/vault/changelog/2026-05-27-ai-assistant-stage4-glass-header.md`.
+- Header title remains `Körset AI`.
+- Added sticky glass header foundation with safe-area padding, blur/saturation, theme-aware border, shadow, and subtle accent line.
+- Added an action slot for future local history without showing a dead history button.
+- Verification passed: glass header structure test 2/2, targeted ESLint, targeted AI UI unit tests 4/4, AI Playwright smoke 5/5, and `npm run build`.
+
+### Stage 5: Screen Atmosphere And Empty-State Shell
+
+Goal: create the friendly premium AI canvas without adding cards yet.
+
+Tasks:
+
+- Add subtle background depth: restrained gradients/orbs/noise only through semantic tokens and color-mix.
+- Keep tone not too dark and not overly sci-fi.
+- Replace the plain welcome bubble with a refined intro block that explains store-aware AI value.
+- Keep layout mobile-first and scroll-safe.
+
+Verification:
+
+- No horizontal overflow at 390px and 430px widths.
+- Bottom nav and composer spacing are correct.
+- Light theme remains professional, not washed out.
+
+Owner checkpoint: approve the base visual atmosphere.
+
+Stage 5 result:
+
+- Done on 2026-05-27. Details: `docs/vault/changelog/2026-05-27-ai-assistant-stage5-empty-shell.md`.
+- Added subtle screen background depth using CSS pseudo-elements, semantic tokens, and `color-mix()`.
+- Replaced the old plain empty welcome bubble with a dedicated `.ai-empty-state` / `.ai-empty-panel` intro shell.
+- Added RU/KZ `ai.empty.*` keys for store-aware intro copy.
+- Did not implement capability cards yet.
+- Verification passed: empty shell structure test 3/3, i18n check, targeted ESLint, targeted AI UI unit tests 5/5, AI Playwright smoke 5/5, and `npm run build`.
+
+### Stage 6: Capability Carousel Cards
+
+Goal: implement the 6 or 8 swipeable capability cards as the main first-screen content.
+
+Tasks:
+
+- Build a horizontal carousel or compact responsive card grid where the first 4 cards are visible/obvious.
+- Use clear icons, title, one-line description, and a prompt action.
+- Card tap fills/sends the intended prompt based on current design decision.
+- Avoid decorative overload and fake features.
+- Keep touch targets large enough for mobile.
+
+Verification:
+
+- Swipe works on mobile.
+- Cards do not wrap awkwardly.
+- First 4 cards are obvious without needing explanation.
+- Card actions send real supported prompts.
+
+Owner checkpoint: approve card set, icon style, density, and interaction.
+
+### Stage 7: Composer Redesign Without Media Logic
+
+Goal: make the input area premium and ready for media/voice, without implementing media yet.
+
+Tasks:
+
+- Redesign composer as a glass input dock above bottom nav.
+- Include text input, send button, and reserved icon positions for future camera/gallery/mic only if owner approves visible placeholders.
+- Keep keyboard-safe spacing and safe-area padding.
+- Preserve Enter-to-send behavior.
+
+Verification:
+
+- Composer does not overlap bottom nav.
+- Typing and send still work.
+- Disabled/loading states are clear.
+
+Owner checkpoint: approve composer before adding history or media.
+
+### Stage 8: Message List And AI Response Polish
+
+Goal: align actual chat messages with the new premium shell.
+
+Tasks:
+
+- Restyle assistant/user bubbles in CSS.
+- Restyle product cards inside messages without changing structured response behavior.
+- Restyle follow-up chips and loading indicator.
+- Keep long replies/product cards scroll-safe.
+
+Verification:
+
+- Mocked AI response with product groups still renders.
+- Product card links still navigate to product pages.
+- Long reply does not overflow.
+
+Owner checkpoint: approve chat state after a real conversation view.
+
+### Stage 9: Local Chat History Foundation
+
+Goal: implement local-only chat history data layer before UI drawer polish.
+
+Tasks:
+
+- Add an IndexedDB-backed local history module for general AI conversations.
+- Define conversation metadata: id, storeSlug, title, createdAt, updatedAt, message count, preview.
+- Enforce max conversations per store.
+- Enforce TTL cleanup.
+- Keep existing single-session restore compatible or migrate carefully.
+- Add unit tests for create/update/list/delete/clear/TTL.
+
+Verification:
+
+- Unit tests cover local history behavior.
+- No Supabase/server persistence is added.
+- Existing AI send flow still works.
+
+Owner checkpoint: approve data behavior before drawer UI.
+
+### Stage 10: Local Chat History UI
+
+Goal: add the actual history button and bottom sheet.
+
+Tasks:
+
+- Activate header history button.
+- Add bottom sheet list of local chats.
+- Add new chat, open chat, delete chat, clear all actions.
+- Add empty state for no saved chats.
+- Keep deletion explicit enough to avoid accidental loss.
+
+Verification:
+
+- Start new chat, send message, leave screen, see it in history.
+- Open previous chat and continue.
+- Delete one chat.
+- Clear current store history.
+- No history appears across unrelated stores.
+
+Owner checkpoint: approve history UX.
+
+### Stage 11: Mobile QA And Visual Regression Pass
+
+Goal: ensure the redesign works like a serious mobile product.
+
+Tasks:
+
+- Test mobile widths 390 and 430.
+- Test dark and light themes.
+- Test empty state, active chat, long reply, product cards, history drawer.
+- Capture screenshots for owner review.
+- Fix spacing/contrast/overflow issues.
+
+Verification:
+
+- `node scripts/check-i18n.mjs` passes.
+- Targeted ESLint passes for changed files.
+- `npm run build` passes.
+- Playwright smoke for `/s/mars/ai` passes or documented caveat is recorded.
+
+Owner checkpoint: approve the full text-only AI screen.
+
+### Stage 12: Voice-To-Text Design Gate
+
+Goal: design voice input separately before implementation.
+
+Tasks:
+
+- Decide endpoint shape for audio transcription.
+- Decide model and max audio duration.
+- Decide privacy copy and recording permission UX.
+- Decide whether transcribed text is auto-sent or only inserted into composer.
+
+Recommended V1 direction:
+
+- Push-to-record.
+- High-quality OpenAI transcription.
+- Insert recognized text into composer for user review.
+- Do not auto-send by default.
+
+Owner checkpoint: approve before any voice code.
+
+### Stage 13: Image/Camera Input Design Gate
+
+Goal: design image input separately before implementation.
+
+Tasks:
+
+- Decide gallery/camera UX.
+- Decide image compression and max file size.
+- Decide whether images are used only for package/composition checks.
+- Decide whether images are ever stored locally; recommended first answer is no.
+- Estimate cost impact through model/token usage before enabling widely.
+
+Owner checkpoint: approve before any image code.
+
+## Stage 1 Audit Result
+
+Date: 2026-05-27.
+
+Scope inspected:
+
+- `src/screens/AIAssistantScreen.jsx`
+- `src/services/ai.js`
+- `src/domain/ai/catalogSearch.js`
+- `src/domain/ai/context.js`
+- `tests/e2e/aiGeneralMocked.spec.js`
+- `tests/e2e/aiShelfUiMocked.spec.js`
+- `tests/unit/aiContext.test.mjs`
+
+Findings:
+
+- The AI request contract is already reasonably separated. `AIAssistantScreen.jsx` calls `findCatalogCandidates()`, `buildCatalogAIContext()`, and `askGeneralAI()`; those modules should not be changed during visual foundation work.
+- Store scoping is correct and must stay unchanged: `buildStoreAIContext(currentStore, { slug: routeStoreSlug || storeSlug })` preserves the route slug while store details load.
+- Current local chat persistence stores one latest session via `buildAIChatStorageKey({ mode: 'general', storeSlug })`, `loadAIChatSession()`, and `saveAIChatSession()`. Full local history should be additive later, not a Stage 2 dependency.
+- The weak foundation is presentation coupling inside `AIAssistantScreen.jsx`: header, empty state, message list, product groups, follow-up chips, loading state, composer, animation style, and layout styles are mixed into one screen file.
+- Product groups inside AI messages are currently an internal component (`MessageProductGroups`) with its own expand/collapse state. Keep it internal for Stage 2; only move styling to CSS.
+- Existing e2e tests rely on the placeholder `Спросить про товары...`, product card links, follow-up chip text, and the input staying above bottom nav. Stage 2 must preserve these expectations unless tests are intentionally updated in later visual stages.
+- `aiShelfUiMocked.spec.js` already checks the important mobile risks: long AI reply, product cards, bottom-nav spacing, and horizontal overflow. It is the primary regression smoke for visual refactor.
+
+Approved Stage 2 boundaries:
+
+- Create `src/screens/AIAssistantScreen.css`.
+- Import `./AIAssistantScreen.css` from `AIAssistantScreen.jsx`.
+- Do not change `/api/ai.js`, `src/services/ai.js`, `src/domain/ai/catalogSearch.js`, or `src/domain/ai/context.js` in Stage 2.
+- Do not add local history, image input, or voice input in Stage 2.
+- Keep `AIAssistantScreen.jsx` as the owner of state and AI flow.
+- Keep helper functions in the same file for now: `renderMessageText`, `getStockLabel`, `MessageProductGroups`.
+- Use internal presentational components only if they reduce JSX complexity without changing behavior:
+  - `AIHeader`
+  - `AIWelcomeMessage`
+  - `AIMessageList`
+  - `AIComposer`
+- Prefer not to create many separate component files yet. First goal is a clean screen foundation with CSS extraction and stable behavior.
+
+Stage 2 non-negotiables:
+
+- Preserve current behavior and route.
+- Preserve current i18n keys and visible text unless a later stage explicitly changes copy.
+- Preserve AI request payload shape.
+- Preserve local one-session restore.
+- Preserve product card expand/collapse behavior.
+- Preserve follow-up chips sending their text as the next user message.
+- Preserve bottom nav spacing.
+
+Stage 2 verification plan:
+
+- `npx eslint src/screens/AIAssistantScreen.jsx`
+- `node scripts/check-i18n.mjs` if any locale text changes; expected no text changes in Stage 2.
+- Targeted Playwright smoke: `npx playwright test tests/e2e/aiGeneralMocked.spec.js tests/e2e/aiShelfUiMocked.spec.js --project=chromium`
+- Baseline screenshot comparison at 390px and 430px through local Vite preview.
+
+Stage 2 result:
+
+- Done on 2026-05-27. Details: `docs/vault/changelog/2026-05-27-ai-assistant-stage2-style-foundation.md`.
+- Created `src/screens/AIAssistantScreen.css`.
+- Added `tests/unit/aiAssistantScreenStructure.test.mjs`.
+- Kept AI request flow, local one-session persistence, product card expand/collapse, follow-up chips, and current visible copy unchanged.
+- Verification passed: structure unit test 1/1, targeted ESLint, AI Playwright smoke 5/5, and `npm run build`.

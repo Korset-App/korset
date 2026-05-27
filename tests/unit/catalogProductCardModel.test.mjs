@@ -12,6 +12,7 @@ const dict = {
   'catalog.badge.glutenFree': 'Без глютена',
   'catalog.badge.lactoseFree': 'Без лактозы',
   'catalog.badge.vegan': 'Веган',
+  'catalog.badge.keto': 'Кето',
   'catalog.badge.kcal': '{{value}} ккал',
 }
 
@@ -19,21 +20,36 @@ function t(key, vars = {}) {
   return (dict[key] || key).replace('{{value}}', String(vars.value ?? ''))
 }
 
-test('buildCatalogProductCardBadges returns compact positive product attributes', () => {
+test('buildCatalogProductCardBadges returns all positive product attributes', () => {
   const badges = buildCatalogProductCardBadges(
     {
       halalStatus: 'yes',
-      dietTags: ['sugar_free', 'gluten_free', 'vegan'],
+      dietTags: ['sugar_free', 'gluten_free', 'lactose_free', 'vegan', 'keto'],
     },
     t
   )
 
   assert.deepEqual(
     badges.map((badge) => badge.id),
-    ['halal', 'sugar_free', 'gluten_free']
+    ['halal', 'sugar_free', 'gluten_free', 'lactose_free', 'vegan', 'keto']
   )
   assert.equal(badges[0].label, 'Халал')
   assert.equal(badges[1].label, 'Без сахара')
+  assert.equal(badges[5].label, 'Кето')
+})
+
+test('buildCatalogProductCardBadges treats low carb as keto badge', () => {
+  const badges = buildCatalogProductCardBadges(
+    {
+      dietTags: ['low_carb'],
+    },
+    t
+  )
+
+  assert.deepEqual(
+    badges.map((badge) => badge.id),
+    ['keto']
+  )
 })
 
 test('buildCatalogProductCardBadges does not render empty or negative attributes', () => {

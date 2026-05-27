@@ -199,14 +199,16 @@ export default function HomeScreen() {
   const [activeStoryIndex, setActiveStoryIndex] = useState(null)
   const [activeSlideIndex, setActiveSlideIndex] = useState(0)
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false)
-  const [fitSaved, setFitSaved] = useState(false)
   const [fitSetupDismissed, setFitSetupDismissed] = useState(false)
   const [fitSetupStep, setFitSetupStep] = useState(1)
   const [draftDietGoals, setDraftDietGoals] = useState(profile?.dietGoals || [])
   const [draftHalal, setDraftHalal] = useState(Boolean(profile?.halal))
   const [draftNoPreferences, setDraftNoPreferences] = useState(Boolean(profile?.noDietPreferences))
   const [draftAllergens, setDraftAllergens] = useState(profile?.allergens || [])
+  const [draftCustomAllergens, setDraftCustomAllergens] = useState(profile?.customAllergens || [])
   const [draftNoAllergies, setDraftNoAllergies] = useState(Boolean(profile?.noAllergies))
+  const [customAllergenInput, setCustomAllergenInput] = useState('')
+  const [showAllAllergens, setShowAllAllergens] = useState(false)
   const [installPrompt, setInstallPrompt] = useState(null)
   const [installDismissed, setInstallDismissed] = useState(() => {
     if (typeof window === 'undefined') return false
@@ -223,7 +225,10 @@ export default function HomeScreen() {
     setDraftHalal(Boolean(profile?.halal))
     setDraftNoPreferences(Boolean(profile?.noDietPreferences))
     setDraftAllergens(profile?.allergens || [])
+    setDraftCustomAllergens(profile?.customAllergens || [])
     setDraftNoAllergies(Boolean(profile?.noAllergies))
+    setCustomAllergenInput('')
+    setShowAllAllergens(false)
     setFitSetupStep(1)
     setFitSetupDismissed(false)
     window.setTimeout(() => {
@@ -271,13 +276,13 @@ export default function HomeScreen() {
     return () => document.body.classList.remove('home-story-viewer-open')
   }, [activeStoryIndex])
 
-  const topAllergens = useMemo(
-    () => ALLERGENS.filter((item) => item.frequency >= 2).slice(0, 5),
+  const primaryAllergens = useMemo(
+    () => ALLERGENS.filter((item) => item.frequency >= 2).slice(0, 6),
     []
   )
-  const visibleDietPreferences = DIET_PREFERENCES.filter((item) =>
-    ['halal', 'sugar_free', 'lactose_free', 'gluten_free'].includes(item.id)
-  )
+  const visibleAllergens = showAllAllergens ? ALLERGENS : primaryAllergens
+  const hasHiddenAllergens = primaryAllergens.length < ALLERGENS.length
+  const visibleDietPreferences = DIET_PREFERENCES
 
   if (!isStoreApp) {
     return <LandingScreen />
@@ -304,12 +309,6 @@ export default function HomeScreen() {
   }
 
   const profileName = displayName || user?.email || t('profile.title')
-  const storeFacts = buildHomeStoreFacts(currentStore)
-  const actions = buildHomeQuickActions({ routes })
-  const fitSetup = buildFitCheckSetupState(profile)
-  const fitSetupVisible = !fitSetup.isComplete && !fitSetupDismissed
-  const activeStory = activeStoryIndex === null ? null : HOME_STORY_KEYS[activeStoryIndex]
-  const installHelpVisible = !isInstalled && !installDismissed
   const isIos = isIosDevice()
   const hasContacts = Boolean(
     currentStore.phone ||
@@ -318,6 +317,12 @@ export default function HomeScreen() {
     currentStore.twogis_url
   )
   const storeHours = getStoreHours(currentStore, t)
+  const storeFacts = buildHomeStoreFacts(currentStore, storeHours)
+  const actions = buildHomeQuickActions({ routes })
+  const fitSetup = buildFitCheckSetupState(profile)
+  const fitSetupVisible = !fitSetup.isComplete && !fitSetupDismissed
+  const activeStory = activeStoryIndex === null ? null : HOME_STORY_KEYS[activeStoryIndex]
+  const installHelpVisible = !isInstalled && !installDismissed
   const korsetWordmarkSrc =
     theme === 'light' ? '/brand/korset-wordmark-dark.png' : '/brand/korset-wordmark-white.png'
 
@@ -424,6 +429,26 @@ export default function HomeScreen() {
   function toggleNoAllergies() {
     setDraftNoAllergies(true)
     setDraftAllergens([])
+    setDraftCustomAllergens([])
+    setCustomAllergenInput('')
+  }
+
+  function addCustomAllergen() {
+    const value = customAllergenInput.trim()
+    if (!value) return
+    const normalized = value.toLowerCase()
+    const alreadyExists = draftCustomAllergens.some((item) => item.toLowerCase() === normalized)
+    if (alreadyExists) {
+      setCustomAllergenInput('')
+      return
+    }
+    setDraftNoAllergies(false)
+    setDraftCustomAllergens((items) => [...items, value])
+    setCustomAllergenInput('')
+  }
+
+  function removeCustomAllergen(value) {
+    setDraftCustomAllergens((items) => items.filter((item) => item !== value))
   }
 
   async function saveFitSetup() {
@@ -432,13 +457,12 @@ export default function HomeScreen() {
       dietGoals: draftNoPreferences ? [] : draftDietGoals,
       noDietPreferences: draftNoPreferences,
       allergens: draftNoAllergies ? [] : draftAllergens,
+      customAllergens: draftNoAllergies ? [] : draftCustomAllergens,
       noAllergies: draftNoAllergies,
     })
-    setFitSaved(true)
     window.setTimeout(() => {
       setFitSetupDismissed(true)
       setFitSetupStep(1)
-      setFitSaved(false)
     }, 900)
   }
 
@@ -643,22 +667,15 @@ export default function HomeScreen() {
       {fitSetupVisible && (
         <section ref={fitSectionRef} className="home-fit-card home-fit-card--setup">
           <div className="home-fit-card__top">
-            <span className="home-fit-card__mark" aria-hidden="true">
-              <HomeIcon name={fitSetupStep === 1 ? 'tune' : 'verified'} />
-            </span>
             <div className="home-fit-card__headline">
-              <p className="home-fit-card__eyebrow">{t('home.fitSetupLabel')}</p>
               <div className="home-fit-card__meta">
                 <span className="home-fit-card__status">
                   {fitSetupStep === 1
                     ? t('home.fitSetupStage1Badge')
                     : t('home.fitSetupStage2Badge')}
                 </span>
-                <span className="home-fit-card__step">
-                  {fitSetupStep === 1 ? t('home.fitSetupStage1Pill') : t('home.fitSetupStage2Pill')}
-                </span>
               </div>
-              <h2>
+              <h2 className={fitSetupStep === 1 ? 'home-fit-card__title-single' : ''}>
                 {fitSetupStep === 1 ? t('home.fitSetupStage1Title') : t('home.fitSetupStage2Title')}
               </h2>
               <p className="home-fit-card__lede">
@@ -668,30 +685,17 @@ export default function HomeScreen() {
             <button
               className="home-fit-card__dismiss"
               type="button"
-              aria-label={t('common.close')}
+              aria-label={t('home.fitSetupLater')}
               onClick={() => setFitSetupDismissed(true)}
             >
-              <HomeIcon name="close" />
+              <span>{t('home.fitSetupLater')}</span>
             </button>
           </div>
 
           <div className="home-fit-card__grid">
             {fitSetupStep === 1 ? (
-              <div className="home-fit-step">
-                <div className="home-fit-step__head">
-                  <span>1</span>
-                  <div>
-                    <h3>{t('home.fitPreferencesTitle')}</h3>
-                  </div>
-                </div>
-                <div className="home-fit-step__actions">
-                  <p>{t('home.fitSetupStep1Hint')}</p>
-                  <button type="button" onClick={() => setFitSetupStep(2)}>
-                    <span>{t('home.fitNext')}</span>
-                    <HomeIcon name="arrow_forward" />
-                  </button>
-                </div>
-                <div className="home-chip-grid home-chip-grid--icon">
+              <>
+                <div className="home-chip-grid home-chip-grid--icon home-chip-grid--icon-wide">
                   <button
                     className={`home-choice-chip home-choice-chip--icon${draftHalal && !draftNoPreferences ? ' is-active' : ''}`}
                     type="button"
@@ -725,7 +729,7 @@ export default function HomeScreen() {
                       </button>
                     ))}
                   <button
-                    className={`home-choice-chip home-choice-chip--icon home-choice-chip--full${
+                    className={`home-choice-chip home-choice-chip--icon home-choice-chip--summary${
                       draftNoPreferences ? ' is-active' : ''
                     }`}
                     type="button"
@@ -737,34 +741,21 @@ export default function HomeScreen() {
                     <span>{t('home.noPreferences')}</span>
                   </button>
                 </div>
-              </div>
+                <div className="home-fit-card__actions home-fit-card__actions--solo">
+                  <button
+                    type="button"
+                    className="home-fit-card__primary"
+                    onClick={() => setFitSetupStep(2)}
+                  >
+                    <span>{t('home.fitNext')}</span>
+                    <HomeIcon name="east" />
+                  </button>
+                </div>
+              </>
             ) : (
-              <div className="home-fit-step">
-                <div className="home-fit-step__head">
-                  <span>2</span>
-                  <div>
-                    <h3>{t('home.fitAllergensTitle')}</h3>
-                  </div>
-                </div>
-                <div className="home-fit-step__actions">
-                  <p>{t('home.fitSetupStep2Hint')}</p>
-                  <div className="home-fit-card__actions">
-                    <button
-                      type="button"
-                      className="home-fit-card__back"
-                      onClick={() => setFitSetupStep(1)}
-                    >
-                      <HomeIcon name="arrow_back" />
-                      <span>{t('home.fitBack')}</span>
-                    </button>
-                    <button type="button" onClick={saveFitSetup}>
-                      <span>{t('home.fitSetupCta')}</span>
-                      <HomeIcon name="check" />
-                    </button>
-                  </div>
-                </div>
+              <>
                 <div className="home-chip-grid home-chip-grid--icon">
-                  {topAllergens.map((item) => (
+                  {visibleAllergens.map((item) => (
                     <button
                       className={`home-choice-chip home-choice-chip--icon${
                         draftAllergens.includes(item.id) && !draftNoAllergies ? ' is-active' : ''
@@ -779,20 +770,91 @@ export default function HomeScreen() {
                       <span>{getLocalizedLabel(item, lang)}</span>
                     </button>
                   ))}
+                </div>
+                {hasHiddenAllergens && (
                   <button
-                    className={`home-choice-chip home-choice-chip--icon home-choice-chip--full${
-                      draftNoAllergies ? ' is-active' : ''
-                    }`}
+                    className="home-fit-step__toggle"
                     type="button"
-                    onClick={toggleNoAllergies}
+                    onClick={() => setShowAllAllergens((value) => !value)}
                   >
-                    <span className="home-choice-chip__icon" aria-hidden="true">
-                      <HomeIcon name="verified" />
+                    <span>
+                      {showAllAllergens
+                        ? t('home.fitShowLessAllergens')
+                        : t('home.fitShowAllAllergens')}
                     </span>
-                    <span>{t('home.noAllergies')}</span>
+                    <HomeIcon name={showAllAllergens ? 'expand_less' : 'expand_more'} />
+                  </button>
+                )}
+                <div className="home-fit-custom">
+                  <label className="home-fit-custom__label" htmlFor="home-custom-allergen">
+                    {t('home.fitCustomAllergenLabel')}
+                  </label>
+                  <div className="home-fit-custom__input-row">
+                    <input
+                      id="home-custom-allergen"
+                      className="home-fit-custom__input"
+                      type="text"
+                      value={customAllergenInput}
+                      onChange={(event) => setCustomAllergenInput(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault()
+                          addCustomAllergen()
+                        }
+                      }}
+                      placeholder={t('profile.customPlaceholder')}
+                    />
+                    <button
+                      type="button"
+                      className="home-fit-card__primary home-fit-card__primary--compact"
+                      onClick={addCustomAllergen}
+                    >
+                      {t('profile.add')}
+                    </button>
+                  </div>
+                  {draftCustomAllergens.length > 0 && (
+                    <div className="home-fit-custom__list">
+                      {draftCustomAllergens.map((item) => (
+                        <button
+                          className="home-fit-custom__pill"
+                          key={item}
+                          type="button"
+                          onClick={() => removeCustomAllergen(item)}
+                        >
+                          <span>{item}</span>
+                          <HomeIcon name="close" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <button
+                  className={`home-choice-chip home-choice-chip--icon home-choice-chip--summary home-choice-chip--summary-soft${
+                    draftNoAllergies ? ' is-active' : ''
+                  }`}
+                  type="button"
+                  onClick={toggleNoAllergies}
+                >
+                  <span className="home-choice-chip__icon" aria-hidden="true">
+                    <HomeIcon name="verified" />
+                  </span>
+                  <span>{t('home.noAllergies')}</span>
+                </button>
+                <div className="home-fit-card__actions">
+                  <button
+                    type="button"
+                    className="home-fit-card__back"
+                    onClick={() => setFitSetupStep(1)}
+                  >
+                    <HomeIcon name="west" />
+                    <span>{t('home.fitBack')}</span>
+                  </button>
+                  <button type="button" className="home-fit-card__primary" onClick={saveFitSetup}>
+                    <span>{t('home.fitSetupCta')}</span>
+                    <HomeIcon name="check_circle" />
                   </button>
                 </div>
-              </div>
+              </>
             )}
           </div>
         </section>
@@ -804,7 +866,9 @@ export default function HomeScreen() {
             className={`home-action-card home-action-card--${action.tone}`}
             key={action.key}
             type="button"
-            onClick={() => navigate(action.path)}
+            onClick={() =>
+              navigate(action.path, action.navState ? { state: action.navState } : undefined)
+            }
           >
             <span className="home-action-card__icon">
               <HomeIcon name={action.icon} />
@@ -866,12 +930,6 @@ export default function HomeScreen() {
               <span>{fact.text}</span>
             </div>
           ))}
-          {!currentStore.opening_hours && (
-            <div className="home-store-fact">
-              <HomeIcon name="schedule" />
-              <span>{t('home.openingHoursFallback')}</span>
-            </div>
-          )}
         </div>
 
         {hasContacts && (

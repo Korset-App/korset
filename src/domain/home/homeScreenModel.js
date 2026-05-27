@@ -54,31 +54,64 @@ export const HOME_STORY_KEYS = [
 export function buildHomeQuickActions({ routes = {} } = {}) {
   return [
     {
+      key: 'scan',
+      icon: 'barcode_scanner',
+      titleKey: 'home.quickActionScan',
+      textKey: 'home.quickActionScanSub',
+      path: routes.scan,
+      tone: 'ember',
+    },
+    {
+      key: 'catalog',
+      icon: 'storefront',
+      titleKey: 'home.quickActionCatalog',
+      textKey: 'home.quickActionCatalogSub',
+      path: routes.catalog,
+      tone: 'teal',
+    },
+    {
       key: 'ai',
       icon: 'auto_awesome',
-      titleKey: 'home.ai',
-      textKey: 'home.aiProductSub',
+      titleKey: 'home.quickActionAi',
+      textKey: 'home.quickActionAiSub',
       path: routes.ai,
       tone: 'plum',
       featured: true,
     },
     {
-      key: 'catalog',
-      icon: 'search',
-      titleKey: 'home.catalog',
-      textKey: 'home.catalogSub',
-      path: routes.catalog,
-      tone: 'teal',
+      key: 'compare',
+      icon: 'compare_arrows',
+      titleKey: 'home.quickActionCompare',
+      textKey: 'home.quickActionCompareSub',
+      path: routes.scan,
+      navState: { compareMode: true },
+      tone: 'blue',
+    },
+    {
+      key: 'favorites',
+      icon: 'favorite',
+      titleKey: 'home.quickActionFavorites',
+      textKey: 'home.quickActionFavoritesSub',
+      path: routes.profile ? `${routes.profile}?tab=favorites` : '',
+      tone: 'rose',
+    },
+    {
+      key: 'history',
+      icon: 'history',
+      titleKey: 'home.quickActionHistory',
+      textKey: 'home.quickActionHistorySub',
+      path: routes.history || (routes.profile ? `${routes.profile}?tab=history` : ''),
+      tone: 'slate',
     },
   ].filter((action) => Boolean(action.path))
 }
 
-export function buildHomeStoreFacts(store = {}) {
+export function buildHomeStoreFacts(store = {}, fallbackHours = '') {
   const address = [store.city, store.address].filter(Boolean).join(' · ')
   return [
     address ? { key: 'address', icon: 'location_on', text: address } : null,
-    store.opening_hours
-      ? { key: 'opening_hours', icon: 'schedule', text: store.opening_hours }
+    store.opening_hours || fallbackHours
+      ? { key: 'opening_hours', icon: 'schedule', text: store.opening_hours || fallbackHours }
       : null,
   ].filter(Boolean)
 }

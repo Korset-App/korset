@@ -133,6 +133,21 @@ export function DietIcon({ name, size = 24 }) {
         <path d="M10.9 7.25A3.99 3.99 0 0 0 4 10c0 .73.2 1.41.54 2" />
       </svg>
     ),
+    lowfat: (
+      <svg
+        width={w}
+        height={h}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M12 3c-2.8 3.4-5 6.3-5 9.2A5 5 0 0 0 12 17a5 5 0 0 0 5-4.8c0-2.9-2.2-5.8-5-9.2Z" />
+        <path d="M9 20h6" />
+      </svg>
+    ),
     keto: (
       <svg
         width={w}

@@ -14,6 +14,7 @@ import {
 } from '../domain/ai/context.js'
 import { buildCatalogAIContext, findCatalogCandidates } from '../domain/ai/catalogSearch.js'
 import { buildProductPath } from '../utils/routes.js'
+import './AIAssistantScreen.css'
 
 function renderMessageText(text) {
   const paragraphs = String(text || '')
@@ -22,7 +23,14 @@ function renderMessageText(text) {
     .filter(Boolean)
 
   return paragraphs.map((paragraph, paragraphIndex) => (
-    <p key={paragraphIndex} style={{ margin: paragraphIndex === 0 ? 0 : '8px 0 0' }}>
+    <p
+      key={paragraphIndex}
+      className={
+        paragraphIndex === 0
+          ? 'ai-message-text__paragraph ai-message-text__paragraph--first'
+          : 'ai-message-text__paragraph'
+      }
+    >
       {paragraph.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g).map((part, index) => {
         if (part.startsWith('**') && part.endsWith('**')) {
           return <strong key={index}>{part.slice(2, -2)}</strong>
@@ -48,105 +56,43 @@ function MessageProductGroups({ groups, storeSlug, t }) {
   if (!groups?.length) return null
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
+    <div className="ai-product-groups">
       {groups.map((group) => {
         const isExpanded = !!expanded[group.id]
         const visible = isExpanded ? group.products : group.products.slice(0, 1)
         const hiddenCount = Math.max(0, group.products.length - visible.length)
         return (
-          <div
-            key={group.id}
-            style={{
-              border: '1px solid var(--glass-soft-border)',
-              background: 'var(--glass-subtle)',
-              borderRadius: 14,
-              padding: 10,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 13,
-                fontWeight: 800,
-                color: 'var(--text)',
-                marginBottom: 8,
-              }}
-            >
-              {group.title}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div key={group.id} className="ai-product-group">
+            <div className="ai-product-group__title">{group.title}</div>
+            <div className="ai-product-list">
               {visible.map((product) => (
                 <Link
                   key={product.ean}
                   to={buildProductPath(storeSlug, product.ean)}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '54px minmax(0, 1fr) auto',
-                    gap: 10,
-                    alignItems: 'center',
-                    textDecoration: 'none',
-                    color: 'var(--text)',
-                    background: 'var(--bg)',
-                    border: '1px solid var(--glass-soft-border)',
-                    borderRadius: 12,
-                    padding: 8,
-                  }}
+                  className="ai-product-card"
                 >
-                  <div
-                    className="catalog-img-box"
-                    style={{
-                      width: 54,
-                      height: 54,
-                      borderRadius: 10,
-                      overflow: 'hidden',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
+                  <div className="catalog-img-box ai-product-card__image">
                     {product.image ? (
                       <img
                         src={product.image}
                         alt=""
-                        className="product-img-blend"
-                        style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 5 }}
+                        className="product-img-blend ai-product-card__img"
                       />
                     ) : (
-                      <span className="material-symbols-outlined" style={{ fontSize: 22 }}>
+                      <span className="material-symbols-outlined ai-product-card__fallback-icon">
                         grocery
                       </span>
                     )}
                   </div>
-                  <div style={{ minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 800,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        lineHeight: 1.25,
-                      }}
-                    >
-                      {product.name}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: 'var(--text-faint)',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        marginTop: 2,
-                      }}
-                    >
+                  <div className="ai-product-card__body">
+                    <div className="ai-product-card__name">{product.name}</div>
+                    <div className="ai-product-card__meta">
                       {[product.brand, getStockLabel(product.stockStatus, t)]
                         .filter(Boolean)
                         .join(' · ')}
                     </div>
                   </div>
-                  <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--primary)' }}>
+                  <div className="ai-product-card__price">
                     {product.priceKzt ? `${product.priceKzt} ₸` : ''}
                   </div>
                 </Link>
@@ -156,16 +102,7 @@ function MessageProductGroups({ groups, storeSlug, t }) {
               <button
                 type="button"
                 onClick={() => setExpanded((prev) => ({ ...prev, [group.id]: !isExpanded }))}
-                style={{
-                  marginTop: 8,
-                  border: 'none',
-                  background: 'transparent',
-                  color: 'var(--primary)',
-                  fontSize: 12,
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  padding: 0,
-                }}
+                className="ai-product-toggle"
               >
                 {isExpanded
                   ? t('ai.hideProducts')
@@ -255,142 +192,60 @@ export default function AIAssistantScreen() {
   }
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100dvh',
-        background: 'var(--bg)',
-      }}
-    >
-      <div
-        style={{
-          padding: '16px 20px 14px',
-          flexShrink: 0,
-          borderBottom: '1px solid var(--glass-soft-border)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-        }}
-      >
+    <div className="ai-screen">
+      <div className="ai-header">
         <KorsetAvatar size={40} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: 17,
-              fontWeight: 700,
-              color: 'var(--text)',
-              fontFamily: 'var(--font-display)',
-            }}
-          >
-            Körset AI
-          </div>
-          <div
-            style={{ fontSize: 12, color: 'var(--success-bright)', fontWeight: 500, marginTop: 1 }}
-          >
+        <div className="ai-header__identity">
+          <div className="ai-header__title">Körset AI</div>
+          <div className="ai-header__subtitle">
             {storeContext?.name
               ? t('ai.generalStoreSubtitle', { store: storeContext.name })
               : t('ai.generalSubtitle')}
           </div>
         </div>
-        {messages.length > 0 && (
-          <button
-            type="button"
-            onClick={clearChat}
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: 12,
-              border: '1px solid var(--glass-soft-border)',
-              background: 'var(--glass-subtle)',
-              color: 'var(--text-sub)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              flexShrink: 0,
-            }}
-            aria-label={t('ai.clearChat')}
-            title={t('ai.clearChat')}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 19 }}>
-              delete
-            </span>
-          </button>
-        )}
-      </div>
-      <div
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '16px 16px 140px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 16,
-        }}
-      >
-        {messages.length === 0 && (
-          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-            <KorsetAvatar size={34} />
-            <div
-              style={{
-                background: 'var(--glass-bg)',
-                border: '1px solid var(--glass-soft-border)',
-                padding: '13px 16px',
-                borderRadius: '4px 18px 18px 18px',
-                maxWidth: '85%',
-                fontSize: 15,
-                lineHeight: 1.65,
-                color: 'var(--text)',
-              }}
+        <div
+          className="ai-header__actions"
+          aria-hidden={messages.length === 0 ? 'true' : undefined}
+        >
+          {messages.length > 0 && (
+            <button
+              type="button"
+              onClick={clearChat}
+              className="ai-icon-button"
+              aria-label={t('ai.clearChat')}
+              title={t('ai.clearChat')}
             >
-              {storeContext?.name
-                ? t('ai.welcomeGeneralStore', { store: storeContext.name })
-                : t('ai.welcomeGeneral')}
+              <span className="material-symbols-outlined ai-icon-button__icon">delete</span>
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="ai-scroll">
+        {messages.length === 0 && (
+          <div className="ai-empty-state">
+            <div className="ai-empty-panel">
+              <div className="ai-empty-panel__avatar">
+                <KorsetAvatar size={34} />
+              </div>
+              <div className="ai-empty-panel__content">
+                <div className="ai-empty-panel__eyebrow">{t('ai.empty.eyebrow')}</div>
+                <h1 className="ai-empty-panel__title">{t('ai.empty.title')}</h1>
+                <p className="ai-empty-panel__description">
+                  {storeContext?.name
+                    ? t('ai.empty.description', { store: storeContext.name })
+                    : t('ai.welcomeGeneral')}
+                </p>
+              </div>
             </div>
           </div>
         )}
         {messages.map((msg, i) => (
-          <div
-            key={i}
-            style={{
-              display: 'flex',
-              justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
-              alignItems: 'flex-end',
-              gap: 10,
-            }}
-          >
+          <div key={i} className={`ai-message-row ai-message-row--${msg.role}`}>
             {msg.role === 'assistant' && <KorsetAvatar size={34} />}
-            <div
-              style={
-                msg.role === 'user'
-                  ? {
-                      background: 'var(--primary)',
-                      padding: '12px 16px',
-                      borderRadius: '18px 18px 4px 18px',
-                      maxWidth: '78%',
-                      fontSize: 15,
-                      lineHeight: 1.65,
-                      color: 'var(--text-inverse)',
-                      boxShadow: '0 4px 16px var(--primary-glow)',
-                    }
-                  : {
-                      background: 'var(--glass-bg)',
-                      border: '1px solid var(--glass-soft-border)',
-                      padding: '13px 16px',
-                      borderRadius: '4px 18px 18px 18px',
-                      maxWidth: '85%',
-                      fontSize: 15,
-                      lineHeight: 1.65,
-                      color: 'var(--text)',
-                    }
-              }
-            >
+            <div className={`ai-bubble ai-bubble--${msg.role}`}>
               {renderMessageText(msg.content)}
               {msg.role === 'assistant' && msg.warnings?.length > 0 && (
-                <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-faint)' }}>
-                  {msg.warnings[0]}
-                </div>
+                <div className="ai-warning-note">{msg.warnings[0]}</div>
               )}
               {msg.role === 'assistant' && (
                 <MessageProductGroups
@@ -400,30 +255,14 @@ export default function AIAssistantScreen() {
                 />
               )}
               {msg.role === 'assistant' && msg.followUps?.length > 0 && (
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: 6,
-                    flexWrap: 'wrap',
-                    marginTop: 10,
-                  }}
-                >
+                <div className="ai-follow-ups">
                   {msg.followUps.map((item) => (
                     <button
                       type="button"
                       key={item}
                       onClick={() => sendMessage(item)}
                       disabled={loading}
-                      style={{
-                        border: '1px solid var(--glass-soft-border)',
-                        background: 'var(--glass-subtle)',
-                        color: 'var(--text-sub)',
-                        borderRadius: 999,
-                        padding: '6px 9px',
-                        fontSize: 11,
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                      }}
+                      className="ai-follow-up-chip"
                     >
                       {item}
                     </button>
@@ -434,28 +273,12 @@ export default function AIAssistantScreen() {
           </div>
         ))}
         {loading && (
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10 }}>
+          <div className="ai-typing">
             <KorsetAvatar size={34} />
-            <div
-              style={{
-                background: 'var(--glass-bg)',
-                border: '1px solid var(--glass-soft-border)',
-                padding: '14px 18px',
-                borderRadius: '4px 18px 18px 18px',
-              }}
-            >
-              <div style={{ display: 'flex', gap: 5 }}>
+            <div className="ai-typing__bubble">
+              <div className="ai-typing__dots">
                 {[0, 1, 2].map((i) => (
-                  <div
-                    key={i}
-                    style={{
-                      width: 7,
-                      height: 7,
-                      borderRadius: '50%',
-                      background: 'var(--primary-bright)',
-                      animation: `bounce 1.2s ease-in-out ${i * 0.2}s infinite`,
-                    }}
-                  />
+                  <div key={i} className="ai-typing__dot" />
                 ))}
               </div>
             </div>
@@ -463,53 +286,17 @@ export default function AIAssistantScreen() {
         )}
         <div ref={bottomRef} />
       </div>
-      <div
-        style={{
-          position: 'fixed',
-          left: 0,
-          right: 0,
-          bottom: '86px',
-          zIndex: 90,
-          padding: '8px 16px 16px',
-          background: 'var(--bg)',
-          borderTop: '1px solid var(--glass-border)',
-          paddingBottom: 'calc(16px + env(safe-area-inset-bottom))',
-        }}
-      >
+      <div className="ai-composer">
         {messages.length === 0 && (
-          <div
-            style={{
-              display: 'flex',
-              gap: 8,
-              overflowX: 'auto',
-              scrollbarWidth: 'none',
-              paddingBottom: 10,
-            }}
-          >
+          <div className="ai-quick-prompts">
             {generalChips.map((chip) => (
-              <button
-                key={chip}
-                onClick={() => sendMessage(chip)}
-                style={{
-                  flexShrink: 0,
-                  padding: '7px 14px',
-                  borderRadius: 20,
-                  fontSize: 12,
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  border: '1px solid var(--glass-soft-border)',
-                  background: 'var(--glass-subtle)',
-                  color: 'var(--text-sub)',
-                  fontFamily: 'var(--font-body)',
-                  whiteSpace: 'nowrap',
-                }}
-              >
+              <button key={chip} onClick={() => sendMessage(chip)} className="ai-quick-prompt">
                 {chip}
               </button>
             ))}
           </div>
         )}
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <div className="ai-composer__row">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -521,42 +308,19 @@ export default function AIAssistantScreen() {
             }}
             placeholder={t('ai.inputGeneral')}
             disabled={loading}
-            style={{
-              flex: 1,
-              background: 'var(--input-bg)',
-              border: '1px solid var(--input-border)',
-              borderRadius: 24,
-              padding: '13px 18px',
-              fontSize: 15,
-              color: 'var(--text)',
-              fontFamily: 'var(--font-body)',
-              outline: 'none',
-            }}
+            className="ai-composer__input"
           />
           <button
             onClick={() => sendMessage(input)}
             disabled={loading || !input.trim()}
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: '50%',
-              border: 'none',
-              cursor: input.trim() ? 'pointer' : 'default',
-              background: 'linear-gradient(135deg, var(--primary), var(--primary-mid))',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              boxShadow: '0 4px 16px var(--primary-glow)',
-              opacity: input.trim() ? 1 : 0.5,
-            }}
+            className="ai-composer__send"
           >
             <svg
               width="20"
               height="20"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="var(--text-inverse)"
+              stroke="currentColor"
               strokeWidth="2"
               strokeLinecap="round"
             >
@@ -565,7 +329,6 @@ export default function AIAssistantScreen() {
           </button>
         </div>
       </div>
-      <style>{`@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}`}</style>
     </div>
   )
 }

@@ -31,6 +31,7 @@ import {
   getCatalogProductCardKcal,
 } from '../domain/catalog/catalogProductCardModel.js'
 import CatalogProductCard from '../components/catalog/CatalogProductCard.jsx'
+import { CompareIcon } from '../components/icons/CompareIcon.jsx'
 import {
   sortCatalogSearchProducts,
   analyzeCatalogSearchQuery,
@@ -430,7 +431,7 @@ export default function CatalogScreen() {
   const [debouncedQuery, setDebouncedQuery] = useState(q)
   const [sort, setSort] = useState(() => sessionStorage.getItem('korset_catalog_sort') || 'fit')
   const [viewMode, setViewMode] = useState(
-    () => sessionStorage.getItem('korset_catalog_view') || 'list'
+    () => sessionStorage.getItem('korset_catalog_view') || 'grid'
   )
   const virtuosoRef = useRef(null)
   const scrollRef = useRef(0)
@@ -738,8 +739,6 @@ export default function CatalogScreen() {
       const verdict = getVerdictConfig(fit, t)
       const compareState =
         comparePin?.ean === product.ean ? 'active-pin' : comparePin ? 'select-second' : 'default'
-      const compareIcon =
-        comparePin?.ean === product.ean ? 'close' : comparePin ? 'add' : 'barcode_scanner'
       const compareLabel =
         comparePin?.ean === product.ean
           ? t('compare.cancel')
@@ -763,7 +762,6 @@ export default function CatalogScreen() {
           badges={badges}
           kcalLabel={kcal ? t('catalog.badge.kcal', { value: kcal }) : null}
           compareState={compareState}
-          compareIcon={compareIcon}
           compareLabel={compareLabel}
           searchDiagnosticsAttrs={searchDiagnosticsAttrs}
           onOpen={() => handleNavigate(product)}
@@ -780,8 +778,6 @@ export default function CatalogScreen() {
       const verdict = getVerdictConfig(fit, t)
       const compareState =
         comparePin?.ean === product.ean ? 'active-pin' : comparePin ? 'select-second' : 'default'
-      const compareIcon =
-        comparePin?.ean === product.ean ? 'close' : comparePin ? 'add' : 'barcode_scanner'
       const compareLabel =
         comparePin?.ean === product.ean
           ? t('compare.cancel')
@@ -804,7 +800,6 @@ export default function CatalogScreen() {
           badges={badges}
           kcalLabel={kcal ? t('catalog.badge.kcal', { value: kcal }) : null}
           compareState={compareState}
-          compareIcon={compareIcon}
           compareLabel={compareLabel}
           searchDiagnosticsAttrs={searchDiagnosticsAttrs}
           onOpen={() => handleNavigate(product)}
@@ -972,16 +967,6 @@ export default function CatalogScreen() {
           {!showCategories && (
             <div className="catalog-view-toggle">
               <button
-                className={`catalog-view-btn${viewMode === 'list' ? ' active' : ''}`}
-                onClick={() => {
-                  setViewMode('list')
-                  sessionStorage.setItem('korset_catalog_view', 'list')
-                }}
-                aria-label="Список"
-              >
-                {viewMode === 'list' ? IconListActive : IconList}
-              </button>
-              <button
                 className={`catalog-view-btn${viewMode === 'grid' ? ' active' : ''}`}
                 onClick={() => {
                   setViewMode('grid')
@@ -990,6 +975,16 @@ export default function CatalogScreen() {
                 aria-label="Сетка"
               >
                 {viewMode === 'grid' ? IconGridActive : IconGrid}
+              </button>
+              <button
+                className={`catalog-view-btn${viewMode === 'list' ? ' active' : ''}`}
+                onClick={() => {
+                  setViewMode('list')
+                  sessionStorage.setItem('korset_catalog_view', 'list')
+                }}
+                aria-label="Список"
+              >
+                {viewMode === 'list' ? IconListActive : IconList}
               </button>
             </div>
           )}
@@ -1185,11 +1180,8 @@ export default function CatalogScreen() {
             flexShrink: 0,
           }}
         >
-          <span
-            className="material-symbols-outlined"
-            style={{ fontSize: 20, color: 'var(--primary-bright)', flexShrink: 0 }}
-          >
-            compare_arrows
+          <span style={{ fontSize: 20, color: 'var(--primary-bright)', flexShrink: 0 }}>
+            <CompareIcon size={20} />
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div

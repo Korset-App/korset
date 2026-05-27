@@ -35,6 +35,13 @@ const CARD_BADGE_DEFS = [
     labelKey: 'catalog.badge.vegan',
     matches: (_product, dietTags) => dietTags.includes('vegan'),
   },
+  {
+    id: 'keto',
+    className: 'keto',
+    icon: 'nutrition',
+    labelKey: 'catalog.badge.keto',
+    matches: (_product, dietTags) => dietTags.includes('keto') || dietTags.includes('low_carb'),
+  },
 ]
 
 function parseJson(input, fallback) {
@@ -61,7 +68,7 @@ function normalizeDietTags(product) {
   return []
 }
 
-export function buildCatalogProductCardBadges(product, t, limit = 3) {
+export function buildCatalogProductCardBadges(product, t, limit = Infinity) {
   const dietTags = normalizeDietTags(product)
   return CARD_BADGE_DEFS.filter((def) => def.matches(product || {}, dietTags))
     .slice(0, limit)
