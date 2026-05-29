@@ -321,6 +321,15 @@ Verification:
 
 Owner checkpoint: approve card set, icon style, density, and interaction.
 
+Stage 6 result:
+
+- Done on 2026-05-27. Details: `docs/vault/changelog/2026-05-27-ai-assistant-stage6-capability-cards.md`.
+- Rendered the six approved cards from `GENERAL_AI_CAPABILITIES`.
+- Implemented a two-row horizontal carousel where the first four cards are visible as the first two columns on mobile.
+- Card tap sends the localized capability prompt through the existing `sendMessage()` flow.
+- Removed the old general quick-prompt row from the composer area to reduce noise.
+- Verification passed: targeted AI UI unit tests 7/7, i18n check, targeted ESLint, AI Playwright smoke 5/5, and `npm run build`.
+
 ### Stage 7: Composer Redesign Without Media Logic
 
 Goal: make the input area premium and ready for media/voice, without implementing media yet.
@@ -340,6 +349,14 @@ Verification:
 
 Owner checkpoint: approve composer before adding history or media.
 
+Stage 7 result:
+
+- Done on 2026-05-27. Details: `docs/vault/changelog/2026-05-27-ai-assistant-stage7-composer-dock.md`.
+- Added `.ai-composer__dock` around the existing input/send row.
+- Composer now uses a premium glass input dock with blur, theme-aware border, shadow, and transparent inner input.
+- Did not add media, voice, image, or history controls.
+- Verification passed: targeted AI UI unit tests 8/8, targeted ESLint, AI Playwright smoke 5/5, and `npm run build`.
+
 ### Stage 8: Message List And AI Response Polish
 
 Goal: align actual chat messages with the new premium shell.
@@ -358,6 +375,14 @@ Verification:
 - Long reply does not overflow.
 
 Owner checkpoint: approve chat state after a real conversation view.
+
+Stage 8 result:
+
+- Done on 2026-05-27. Details: `docs/vault/changelog/2026-05-27-ai-assistant-stage8-message-polish.md`.
+- Polished active chat bubbles, product groups/cards, follow-up chips, and typing indicator.
+- Added long-reply resilience through `overflow-wrap: anywhere`.
+- Did not change AI behavior, composer behavior, local history, voice, or image input.
+- Verification passed: targeted AI UI unit tests 9/9, targeted ESLint, AI Playwright smoke 5/5, and `npm run build`.
 
 ### Stage 9: Local Chat History Foundation
 
@@ -379,6 +404,16 @@ Verification:
 - Existing AI send flow still works.
 
 Owner checkpoint: approve data behavior before drawer UI.
+
+Stage 9 result:
+
+- Done on 2026-05-27. Details: `docs/vault/changelog/2026-05-27-ai-assistant-stage9-local-history-foundation.md`.
+- Added `src/domain/ai/localChatHistory.js` with IndexedDB-backed browser store and memory test store.
+- Added `tests/unit/aiLocalChatHistory.test.mjs`.
+- Data behavior supports create/update/list/get/delete/clear, store scoping, max 20 conversations per store, and 30-day TTL cleanup.
+- Message sanitizer keeps chat text and selected assistant structured fields while dropping arbitrary file/audio/image-like fields.
+- Did not connect the data layer to UI yet.
+- Verification passed: local history tests 7/7, targeted AI unit tests 16/16, targeted ESLint, AI Playwright smoke 5/5, and `npm run build`.
 
 ### Stage 10: Local Chat History UI
 
@@ -402,6 +437,18 @@ Verification:
 
 Owner checkpoint: approve history UX.
 
+Stage 10 result:
+
+- Done on 2026-05-29. Details: `docs/vault/changelog/2026-05-29-ai-assistant-stage10-local-history-ui.md`.
+- Activated the header history button on `/s/:storeSlug/ai`.
+- Connected `AIAssistantScreen.jsx` to the existing local-only IndexedDB history store from Stage 9.
+- Added a premium bottom sheet with store-scoped conversation list, empty/loading states, new chat, open/continue, delete one chat, and clear current-store history actions.
+- Deletion and clear-all use explicit inline confirmation controls.
+- Current chats auto-save to local history when messages exist; opening a saved chat continues it and keeps the current one-session restore behavior compatible.
+- Added a route-store guard so visible/current messages are not written into another store's local history if `storeSlug` changes without a full remount.
+- Did not add Supabase/server persistence, voice input, image/camera input, or unrelated AI API changes.
+- Verification passed: targeted AI unit tests 18/18, i18n check, targeted ESLint, AI Playwright smoke 5/5, and `npm run build`.
+
 ### Stage 11: Mobile QA And Visual Regression Pass
 
 Goal: ensure the redesign works like a serious mobile product.
@@ -423,6 +470,15 @@ Verification:
 
 Owner checkpoint: approve the full text-only AI screen.
 
+Stage 11 result:
+
+- Done on 2026-05-29. Details: `docs/vault/changelog/2026-05-29-ai-assistant-stage11-mobile-qa.md`.
+- Ran a focused mobile visual QA pass for `/s/mars/ai` at 390px and 430px in dark and light themes.
+- Captured empty, active chat, and history sheet screenshots to `C:\Users\User\AppData\Local\Temp\opencode\korset-ai-stage11\`.
+- Verified no horizontal overflow, composer above bottom nav, history sheet within viewport, and no browser console/page errors in the checked states.
+- Fixed one visual regression: assistant avatars in long active chat rows now align to the top of the response bubble instead of the bottom edge near the composer.
+- Did not change AI behavior, Supabase/server persistence, voice, image/camera, or unrelated flows.
+
 ### Stage 12: Voice-To-Text Design Gate
 
 Goal: design voice input separately before implementation.
@@ -442,6 +498,23 @@ Recommended V1 direction:
 - Do not auto-send by default.
 
 Owner checkpoint: approve before any voice code.
+
+Stage 12 result:
+
+- Done on 2026-05-29 after owner approval to proceed from the design discussion.
+- Implemented V1 voice-to-text, not live voice chat:
+  - push-to-record mic button inside the existing composer dock;
+  - `MediaRecorder` client recording with supported MIME selection;
+  - 20s max duration, 800ms min duration, 4MB max audio size;
+  - new `/api/ai-transcribe` endpoint using OpenAI transcription;
+  - recognized text is inserted into the composer for user review;
+  - no auto-send;
+  - no audio persistence in local history, IndexedDB, Supabase Storage, or server files;
+  - metadata-only transcription usage logging, without raw audio or recognized text.
+- Added one-time RU/KZ privacy notice in the composer: audio is only used for transcription and not saved in chat history.
+- Follow-up hardening added auth-aware rate-limit identity, supported-audio MIME validation, a browser regression for no-auto-send voice flow, and a live OpenAI transcription smoke with a short synthetic WAV.
+- Did not add image/camera input, live voice mode, audio playback, or server chat persistence.
+- Details: `docs/vault/changelog/2026-05-29-ai-assistant-stage12-voice-to-text.md`.
 
 ### Stage 13: Image/Camera Input Design Gate
 

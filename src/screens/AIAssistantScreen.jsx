@@ -1,8 +1,9 @@
+/* global MediaRecorder, Blob */
 import { useState, useRef, useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/index.js'
 import KorsetAvatar from '../components/KorsetAvatar.jsx'
-import { askGeneralAI } from '../services/ai.js'
+import { askGeneralAI, transcribeVoiceInput } from '../services/ai.js'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { useProfile } from '../contexts/ProfileContext.jsx'
 import {
@@ -13,8 +14,33 @@ import {
   saveAIChatSession,
 } from '../domain/ai/context.js'
 import { buildCatalogAIContext, findCatalogCandidates } from '../domain/ai/catalogSearch.js'
+import { GENERAL_AI_CAPABILITIES } from '../domain/ai/generalCapabilities.js'
+import { createIndexedDBAIChatHistoryStore } from '../domain/ai/localChatHistory.js'
+import {
+  AI_VOICE_LIMITS,
+  getSupportedVoiceMimeType,
+  validateVoiceRecording,
+} from '../domain/ai/voiceTranscription.js'
 import { buildProductPath } from '../utils/routes.js'
 import './AIAssistantScreen.css'
+
+const VOICE_PRIVACY_KEY = 'korset_ai_voice_privacy_seen'
+
+function formatHistoryDate(value, lang) {
+  const date = new Date(value)
+  if (!Number.isFinite(date.getTime())) return ''
+
+  try {
+    return new Intl.DateTimeFormat(lang === 'kz' ? 'kk-KZ' : 'ru-RU', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date)
+  } catch {
+    return ''
+  }
+}
 
 function renderMessageText(text) {
   const paragraphs = String(text || '')
@@ -117,21 +143,16 @@ function MessageProductGroups({ groups, storeSlug, t }) {
 }
 
 export default function AIAssistantScreen() {
-  const { lang, t, exists } = useI18n()
+  const { lang, t } = useI18n()
   const { storeSlug: routeStoreSlug } = useParams()
   const { currentStore, storeSlug, catalogProducts = [] } = useStore()
   const { profile } = useProfile()
   const storeContext = buildStoreAIContext(currentStore, { slug: routeStoreSlug || storeSlug })
+  const activeStoreSlug = storeContext?.slug || routeStoreSlug || storeSlug || 'default'
   const chatKey = buildAIChatStorageKey({
     mode: 'general',
-    storeSlug: storeContext?.slug || routeStoreSlug || storeSlug,
+    storeSlug: activeStoreSlug,
   })
-  const generalChips = []
-  let gi = 0
-  while (exists(`ai.generalChips.${gi}`)) {
-    generalChips.push(t(`ai.generalChips.${gi}`))
-    gi++
-  }
   const [messages, setMessages] = useState(
     () =>
       loadAIChatSession({
@@ -139,35 +160,341 @@ export default function AIAssistantScreen() {
         key: chatKey,
       }).messages
   )
+  const [messagesStoreSlug, setMessagesStoreSlug] = useState(activeStoreSlug)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [historyItems, setHistoryItems] = useState([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [activeConversationId, setActiveConversationId] = useState(null)
+  const [deleteCandidateId, setDeleteCandidateId] = useState(null)
+  const [clearConfirming, setClearConfirming] = useState(false)
+  const [recording, setRecording] = useState(false)
+  const [voiceStatus, setVoiceStatus] = useState('idle')
+  const [voiceError, setVoiceError] = useState('')
+  const [voiceLevel, setVoiceLevel] = useState(0)
+  const [voiceElapsedMs, setVoiceElapsedMs] = useState(0)
+  const [voiceDraft, setVoiceDraft] = useState('')
+  const [voicePrivacySeen, setVoicePrivacySeen] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.localStorage.getItem(VOICE_PRIVACY_KEY) === 'true'
+  })
   const bottomRef = useRef(null)
+  const historyStoreRef = useRef(null)
+  const mediaRecorderRef = useRef(null)
+  const voiceChunksRef = useRef([])
+  const voiceStartedAtRef = useRef(0)
+  const voiceStreamRef = useRef(null)
+  const voiceStopTimerRef = useRef(null)
+  const voiceTickTimerRef = useRef(null)
+  const voiceAnimationRef = useRef(null)
+  const voiceAudioContextRef = useRef(null)
+  const voiceRecognitionRef = useRef(null)
+  const visibleMessages = messagesStoreSlug === activeStoreSlug ? messages : []
+  const voiceMeterLevel = Math.max(1, Math.ceil(voiceLevel * 12))
+
+  useEffect(() => {
+    if (!historyStoreRef.current && typeof window !== 'undefined' && window.indexedDB) {
+      historyStoreRef.current = createIndexedDBAIChatHistoryStore()
+    }
+  }, [])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
   useEffect(() => {
+    if (messagesStoreSlug !== activeStoreSlug) return undefined
+
     saveAIChatSession({
       storage: typeof window !== 'undefined' ? window.localStorage : null,
       key: chatKey,
       messages,
     })
-  }, [chatKey, messages])
 
-  const clearChat = () => {
+    if (!messages.length || !historyStoreRef.current) return undefined
+
+    let cancelled = false
+    historyStoreRef.current
+      .upsertConversation({
+        id: activeConversationId,
+        storeSlug: activeStoreSlug,
+        messages,
+      })
+      .then((conversation) => {
+        if (cancelled) return
+        if (!activeConversationId) setActiveConversationId(conversation.id)
+        if (historyOpen) {
+          return historyStoreRef.current.listConversations(activeStoreSlug).then(setHistoryItems)
+        }
+        return null
+      })
+      .catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeConversationId, activeStoreSlug, chatKey, historyOpen, messages, messagesStoreSlug])
+
+  useEffect(() => {
+    if (!historyOpen || !historyStoreRef.current) return undefined
+
+    let cancelled = false
+    setHistoryLoading(true)
+    setDeleteCandidateId(null)
+    setClearConfirming(false)
+    historyStoreRef.current
+      .listConversations(activeStoreSlug)
+      .then((items) => {
+        if (!cancelled) setHistoryItems(items)
+      })
+      .catch(() => {
+        if (!cancelled) setHistoryItems([])
+      })
+      .finally(() => {
+        if (!cancelled) setHistoryLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeStoreSlug, historyOpen])
+
+  const startNewChat = ({ closeHistory = true } = {}) => {
     clearAIChatSession({
       storage: typeof window !== 'undefined' ? window.localStorage : null,
       key: chatKey,
     })
     setMessages([])
+    setMessagesStoreSlug(activeStoreSlug)
+    setInput('')
+    setActiveConversationId(null)
+    setDeleteCandidateId(null)
+    setClearConfirming(false)
+    if (closeHistory) setHistoryOpen(false)
+  }
+
+  const clearChat = () => {
+    startNewChat()
+  }
+
+  const openConversation = async (id) => {
+    if (!historyStoreRef.current) return
+    const conversation = await historyStoreRef.current.getConversation(id)
+    if (!conversation || conversation.storeSlug !== activeStoreSlug) return
+    setMessages(conversation.messages || [])
+    setMessagesStoreSlug(activeStoreSlug)
+    setInput('')
+    setActiveConversationId(conversation.id)
+    setDeleteCandidateId(null)
+    setClearConfirming(false)
+    setHistoryOpen(false)
+  }
+
+  const requestDeleteConversation = (id) => {
+    setDeleteCandidateId((current) => (current === id ? null : id))
+    setClearConfirming(false)
+  }
+
+  const confirmDeleteConversation = async (id) => {
+    if (!historyStoreRef.current) return
+    await historyStoreRef.current.deleteConversation(id)
+    if (activeConversationId === id) startNewChat({ closeHistory: false })
+    setDeleteCandidateId(null)
+    setHistoryItems(await historyStoreRef.current.listConversations(activeStoreSlug))
+  }
+
+  const confirmClearStoreHistory = async () => {
+    if (!historyStoreRef.current) return
+    await historyStoreRef.current.clearStoreConversations(activeStoreSlug)
+    startNewChat({ closeHistory: false })
+    setHistoryItems([])
+    setDeleteCandidateId(null)
+    setClearConfirming(false)
+  }
+
+  const cleanupVoiceRecording = () => {
+    if (voiceStopTimerRef.current) window.clearTimeout(voiceStopTimerRef.current)
+    if (voiceTickTimerRef.current) window.clearInterval(voiceTickTimerRef.current)
+    if (voiceAnimationRef.current) window.cancelAnimationFrame(voiceAnimationRef.current)
+    voiceStopTimerRef.current = null
+    voiceTickTimerRef.current = null
+    voiceAnimationRef.current = null
+    voiceRecognitionRef.current?.stop?.()
+    voiceRecognitionRef.current = null
+    voiceAudioContextRef.current?.close?.().catch(() => {})
+    voiceAudioContextRef.current = null
+    voiceStreamRef.current?.getTracks?.().forEach((track) => track.stop())
+    voiceStreamRef.current = null
+    mediaRecorderRef.current = null
+    setVoiceLevel(0)
+    setRecording(false)
+  }
+
+  const formatVoiceTime = (ms) => {
+    const totalSeconds = Math.max(0, Math.floor(ms / 1000))
+    return `0:${String(totalSeconds).padStart(2, '0')}`
+  }
+
+  const startVoiceMeter = (stream) => {
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext
+    if (!AudioContextCtor) return
+
+    try {
+      const audioContext = new AudioContextCtor()
+      const analyser = audioContext.createAnalyser()
+      analyser.fftSize = 128
+      const source = audioContext.createMediaStreamSource(stream)
+      source.connect(analyser)
+      const data = new Uint8Array(analyser.frequencyBinCount)
+      voiceAudioContextRef.current = audioContext
+
+      const tick = () => {
+        analyser.getByteFrequencyData(data)
+        const average = data.reduce((sum, value) => sum + value, 0) / Math.max(1, data.length)
+        setVoiceLevel(Math.min(1, average / 96))
+        voiceAnimationRef.current = window.requestAnimationFrame(tick)
+      }
+
+      tick()
+    } catch {
+      setVoiceLevel(0.2)
+    }
+  }
+
+  const startVoiceDraftRecognition = () => {
+    const RecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!RecognitionCtor) return
+
+    try {
+      const recognition = new RecognitionCtor()
+      recognition.continuous = true
+      recognition.interimResults = true
+      recognition.lang = lang === 'kz' ? 'kk-KZ' : 'ru-RU'
+      recognition.onresult = (event) => {
+        const transcript = Array.from(event.results)
+          .map((result) => result[0]?.transcript || '')
+          .join(' ')
+          .trim()
+        if (transcript) setVoiceDraft(transcript)
+      }
+      recognition.onerror = () => {}
+      recognition.start()
+      voiceRecognitionRef.current = recognition
+    } catch {
+      voiceRecognitionRef.current = null
+    }
+  }
+
+  const getVoiceErrorText = (error) => {
+    if (error === 'audio_too_short') return t('ai.voice.errorTooShort')
+    if (error === 'audio_too_long') return t('ai.voice.errorTooLong')
+    if (error === 'audio_too_large') return t('ai.voice.errorTooLarge')
+    if (error === 'permission_denied') return t('ai.voice.errorPermission')
+    if (error === 'unsupported') return t('ai.voice.errorUnsupported')
+    if (error === 'empty_transcription') return t('ai.voice.errorEmpty')
+    return t('ai.voice.errorGeneric')
+  }
+
+  const stopVoiceRecording = () => {
+    const recorder = mediaRecorderRef.current
+    if (recorder && recorder.state !== 'inactive') {
+      recorder.stop()
+      setVoiceStatus('uploading')
+    }
+  }
+
+  const startVoiceRecording = async () => {
+    if (loading || recording || voiceStatus === 'transcribing') return
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      setVoiceError('unsupported')
+      setVoiceStatus('error')
+      return
+    }
+
+    setVoiceError('')
+    setVoiceDraft('')
+    setVoiceElapsedMs(0)
+    setVoiceStatus('requesting')
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mimeType = getSupportedVoiceMimeType(MediaRecorder.isTypeSupported.bind(MediaRecorder))
+      const recorderOptions = mimeType ? { mimeType } : {}
+      const recorder = new MediaRecorder(stream, recorderOptions)
+
+      voiceChunksRef.current = []
+      voiceStartedAtRef.current = Date.now()
+      voiceStreamRef.current = stream
+      mediaRecorderRef.current = recorder
+
+      recorder.ondataavailable = (event) => {
+        if (event.data?.size > 0) voiceChunksRef.current.push(event.data)
+      }
+
+      recorder.onstop = async () => {
+        const durationMs = Date.now() - voiceStartedAtRef.current
+        const audioBlob = new Blob(voiceChunksRef.current, {
+          type: recorder.mimeType || mimeType || 'audio/webm',
+        })
+        const validation = validateVoiceRecording({ durationMs, size: audioBlob.size })
+
+        if (!validation.ok) {
+          setVoiceError(validation.error)
+          setVoiceStatus('error')
+          cleanupVoiceRecording()
+          return
+        }
+
+        try {
+          setVoiceStatus('transcribing')
+          const transcription = await transcribeVoiceInput({
+            audioBlob,
+            lang: 'auto',
+            storeSlug: activeStoreSlug,
+            durationMs,
+          })
+          setInput(transcription.text)
+          setVoiceDraft('')
+          setVoiceStatus('inserted')
+          window.setTimeout(() => setVoiceStatus('idle'), 1800)
+        } catch (error) {
+          setVoiceError(error?.message || 'transcription_failed')
+          setVoiceStatus('error')
+        } finally {
+          cleanupVoiceRecording()
+        }
+      }
+
+      recorder.start()
+      setRecording(true)
+      setVoiceStatus('recording')
+      startVoiceMeter(stream)
+      startVoiceDraftRecognition()
+      voiceTickTimerRef.current = window.setInterval(() => {
+        setVoiceElapsedMs(Date.now() - voiceStartedAtRef.current)
+      }, 250)
+      if (!voicePrivacySeen) {
+        window.localStorage.setItem(VOICE_PRIVACY_KEY, 'true')
+        setVoicePrivacySeen(true)
+      }
+      voiceStopTimerRef.current = window.setTimeout(
+        stopVoiceRecording,
+        AI_VOICE_LIMITS.maxDurationMs
+      )
+    } catch {
+      cleanupVoiceRecording()
+      setVoiceError('permission_denied')
+      setVoiceStatus('error')
+    }
   }
 
   const sendMessage = async (text) => {
     if (!text.trim() || loading) return
     const userMsg = { role: 'user', content: text }
-    const newMessages = [...messages, userMsg]
+    const newMessages = [...visibleMessages, userMsg]
     setMessages(newMessages)
+    setMessagesStoreSlug(activeStoreSlug)
     setInput('')
     setLoading(true)
     try {
@@ -203,11 +530,17 @@ export default function AIAssistantScreen() {
               : t('ai.generalSubtitle')}
           </div>
         </div>
-        <div
-          className="ai-header__actions"
-          aria-hidden={messages.length === 0 ? 'true' : undefined}
-        >
-          {messages.length > 0 && (
+        <div className="ai-header__actions">
+          <button
+            type="button"
+            onClick={() => setHistoryOpen(true)}
+            className="ai-icon-button"
+            aria-label={t('ai.history.open')}
+            title={t('ai.history.open')}
+          >
+            <span className="material-symbols-outlined ai-icon-button__icon">history</span>
+          </button>
+          {visibleMessages.length > 0 && (
             <button
               type="button"
               onClick={clearChat}
@@ -220,8 +553,126 @@ export default function AIAssistantScreen() {
           )}
         </div>
       </div>
+      {historyOpen && (
+        <div className="ai-history-backdrop" onClick={() => setHistoryOpen(false)}>
+          <section
+            className="ai-history-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ai-history-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="ai-history-sheet__handle" />
+            <div className="ai-history-sheet__head">
+              <div>
+                <h2 id="ai-history-title" className="ai-history-sheet__title">
+                  {t('ai.history.title')}
+                </h2>
+                <p className="ai-history-sheet__subtitle">{t('ai.history.subtitle')}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setHistoryOpen(false)}
+                className="ai-history-close"
+                aria-label={t('ai.history.close')}
+              >
+                <span className="material-symbols-outlined ai-history-close__icon">close</span>
+              </button>
+            </div>
+
+            <div className="ai-history-actions">
+              <button type="button" onClick={() => startNewChat()} className="ai-history-primary">
+                <span className="material-symbols-outlined ai-history-action-icon">add</span>
+                {t('ai.history.newChat')}
+              </button>
+              {historyItems.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setClearConfirming((current) => !current)}
+                  className="ai-history-secondary ai-history-danger"
+                >
+                  {clearConfirming ? t('ai.history.cancel') : t('ai.history.clearAll')}
+                </button>
+              )}
+            </div>
+
+            {clearConfirming && (
+              <div className="ai-history-confirm">
+                <span>{t('ai.history.clearAllConfirm')}</span>
+                <button
+                  type="button"
+                  onClick={confirmClearStoreHistory}
+                  className="ai-history-confirm__button ai-history-danger"
+                >
+                  {t('ai.history.confirmClear')}
+                </button>
+              </div>
+            )}
+
+            <div className="ai-history-list">
+              {historyLoading ? (
+                <div className="ai-history-empty">{t('ai.history.loading')}</div>
+              ) : historyItems.length === 0 ? (
+                <div className="ai-history-empty">
+                  <span className="material-symbols-outlined ai-history-empty__icon">forum</span>
+                  <strong>{t('ai.history.emptyTitle')}</strong>
+                  <span>{t('ai.history.emptyText')}</span>
+                </div>
+              ) : (
+                historyItems.map((item) => (
+                  <div key={item.id} className="ai-history-item">
+                    <button
+                      type="button"
+                      onClick={() => openConversation(item.id)}
+                      className="ai-history-item__main"
+                    >
+                      <span className="ai-history-item__title">{item.title}</span>
+                      {item.preview && (
+                        <span className="ai-history-item__preview">{item.preview}</span>
+                      )}
+                      <span className="ai-history-item__meta">
+                        {formatHistoryDate(item.updatedAt, lang)} ·{' '}
+                        {t('ai.history.messageCount', { count: item.messageCount })}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => requestDeleteConversation(item.id)}
+                      className="ai-history-item__delete"
+                      aria-label={t('ai.history.delete')}
+                    >
+                      <span className="material-symbols-outlined ai-history-item__delete-icon">
+                        delete
+                      </span>
+                    </button>
+                    {deleteCandidateId === item.id && (
+                      <div className="ai-history-item__confirm">
+                        <span>{t('ai.history.deleteConfirm')}</span>
+                        <button
+                          type="button"
+                          onClick={() => confirmDeleteConversation(item.id)}
+                          className="ai-history-confirm__button ai-history-danger"
+                        >
+                          {t('ai.history.confirmDelete')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteCandidateId(null)}
+                          className="ai-history-confirm__button"
+                        >
+                          {t('ai.history.cancel')}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+        </div>
+      )}
       <div className="ai-scroll">
-        {messages.length === 0 && (
+        {visibleMessages.length === 0 && (
           <div className="ai-empty-state">
             <div className="ai-empty-panel">
               <div className="ai-empty-panel__avatar">
@@ -237,9 +688,33 @@ export default function AIAssistantScreen() {
                 </p>
               </div>
             </div>
+            <div className="ai-capability-carousel" aria-label={t('ai.empty.title')}>
+              {GENERAL_AI_CAPABILITIES.map((capability) => (
+                <button
+                  key={capability.id}
+                  type="button"
+                  className="ai-capability-card"
+                  onClick={() => sendMessage(t(capability.promptKey))}
+                  disabled={loading}
+                >
+                  <span className="material-symbols-outlined ai-capability-card__icon">
+                    {capability.icon}
+                  </span>
+                  <span className="ai-capability-card__content">
+                    <span className="ai-capability-card__title">{t(capability.titleKey)}</span>
+                    <span className="ai-capability-card__description">
+                      {t(capability.descriptionKey)}
+                    </span>
+                  </span>
+                  <span className="material-symbols-outlined ai-capability-card__chevron">
+                    chevron_right
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
-        {messages.map((msg, i) => (
+        {visibleMessages.map((msg, i) => (
           <div key={i} className={`ai-message-row ai-message-row--${msg.role}`}>
             {msg.role === 'assistant' && <KorsetAvatar size={34} />}
             <div className={`ai-bubble ai-bubble--${msg.role}`}>
@@ -287,46 +762,90 @@ export default function AIAssistantScreen() {
         <div ref={bottomRef} />
       </div>
       <div className="ai-composer">
-        {messages.length === 0 && (
-          <div className="ai-quick-prompts">
-            {generalChips.map((chip) => (
-              <button key={chip} onClick={() => sendMessage(chip)} className="ai-quick-prompt">
-                {chip}
-              </button>
-            ))}
-          </div>
-        )}
-        <div className="ai-composer__row">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                sendMessage(input)
-              }
-            }}
-            placeholder={t('ai.inputGeneral')}
-            disabled={loading}
-            className="ai-composer__input"
-          />
-          <button
-            onClick={() => sendMessage(input)}
-            disabled={loading || !input.trim()}
-            className="ai-composer__send"
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
+        <div className="ai-composer__dock">
+          {!voicePrivacySeen && (
+            <div className="ai-voice-notice">{t('ai.voice.privacyNotice')}</div>
+          )}
+          {(recording ||
+            voiceStatus === 'requesting' ||
+            voiceStatus === 'uploading' ||
+            voiceStatus === 'transcribing') && (
+            <div className="ai-voice-panel">
+              <div className="ai-voice-panel__top">
+                <span className="ai-voice-panel__pulse" />
+                <span className="ai-voice-panel__label">
+                  {recording ? t('ai.voice.recordingShort') : t('ai.voice.transcribing')}
+                </span>
+                <span className="ai-voice-panel__time">{formatVoiceTime(voiceElapsedMs)}</span>
+              </div>
+              <div className="ai-voice-wave" aria-hidden="true">
+                {Array.from({ length: 12 }, (_, index) => (
+                  <span
+                    key={index}
+                    className={`ai-voice-wave__bar${index < voiceMeterLevel ? ' is-active' : ''}`}
+                  />
+                ))}
+              </div>
+              {voiceDraft && <div className="ai-voice-draft">{voiceDraft}</div>}
+            </div>
+          )}
+          {(voiceStatus !== 'idle' || voiceError) && !recording && voiceStatus !== 'requesting' && (
+            <div
+              className={`ai-voice-status ai-voice-status--${voiceError ? 'error' : voiceStatus}`}
             >
-              <path d="M12 19V5M5 12l7-7 7 7" />
-            </svg>
-          </button>
+              {voiceError
+                ? getVoiceErrorText(voiceError)
+                : voiceStatus === 'inserted'
+                  ? t('ai.voice.inserted')
+                  : voiceStatus === 'transcribing' || voiceStatus === 'uploading'
+                    ? t('ai.voice.transcribing')
+                    : ''}
+            </div>
+          )}
+          <div className="ai-composer__row">
+            <button
+              type="button"
+              onClick={recording ? stopVoiceRecording : startVoiceRecording}
+              disabled={loading || voiceStatus === 'transcribing' || voiceStatus === 'uploading'}
+              className={`ai-voice-button${recording ? ' is-recording' : ''}`}
+              aria-label={t(recording ? 'ai.voice.stop' : 'ai.voice.start')}
+              title={t(recording ? 'ai.voice.stop' : 'ai.voice.start')}
+            >
+              <span className="material-symbols-outlined ai-voice-button__icon">
+                {recording ? 'stop' : 'mic'}
+              </span>
+            </button>
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  sendMessage(input)
+                }
+              }}
+              placeholder={t('ai.inputGeneral')}
+              disabled={loading}
+              className="ai-composer__input"
+            />
+            <button
+              onClick={() => sendMessage(input)}
+              disabled={loading || !input.trim()}
+              className="ai-composer__send"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              >
+                <path d="M12 19V5M5 12l7-7 7 7" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>

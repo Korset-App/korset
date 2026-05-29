@@ -29,3 +29,83 @@ test('AIAssistantScreen empty state has a dedicated atmosphere shell', () => {
   assert.match(styles, /\.ai-screen::after\s*{[\s\S]*radial-gradient/)
   assert.match(styles, /\.ai-empty-panel\s*{[\s\S]*backdrop-filter:\s*blur\(/)
 })
+
+test('AIAssistantScreen renders capability cards from the shared model', () => {
+  assert.match(source, /import \{ GENERAL_AI_CAPABILITIES \} from '\.\.\/domain\/ai\/generalCapabilities\.js'/)
+  assert.match(source, /GENERAL_AI_CAPABILITIES\.map\(\(capability\)/)
+  assert.match(source, /className="ai-capability-carousel"/)
+  assert.match(source, /className="ai-capability-card"/)
+  assert.match(source, /t\(capability\.titleKey\)/)
+  assert.match(source, /t\(capability\.descriptionKey\)/)
+  assert.match(source, /sendMessage\(t\(capability\.promptKey\)\)/)
+  assert.match(styles, /\.ai-capability-carousel\s*{[\s\S]*grid-auto-flow:\s*column;/)
+  assert.match(styles, /\.ai-capability-carousel\s*{[\s\S]*grid-template-rows:\s*repeat\(2,/)
+  assert.match(styles, /\.ai-capability-card\s*{[\s\S]*min-height:/)
+})
+
+test('AIAssistantScreen composer has a premium glass dock without image controls', () => {
+  assert.match(source, /className="ai-composer__dock"/)
+  assert.equal(source.includes('photo_camera'), false)
+  assert.equal(source.includes('attach_file'), false)
+  assert.match(styles, /\.ai-composer\s*{[\s\S]*backdrop-filter:\s*blur\(/)
+  assert.match(styles, /\.ai-composer__dock\s*{[\s\S]*backdrop-filter:\s*blur\(/)
+  assert.match(styles, /\.ai-composer__dock\s*{[\s\S]*border-radius:/)
+  assert.match(styles, /\.ai-composer__input\s*{[\s\S]*background:\s*transparent;/)
+  assert.match(styles, /\.ai-composer__send:not\(:disabled\):active\s*{[\s\S]*transform:/)
+})
+
+test('AIAssistantScreen active chat state has polished resilient message styling', () => {
+  assert.match(styles, /\.ai-message-row--assistant\s*{[\s\S]*align-items:\s*flex-start;/)
+  assert.match(styles, /\.ai-bubble--assistant\s*{[\s\S]*backdrop-filter:\s*blur\(/)
+  assert.match(styles, /\.ai-bubble--assistant\s*{[\s\S]*overflow-wrap:\s*anywhere;/)
+  assert.match(styles, /\.ai-bubble--user\s*{[\s\S]*linear-gradient/)
+  assert.match(styles, /\.ai-product-card\s*{[\s\S]*backdrop-filter:\s*blur\(/)
+  assert.match(styles, /\.ai-product-card:active\s*{[\s\S]*transform:/)
+  assert.match(styles, /\.ai-follow-up-chip\s*{[\s\S]*transition:/)
+  assert.match(styles, /\.ai-typing__bubble\s*{[\s\S]*backdrop-filter:\s*blur\(/)
+})
+
+test('AIAssistantScreen activates local-only history UI from the IndexedDB store', () => {
+  assert.match(
+    source,
+    /import \{ createIndexedDBAIChatHistoryStore \} from '\.\.\/domain\/ai\/localChatHistory\.js'/
+  )
+  assert.match(source, /const \[historyOpen, setHistoryOpen\] = useState\(false\)/)
+  assert.match(source, /const \[historyItems, setHistoryItems\] = useState\(\[\]\)/)
+  assert.match(source, /const \[messagesStoreSlug, setMessagesStoreSlug\] = useState\(activeStoreSlug\)/)
+  assert.match(source, /if \(messagesStoreSlug !== activeStoreSlug\) return undefined/)
+  assert.match(source, /historyStoreRef\.current\s*\.upsertConversation\(/)
+  assert.match(source, /historyStoreRef\.current\s*\.listConversations\(activeStoreSlug\)/)
+  assert.match(source, /historyStoreRef\.current\s*\.getConversation\(id\)/)
+  assert.match(source, /historyStoreRef\.current\s*\.deleteConversation\(id\)/)
+  assert.match(source, /historyStoreRef\.current\s*\.clearStoreConversations\(activeStoreSlug\)/)
+})
+
+test('AIAssistantScreen history bottom sheet supports new, open, delete, clear, and empty states', () => {
+  assert.match(source, /aria-label=\{t\('ai\.history\.open'\)\}/)
+  assert.match(source, /className="ai-history-sheet"/)
+  assert.match(source, /t\('ai\.history\.newChat'\)/)
+  assert.match(source, /t\('ai\.history\.emptyTitle'\)/)
+  assert.match(source, /openConversation\(item\.id\)/)
+  assert.match(source, /requestDeleteConversation\(item\.id\)/)
+  assert.match(source, /confirmDeleteConversation\(item\.id\)/)
+  assert.match(source, /onClick=\{confirmClearStoreHistory\}/)
+  assert.match(styles, /\.ai-history-backdrop\s*{[\s\S]*position:\s*fixed;/)
+  assert.match(styles, /\.ai-history-sheet\s*{[\s\S]*backdrop-filter:\s*blur\(/)
+  assert.match(styles, /\.ai-history-item\s*{[\s\S]*border:/)
+  assert.match(styles, /\.ai-history-danger\s*{[\s\S]*color:/)
+})
+
+test('AIAssistantScreen voice-to-text inserts transcription into composer without auto-send', () => {
+  assert.match(source, /import \{ askGeneralAI, transcribeVoiceInput \} from '\.\.\/services\/ai\.js'/)
+  assert.match(source, /navigator\.mediaDevices\.getUserMedia\(\{ audio: true \}\)/)
+  assert.match(source, /new MediaRecorder\(stream, recorderOptions\)/)
+  assert.match(source, /transcribeVoiceInput\(/)
+  assert.match(source, /setInput\(transcription\.text\)/)
+  assert.doesNotMatch(source, /sendMessage\(transcription\.text\)/)
+  assert.match(source, /t\('ai\.voice\.privacyNotice'\)/)
+  assert.match(source, /aria-label=\{t\(recording \? 'ai\.voice\.stop' : 'ai\.voice\.start'\)\}/)
+  assert.match(source, /className=\{`ai-voice-button\$\{recording \? ' is-recording' : ''\}`\}/)
+  assert.match(styles, /\.ai-voice-button\s*{[\s\S]*border:/)
+  assert.match(styles, /\.ai-voice-status\s*{[\s\S]*font-size:/)
+})

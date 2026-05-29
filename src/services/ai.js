@@ -1,7 +1,10 @@
+/* global FormData */
 import { normalizeAIResponse } from '../domain/ai/responseShape.js'
 
 const AI_ENDPOINT = '/api/ai'
+const AI_TRANSCRIBE_ENDPOINT = '/api/ai-transcribe'
 const REQUEST_TIMEOUT_MS = 25000
+const TRANSCRIBE_TIMEOUT_MS = 30000
 
 function compactProduct(product = {}) {
   return {
@@ -111,6 +114,47 @@ export async function enrichProductAI(product) {
     return JSON.parse(cleaned)
   } catch {
     return null
+  }
+}
+
+export async function transcribeVoiceInput({
+  audioBlob,
+  lang = 'auto',
+  storeSlug = '',
+  durationMs = null,
+}) {
+  if (!audioBlob) throw new Error('audio_empty')
+
+  const form = new FormData()
+  const extension = audioBlob.type?.includes('mp4') ? 'm4a' : 'webm'
+  form.append('audio', audioBlob, `voice.${extension}`)
+  form.append('lang', lang)
+  form.append('storeSlug', storeSlug || '')
+  if (durationMs != null) form.append('durationMs', String(Math.round(Number(durationMs))))
+
+  const signal =
+    typeof globalThis.AbortSignal?.timeout === 'function'
+      ? globalThis.AbortSignal.timeout(TRANSCRIBE_TIMEOUT_MS)
+      : undefined
+
+  const res = await fetch(AI_TRANSCRIBE_ENDPOINT, {
+    method: 'POST',
+    body: form,
+    signal,
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || `HTTP ${res.status}`)
+  }
+
+  const data = await res.json()
+  const text = typeof data.text === 'string' ? data.text.trim() : ''
+  if (!text) throw new Error('empty_transcription')
+  return {
+    text,
+    language: data.language || lang,
+    durationMs: Number.isFinite(Number(data.durationMs)) ? Number(data.durationMs) : durationMs,
   }
 }
 

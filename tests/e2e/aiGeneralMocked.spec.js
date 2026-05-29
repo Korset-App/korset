@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test'
 
+/* global Blob, window, navigator */
+
 test.describe('general AI mocked smoke', () => {
   test('renders assistant reply, product cards, and follow-up chips without real AI calls', async ({
     page,
@@ -74,5 +76,79 @@ test.describe('general AI mocked smoke', () => {
       role: 'user',
       content: 'Показать дешевле',
     })
+  })
+
+  test('voice-to-text inserts transcript into composer without auto-sending', async ({ page }) => {
+    const aiCalls = []
+    const transcriptionCalls = []
+
+    await page.addInitScript(() => {
+      class MockMediaRecorder {
+        constructor(stream, options = {}) {
+          this.stream = stream
+          this.mimeType = options.mimeType || 'audio/webm'
+          this.state = 'inactive'
+          this.ondataavailable = null
+          this.onstop = null
+        }
+
+        start() {
+          this.state = 'recording'
+        }
+
+        stop() {
+          this.state = 'inactive'
+          this.ondataavailable?.({ data: new Blob(['voice'], { type: this.mimeType }) })
+          this.onstop?.()
+        }
+
+        static isTypeSupported(type) {
+          return type === 'audio/webm;codecs=opus' || type === 'audio/webm'
+        }
+      }
+
+      Object.defineProperty(window, 'MediaRecorder', {
+        configurable: true,
+        writable: true,
+        value: MockMediaRecorder,
+      })
+      Object.defineProperty(navigator, 'mediaDevices', {
+        configurable: true,
+        value: {
+        getUserMedia: async () => ({
+          getTracks: () => [{ stop() {} }],
+        }),
+        },
+      })
+    })
+
+    await page.route('**/api/ai-transcribe', async (route) => {
+      transcriptionCalls.push(route.request().postDataBuffer())
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ text: 'Покажи халал сладости', language: 'ru', durationMs: 1200 }),
+      })
+    })
+
+    await page.route('**/api/ai', async (route) => {
+      aiCalls.push(route.request().postDataJSON())
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ reply: 'ok', productGroups: [], followUps: [], warnings: [] }),
+      })
+    })
+
+    await page.goto('/s/store-one/ai', { waitUntil: 'domcontentloaded' })
+    const input = page.getByPlaceholder('Спросить про товары...')
+
+    await page.getByLabel('Записать голосовой вопрос').click()
+    await page.waitForTimeout(900)
+    await page.getByLabel('Остановить запись').click()
+
+    await expect(input).toHaveValue('Покажи халал сладости')
+    expect(transcriptionCalls).toHaveLength(1)
+    expect(aiCalls).toHaveLength(0)
   })
 })

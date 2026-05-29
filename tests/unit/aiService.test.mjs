@@ -1,7 +1,15 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { Blob } from 'node:buffer'
 
-import { askGeneralAI, askProductAI, askProductAIResponse } from '../../src/services/ai.js'
+/* global FormData */
+
+import {
+  askGeneralAI,
+  askProductAI,
+  askProductAIResponse,
+  transcribeVoiceInput,
+} from '../../src/services/ai.js'
 
 test('askProductAI sends store product facts and same-store alternatives', async () => {
   const originalFetch = globalThis.fetch
@@ -143,6 +151,73 @@ test('askProductAIResponse normalizes premium product response without breaking 
     assert.deepEqual(structured.checkOnPackage, ['Состав'])
     assert.equal(structured.alternatives[0].ean, '2')
     assert.equal(legacy, 'По данным карточки лучше проверить упаковку.')
+  } finally {
+    globalThis.fetch = originalFetch
+    globalThis.AbortSignal = originalAbortSignal
+  }
+})
+
+test('transcribeVoiceInput sends audio as multipart and returns text without auto-sending chat', async () => {
+  const originalFetch = globalThis.fetch
+  const originalAbortSignal = globalThis.AbortSignal
+  const calls = []
+
+  globalThis.AbortSignal = { timeout: () => undefined }
+  globalThis.fetch = async (url, options) => {
+    calls.push({ url, options })
+    return {
+      ok: true,
+      json: async () => ({ text: 'Покажи халал сладости', language: 'ru', durationMs: 1400 }),
+    }
+  }
+
+  try {
+    const response = await transcribeVoiceInput({
+      audioBlob: new Blob(['voice'], { type: 'audio/webm' }),
+      lang: 'ru',
+      storeSlug: 'mars',
+      durationMs: 1400,
+    })
+
+    assert.deepEqual(response, {
+      text: 'Покажи халал сладости',
+      language: 'ru',
+      durationMs: 1400,
+    })
+  } finally {
+    globalThis.fetch = originalFetch
+    globalThis.AbortSignal = originalAbortSignal
+  }
+
+  assert.equal(calls.length, 1)
+  assert.equal(calls[0].url, '/api/ai-transcribe')
+  assert.equal(calls[0].options.method, 'POST')
+  assert.ok(calls[0].options.body instanceof FormData)
+  assert.equal(calls[0].options.headers, undefined)
+})
+
+test('transcribeVoiceInput surfaces server error codes', async () => {
+  const originalFetch = globalThis.fetch
+  const originalAbortSignal = globalThis.AbortSignal
+
+  globalThis.AbortSignal = { timeout: () => undefined }
+  globalThis.fetch = async () => ({
+    ok: false,
+    status: 400,
+    json: async () => ({ error: 'audio_too_long' }),
+  })
+
+  try {
+    await assert.rejects(
+      () =>
+        transcribeVoiceInput({
+          audioBlob: new Blob(['voice'], { type: 'audio/webm' }),
+          lang: 'ru',
+          storeSlug: 'mars',
+          durationMs: 21_000,
+        }),
+      /audio_too_long/
+    )
   } finally {
     globalThis.fetch = originalFetch
     globalThis.AbortSignal = originalAbortSignal
