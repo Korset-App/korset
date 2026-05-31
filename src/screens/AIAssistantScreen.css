@@ -24,10 +24,10 @@
   overflow: hidden;
   padding: calc(13px + env(safe-area-inset-top, 0px)) 18px 13px;
   border-bottom: 1px solid color-mix(in srgb, var(--glass-soft-border) 82%, transparent);
-  background: color-mix(in srgb, var(--bg-app) 38%, transparent);
-  box-shadow: 0 8px 20px color-mix(in srgb, var(--bg-app) 10%, transparent);
-  backdrop-filter: blur(24px) saturate(1.8);
-  -webkit-backdrop-filter: blur(24px) saturate(1.8);
+  background: color-mix(in srgb, var(--bg-app) 26%, transparent);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--bg-app) 8%, transparent);
+  backdrop-filter: blur(28px) saturate(1.9);
+  -webkit-backdrop-filter: blur(28px) saturate(1.9);
 }
 
 .ai-header::after {
@@ -119,6 +119,10 @@
   -webkit-backdrop-filter: blur(6px) saturate(1.06);
 }
 
+body.ai-history-open .bottom-nav {
+  display: none;
+}
+
 .ai-history-sheet {
   position: fixed;
   bottom: 0;
@@ -127,9 +131,8 @@
   z-index: 121;
   display: flex;
   flex-direction: column;
-  max-height: 85dvh;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  max-height: 90dvh;
+  overflow: hidden;
   border-top: 1px solid color-mix(in srgb, var(--glass-soft-border) 84%, var(--primary-bright) 14%);
   border-radius: 24px 24px 0 0;
   background: var(--bg-card);
@@ -257,10 +260,11 @@
 .ai-history-list {
   display: grid;
   gap: 10px;
-  max-height: min(48dvh, 380px);
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 0 18px 18px;
+  padding: 0 18px calc(18px + env(safe-area-inset-bottom));
 }
 
 .ai-history-empty {
@@ -515,7 +519,7 @@
 .ai-capability-card--aqua {
   --cap: #1fa0c0;
   --cap-dim: rgba(18, 107, 145, 0.10);
-  --cap-border: rgba(31, 160, 192, 0.24);
+  --cap-border: rgba(31, 160, 192, 0.22);
   border-color: var(--cap-border);
   background: var(--cap-dim);
 }
@@ -526,38 +530,38 @@
   color: var(--cap);
 }
 
-.ai-capability-card--coral {
-  --cap: #e36555;
-  --cap-dim: rgba(188, 61, 66, 0.10);
-  --cap-border: rgba(227, 101, 85, 0.24);
+.ai-capability-card--citrus {
+  --cap: #d4a017;
+  --cap-dim: rgba(175, 126, 15, 0.10);
+  --cap-border: rgba(224, 190, 47, 0.22);
   border-color: var(--cap-border);
   background: var(--cap-dim);
 }
 
-.ai-capability-card--coral .ai-capability-card__icon {
-  border-color: rgba(227, 101, 85, 0.30);
-  background: rgba(227, 101, 85, 0.14);
+.ai-capability-card--citrus .ai-capability-card__icon {
+  border-color: rgba(224, 190, 47, 0.30);
+  background: rgba(224, 190, 47, 0.14);
   color: var(--cap);
 }
 
-.ai-capability-card--plum {
-  --cap: #8425bd;
-  --cap-dim: rgba(75, 20, 124, 0.10);
-  --cap-border: rgba(132, 37, 189, 0.24);
+.ai-capability-card--mint {
+  --cap: #28bcb0;
+  --cap-dim: rgba(21, 139, 129, 0.10);
+  --cap-border: rgba(40, 188, 176, 0.22);
   border-color: var(--cap-border);
   background: var(--cap-dim);
 }
 
-.ai-capability-card--plum .ai-capability-card__icon {
-  border-color: rgba(132, 37, 189, 0.30);
-  background: rgba(132, 37, 189, 0.14);
+.ai-capability-card--mint .ai-capability-card__icon {
+  border-color: rgba(40, 188, 176, 0.30);
+  background: rgba(40, 188, 176, 0.14);
   color: var(--cap);
 }
 
 .ai-capability-card--leaf {
   --cap: #47b968;
   --cap-dim: rgba(90, 175, 66, 0.10);
-  --cap-border: rgba(71, 185, 104, 0.24);
+  --cap-border: rgba(71, 185, 104, 0.22);
   border-color: var(--cap-border);
   background: var(--cap-dim);
 }

@@ -304,6 +304,20 @@ export default function AIAssistantScreen() {
   }, [activeConversationId, activeStoreSlug, chatKey, historyOpen, messages, messagesStoreSlug])
 
   useEffect(() => {
+    if (historyOpen) {
+      document.body.classList.add('ai-history-open')
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.classList.remove('ai-history-open')
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.classList.remove('ai-history-open')
+      document.body.style.overflow = ''
+    }
+  }, [historyOpen])
+
+  useEffect(() => {
     if (!historyOpen || !historyStoreRef.current) return undefined
 
     let cancelled = false
