@@ -7,11 +7,11 @@ import { GENERAL_AI_CAPABILITIES } from '../../src/domain/ai/generalCapabilities
 const ru = JSON.parse(readFileSync('src/locales/ru/ai.json', 'utf8'))
 const kz = JSON.parse(readFileSync('src/locales/kz/ai.json', 'utf8'))
 
-test('general AI capabilities expose exactly six high-value store assistant actions', () => {
-  assert.equal(GENERAL_AI_CAPABILITIES.length, 6)
+test('general AI capabilities expose exactly four high-value store assistant actions', () => {
+  assert.equal(GENERAL_AI_CAPABILITIES.length, 4)
   assert.deepEqual(
     GENERAL_AI_CAPABILITIES.map((item) => item.id),
-    ['find_product', 'pick_alternative', 'explain_composition', 'build_shopping_list', 'fit_check', 'budget_pick']
+    ['find_product', 'budget_pick', 'explain_composition', 'build_shopping_list']
   )
 })
 

@@ -1,8 +1,9 @@
-/* global MediaRecorder, Blob */
+/* global MediaRecorder, Blob, ResizeObserver */
 import { useState, useRef, useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/index.js'
 import KorsetAvatar from '../components/KorsetAvatar.jsx'
+import { HistoryIcon } from '../components/icons/HistoryIcon.jsx'
 import { askGeneralAI, askPackageImageAI, transcribeVoiceInput } from '../services/ai.js'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { useProfile } from '../contexts/ProfileContext.jsx'
@@ -28,6 +29,7 @@ import { buildProductPath } from '../utils/routes.js'
 import './AIAssistantScreen.css'
 
 const VOICE_PRIVACY_KEY = 'korset_ai_voice_privacy_seen'
+const DEFAULT_AI_LAYOUT_METRICS = { composerHeight: 96, bottomNavHeight: 76 }
 
 function formatHistoryDate(value, lang) {
   const date = new Date(value)
@@ -185,7 +187,9 @@ export default function AIAssistantScreen() {
     if (typeof window === 'undefined') return false
     return window.localStorage.getItem(VOICE_PRIVACY_KEY) === 'true'
   })
+  const screenRef = useRef(null)
   const bottomRef = useRef(null)
+  const composerRef = useRef(null)
   const composerInputRef = useRef(null)
   const cameraInputRef = useRef(null)
   const galleryInputRef = useRef(null)
@@ -205,6 +209,14 @@ export default function AIAssistantScreen() {
   const voiceProcessing = voiceStatus === 'uploading' || voiceStatus === 'transcribing'
   const voiceMeterLevel = Math.max(1, Math.ceil(voiceLevel * 12))
   const imageAccept = AI_IMAGE_INPUT_LIMITS.acceptedMimeTypes.join(',')
+  const composerExpanded =
+    input.length > 72 ||
+    input.includes('\n') ||
+    Boolean(selectedImage) ||
+    Boolean(imageError) ||
+    imagePickerOpen ||
+    recording ||
+    voiceStatus !== 'idle'
 
   useEffect(() => {
     if (!historyStoreRef.current && typeof window !== 'undefined' && window.indexedDB) {
@@ -217,10 +229,44 @@ export default function AIAssistantScreen() {
   }, [messages, loading])
 
   useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+
+    const updateLayoutMetrics = () => {
+      const composerHeight = Math.ceil(
+        composerRef.current?.getBoundingClientRect().height ||
+          DEFAULT_AI_LAYOUT_METRICS.composerHeight
+      )
+      const bottomNav = document.querySelector('.bottom-nav')
+      const bottomNavHeight = Math.ceil(
+        bottomNav?.getBoundingClientRect().height || DEFAULT_AI_LAYOUT_METRICS.bottomNavHeight
+      )
+
+      screenRef.current?.style.setProperty('--ai-composer-space', `${composerHeight}px`)
+      screenRef.current?.style.setProperty('--ai-bottom-nav-space', `${bottomNavHeight}px`)
+    }
+
+    updateLayoutMetrics()
+    const resizeObserver =
+      typeof ResizeObserver !== 'undefined' ? new ResizeObserver(updateLayoutMetrics) : null
+    const bottomNav = document.querySelector('.bottom-nav')
+
+    if (resizeObserver) {
+      if (composerRef.current) resizeObserver.observe(composerRef.current)
+      if (bottomNav) resizeObserver.observe(bottomNav)
+    }
+
+    window.addEventListener('resize', updateLayoutMetrics)
+    return () => {
+      resizeObserver?.disconnect()
+      window.removeEventListener('resize', updateLayoutMetrics)
+    }
+  }, [])
+
+  useEffect(() => {
     const inputElement = composerInputRef.current
     if (!inputElement) return
     inputElement.style.height = 'auto'
-    inputElement.style.height = `${Math.min(inputElement.scrollHeight, 132)}px`
+    inputElement.style.height = `${Math.min(inputElement.scrollHeight, 118)}px`
   }, [input])
 
   useEffect(() => {
@@ -656,7 +702,7 @@ export default function AIAssistantScreen() {
   }
 
   return (
-    <div className="ai-screen">
+    <div ref={screenRef} className="ai-screen">
       <div className="ai-header">
         <KorsetAvatar size={40} />
         <div className="ai-header__identity">
@@ -675,7 +721,7 @@ export default function AIAssistantScreen() {
             aria-label={t('ai.history.open')}
             title={t('ai.history.open')}
           >
-            <span className="material-symbols-outlined ai-icon-button__icon">history</span>
+            <HistoryIcon size={22} />
           </button>
           {visibleMessages.length > 0 && (
             <button
@@ -843,9 +889,6 @@ export default function AIAssistantScreen() {
                       {t(capability.descriptionKey)}
                     </span>
                   </span>
-                  <span className="material-symbols-outlined ai-capability-card__chevron">
-                    chevron_right
-                  </span>
                 </button>
               ))}
             </div>
@@ -898,8 +941,8 @@ export default function AIAssistantScreen() {
         )}
         <div ref={bottomRef} />
       </div>
-      <div className="ai-composer">
-        <div className="ai-composer__dock">
+      <div ref={composerRef} className="ai-composer">
+        <div className={`ai-composer__dock${composerExpanded ? ' is-expanded' : ''}`}>
           {!voicePrivacySeen && (
             <div className="ai-voice-notice">{t('ai.voice.privacyNotice')}</div>
           )}
@@ -1021,38 +1064,6 @@ export default function AIAssistantScreen() {
             </div>
           )}
           <div className="ai-composer__row">
-            <button
-              type="button"
-              onClick={() => setImagePickerOpen((current) => !current)}
-              disabled={loading}
-              className={`ai-image-button${selectedImage ? ' has-image' : ''}`}
-              aria-label={t('ai.image.open')}
-              title={t('ai.image.open')}
-            >
-              <span className="material-symbols-outlined ai-image-button__icon">
-                add_photo_alternate
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={recording ? stopVoiceRecording : startVoiceRecording}
-              disabled={loading || voiceProcessing}
-              className={`ai-voice-button${recording ? ' is-recording' : ''}${voiceProcessing ? ' is-processing' : ''}`}
-              aria-label={
-                voiceProcessing
-                  ? getVoicePanelLabel()
-                  : t(recording ? 'ai.voice.stop' : 'ai.voice.start')
-              }
-              title={
-                voiceProcessing
-                  ? getVoicePanelLabel()
-                  : t(recording ? 'ai.voice.stop' : 'ai.voice.start')
-              }
-            >
-              <span className="material-symbols-outlined ai-voice-button__icon">
-                {voiceProcessing ? 'progress_activity' : recording ? 'stop' : 'mic'}
-              </span>
-            </button>
             <textarea
               ref={composerInputRef}
               value={input}
@@ -1068,7 +1079,42 @@ export default function AIAssistantScreen() {
               rows={1}
               className="ai-composer__input"
             />
+            <div className="ai-composer__tools">
+              <button
+                type="button"
+                onClick={() => setImagePickerOpen((current) => !current)}
+                disabled={loading}
+                className={`ai-image-button${selectedImage ? ' has-image' : ''}`}
+                aria-label={t('ai.image.open')}
+                title={t('ai.image.open')}
+              >
+                <span className="material-symbols-outlined ai-image-button__icon">
+                  add_photo_alternate
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={recording ? stopVoiceRecording : startVoiceRecording}
+                disabled={loading || voiceProcessing}
+                className={`ai-voice-button${recording ? ' is-recording' : ''}${voiceProcessing ? ' is-processing' : ''}`}
+                aria-label={
+                  voiceProcessing
+                    ? getVoicePanelLabel()
+                    : t(recording ? 'ai.voice.stop' : 'ai.voice.start')
+                }
+                title={
+                  voiceProcessing
+                    ? getVoicePanelLabel()
+                    : t(recording ? 'ai.voice.stop' : 'ai.voice.start')
+                }
+              >
+                <span className="material-symbols-outlined ai-voice-button__icon">
+                  {voiceProcessing ? 'progress_activity' : recording ? 'stop' : 'mic'}
+                </span>
+              </button>
+            </div>
             <button
+              type="button"
               onClick={() => sendMessage(input, { image: selectedImage })}
               disabled={loading || (!input.trim() && !selectedImage)}
               className="ai-composer__send"

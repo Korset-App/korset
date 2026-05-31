@@ -17,17 +17,17 @@ test('AIAssistantScreen header has a real sticky glass foundation', () => {
   assert.match(styles, /\.ai-header\s*{[\s\S]*backdrop-filter:\s*blur\(/)
   assert.match(styles, /\.ai-header\s*{[\s\S]*-webkit-backdrop-filter:\s*blur\(/)
   assert.match(styles, /\.ai-header\s*{[\s\S]*env\(safe-area-inset-top/)
-  assert.match(styles, /\.ai-header::after\s*{[\s\S]*content:\s*'';/)
+  assert.match(styles, /\.ai-header::after\s*{[\s\S]*content:\s*none;/)
 })
 
-test('AIAssistantScreen empty state has a dedicated atmosphere shell', () => {
+test('AIAssistantScreen empty state has a minimal scenario prompt shell', () => {
   assert.match(source, /className="ai-empty-state"/)
   assert.match(source, /t\('ai\.empty\.eyebrow'\)/)
   assert.match(source, /t\('ai\.empty\.title'\)/)
   assert.match(source, /t\('ai\.empty\.description'/)
-  assert.match(styles, /\.ai-screen::before\s*{[\s\S]*radial-gradient/)
-  assert.match(styles, /\.ai-screen::after\s*{[\s\S]*radial-gradient/)
-  assert.match(styles, /\.ai-empty-panel\s*{[\s\S]*backdrop-filter:\s*blur\(/)
+  assert.match(styles, /\.ai-screen::before,[\s\S]*\.ai-screen::after\s*{[\s\S]*content:\s*none;/)
+  assert.match(styles, /\.ai-empty-panel\s*{[\s\S]*background:\s*transparent;/)
+  assert.match(styles, /\.ai-empty-panel\s*{[\s\S]*box-shadow:\s*none;/)
 })
 
 test('AIAssistantScreen renders capability cards from the shared model', () => {
@@ -41,13 +41,13 @@ test('AIAssistantScreen renders capability cards from the shared model', () => {
   assert.match(source, /t\(capability\.titleKey\)/)
   assert.match(source, /t\(capability\.descriptionKey\)/)
   assert.match(source, /sendMessage\(t\(capability\.promptKey\)\)/)
-  assert.match(styles, /\.ai-capability-carousel\s*{[\s\S]*grid-auto-flow:\s*column;/)
-  assert.match(styles, /\.ai-capability-carousel\s*{[\s\S]*grid-template-rows:\s*repeat\(2,/)
+  assert.match(styles, /\.ai-capability-carousel\s*{[\s\S]*grid-template-columns:\s*repeat\(2,/)
+  assert.match(styles, /\.ai-capability-carousel\s*{[\s\S]*overflow:\s*visible;/)
   assert.match(styles, /\.ai-capability-card\s*{[\s\S]*min-height:/)
 })
 
-test('AIAssistantScreen composer has a premium glass dock with voice and package image controls', () => {
-  assert.match(source, /className="ai-composer__dock"/)
+test('AIAssistantScreen composer has a responsive premium dock with voice and package image controls', () => {
+  assert.match(source, /className=\{`ai-composer__dock\$\{composerExpanded \? ' is-expanded' : ''\}`\}/)
   assert.equal(source.includes('attach_file'), false)
   assert.match(source, /askPackageImageAI/)
   assert.match(source, /prepareAIImageFile/)
@@ -56,9 +56,12 @@ test('AIAssistantScreen composer has a premium glass dock with voice and package
   assert.match(source, /aria-label=\{t\('ai\.image\.open'\)\}/)
   assert.match(source, /className="ai-image-preview"/)
   assert.match(source, /setSelectedImage\(null\)/)
+  assert.match(source, /ResizeObserver/)
+  assert.match(styles, /\.ai-scroll\s*{[\s\S]*--ai-composer-space/)
+  assert.match(styles, /\.ai-composer\s*{[\s\S]*bottom:\s*var\(--ai-bottom-nav-space/)
   assert.match(styles, /\.ai-composer\s*{[\s\S]*backdrop-filter:\s*blur\(/)
-  assert.match(styles, /\.ai-composer__dock\s*{[\s\S]*backdrop-filter:\s*blur\(/)
   assert.match(styles, /\.ai-composer__dock\s*{[\s\S]*border-radius:/)
+  assert.match(styles, /\.ai-composer__dock\.is-expanded \.ai-composer__row\s*{[\s\S]*grid-template-areas:/)
   assert.match(styles, /\.ai-composer__input\s*{[\s\S]*background:\s*transparent;/)
   assert.match(styles, /\.ai-composer__input\s*{[\s\S]*resize:\s*none;/)
   assert.match(styles, /\.ai-composer__input\s*{[\s\S]*max-height:/)

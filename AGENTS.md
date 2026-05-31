@@ -109,6 +109,7 @@ The user may work in Codex, OpenCode, Windsurf, Antigravity, and Claude-like too
 - Support both dark and light themes.
 - Use existing CSS variables for text, backgrounds, borders, glass surfaces, and brand colors.
 - Do not hardcode `#fff`, `#000`, or raw white/black transparent backgrounds for core UI surfaces or text.
+- Do not use gradient-filled text for core UI typography, titles, labels, or navigation. Keep text solid and readable; reserve gradients for rare decorative/background surfaces only when explicitly needed.
 - New user-facing text must use `useI18n` with RU and KZ coverage.
 - Avatars must use `<ProfileAvatar />`.
 - Use high-quality SVG or existing icon patterns. Material Symbols are acceptable for simple system icons when consistent with the current UI.
