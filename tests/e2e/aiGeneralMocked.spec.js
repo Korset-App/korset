@@ -1,6 +1,12 @@
 import { test, expect } from '@playwright/test'
+import { Buffer } from 'node:buffer'
 
 /* global Blob, window, navigator */
+
+const packagePng = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=',
+  'base64'
+)
 
 test.describe('general AI mocked smoke', () => {
   test('renders assistant reply, product cards, and follow-up chips without real AI calls', async ({
@@ -143,6 +149,7 @@ test.describe('general AI mocked smoke', () => {
 
     await page.goto('/s/store-one/ai', { waitUntil: 'domcontentloaded' })
     const input = page.getByPlaceholder('Спросить про товары...')
+    await input.fill('У меня аллергия на арахис')
 
     await page.getByLabel('Записать голосовой вопрос').click()
     await page.waitForTimeout(900)
@@ -151,9 +158,125 @@ test.describe('general AI mocked smoke', () => {
     await expect(page.locator('.ai-voice-panel--processing')).toBeVisible()
     await expect(page.locator('.ai-voice-button.is-processing')).toBeVisible()
 
-    await expect(input).toHaveValue('Покажи халал сладости')
+    await expect(input).toHaveValue('У меня аллергия на арахис Покажи халал сладости')
     expect(transcriptionCalls).toHaveLength(1)
     expect(aiCalls).toHaveLength(0)
+  })
+
+  test('composer textarea grows for long dictated or typed text', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/s/store-one/ai', { waitUntil: 'domcontentloaded' })
+    const input = page.getByPlaceholder('Спросить про товары...')
+    const initialHeight = await input.evaluate((element) => element.getBoundingClientRect().height)
+
+    await input.fill(
+      'Покажи продукты без сахара и без молока, которые подойдут ребенку, и отдельно объясни, какие из них есть в этом магазине прямо сейчас.'
+    )
+
+    await expect
+      .poll(() => input.evaluate((element) => element.getBoundingClientRect().height))
+      .toBeGreaterThan(initialHeight + 12)
+  })
+
+  test('image input supports gallery preview, remove, manual send, and no local image persistence', async ({
+    page,
+  }) => {
+    const textAiCalls = []
+    const imageAiCalls = []
+
+    await page.route('**/api/ai', async (route) => {
+      textAiCalls.push(route.request().postDataJSON())
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ reply: 'text ok', productGroups: [], followUps: [], warnings: [] }),
+      })
+    })
+
+    await page.route('**/api/ai-image', async (route) => {
+      imageAiCalls.push(route.request().postDataJSON())
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          reply: 'По фото упаковки вижу состав. Проверьте упаковку перед покупкой.',
+          productGroups: [],
+          followUps: [],
+          warnings: [],
+        }),
+      })
+    })
+
+    await page.goto('/s/store-one/ai', { waitUntil: 'domcontentloaded' })
+
+    await page.getByLabel('Добавить фото упаковки').click()
+    await expect(page.getByText('Снять фото')).toBeVisible()
+    await expect(page.getByText('Выбрать из галереи')).toBeVisible()
+
+    await page.setInputFiles('[data-testid="ai-image-gallery-input"]', {
+      name: 'package.png',
+      mimeType: 'image/png',
+      buffer: packagePng,
+    })
+
+    await expect(page.getByText('Фото упаковки готово')).toBeVisible()
+    await expect(page.getByAltText('Фото упаковки')).toBeVisible()
+    expect(imageAiCalls).toHaveLength(0)
+    expect(textAiCalls).toHaveLength(0)
+
+    await page.getByLabel('Удалить фото упаковки').click()
+    await expect(page.getByText('Фото упаковки готово')).toBeHidden()
+
+    await page.getByLabel('Добавить фото упаковки').click()
+    await page.setInputFiles('[data-testid="ai-image-gallery-input"]', {
+      name: 'package.png',
+      mimeType: 'image/png',
+      buffer: packagePng,
+    })
+    await page.getByPlaceholder('Спросить про товары...').fill('Проверь состав на молоко')
+    await page.locator('.ai-composer__send').click()
+
+    await expect(page.getByText('По фото упаковки вижу состав.')).toBeVisible()
+    expect(imageAiCalls).toHaveLength(1)
+    expect(imageAiCalls[0].message).toBe('Проверь состав на молоко')
+    expect(imageAiCalls[0].image.mimeType).toBe('image/png')
+    expect(textAiCalls).toHaveLength(0)
+
+    const localChat = await page.evaluate(() => JSON.stringify(window.localStorage))
+    expect(localChat).not.toContain('data:image')
+  })
+
+  test('image-only send uses safe package default intent without auto-sending on selection', async ({
+    page,
+  }) => {
+    const imageAiCalls = []
+
+    await page.route('**/api/ai-image', async (route) => {
+      imageAiCalls.push(route.request().postDataJSON())
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ reply: 'Проверьте физическую упаковку.', productGroups: [] }),
+      })
+    })
+
+    await page.goto('/s/store-one/ai', { waitUntil: 'domcontentloaded' })
+    await page.getByLabel('Добавить фото упаковки').click()
+    await page.setInputFiles('[data-testid="ai-image-camera-input"]', {
+      name: 'package.png',
+      mimeType: 'image/png',
+      buffer: packagePng,
+    })
+
+    await expect(page.getByText('Фото упаковки готово')).toBeVisible()
+    expect(imageAiCalls).toHaveLength(0)
+
+    await page.locator('.ai-composer__send').click()
+
+    await expect(page.getByText('Проверьте физическую упаковку.')).toBeVisible()
+    expect(imageAiCalls).toHaveLength(1)
+    expect(imageAiCalls[0].message).toBe('Проверь упаковку и состав этого товара.')
+    expect(imageAiCalls[0].image.dataUrl).toContain('data:image/png;base64,')
   })
 
   test('voice-to-text keeps browser draft when transcription endpoint is unavailable', async ({

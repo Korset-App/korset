@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/index.js'
 import KorsetAvatar from '../components/KorsetAvatar.jsx'
-import { askGeneralAI, transcribeVoiceInput } from '../services/ai.js'
+import { askGeneralAI, askPackageImageAI, transcribeVoiceInput } from '../services/ai.js'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { useProfile } from '../contexts/ProfileContext.jsx'
 import {
@@ -15,10 +15,13 @@ import {
 } from '../domain/ai/context.js'
 import { buildCatalogAIContext, findCatalogCandidates } from '../domain/ai/catalogSearch.js'
 import { GENERAL_AI_CAPABILITIES } from '../domain/ai/generalCapabilities.js'
+import { AI_IMAGE_INPUT_LIMITS, prepareAIImageFile } from '../domain/ai/imageInput.js'
 import { createIndexedDBAIChatHistoryStore } from '../domain/ai/localChatHistory.js'
 import {
   AI_VOICE_LIMITS,
   getSupportedVoiceMimeType,
+  mergeVoiceTranscriptIntoInput,
+  normalizeVoiceRecordingDuration,
   validateVoiceRecording,
 } from '../domain/ai/voiceTranscription.js'
 import { buildProductPath } from '../utils/routes.js'
@@ -175,15 +178,22 @@ export default function AIAssistantScreen() {
   const [voiceLevel, setVoiceLevel] = useState(0)
   const [voiceElapsedMs, setVoiceElapsedMs] = useState(0)
   const [voiceDraft, setVoiceDraft] = useState('')
+  const [imagePickerOpen, setImagePickerOpen] = useState(false)
+  const [selectedImage, setSelectedImage] = useState(null)
+  const [imageError, setImageError] = useState('')
   const [voicePrivacySeen, setVoicePrivacySeen] = useState(() => {
     if (typeof window === 'undefined') return false
     return window.localStorage.getItem(VOICE_PRIVACY_KEY) === 'true'
   })
   const bottomRef = useRef(null)
+  const composerInputRef = useRef(null)
+  const cameraInputRef = useRef(null)
+  const galleryInputRef = useRef(null)
   const historyStoreRef = useRef(null)
   const mediaRecorderRef = useRef(null)
   const voiceChunksRef = useRef([])
   const voiceStartedAtRef = useRef(0)
+  const voiceStoppedByLimitRef = useRef(false)
   const voiceStreamRef = useRef(null)
   const voiceStopTimerRef = useRef(null)
   const voiceTickTimerRef = useRef(null)
@@ -194,6 +204,7 @@ export default function AIAssistantScreen() {
   const visibleMessages = messagesStoreSlug === activeStoreSlug ? messages : []
   const voiceProcessing = voiceStatus === 'uploading' || voiceStatus === 'transcribing'
   const voiceMeterLevel = Math.max(1, Math.ceil(voiceLevel * 12))
+  const imageAccept = AI_IMAGE_INPUT_LIMITS.acceptedMimeTypes.join(',')
 
   useEffect(() => {
     if (!historyStoreRef.current && typeof window !== 'undefined' && window.indexedDB) {
@@ -204,6 +215,13 @@ export default function AIAssistantScreen() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
+
+  useEffect(() => {
+    const inputElement = composerInputRef.current
+    if (!inputElement) return
+    inputElement.style.height = 'auto'
+    inputElement.style.height = `${Math.min(inputElement.scrollHeight, 132)}px`
+  }, [input])
 
   useEffect(() => {
     if (messagesStoreSlug !== activeStoreSlug) return undefined
@@ -270,6 +288,9 @@ export default function AIAssistantScreen() {
     setMessages([])
     setMessagesStoreSlug(activeStoreSlug)
     setInput('')
+    setSelectedImage(null)
+    setImageError('')
+    setImagePickerOpen(false)
     setActiveConversationId(null)
     setDeleteCandidateId(null)
     setClearConfirming(false)
@@ -287,6 +308,9 @@ export default function AIAssistantScreen() {
     setMessages(conversation.messages || [])
     setMessagesStoreSlug(activeStoreSlug)
     setInput('')
+    setSelectedImage(null)
+    setImageError('')
+    setImagePickerOpen(false)
     setActiveConversationId(conversation.id)
     setDeleteCandidateId(null)
     setClearConfirming(false)
@@ -329,6 +353,7 @@ export default function AIAssistantScreen() {
     voiceStreamRef.current?.getTracks?.().forEach((track) => track.stop())
     voiceStreamRef.current = null
     mediaRecorderRef.current = null
+    voiceStoppedByLimitRef.current = false
     setVoiceLevel(0)
     setRecording(false)
   }
@@ -411,12 +436,64 @@ export default function AIAssistantScreen() {
     return t('ai.voice.recordingShort')
   }
 
-  const stopVoiceRecording = () => {
+  const getImageErrorText = (error) => {
+    if (error === 'unsupported_image_type') return t('ai.image.errorUnsupported')
+    if (error === 'image_empty') return t('ai.image.errorEmpty')
+    if (error === 'image_source_too_large') return t('ai.image.errorSourceTooLarge')
+    if (error === 'image_payload_too_large') return t('ai.image.errorPayloadTooLarge')
+    if (error === 'image_ai_timeout') return t('ai.image.errorTimeout')
+    if (error === 'image_ai_unavailable') return t('ai.image.errorUnavailable')
+    return t('ai.image.errorGeneric')
+  }
+
+  const handleImageFileSelected = async (event) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+
+    setImageError('')
+    try {
+      const preparedImage = await prepareAIImageFile(file)
+      setSelectedImage(preparedImage)
+      setImagePickerOpen(false)
+    } catch (error) {
+      setSelectedImage(null)
+      setImageError(error?.message || 'image_failed')
+    }
+  }
+
+  const removeSelectedImage = () => {
+    setSelectedImage(null)
+    setImageError('')
+  }
+
+  const insertVoiceText = (text) => {
+    const cleanText = String(text || '').trim()
+    if (!cleanText) return false
+    setInput((current) => mergeVoiceTranscriptIntoInput(current, cleanText))
+    return true
+  }
+
+  const insertVoiceDraftFallback = () => {
+    const draft = voiceDraftRef.current.trim()
+    if (!draft) return false
+    insertVoiceText(draft)
+    setVoiceDraft('')
+    voiceDraftRef.current = ''
+    setVoiceError('')
+    setVoiceStatus('draft_inserted')
+    window.setTimeout(() => setVoiceStatus('idle'), 2600)
+    return true
+  }
+
+  const stopVoiceRecording = ({ stoppedByLimit = false } = {}) => {
     const recorder = mediaRecorderRef.current
     if (recorder && recorder.state !== 'inactive') {
+      voiceStoppedByLimitRef.current = stoppedByLimit
       recorder.stop()
       setRecording(false)
       setVoiceLevel(0.32)
+      if (stoppedByLimit) setVoiceElapsedMs(AI_VOICE_LIMITS.maxDurationMs)
       setVoiceStatus('uploading')
     }
   }
@@ -437,6 +514,7 @@ export default function AIAssistantScreen() {
     setVoiceError('')
     setVoiceDraft('')
     voiceDraftRef.current = ''
+    voiceStoppedByLimitRef.current = false
     setVoiceElapsedMs(0)
     setVoiceStatus('requesting')
 
@@ -456,13 +534,21 @@ export default function AIAssistantScreen() {
       }
 
       recorder.onstop = async () => {
-        const durationMs = Date.now() - voiceStartedAtRef.current
+        const rawDurationMs = Date.now() - voiceStartedAtRef.current
+        const durationMs = normalizeVoiceRecordingDuration({
+          durationMs: rawDurationMs,
+          stoppedByLimit: voiceStoppedByLimitRef.current,
+        })
         const audioBlob = new Blob(voiceChunksRef.current, {
           type: recorder.mimeType || mimeType || 'audio/webm',
         })
         const validation = validateVoiceRecording({ durationMs, size: audioBlob.size })
 
         if (!validation.ok) {
+          if (insertVoiceDraftFallback()) {
+            cleanupVoiceRecording()
+            return
+          }
           setVoiceError(validation.error)
           setVoiceStatus('error')
           cleanupVoiceRecording()
@@ -477,21 +563,13 @@ export default function AIAssistantScreen() {
             storeSlug: activeStoreSlug,
             durationMs,
           })
-          setInput(transcription.text)
+          insertVoiceText(transcription.text)
           setVoiceDraft('')
           voiceDraftRef.current = ''
           setVoiceStatus('inserted')
           window.setTimeout(() => setVoiceStatus('idle'), 1800)
         } catch (error) {
-          const draft = voiceDraftRef.current.trim()
-          if (draft) {
-            setInput(draft)
-            setVoiceDraft('')
-            voiceDraftRef.current = ''
-            setVoiceError('')
-            setVoiceStatus('draft_inserted')
-            window.setTimeout(() => setVoiceStatus('idle'), 2600)
-          } else {
+          if (!insertVoiceDraftFallback()) {
             setVoiceError(error?.message || 'transcription_failed')
             setVoiceStatus('error')
           }
@@ -513,7 +591,7 @@ export default function AIAssistantScreen() {
         setVoicePrivacySeen(true)
       }
       voiceStopTimerRef.current = window.setTimeout(
-        stopVoiceRecording,
+        () => stopVoiceRecording({ stoppedByLimit: true }),
         AI_VOICE_LIMITS.maxDurationMs
       )
     } catch {
@@ -523,18 +601,42 @@ export default function AIAssistantScreen() {
     }
   }
 
-  const sendMessage = async (text) => {
-    if (!text.trim() || loading) return
-    const userMsg = { role: 'user', content: text }
+  const sendMessage = async (text, { image = null } = {}) => {
+    const cleanText = text.trim()
+    if ((!cleanText && !image) || loading) return
+    const messageText = cleanText || t('ai.image.defaultPrompt')
+    const userMsg = { role: 'user', content: messageText }
     const newMessages = [...visibleMessages, userMsg]
     setMessages(newMessages)
     setMessagesStoreSlug(activeStoreSlug)
     setInput('')
+    if (image) {
+      setSelectedImage(null)
+      setImageError('')
+      setImagePickerOpen(false)
+    }
     setLoading(true)
     try {
-      const candidates = findCatalogCandidates(text, catalogProducts, profile, { limit: 20 })
-      const catalogContext = buildCatalogAIContext(candidates, { maxItems: 20 })
-      const response = await askGeneralAI(newMessages, lang, storeContext, profile, catalogContext)
+      let response
+      if (image) {
+        response = await askPackageImageAI({
+          image: {
+            dataUrl: image.dataUrl,
+            mimeType: image.mimeType,
+            sizeBytes: image.sizeBytes,
+          },
+          message: messageText,
+          lang,
+          storeContext,
+          profile,
+        })
+      } else {
+        const candidates = findCatalogCandidates(messageText, catalogProducts, profile, {
+          limit: 20,
+        })
+        const catalogContext = buildCatalogAIContext(candidates, { maxItems: 20 })
+        response = await askGeneralAI(newMessages, lang, storeContext, profile, catalogContext)
+      }
       setMessages((prev) => [
         ...prev,
         {
@@ -545,7 +647,8 @@ export default function AIAssistantScreen() {
           warnings: response.warnings || [],
         },
       ])
-    } catch {
+    } catch (error) {
+      if (image) setImageError(error?.message || 'image_ai_failed')
       setMessages((prev) => [...prev, { role: 'assistant', content: t('ai.errorGeneric') }])
     } finally {
       setLoading(false)
@@ -800,6 +903,80 @@ export default function AIAssistantScreen() {
           {!voicePrivacySeen && (
             <div className="ai-voice-notice">{t('ai.voice.privacyNotice')}</div>
           )}
+          {imageError && (
+            <div
+              className="ai-image-status ai-image-status--error"
+              role="status"
+              aria-live="polite"
+            >
+              {getImageErrorText(imageError)}
+            </div>
+          )}
+          {imagePickerOpen && (
+            <div className="ai-image-picker" role="group" aria-label={t('ai.image.open')}>
+              <button
+                type="button"
+                className="ai-image-picker__option"
+                onClick={() => cameraInputRef.current?.click()}
+              >
+                <span className="material-symbols-outlined ai-image-picker__icon">
+                  photo_camera
+                </span>
+                {t('ai.image.camera')}
+              </button>
+              <button
+                type="button"
+                className="ai-image-picker__option"
+                onClick={() => galleryInputRef.current?.click()}
+              >
+                <span className="material-symbols-outlined ai-image-picker__icon">
+                  photo_library
+                </span>
+                {t('ai.image.gallery')}
+              </button>
+            </div>
+          )}
+          {selectedImage && (
+            <div className="ai-image-preview">
+              <img
+                src={selectedImage.previewUrl}
+                alt={t('ai.image.previewAlt')}
+                className="ai-image-preview__thumb"
+              />
+              <div className="ai-image-preview__body">
+                <div className="ai-image-preview__title">{t('ai.image.ready')}</div>
+                <div className="ai-image-preview__text">{t('ai.image.privacyNotice')}</div>
+              </div>
+              <button
+                type="button"
+                className="ai-image-preview__remove"
+                onClick={removeSelectedImage}
+                aria-label={t('ai.image.remove')}
+                title={t('ai.image.remove')}
+              >
+                <span className="material-symbols-outlined ai-image-preview__remove-icon">
+                  close
+                </span>
+              </button>
+            </div>
+          )}
+          <input
+            ref={cameraInputRef}
+            data-testid="ai-image-camera-input"
+            type="file"
+            accept={imageAccept}
+            capture="environment"
+            className="ai-image-input-hidden"
+            onChange={handleImageFileSelected}
+          />
+          <input
+            ref={galleryInputRef}
+            data-testid="ai-image-gallery-input"
+            type="file"
+            accept={imageAccept}
+            className="ai-image-input-hidden"
+            onChange={handleImageFileSelected}
+          />
           {(recording ||
             voiceStatus === 'requesting' ||
             voiceStatus === 'uploading' ||
@@ -846,6 +1023,18 @@ export default function AIAssistantScreen() {
           <div className="ai-composer__row">
             <button
               type="button"
+              onClick={() => setImagePickerOpen((current) => !current)}
+              disabled={loading}
+              className={`ai-image-button${selectedImage ? ' has-image' : ''}`}
+              aria-label={t('ai.image.open')}
+              title={t('ai.image.open')}
+            >
+              <span className="material-symbols-outlined ai-image-button__icon">
+                add_photo_alternate
+              </span>
+            </button>
+            <button
+              type="button"
               onClick={recording ? stopVoiceRecording : startVoiceRecording}
               disabled={loading || voiceProcessing}
               className={`ai-voice-button${recording ? ' is-recording' : ''}${voiceProcessing ? ' is-processing' : ''}`}
@@ -864,22 +1053,24 @@ export default function AIAssistantScreen() {
                 {voiceProcessing ? 'progress_activity' : recording ? 'stop' : 'mic'}
               </span>
             </button>
-            <input
+            <textarea
+              ref={composerInputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault()
-                  sendMessage(input)
+                  sendMessage(input, { image: selectedImage })
                 }
               }}
               placeholder={t('ai.inputGeneral')}
               disabled={loading}
+              rows={1}
               className="ai-composer__input"
             />
             <button
-              onClick={() => sendMessage(input)}
-              disabled={loading || !input.trim()}
+              onClick={() => sendMessage(input, { image: selectedImage })}
+              disabled={loading || (!input.trim() && !selectedImage)}
               className="ai-composer__send"
             >
               <svg

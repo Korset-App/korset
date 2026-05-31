@@ -530,6 +530,79 @@ Tasks:
 
 Owner checkpoint: approve before any image code.
 
+Stage 13 result:
+
+- Done on 2026-05-31 as a design gate only; no image upload/runtime code was added.
+- Owner-approved V1 UX: one photo control in the AI composer that supports both camera capture and gallery selection.
+- Owner-approved V1 scope: package-only analysis. The assistant may help read visible packaging facts such as ingredients, allergens, halal markers, nutrition facts, expiry/labeling, and cautionary product text. It must not become generic image chat.
+- Explicitly out of V1 scope: people, receipts, shelves, storefronts, random objects, medicine/electronics/construction product photos, alcohol/tobacco flows, and broad visual search.
+- Storage policy: do not persist uploaded images in Supabase Storage, IndexedDB, chat history, local conversation history, server files, logs, or Vault. A selected image may exist only as a temporary in-memory/browser preview until sent, removed, or the screen unmounts.
+- Submission UX: no auto-send. The user chooses a photo, sees a compact preview, can remove it, can add text, and sends manually. If the user sends only a photo, the client should attach a safe default intent such as checking the package/composition.
+- Cost/risk policy: hard limits are required before implementation. Use client-side compression, server-side validation, one image per message, accepted image MIME allowlist, max dimensions/bytes, request timeout, and rate limits.
+- Recommended first implementation limits for Stage 14:
+  - accepted types: `image/jpeg`, `image/png`, `image/webp`;
+  - one image per message;
+  - client preview file limit before compression: 8 MB;
+  - client compression target: max 1600 px on the longest edge, JPEG/WebP quality around 0.78-0.82;
+  - server accepted payload after compression/base64 conversion: target under 1.5 MB, hard reject above 2 MB;
+  - do not include image bytes in local AI history; store only the final assistant/user text messages.
+- Future API shape: prefer a separate multimodal endpoint or explicit multimodal branch over silently expanding the existing text-only request. The payload should carry metadata (`storeSlug`, `lang`, `intent`, `imageMime`, `imageBytes`, optional user text) and never log raw image data or extracted text from the package.
+- AI answer contract: answers from images must be cautious and must say that package text can be incomplete or unreadable. For allergies, halal, health, pregnancy/child use, and expiry/safety, the assistant must ask the shopper to verify the physical package and not present the image read as a certificate or medical guarantee.
+- Required Stage 14 checks before owner review:
+  - unit coverage for image validation/compression contract;
+  - API validation tests for MIME, size, missing image, and rate-limit/error shape;
+  - Playwright mocked mobile flow for camera/gallery selection, preview, remove, send without auto-send, and no persistence in local history;
+  - `node scripts/check-i18n.mjs` if visible copy is added;
+  - targeted ESLint and `npm run build`.
+- Details: `docs/vault/changelog/2026-05-31-ai-assistant-stage13-image-camera-design-gate.md`.
+
+### Stage 14: Image/Camera Input Implementation
+
+Goal: implement the approved V1 package-photo input without broad image chat or image persistence.
+
+Stage 14 result:
+
+- Done on 2026-05-31.
+- Added `src/domain/ai/imageInput.js` with the approved image contract:
+  - accepted MIME types: `image/jpeg`, `image/png`, `image/webp`;
+  - one image per message;
+  - source file limit: 8 MB;
+  - compressed payload hard limit: 2 MB;
+  - compression target: about 1.5 MB, max 1600 px longest edge, quality `0.8`.
+- Added `api/ai-image.js` as a separate package-photo analysis endpoint. It validates MIME/size/payload, rate-limits separately from text AI, sends a package-only multimodal request to OpenAI, logs metadata only, and does not persist raw images or extracted text.
+- Added `askPackageImageAI()` in `src/services/ai.js` so general text AI remains on `/api/ai` and image analysis uses `/api/ai-image` explicitly.
+- Updated `/s/:storeSlug/ai` composer:
+  - one image button next to the voice button;
+  - camera capture and gallery selection;
+  - compact preview with remove control;
+  - no auto-send after selection;
+  - text + image or image-only send;
+  - image-only send uses the safe package default prompt;
+  - selected image is cleared after send/remove/new-chat/open-history;
+  - image bytes are not saved into localStorage/IndexedDB chat history.
+- Added RU/KZ visible copy for camera/gallery/preview/privacy/error states.
+- Did not add Supabase Storage, IndexedDB image persistence, server file writes, generic visual search, shelf/receipt/person analysis, or live image QA spend.
+- Details: `docs/vault/changelog/2026-05-31-ai-assistant-stage14-image-camera-implementation.md`.
+
+### Stage 15: Mobile Composer QA Stabilization
+
+Goal: verify the now-complex AI composer stays usable on real mobile widths after adding voice, image picker, image preview, textarea growth, and bottom navigation.
+
+Stage 15 result:
+
+- Done on 2026-05-31.
+- Expanded `tests/e2e/aiShelfUiMocked.spec.js` with explicit mobile composer coverage:
+  - 390px dark theme;
+  - 430px light theme;
+  - long textarea content;
+  - package image gallery preview;
+  - voice recording panel;
+  - composer remains above bottom nav;
+  - no horizontal overflow.
+- No runtime UI fix was required: the existing Stage 14 composer layout passed the new smoke checks.
+- No live OpenAI image or voice QA was run in this stage.
+- Details: `docs/vault/changelog/2026-05-31-ai-assistant-stage15-mobile-composer-qa.md`.
+
 ## Stage 1 Audit Result
 
 Date: 2026-05-27.

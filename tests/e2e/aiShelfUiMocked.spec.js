@@ -1,7 +1,14 @@
 import { test, expect } from '@playwright/test'
+import { Buffer } from 'node:buffer'
+
+/* global Blob, document, navigator, window */
 
 const MOBILE_VIEWPORT = { width: 390, height: 844 }
 const DESKTOP_VIEWPORT = { width: 1280, height: 900 }
+const packagePng = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=',
+  'base64'
+)
 
 async function expectNoHorizontalOverflow(page) {
   const metrics = await page.evaluate(() => {
@@ -30,6 +37,62 @@ async function expectInputAboveBottomNav(page, input) {
   expect(inputBox).not.toBeNull()
   expect(navBox).not.toBeNull()
   expect(inputBox.y + inputBox.height).toBeLessThanOrEqual(navBox.y + 2)
+}
+
+async function expectComposerAboveBottomNav(page) {
+  const nav = page.locator('nav').last()
+  const composer = page.locator('.ai-composer')
+  await expect(nav).toBeVisible()
+  await expect(composer).toBeVisible()
+
+  const navBox = await nav.boundingBox()
+  const composerBox = await composer.boundingBox()
+
+  expect(navBox).not.toBeNull()
+  expect(composerBox).not.toBeNull()
+  expect(composerBox.y + composerBox.height).toBeLessThanOrEqual(navBox.y + 2)
+}
+
+async function installVoiceMocks(page) {
+  await page.addInitScript(() => {
+    class MockMediaRecorder {
+      constructor(stream, options = {}) {
+        this.stream = stream
+        this.mimeType = options.mimeType || 'audio/webm'
+        this.state = 'inactive'
+        this.ondataavailable = null
+        this.onstop = null
+      }
+
+      start() {
+        this.state = 'recording'
+      }
+
+      stop() {
+        this.state = 'inactive'
+        this.ondataavailable?.({ data: new Blob(['voice'], { type: this.mimeType }) })
+        this.onstop?.()
+      }
+
+      static isTypeSupported(type) {
+        return type === 'audio/webm;codecs=opus' || type === 'audio/webm'
+      }
+    }
+
+    Object.defineProperty(window, 'MediaRecorder', {
+      configurable: true,
+      writable: true,
+      value: MockMediaRecorder,
+    })
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: {
+        getUserMedia: async () => ({
+          getTracks: () => [{ stop() {} }],
+        }),
+      },
+    })
+  })
 }
 
 function longShelfReply() {
@@ -68,6 +131,46 @@ const productB = {
 }
 
 test.describe('AI shelf-use UI smoke', () => {
+  for (const scenario of [
+    { name: '390px dark', viewport: { width: 390, height: 844 }, theme: 'dark' },
+    { name: '430px light', viewport: { width: 430, height: 932 }, theme: 'light' },
+  ]) {
+    test(`AI composer image and voice states stay usable on ${scenario.name}`, async ({ page }) => {
+      await page.setViewportSize(scenario.viewport)
+      await page.addInitScript((theme) => {
+        window.localStorage.setItem('korset_theme', theme)
+      }, scenario.theme)
+      await installVoiceMocks(page)
+
+      await page.goto('/s/store-one/ai', { waitUntil: 'domcontentloaded' })
+      await expect(page.locator('html')).toHaveAttribute('data-theme', scenario.theme)
+
+      const input = page.getByPlaceholder('Спросить про товары...')
+      await input.fill(
+        'Проверь состав на молоко, орехи и халал-маркеры, а ещё объясни простыми словами, можно ли брать этот товар ребёнку.'
+      )
+
+      await page.getByLabel('Добавить фото упаковки').click()
+      await page.setInputFiles('[data-testid="ai-image-gallery-input"]', {
+        name: 'package.png',
+        mimeType: 'image/png',
+        buffer: packagePng,
+      })
+      await expect(page.getByText('Фото упаковки готово')).toBeVisible()
+      await expect(page.getByAltText('Фото упаковки')).toBeVisible()
+
+      await expectComposerAboveBottomNav(page)
+      await expectNoHorizontalOverflow(page)
+
+      await page.getByLabel('Записать голосовой вопрос').click()
+      await expect(page.locator('.ai-voice-panel--recording')).toBeVisible()
+      await expect(page.getByText('Запись идёт')).toBeVisible()
+
+      await expectComposerAboveBottomNav(page)
+      await expectNoHorizontalOverflow(page)
+    })
+  }
+
   test('general AI stays usable on mobile with long reply and product cards', async ({ page }) => {
     await page.setViewportSize(MOBILE_VIEWPORT)
 

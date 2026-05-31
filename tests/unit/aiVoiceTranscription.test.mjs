@@ -4,6 +4,8 @@ import test from 'node:test'
 import {
   AI_VOICE_LIMITS,
   getSupportedVoiceMimeType,
+  mergeVoiceTranscriptIntoInput,
+  normalizeVoiceRecordingDuration,
   validateVoiceRecording,
 } from '../../src/domain/ai/voiceTranscription.js'
 
@@ -22,6 +24,29 @@ test('voice recording validation rejects too short, too long, empty, and oversiz
     'audio_too_large'
   )
   assert.equal(validateVoiceRecording({ durationMs: 1200, size: 1000 }).ok, true)
+})
+
+test('voice duration normalization preserves auto-stopped recordings at the 30s edge', () => {
+  assert.equal(
+    normalizeVoiceRecordingDuration({ durationMs: 30_080, stoppedByLimit: true }),
+    AI_VOICE_LIMITS.maxDurationMs
+  )
+  assert.equal(
+    normalizeVoiceRecordingDuration({ durationMs: 30_080, stoppedByLimit: false }),
+    30_080
+  )
+})
+
+test('voice transcript merge appends to typed composer text without duplication', () => {
+  assert.equal(mergeVoiceTranscriptIntoInput('', ' Покажи халал сладости '), 'Покажи халал сладости')
+  assert.equal(
+    mergeVoiceTranscriptIntoInput('У меня аллергия на арахис', 'Покажи халал сладости'),
+    'У меня аллергия на арахис Покажи халал сладости'
+  )
+  assert.equal(
+    mergeVoiceTranscriptIntoInput('Покажи халал сладости', 'Покажи халал сладости'),
+    'Покажи халал сладости'
+  )
 })
 
 test('voice mime selection prefers compact mobile-friendly formats', () => {

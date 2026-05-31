@@ -3,8 +3,10 @@ import { normalizeAIResponse } from '../domain/ai/responseShape.js'
 
 const AI_ENDPOINT = '/api/ai'
 const AI_TRANSCRIBE_ENDPOINT = '/api/ai-transcribe'
+const AI_IMAGE_ENDPOINT = '/api/ai-image'
 const REQUEST_TIMEOUT_MS = 25000
 const TRANSCRIBE_TIMEOUT_MS = 45000
+const IMAGE_REQUEST_TIMEOUT_MS = 45000
 
 function compactProduct(product = {}) {
   return {
@@ -165,6 +167,43 @@ export async function transcribeVoiceInput({
     language: data.language || lang,
     durationMs: Number.isFinite(Number(data.durationMs)) ? Number(data.durationMs) : durationMs,
   }
+}
+
+export async function askPackageImageAI({
+  image,
+  message = '',
+  lang = 'ru',
+  storeContext = null,
+  profile = null,
+}) {
+  if (!image?.dataUrl) throw new Error('image_required')
+
+  const signal =
+    typeof globalThis.AbortSignal?.timeout === 'function'
+      ? globalThis.AbortSignal.timeout(IMAGE_REQUEST_TIMEOUT_MS)
+      : undefined
+
+  let res
+  try {
+    res = await fetch(AI_IMAGE_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image, message, lang, storeContext, profile }),
+      signal,
+    })
+  } catch (error) {
+    if (error?.name === 'AbortError' || error?.name === 'TimeoutError') {
+      throw new Error('image_ai_timeout', { cause: error })
+    }
+    throw new Error('image_ai_unavailable', { cause: error })
+  }
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || `HTTP ${res.status}`)
+  }
+
+  return normalizeAIResponse(await res.json())
 }
 
 // ── Internal ──

@@ -5,6 +5,7 @@ import { Blob } from 'node:buffer'
 /* global FormData */
 
 import {
+  askPackageImageAI,
   askGeneralAI,
   askProductAI,
   askProductAIResponse,
@@ -302,4 +303,49 @@ test('transcribeVoiceInput maps network failures to unavailable transcription', 
     globalThis.fetch = originalFetch
     globalThis.AbortSignal = originalAbortSignal
   }
+})
+
+test('askPackageImageAI sends one temporary package image to the dedicated endpoint', async () => {
+  const originalFetch = globalThis.fetch
+  const originalAbortSignal = globalThis.AbortSignal
+  const calls = []
+
+  globalThis.AbortSignal = { timeout: () => undefined }
+  globalThis.fetch = async (url, options) => {
+    calls.push({ url, body: JSON.parse(options.body) })
+    return {
+      ok: true,
+      json: async () => ({
+        reply: 'По фото упаковки проверьте состав на молоко.',
+        productGroups: [],
+        followUps: [],
+        warnings: [],
+      }),
+    }
+  }
+
+  try {
+    const response = await askPackageImageAI({
+      message: 'Можно мне этот продукт?',
+      lang: 'ru',
+      storeContext: { slug: 'mars', name: 'Mars' },
+      profile: { allergens: ['milk'], halalOnly: true },
+      image: {
+        dataUrl: 'data:image/png;base64,cGFja2FnZQ==',
+        mimeType: 'image/png',
+        sizeBytes: 7,
+      },
+    })
+
+    assert.equal(response.reply, 'По фото упаковки проверьте состав на молоко.')
+  } finally {
+    globalThis.fetch = originalFetch
+    globalThis.AbortSignal = originalAbortSignal
+  }
+
+  assert.equal(calls.length, 1)
+  assert.equal(calls[0].url, '/api/ai-image')
+  assert.equal(calls[0].body.storeContext.slug, 'mars')
+  assert.equal(calls[0].body.image.mimeType, 'image/png')
+  assert.equal(calls[0].body.image.dataUrl, 'data:image/png;base64,cGFja2FnZQ==')
 })

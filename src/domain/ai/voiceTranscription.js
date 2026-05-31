@@ -11,6 +11,29 @@ export const AI_VOICE_MIME_CANDIDATES = [
   'audio/mpeg',
 ]
 
+export function normalizeVoiceRecordingDuration({ durationMs, stoppedByLimit = false } = {}) {
+  const safeDuration = Number(durationMs)
+  if (!Number.isFinite(safeDuration)) return safeDuration
+  if (stoppedByLimit && safeDuration > AI_VOICE_LIMITS.maxDurationMs) {
+    return AI_VOICE_LIMITS.maxDurationMs
+  }
+  return safeDuration
+}
+
+export function mergeVoiceTranscriptIntoInput(currentInput = '', transcript = '') {
+  const existing = String(currentInput || '').trim()
+  const addition = String(transcript || '').trim()
+  if (!addition) return existing
+  if (!existing) return addition
+
+  const normalizedExisting = existing.toLocaleLowerCase()
+  const normalizedAddition = addition.toLocaleLowerCase()
+  if (normalizedExisting.includes(normalizedAddition)) return existing
+  if (normalizedAddition.includes(normalizedExisting)) return addition
+
+  return `${existing} ${addition}`
+}
+
 export function validateVoiceRecording({ durationMs, size } = {}) {
   const safeDuration = Number(durationMs)
   const safeSize = Number(size)

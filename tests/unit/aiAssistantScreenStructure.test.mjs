@@ -46,15 +46,26 @@ test('AIAssistantScreen renders capability cards from the shared model', () => {
   assert.match(styles, /\.ai-capability-card\s*{[\s\S]*min-height:/)
 })
 
-test('AIAssistantScreen composer has a premium glass dock without image controls', () => {
+test('AIAssistantScreen composer has a premium glass dock with voice and package image controls', () => {
   assert.match(source, /className="ai-composer__dock"/)
-  assert.equal(source.includes('photo_camera'), false)
   assert.equal(source.includes('attach_file'), false)
+  assert.match(source, /askPackageImageAI/)
+  assert.match(source, /prepareAIImageFile/)
+  assert.match(source, /data-testid="ai-image-camera-input"/)
+  assert.match(source, /data-testid="ai-image-gallery-input"/)
+  assert.match(source, /aria-label=\{t\('ai\.image\.open'\)\}/)
+  assert.match(source, /className="ai-image-preview"/)
+  assert.match(source, /setSelectedImage\(null\)/)
   assert.match(styles, /\.ai-composer\s*{[\s\S]*backdrop-filter:\s*blur\(/)
   assert.match(styles, /\.ai-composer__dock\s*{[\s\S]*backdrop-filter:\s*blur\(/)
   assert.match(styles, /\.ai-composer__dock\s*{[\s\S]*border-radius:/)
   assert.match(styles, /\.ai-composer__input\s*{[\s\S]*background:\s*transparent;/)
+  assert.match(styles, /\.ai-composer__input\s*{[\s\S]*resize:\s*none;/)
+  assert.match(styles, /\.ai-composer__input\s*{[\s\S]*max-height:/)
+  assert.match(styles, /\.ai-image-preview\s*{[\s\S]*border:/)
+  assert.match(styles, /\.ai-image-input-hidden\s*{[\s\S]*clip-path:\s*inset\(50%\)/)
   assert.match(styles, /\.ai-composer__send:not\(:disabled\):active\s*{[\s\S]*transform:/)
+  assert.match(source, /<textarea[\s\S]*rows=\{1\}[\s\S]*className="ai-composer__input"/)
 })
 
 test('AIAssistantScreen active chat state has polished resilient message styling', () => {
@@ -105,18 +116,18 @@ test('AIAssistantScreen history bottom sheet supports new, open, delete, clear, 
 test('AIAssistantScreen voice-to-text inserts transcription into composer without auto-send', () => {
   assert.match(
     source,
-    /import \{ askGeneralAI, transcribeVoiceInput \} from '\.\.\/services\/ai\.js'/
+    /import \{ askGeneralAI, askPackageImageAI, transcribeVoiceInput \} from '\.\.\/services\/ai\.js'/
   )
   assert.match(source, /navigator\.mediaDevices\.getUserMedia\(\{ audio: true \}\)/)
   assert.match(source, /new MediaRecorder\(stream, recorderOptions\)/)
   assert.match(source, /transcribeVoiceInput\(/)
-  assert.match(source, /setInput\(transcription\.text\)/)
+  assert.match(source, /mergeVoiceTranscriptIntoInput\(current, cleanText\)/)
   assert.doesNotMatch(source, /sendMessage\(transcription\.text\)/)
   assert.match(source, /t\('ai\.voice\.privacyNotice'\)/)
   assert.match(source, /aria-label=\{\s*voiceProcessing[\s\S]*getVoicePanelLabel\(\)[\s\S]*t\(/)
   assert.match(source, /className=\{`ai-voice-button\$\{recording \? ' is-recording' : ''\}/)
-  assert.match(styles, /\.ai-voice-button\s*{[\s\S]*border:/)
-  assert.match(styles, /\.ai-voice-status\s*{[\s\S]*font-size:/)
+  assert.match(styles, /\.ai-voice-button,[\s\S]*\.ai-image-button\s*{[\s\S]*border:/)
+  assert.match(styles, /\.ai-voice-status,[\s\S]*\.ai-image-status\s*{[\s\S]*font-size:/)
 })
 
 test('AIAssistantScreen voice UI announces recording states with distinct labels', () => {
@@ -129,7 +140,7 @@ test('AIAssistantScreen voice UI announces recording states with distinct labels
     source,
     /if \(error === 'transcription_unavailable'\) return t\('ai\.voice\.errorUnavailable'\)/
   )
-  assert.match(source, /setInput\(draft\)/)
+  assert.match(source, /const insertVoiceDraftFallback = \(\) => \{/)
   assert.match(source, /setVoiceStatus\('draft_inserted'\)/)
   assert.match(source, /t\('ai\.voice\.draftInserted'\)/)
   assert.match(source, /if \(voiceStatus === 'requesting'\) return t\('ai\.voice\.requesting'\)/)
@@ -146,6 +157,8 @@ test('AIAssistantScreen voice UI transitions smoothly from recording to processi
     /const voiceProcessing = voiceStatus === 'uploading' \|\| voiceStatus === 'transcribing'/
   )
   assert.match(source, /setRecording\(false\)\s*\n\s*setVoiceLevel\(0\.32\)/)
+  assert.match(source, /normalizeVoiceRecordingDuration\(\{[\s\S]*stoppedByLimit: voiceStoppedByLimitRef\.current/)
+  assert.match(source, /stopVoiceRecording\(\{ stoppedByLimit: true \}\)/)
   assert.match(source, /ai-voice-panel--\$\{voiceProcessing \? 'processing' : 'recording'\}/)
   assert.match(
     source,
