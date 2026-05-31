@@ -505,7 +505,7 @@ Stage 12 result:
 - Implemented V1 voice-to-text, not live voice chat:
   - push-to-record mic button inside the existing composer dock;
   - `MediaRecorder` client recording with supported MIME selection;
-  - 20s max duration, 800ms min duration, 4MB max audio size;
+  - 30s max duration, 800ms min duration, 4MB max audio size;
   - new `/api/ai-transcribe` endpoint using OpenAI transcription;
   - recognized text is inserted into the composer for user review;
   - no auto-send;

@@ -4,7 +4,7 @@ import { normalizeAIResponse } from '../domain/ai/responseShape.js'
 const AI_ENDPOINT = '/api/ai'
 const AI_TRANSCRIBE_ENDPOINT = '/api/ai-transcribe'
 const REQUEST_TIMEOUT_MS = 25000
-const TRANSCRIBE_TIMEOUT_MS = 30000
+const TRANSCRIBE_TIMEOUT_MS = 45000
 
 function compactProduct(product = {}) {
   return {
@@ -137,14 +137,23 @@ export async function transcribeVoiceInput({
       ? globalThis.AbortSignal.timeout(TRANSCRIBE_TIMEOUT_MS)
       : undefined
 
-  const res = await fetch(AI_TRANSCRIBE_ENDPOINT, {
-    method: 'POST',
-    body: form,
-    signal,
-  })
+  let res
+  try {
+    res = await fetch(AI_TRANSCRIBE_ENDPOINT, {
+      method: 'POST',
+      body: form,
+      signal,
+    })
+  } catch (error) {
+    if (error?.name === 'AbortError' || error?.name === 'TimeoutError') {
+      throw new Error('transcription_timeout', { cause: error })
+    }
+    throw new Error('transcription_unavailable', { cause: error })
+  }
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
+    if (res.status === 404) throw new Error('transcription_unavailable')
     throw new Error(err.error || `HTTP ${res.status}`)
   }
 

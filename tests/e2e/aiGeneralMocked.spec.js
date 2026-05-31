@@ -115,15 +115,16 @@ test.describe('general AI mocked smoke', () => {
       Object.defineProperty(navigator, 'mediaDevices', {
         configurable: true,
         value: {
-        getUserMedia: async () => ({
-          getTracks: () => [{ stop() {} }],
-        }),
+          getUserMedia: async () => ({
+            getTracks: () => [{ stop() {} }],
+          }),
         },
       })
     })
 
     await page.route('**/api/ai-transcribe', async (route) => {
       transcriptionCalls.push(route.request().postDataBuffer())
+      await page.waitForTimeout(500)
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -147,8 +148,110 @@ test.describe('general AI mocked smoke', () => {
     await page.waitForTimeout(900)
     await page.getByLabel('Остановить запись').click()
 
+    await expect(page.locator('.ai-voice-panel--processing')).toBeVisible()
+    await expect(page.locator('.ai-voice-button.is-processing')).toBeVisible()
+
     await expect(input).toHaveValue('Покажи халал сладости')
     expect(transcriptionCalls).toHaveLength(1)
+    expect(aiCalls).toHaveLength(0)
+  })
+
+  test('voice-to-text keeps browser draft when transcription endpoint is unavailable', async ({
+    page,
+  }) => {
+    const aiCalls = []
+
+    await page.addInitScript(() => {
+      class MockMediaRecorder {
+        constructor(stream, options = {}) {
+          this.stream = stream
+          this.mimeType = options.mimeType || 'audio/webm'
+          this.state = 'inactive'
+          this.ondataavailable = null
+          this.onstop = null
+        }
+
+        start() {
+          this.state = 'recording'
+        }
+
+        stop() {
+          this.state = 'inactive'
+          this.ondataavailable?.({ data: new Blob(['voice'], { type: this.mimeType }) })
+          this.onstop?.()
+        }
+
+        static isTypeSupported(type) {
+          return type === 'audio/webm;codecs=opus' || type === 'audio/webm'
+        }
+      }
+
+      class MockSpeechRecognition {
+        constructor() {
+          this.continuous = false
+          this.interimResults = false
+          this.lang = 'ru-RU'
+          this.onresult = null
+          this.onerror = null
+        }
+
+        start() {
+          window.setTimeout(() => {
+            this.onresult?.({ results: [[{ transcript: 'Покажи молоко' }]] })
+          }, 50)
+        }
+
+        stop() {}
+      }
+
+      Object.defineProperty(window, 'MediaRecorder', {
+        configurable: true,
+        writable: true,
+        value: MockMediaRecorder,
+      })
+      Object.defineProperty(window, 'SpeechRecognition', {
+        configurable: true,
+        writable: true,
+        value: MockSpeechRecognition,
+      })
+      Object.defineProperty(navigator, 'mediaDevices', {
+        configurable: true,
+        value: {
+          getUserMedia: async () => ({
+            getTracks: () => [{ stop() {} }],
+          }),
+        },
+      })
+    })
+
+    await page.route('**/api/ai-transcribe', async (route) => {
+      await page.waitForTimeout(250)
+      await route.fulfill({
+        status: 404,
+        contentType: 'application/json',
+        body: JSON.stringify({}),
+      })
+    })
+
+    await page.route('**/api/ai', async (route) => {
+      aiCalls.push(route.request().postDataJSON())
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ reply: 'ok', productGroups: [], followUps: [], warnings: [] }),
+      })
+    })
+
+    await page.goto('/s/store-one/ai', { waitUntil: 'domcontentloaded' })
+    const input = page.getByPlaceholder('Спросить про товары...')
+
+    await page.getByLabel('Записать голосовой вопрос').click()
+    await expect(page.getByText('Покажи молоко')).toBeVisible()
+    await page.waitForTimeout(900)
+    await page.getByLabel('Остановить запись').click()
+
+    await expect(input).toHaveValue('Покажи молоко')
+    await expect(page.getByText('Черновик вставлен. Проверьте и отправьте.')).toBeVisible()
     expect(aiCalls).toHaveLength(0)
   })
 })

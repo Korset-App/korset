@@ -14,7 +14,7 @@ Implemented V1 voice-to-text for the general AI assistant after the owner approv
 ## Changes
 
 - Added `src/domain/ai/voiceTranscription.js`:
-  - `AI_VOICE_LIMITS` with 800ms min, 20s max, 4MB max;
+  - `AI_VOICE_LIMITS` with 800ms min, originally 20s max, 4MB max; post-polish max is now 30s.
   - `validateVoiceRecording()`;
   - `getSupportedVoiceMimeType()` with compact mobile-friendly MIME preferences.
 - Added `api/ai-transcribe.js`:
@@ -33,7 +33,7 @@ Implemented V1 voice-to-text for the general AI assistant after the owner approv
 - Updated `src/screens/AIAssistantScreen.jsx`:
   - added a mic button inside the composer dock;
   - uses `navigator.mediaDevices.getUserMedia({ audio: true })` and `MediaRecorder`;
-  - auto-stops at 20 seconds;
+  - auto-stops at 30 seconds after post-polish update;
   - inserts transcription into `input` via `setInput(transcription.text)`;
   - intentionally does not call `sendMessage(transcription.text)`.
 - Updated `src/screens/AIAssistantScreen.css`:

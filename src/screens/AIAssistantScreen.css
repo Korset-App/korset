@@ -841,7 +841,8 @@
   color: var(--primary-bright);
 }
 
-.ai-voice-status--inserted {
+.ai-voice-status--inserted,
+.ai-voice-status--draft_inserted {
   color: var(--success-bright);
 }
 
@@ -860,6 +861,16 @@
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, var(--text) 7%, transparent),
     0 12px 28px color-mix(in srgb, var(--primary-glow) 18%, transparent);
+  animation: ai-voice-panel-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.ai-voice-panel--processing {
+  border-color: color-mix(in srgb, var(--success-bright) 32%, var(--glass-soft-border));
+  background: color-mix(in srgb, var(--success-dim) 28%, var(--glass-subtle));
 }
 
 .ai-voice-panel__top {
@@ -876,6 +887,12 @@
   animation: ai-voice-pulse 1.1s ease-in-out infinite;
   background: var(--danger-bright);
   box-shadow: 0 0 0 6px color-mix(in srgb, var(--danger-bright) 12%, transparent);
+}
+
+.ai-voice-panel--processing .ai-voice-panel__pulse {
+  animation-duration: 1.55s;
+  background: var(--success-bright);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--success-bright) 11%, transparent);
 }
 
 .ai-voice-panel__label {
@@ -940,6 +957,25 @@
   animation-delay: 160ms;
 }
 
+.ai-voice-panel__progress {
+  position: relative;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-faint) 16%, transparent);
+}
+
+.ai-voice-panel__progress::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 44%;
+  border-radius: inherit;
+  animation: ai-voice-progress 1.08s cubic-bezier(0.55, 0, 0.2, 1) infinite;
+  background: linear-gradient(90deg, var(--primary-bright), var(--success-bright));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--success-bright) 28%, transparent);
+}
+
 .ai-voice-draft {
   display: -webkit-box;
   overflow: hidden;
@@ -981,6 +1017,13 @@
   border-color: color-mix(in srgb, var(--danger-bright) 54%, var(--glass-soft-border));
   background: color-mix(in srgb, var(--danger-dim) 44%, var(--glass-subtle));
   color: var(--danger-bright);
+}
+
+.ai-voice-button.is-processing {
+  border-color: color-mix(in srgb, var(--success-bright) 44%, var(--glass-soft-border));
+  animation: ai-voice-button-processing 1.24s ease-in-out infinite;
+  background: color-mix(in srgb, var(--success-dim) 34%, var(--glass-subtle));
+  color: var(--success-bright);
 }
 
 .ai-voice-button__icon {
@@ -1057,6 +1100,39 @@
   }
 }
 
+@keyframes ai-voice-panel-in {
+  from {
+    transform: translateY(8px) scale(0.98);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes ai-voice-progress {
+  from {
+    transform: translateX(-110%);
+  }
+
+  to {
+    transform: translateX(255%);
+  }
+}
+
+@keyframes ai-voice-button-processing {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--success-bright) 0%, transparent);
+  }
+
+  50% {
+    box-shadow: 0 0 0 7px color-mix(in srgb, var(--success-bright) 10%, transparent);
+  }
+}
+
 @keyframes ai-voice-wave {
   0%,
   100% {
@@ -1065,5 +1141,15 @@
 
   50% {
     transform: scaleY(1.16);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-typing__dot,
+  .ai-voice-panel__pulse,
+  .ai-voice-panel__progress::after,
+  .ai-voice-button.is-processing,
+  .ai-voice-wave__bar.is-active {
+    animation: none;
   }
 }

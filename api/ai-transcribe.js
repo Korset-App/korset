@@ -19,7 +19,7 @@ export const TRANSCRIPTION_MODEL = process.env.OPENAI_TRANSCRIPTION_MODEL || 'gp
 
 export const TRANSCRIPTION_LIMITS = {
   minDurationMs: 800,
-  maxDurationMs: 20_000,
+  maxDurationMs: 30_000,
   maxBytes: 4 * 1024 * 1024,
 }
 

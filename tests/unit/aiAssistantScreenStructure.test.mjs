@@ -31,7 +31,10 @@ test('AIAssistantScreen empty state has a dedicated atmosphere shell', () => {
 })
 
 test('AIAssistantScreen renders capability cards from the shared model', () => {
-  assert.match(source, /import \{ GENERAL_AI_CAPABILITIES \} from '\.\.\/domain\/ai\/generalCapabilities\.js'/)
+  assert.match(
+    source,
+    /import \{ GENERAL_AI_CAPABILITIES \} from '\.\.\/domain\/ai\/generalCapabilities\.js'/
+  )
   assert.match(source, /GENERAL_AI_CAPABILITIES\.map\(\(capability\)/)
   assert.match(source, /className="ai-capability-carousel"/)
   assert.match(source, /className="ai-capability-card"/)
@@ -72,7 +75,10 @@ test('AIAssistantScreen activates local-only history UI from the IndexedDB store
   )
   assert.match(source, /const \[historyOpen, setHistoryOpen\] = useState\(false\)/)
   assert.match(source, /const \[historyItems, setHistoryItems\] = useState\(\[\]\)/)
-  assert.match(source, /const \[messagesStoreSlug, setMessagesStoreSlug\] = useState\(activeStoreSlug\)/)
+  assert.match(
+    source,
+    /const \[messagesStoreSlug, setMessagesStoreSlug\] = useState\(activeStoreSlug\)/
+  )
   assert.match(source, /if \(messagesStoreSlug !== activeStoreSlug\) return undefined/)
   assert.match(source, /historyStoreRef\.current\s*\.upsertConversation\(/)
   assert.match(source, /historyStoreRef\.current\s*\.listConversations\(activeStoreSlug\)/)
@@ -97,15 +103,65 @@ test('AIAssistantScreen history bottom sheet supports new, open, delete, clear, 
 })
 
 test('AIAssistantScreen voice-to-text inserts transcription into composer without auto-send', () => {
-  assert.match(source, /import \{ askGeneralAI, transcribeVoiceInput \} from '\.\.\/services\/ai\.js'/)
+  assert.match(
+    source,
+    /import \{ askGeneralAI, transcribeVoiceInput \} from '\.\.\/services\/ai\.js'/
+  )
   assert.match(source, /navigator\.mediaDevices\.getUserMedia\(\{ audio: true \}\)/)
   assert.match(source, /new MediaRecorder\(stream, recorderOptions\)/)
   assert.match(source, /transcribeVoiceInput\(/)
   assert.match(source, /setInput\(transcription\.text\)/)
   assert.doesNotMatch(source, /sendMessage\(transcription\.text\)/)
   assert.match(source, /t\('ai\.voice\.privacyNotice'\)/)
-  assert.match(source, /aria-label=\{t\(recording \? 'ai\.voice\.stop' : 'ai\.voice\.start'\)\}/)
-  assert.match(source, /className=\{`ai-voice-button\$\{recording \? ' is-recording' : ''\}`\}/)
+  assert.match(source, /aria-label=\{\s*voiceProcessing[\s\S]*getVoicePanelLabel\(\)[\s\S]*t\(/)
+  assert.match(source, /className=\{`ai-voice-button\$\{recording \? ' is-recording' : ''\}/)
   assert.match(styles, /\.ai-voice-button\s*{[\s\S]*border:/)
   assert.match(styles, /\.ai-voice-status\s*{[\s\S]*font-size:/)
+})
+
+test('AIAssistantScreen voice UI announces recording states with distinct labels', () => {
+  assert.match(source, /const getVoicePanelLabel = \(\) => \{/)
+  assert.match(
+    source,
+    /if \(error === 'insecure_context'\) return t\('ai\.voice\.errorInsecureContext'\)/
+  )
+  assert.match(
+    source,
+    /if \(error === 'transcription_unavailable'\) return t\('ai\.voice\.errorUnavailable'\)/
+  )
+  assert.match(source, /setInput\(draft\)/)
+  assert.match(source, /setVoiceStatus\('draft_inserted'\)/)
+  assert.match(source, /t\('ai\.voice\.draftInserted'\)/)
+  assert.match(source, /if \(voiceStatus === 'requesting'\) return t\('ai\.voice\.requesting'\)/)
+  assert.match(source, /if \(voiceStatus === 'uploading'\) return t\('ai\.voice\.uploading'\)/)
+  assert.match(source, /role="status"/)
+  assert.match(source, /aria-live="polite"/)
+  assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/)
+  assert.match(styles, /\.ai-voice-wave__bar\.is-active\s*{[\s\S]*animation:/)
+})
+
+test('AIAssistantScreen voice UI transitions smoothly from recording to processing', () => {
+  assert.match(
+    source,
+    /const voiceProcessing = voiceStatus === 'uploading' \|\| voiceStatus === 'transcribing'/
+  )
+  assert.match(source, /setRecording\(false\)\s*\n\s*setVoiceLevel\(0\.32\)/)
+  assert.match(source, /ai-voice-panel--\$\{voiceProcessing \? 'processing' : 'recording'\}/)
+  assert.match(
+    source,
+    /className=\{`ai-voice-button\$\{recording \? ' is-recording' : ''\}\$\{voiceProcessing \? ' is-processing' : ''\}`\}/
+  )
+  assert.match(
+    source,
+    /aria-label=\{\s*voiceProcessing[\s\S]*getVoicePanelLabel\(\)[\s\S]*recording \? 'ai\.voice\.stop'/
+  )
+  assert.match(source, /\{voiceProcessing \? 'progress_activity' : recording \? 'stop' : 'mic'\}/)
+  assert.match(source, /className="ai-voice-panel__progress"/)
+  assert.match(styles, /\.ai-voice-panel\s*{[\s\S]*animation:\s*ai-voice-panel-in/)
+  assert.match(styles, /\.ai-voice-panel--processing\s*{[\s\S]*border-color:/)
+  assert.match(styles, /\.ai-voice-panel__progress::after\s*{[\s\S]*animation:\s*ai-voice-progress/)
+  assert.match(
+    styles,
+    /\.ai-voice-button\.is-processing\s*{[\s\S]*animation:\s*ai-voice-button-processing/
+  )
 })

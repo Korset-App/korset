@@ -196,6 +196,32 @@ test('transcribeVoiceInput sends audio as multipart and returns text without aut
   assert.equal(calls[0].options.headers, undefined)
 })
 
+test('transcribeVoiceInput allows processing headroom for 30 second recordings', async () => {
+  const originalFetch = globalThis.fetch
+  const originalAbortSignal = globalThis.AbortSignal
+  let timeoutMs = null
+
+  globalThis.AbortSignal = { timeout: (ms) => ((timeoutMs = ms), undefined) }
+  globalThis.fetch = async () => ({
+    ok: true,
+    json: async () => ({ text: 'Длинный вопрос', language: 'ru', durationMs: 30_000 }),
+  })
+
+  try {
+    await transcribeVoiceInput({
+      audioBlob: new Blob(['voice'], { type: 'audio/webm' }),
+      lang: 'ru',
+      storeSlug: 'mars',
+      durationMs: 30_000,
+    })
+  } finally {
+    globalThis.fetch = originalFetch
+    globalThis.AbortSignal = originalAbortSignal
+  }
+
+  assert.equal(timeoutMs, 45_000)
+})
+
 test('transcribeVoiceInput surfaces server error codes', async () => {
   const originalFetch = globalThis.fetch
   const originalAbortSignal = globalThis.AbortSignal
@@ -217,6 +243,60 @@ test('transcribeVoiceInput surfaces server error codes', async () => {
           durationMs: 21_000,
         }),
       /audio_too_long/
+    )
+  } finally {
+    globalThis.fetch = originalFetch
+    globalThis.AbortSignal = originalAbortSignal
+  }
+})
+
+test('transcribeVoiceInput maps missing local API route to unavailable transcription', async () => {
+  const originalFetch = globalThis.fetch
+  const originalAbortSignal = globalThis.AbortSignal
+
+  globalThis.AbortSignal = { timeout: () => undefined }
+  globalThis.fetch = async () => ({
+    ok: false,
+    status: 404,
+    json: async () => ({}),
+  })
+
+  try {
+    await assert.rejects(
+      () =>
+        transcribeVoiceInput({
+          audioBlob: new Blob(['voice'], { type: 'audio/webm' }),
+          lang: 'ru',
+          storeSlug: 'mars',
+          durationMs: 1200,
+        }),
+      /transcription_unavailable/
+    )
+  } finally {
+    globalThis.fetch = originalFetch
+    globalThis.AbortSignal = originalAbortSignal
+  }
+})
+
+test('transcribeVoiceInput maps network failures to unavailable transcription', async () => {
+  const originalFetch = globalThis.fetch
+  const originalAbortSignal = globalThis.AbortSignal
+
+  globalThis.AbortSignal = { timeout: () => undefined }
+  globalThis.fetch = async () => {
+    throw new TypeError('Failed to fetch')
+  }
+
+  try {
+    await assert.rejects(
+      () =>
+        transcribeVoiceInput({
+          audioBlob: new Blob(['voice'], { type: 'audio/webm' }),
+          lang: 'ru',
+          storeSlug: 'mars',
+          durationMs: 1200,
+        }),
+      /transcription_unavailable/
     )
   } finally {
     globalThis.fetch = originalFetch

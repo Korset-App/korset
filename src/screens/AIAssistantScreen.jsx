@@ -190,7 +190,9 @@ export default function AIAssistantScreen() {
   const voiceAnimationRef = useRef(null)
   const voiceAudioContextRef = useRef(null)
   const voiceRecognitionRef = useRef(null)
+  const voiceDraftRef = useRef('')
   const visibleMessages = messagesStoreSlug === activeStoreSlug ? messages : []
+  const voiceProcessing = voiceStatus === 'uploading' || voiceStatus === 'transcribing'
   const voiceMeterLevel = Math.max(1, Math.ceil(voiceLevel * 12))
 
   useEffect(() => {
@@ -376,7 +378,10 @@ export default function AIAssistantScreen() {
           .map((result) => result[0]?.transcript || '')
           .join(' ')
           .trim()
-        if (transcript) setVoiceDraft(transcript)
+        if (transcript) {
+          voiceDraftRef.current = transcript
+          setVoiceDraft(transcript)
+        }
       }
       recognition.onerror = () => {}
       recognition.start()
@@ -393,19 +398,36 @@ export default function AIAssistantScreen() {
     if (error === 'permission_denied') return t('ai.voice.errorPermission')
     if (error === 'unsupported') return t('ai.voice.errorUnsupported')
     if (error === 'empty_transcription') return t('ai.voice.errorEmpty')
+    if (error === 'insecure_context') return t('ai.voice.errorInsecureContext')
+    if (error === 'transcription_timeout') return t('ai.voice.errorTimeout')
+    if (error === 'transcription_unavailable') return t('ai.voice.errorUnavailable')
     return t('ai.voice.errorGeneric')
+  }
+
+  const getVoicePanelLabel = () => {
+    if (voiceStatus === 'requesting') return t('ai.voice.requesting')
+    if (voiceStatus === 'uploading') return t('ai.voice.uploading')
+    if (voiceStatus === 'transcribing') return t('ai.voice.transcribing')
+    return t('ai.voice.recordingShort')
   }
 
   const stopVoiceRecording = () => {
     const recorder = mediaRecorderRef.current
     if (recorder && recorder.state !== 'inactive') {
       recorder.stop()
+      setRecording(false)
+      setVoiceLevel(0.32)
       setVoiceStatus('uploading')
     }
   }
 
   const startVoiceRecording = async () => {
     if (loading || recording || voiceStatus === 'transcribing') return
+    if (typeof window !== 'undefined' && window.isSecureContext === false) {
+      setVoiceError('insecure_context')
+      setVoiceStatus('error')
+      return
+    }
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
       setVoiceError('unsupported')
       setVoiceStatus('error')
@@ -414,6 +436,7 @@ export default function AIAssistantScreen() {
 
     setVoiceError('')
     setVoiceDraft('')
+    voiceDraftRef.current = ''
     setVoiceElapsedMs(0)
     setVoiceStatus('requesting')
 
@@ -456,11 +479,22 @@ export default function AIAssistantScreen() {
           })
           setInput(transcription.text)
           setVoiceDraft('')
+          voiceDraftRef.current = ''
           setVoiceStatus('inserted')
           window.setTimeout(() => setVoiceStatus('idle'), 1800)
         } catch (error) {
-          setVoiceError(error?.message || 'transcription_failed')
-          setVoiceStatus('error')
+          const draft = voiceDraftRef.current.trim()
+          if (draft) {
+            setInput(draft)
+            setVoiceDraft('')
+            voiceDraftRef.current = ''
+            setVoiceError('')
+            setVoiceStatus('draft_inserted')
+            window.setTimeout(() => setVoiceStatus('idle'), 2600)
+          } else {
+            setVoiceError(error?.message || 'transcription_failed')
+            setVoiceStatus('error')
+          }
         } finally {
           cleanupVoiceRecording()
         }
@@ -770,12 +804,14 @@ export default function AIAssistantScreen() {
             voiceStatus === 'requesting' ||
             voiceStatus === 'uploading' ||
             voiceStatus === 'transcribing') && (
-            <div className="ai-voice-panel">
+            <div
+              className={`ai-voice-panel ai-voice-panel--${voiceProcessing ? 'processing' : 'recording'}`}
+              role="status"
+              aria-live="polite"
+            >
               <div className="ai-voice-panel__top">
                 <span className="ai-voice-panel__pulse" />
-                <span className="ai-voice-panel__label">
-                  {recording ? t('ai.voice.recordingShort') : t('ai.voice.transcribing')}
-                </span>
+                <span className="ai-voice-panel__label">{getVoicePanelLabel()}</span>
                 <span className="ai-voice-panel__time">{formatVoiceTime(voiceElapsedMs)}</span>
               </div>
               <div className="ai-voice-wave" aria-hidden="true">
@@ -786,33 +822,46 @@ export default function AIAssistantScreen() {
                   />
                 ))}
               </div>
+              {voiceProcessing && <div className="ai-voice-panel__progress" aria-hidden="true" />}
               {voiceDraft && <div className="ai-voice-draft">{voiceDraft}</div>}
             </div>
           )}
           {(voiceStatus !== 'idle' || voiceError) && !recording && voiceStatus !== 'requesting' && (
             <div
               className={`ai-voice-status ai-voice-status--${voiceError ? 'error' : voiceStatus}`}
+              role="status"
+              aria-live="polite"
             >
               {voiceError
                 ? getVoiceErrorText(voiceError)
                 : voiceStatus === 'inserted'
                   ? t('ai.voice.inserted')
-                  : voiceStatus === 'transcribing' || voiceStatus === 'uploading'
-                    ? t('ai.voice.transcribing')
-                    : ''}
+                  : voiceStatus === 'draft_inserted'
+                    ? t('ai.voice.draftInserted')
+                    : voiceStatus === 'transcribing' || voiceStatus === 'uploading'
+                      ? t('ai.voice.transcribing')
+                      : ''}
             </div>
           )}
           <div className="ai-composer__row">
             <button
               type="button"
               onClick={recording ? stopVoiceRecording : startVoiceRecording}
-              disabled={loading || voiceStatus === 'transcribing' || voiceStatus === 'uploading'}
-              className={`ai-voice-button${recording ? ' is-recording' : ''}`}
-              aria-label={t(recording ? 'ai.voice.stop' : 'ai.voice.start')}
-              title={t(recording ? 'ai.voice.stop' : 'ai.voice.start')}
+              disabled={loading || voiceProcessing}
+              className={`ai-voice-button${recording ? ' is-recording' : ''}${voiceProcessing ? ' is-processing' : ''}`}
+              aria-label={
+                voiceProcessing
+                  ? getVoicePanelLabel()
+                  : t(recording ? 'ai.voice.stop' : 'ai.voice.start')
+              }
+              title={
+                voiceProcessing
+                  ? getVoicePanelLabel()
+                  : t(recording ? 'ai.voice.stop' : 'ai.voice.start')
+              }
             >
               <span className="material-symbols-outlined ai-voice-button__icon">
-                {recording ? 'stop' : 'mic'}
+                {voiceProcessing ? 'progress_activity' : recording ? 'stop' : 'mic'}
               </span>
             </button>
             <input

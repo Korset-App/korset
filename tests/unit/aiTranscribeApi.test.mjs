@@ -14,7 +14,7 @@ import {
 } from '../../api/ai-transcribe.js'
 
 test('transcription API limits are explicit and privacy-safe', () => {
-  assert.equal(TRANSCRIPTION_LIMITS.maxDurationMs, 20_000)
+  assert.equal(TRANSCRIPTION_LIMITS.maxDurationMs, 30_000)
   assert.equal(TRANSCRIPTION_LIMITS.minDurationMs, 800)
   assert.equal(TRANSCRIPTION_LIMITS.maxBytes, 4 * 1024 * 1024)
 })
