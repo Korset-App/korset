@@ -58,7 +58,7 @@ test('AIAssistantScreen composer has a responsive premium dock with voice and pa
   assert.match(source, /setSelectedImage\(null\)/)
   assert.match(source, /ResizeObserver/)
   assert.match(styles, /\.ai-scroll\s*{[\s\S]*--ai-composer-space/)
-  assert.match(styles, /\.ai-composer\s*{[\s\S]*bottom:\s*calc\(var\(--ai-bottom-nav-space/)
+  assert.match(styles, /\.ai-composer\s*{[\s\S]*bottom:\s*var\(--ai-bottom-nav-space/)
   assert.match(styles, /\.ai-composer\s*{[\s\S]*backdrop-filter:\s*blur\(/)
   assert.match(styles, /\.ai-composer__dock\s*{[\s\S]*border-radius:/)
   assert.match(styles, /\.ai-composer__dock\.is-expanded \.ai-composer__row\s*{[\s\S]*grid-template-areas:/)

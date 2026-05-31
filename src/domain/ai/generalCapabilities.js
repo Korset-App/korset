@@ -10,7 +10,7 @@ export const GENERAL_AI_CAPABILITIES = [
   {
     id: 'budget_pick',
     icon: 'payments',
-    tone: 'citrus',
+    tone: 'coral',
     titleKey: 'ai.capabilities.budget_pick.title',
     descriptionKey: 'ai.capabilities.budget_pick.description',
     promptKey: 'ai.capabilities.budget_pick.prompt',
@@ -18,7 +18,7 @@ export const GENERAL_AI_CAPABILITIES = [
   {
     id: 'explain_composition',
     icon: 'science',
-    tone: 'mint',
+    tone: 'plum',
     titleKey: 'ai.capabilities.explain_composition.title',
     descriptionKey: 'ai.capabilities.explain_composition.description',
     promptKey: 'ai.capabilities.explain_composition.prompt',
@@ -26,7 +26,7 @@ export const GENERAL_AI_CAPABILITIES = [
   {
     id: 'build_shopping_list',
     icon: 'shopping_cart',
-    tone: 'leaf',
+    tone: 'teal',
     titleKey: 'ai.capabilities.build_shopping_list.title',
     descriptionKey: 'ai.capabilities.build_shopping_list.description',
     promptKey: 'ai.capabilities.build_shopping_list.prompt',
