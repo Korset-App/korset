@@ -259,6 +259,8 @@ Next recommended step: review and approve the Stage 2 SQL for live apply, then p
 
 Goal: migrate current `alternate_eans` into a controlled review/quarantine system without losing evidence.
 
+Status: dry-run complete on 2026-06-08. No live writes were made.
+
 Expected behavior:
 
 - Current `alternate_eans` are treated as legacy evidence, not trusted truth.
@@ -289,6 +291,53 @@ Verification gate:
 Stop point:
 
 - Owner reviews dry-run status counts before any write.
+
+### Stage 3 Dry-Run Results
+
+Artifacts:
+
+- Script: `scripts/migrate-legacy-ean-aliases.mjs`.
+- Pure classifier: `src/domain/product/eanAliasClassification.js`.
+- Tests: `tests/unit/eanAliasClassification.test.mjs`.
+- Summary report: `C:\tmp\korset-ean-alias-migration-dry-run.json`.
+- Candidate JSONL: `C:\tmp\korset-ean-alias-candidates.jsonl`.
+
+Live DB safety check:
+
+- `product_ean_aliases` existed before dry-run and had 0 rows.
+- After dry-run, `product_ean_aliases` still had 0 rows.
+
+Dry-run classification:
+
+- Active products scanned: 13,101.
+- Products with alternates: 9,429.
+- Legacy alias relations: 146,805.
+- Unique alias codes: 54,950.
+- Insertable candidate rows: 144,860 (98.7%).
+- Skipped rows: 1,945 (1.3%).
+- `quarantined`: 118,086 (80.4%).
+- `review`: 26,774 (18.2%).
+- `rejected`/skipped: 1,945 (1.3%).
+- `trusted`: 0 by design, because legacy aliases lack per-alias evidence.
+
+Top flags:
+
+- `legacy_without_per_alias_evidence`: 146,805.
+- `alias_used_by_multiple_products`: 116,437.
+- `alias_is_another_primary_ean`: 33,741.
+- `quantity_mismatch`: 19,628.
+- `subcategory_mismatch`: 10,040.
+- `brand_mismatch`: 5,755.
+- `category_mismatch`: 5,170.
+- `quantity_unit_type_mismatch`: 2,194.
+- `self_alias`: 1,736.
+- `non_scannable_alias`: 209.
+
+Important interpretation:
+
+- The dry-run confirms the conservative policy is correct: legacy `alternate_eans` should not be bulk-promoted to trusted aliases.
+- A future live insert should likely insert `review` and `quarantined` rows as evidence/review queue, not buyer-resolvable trusted rows.
+- Trusted aliases should be created only from stronger evidence sources: store import, manual admin review, audit scan with evidence, or exact external barcode lookup.
 
 ### Stage 4 — Resolver Switch To Trusted Aliases
 
