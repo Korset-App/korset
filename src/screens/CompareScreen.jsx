@@ -1,178 +1,28 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { checkProductFit, formatPrice } from '../utils/fitCheck.js'
-import { getDisplayQuantity } from '../utils/parseQuantity.js'
+import { checkProductFit } from '../utils/fitCheck.js'
 import { useProfile } from '../contexts/ProfileContext.jsx'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { useI18n } from '../i18n/index.js'
 import { useLocalName } from '../utils/localName.js'
 import { getAnyKnownProductByRef } from '../utils/storeCatalog.js'
-import { buildProductAIPath } from '../utils/routes.js'
+import { buildProductAIPath, buildProductAlternativesPath } from '../utils/routes.js'
 import { buildProductComparison } from '../domain/product/comparison.js'
+import { buildProductComparisonViewModel } from '../domain/product/comparisonViewModel.js'
 import { getFitBadgeMeta, resolveFitSeverityKey } from '../domain/product/fitVerdict.js'
+import './CompareScreen.css'
 
-// ── Comparison helpers ───────────────────────────────────────────────────────
-// ── Flavor extraction ─────────────────────────────────────────────────────────
-const FLAVOR_KEYWORDS = [
-  'клубнич',
-  'шоколад',
-  'ваниль',
-  'карамел',
-  'малин',
-  'вишн',
-  'апельсин',
-  'лимон',
-  'мяг',
-  'сливоч',
-  'кокос',
-  'банан',
-  'манго',
-  'персик',
-  'яблок',
-  'арахис',
-  'фундук',
-  'солен',
-  'остр',
-  'сладк',
-]
-
-function extractFlavor(product) {
-  const haystack =
-    `${product.name || ''} ${(product.tags || []).join(' ')} ${product.description || ''}`.toLowerCase()
-  for (const kw of FLAVOR_KEYWORDS) {
-    if (haystack.includes(kw)) {
-      const found = haystack.match(new RegExp(`\\S*${kw}\\S*`))
-      if (found) return found[0].charAt(0).toUpperCase() + found[0].slice(1)
-    }
-  }
-  return null
+function getComparisonBarSplit(comparisonView) {
+  if (!comparisonView || comparisonView.status !== 'winner') return 50
+  if (comparisonView.winnerSide === 'A') return comparisonView.confidence === 'clear' ? 66 : 58
+  return comparisonView.confidence === 'clear' ? 34 : 42
 }
 
-// ── Manufacturer display ──────────────────────────────────────────────────────
-function getMfrText(product) {
-  if (!product.manufacturer) return null
-  if (typeof product.manufacturer === 'object') {
-    const name = product.manufacturer.name || ''
-    const country = product.manufacturer.country || product.specs?.country || ''
-    return [name, country].filter(Boolean).join(' · ')
-  }
-  return String(product.manufacturer)
-}
-
-// ── Row definitions ──────────────────────────────────────────────────────────
-function buildRows(productA, productB, t, lang) {
-  const cat = productA.category || productB.category
-  const rows = []
-
-  const push = (label, getVal, compare = null) => {
-    const a = getVal(productA)
-    const b = getVal(productB)
-    if (a == null && b == null) return
-    rows.push({ label, a: a ?? '—', b: b ?? '—', compare })
-  }
-
-  // Universal
-  push(t('compare.mfr'), getMfrText)
-  push(t('compare.halal'), (p) => {
-    const s = p.halalStatus
-    if (s === 'yes') return t('compare.halalYes')
-    if (s === 'no') return t('compare.halalNo')
-    return p.halalStatus ? t('compare.halalUnk') : null
-  })
-  push(t('compare.price'), (p) => (p.priceKzt != null ? formatPrice(p.priceKzt) : null), 'price')
-
-  // Food rows
-  if (cat === 'grocery') {
-    push(t('compare.flavor'), extractFlavor)
-    push(t('compare.allergens'), (p) =>
-      p.allergens?.length ? p.allergens.join(', ') : t('product.allergens') ? null : null
-    )
-    push(
-      t('compare.protein'),
-      (p) =>
-        p.nutritionPer100?.protein != null
-          ? `${p.nutritionPer100.protein} ${t('product.unitG')}`
-          : null,
-      'higher'
-    )
-    push(
-      t('compare.fat'),
-      (p) =>
-        p.nutritionPer100?.fat != null ? `${p.nutritionPer100.fat} ${t('product.unitG')}` : null,
-      'lower'
-    )
-    push(t('compare.carbs'), (p) =>
-      p.nutritionPer100?.carbs != null ? `${p.nutritionPer100.carbs} ${t('product.unitG')}` : null
-    )
-    push(
-      t('compare.kcal'),
-      (p) =>
-        p.nutritionPer100?.kcal != null
-          ? `${p.nutritionPer100.kcal} ${t('product.unitKcal')}`
-          : null,
-      'lower'
-    )
-    push(t('compare.weight'), (p) => getDisplayQuantity(p, lang))
-    push(t('compare.ingredients'), (p) =>
-      p.ingredients ? p.ingredients.slice(0, 80) + (p.ingredients.length > 80 ? '...' : '') : null
-    )
-    push(t('compare.expiry'), (p) => p.specs?.bestBefore || p.expiry || null)
-  }
-
-  // Electronics
-  if (cat === 'electronics') {
-    push(t('compare.battery'), (p) => p.specs?.battery || null)
-    push(t('compare.protection'), (p) => p.specs?.waterproof || null)
-    push(t('compare.anc'), (p) => (p.specs?.anc != null ? String(p.specs.anc) : null))
-    const seenKeys = new Set(['battery', 'waterproof', 'anc'])
-    for (const p of [productA, productB]) {
-      for (const [k] of Object.entries(p.specs || {})) {
-        if (!seenKeys.has(k) && seenKeys.size < 8) {
-          seenKeys.add(k)
-          push(k, (prod) => (prod.specs?.[k] != null ? String(prod.specs[k]) : null))
-        }
-      }
-    }
-  }
-
-  // DIY
-  if (cat === 'diy') {
-    push(t('compare.coverage'), (p) => p.specs?.coverage || null)
-    push(t('compare.dryTime'), (p) => p.specs?.dryTime || null)
-    push(t('compare.moisture'), (p) =>
-      p.specs?.moisture != null ? String(p.specs.moisture) : null
-    )
-  }
-
-  return rows
-}
-
-function isBetter(row, side) {
-  if (row.a === '—' || row.b === '—') return false
-  if (!row.compare) return false
-  const parsePriceNum = (s) => parseFloat(String(s).replace(/[^\d.]/g, '')) || 0
-  if (row.compare === 'price') {
-    const nA = parsePriceNum(row.a)
-    const nB = parsePriceNum(row.b)
-    return side === 'a' ? nA < nB : nB < nA
-  }
-  const parseNum = (s) => parseFloat(String(s)) || 0
-  const nA = parseNum(row.a)
-  const nB = parseNum(row.b)
-  if (row.compare === 'higher') return side === 'a' ? nA > nB : nB > nA
-  if (row.compare === 'lower') return side === 'a' ? nA < nB : nB < nA
-  return false
-}
-
-function getComparisonBarSplit(comparison) {
-  if (!comparison || comparison.winner === 'draw') return 50
-  if (comparison.winner === 'A') return comparison.confidence === 'clear' ? 64 : 56
-  return comparison.confidence === 'clear' ? 36 : 44
-}
-
-function getComparisonToneKey(comparison) {
-  if (!comparison || comparison.winner === 'draw') return 'draw'
-  return comparison.confidence === 'clear' ? 'clear' : 'slight'
+function getComparisonIcon(comparisonView) {
+  if (comparisonView?.status === 'blocked') return 'block'
+  if (comparisonView?.status === 'draw') return 'balance'
+  if (comparisonView?.confidence === 'preliminary') return 'rule'
+  return 'workspace_premium'
 }
 
 function getSideLabelKey(label) {
@@ -182,40 +32,93 @@ function getSideLabelKey(label) {
   return 'compare.label.good'
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+function getProductImage(product) {
+  return (
+    product?.images?.[0] ||
+    product?.image ||
+    product?.imageUrl ||
+    (product?.ean ? `/products/${product.ean}.png` : null)
+  )
+}
+
 function ProductPhoto({ product }) {
   const [ok, setOk] = useState(true)
-  const src = product?.images?.[0] || (product?.ean ? `/products/${product.ean}.png` : null)
+  const src = getProductImage(product)
+
   if (!src || !ok) {
     return (
-      <div
-        style={{
-          width: '100%',
-          height: '100%',
-          display: 'grid',
-          placeItems: 'center',
-          fontSize: 24,
-          fontWeight: 800,
-          color: '#A78BFA',
-          background: 'rgba(124,58,237,0.08)',
-        }}
-      >
+      <div className="compare-photo-fallback" aria-hidden="true">
         {product?.name?.[0] || '?'}
       </div>
     )
   }
+
   return (
     <img
       src={src}
       alt={product?.name || ''}
+      width="96"
+      height="96"
       onError={() => setOk(false)}
-      className="product-img-blend"
-      style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 6 }}
+      className="compare-photo-img product-img-blend"
     />
   )
 }
 
-// ── Main Component ─────────────────────────────────────────────────────────────
+function ProductPanel({ product, productName, fit, side, sideLabel, t }) {
+  const severityKey = resolveFitSeverityKey(fit)
+  const badge = getFitBadgeMeta(severityKey)
+
+  return (
+    <section
+      className={`compare-product compare-product--${side.toLowerCase()}`}
+      aria-label={productName}
+    >
+      <div className="compare-product-photo catalog-img-box">
+        <ProductPhoto product={product} />
+      </div>
+      <div className="compare-product-side">{sideLabel}</div>
+      <h2 className="compare-product-name">{productName}</h2>
+      <div className={`compare-fit-badge compare-fit-badge--${badge.key}`}>
+        <span className="material-symbols-outlined" aria-hidden="true">
+          {badge.icon}
+        </span>
+        {t(badge.labelKey)}
+      </div>
+    </section>
+  )
+}
+
+function FactorCard({ factor, localNameA, localNameB, t }) {
+  const winnerName =
+    factor.winnerSide === 'A' ? localNameA : factor.winnerSide === 'B' ? localNameB : null
+
+  return (
+    <article
+      className={`compare-factor ${factor.winnerSide ? 'compare-factor--decisive' : 'compare-factor--neutral'}`}
+    >
+      <div className="compare-factor-head">
+        <span className="compare-factor-label">{t(factor.labelKey)}</span>
+        {winnerName && <span className="compare-factor-side">{winnerName}</span>}
+      </div>
+      {factor.reasonKey && (
+        <p className="compare-factor-copy">{t(factor.reasonKey, { name: winnerName || '' })}</p>
+      )}
+    </article>
+  )
+}
+
+function CompareNote({ tone = 'neutral', icon, children }) {
+  return (
+    <div className={`compare-note compare-note--${tone}`}>
+      <span className="material-symbols-outlined" aria-hidden="true">
+        {icon}
+      </span>
+      <p>{children}</p>
+    </div>
+  )
+}
+
 export default function CompareScreen() {
   const { ean, ean2, storeSlug } = useParams()
   const navigate = useNavigate()
@@ -258,586 +161,258 @@ export default function CompareScreen() {
     return buildProductComparison(productA, productB, { profile })
   }, [productA, productB, profile])
 
-  const winner = comparison?.winner || 'draw'
-  const barSplit = getComparisonBarSplit(comparison)
-  const toneKey = getComparisonToneKey(comparison)
+  const comparisonView = useMemo(() => {
+    if (!productA || !productB || !comparison) return null
+    return buildProductComparisonViewModel({ productA, productB, comparison, profile })
+  }, [productA, productB, comparison, profile])
 
-  const rows = useMemo(() => {
-    if (!productA || !productB) return []
-    return buildRows(productA, productB, t, lang)
-  }, [productA, productB, t, lang])
+  const winner = comparisonView?.winnerSide || 'draw'
+  const barSplit = getComparisonBarSplit(comparisonView)
 
-  // LLM call after initial render
   useEffect(() => {
-    if (!productA || !productB) return
-    setAiLoading(true)
+    if (!productA || !productB || !comparisonView) return undefined
+
     let mounted = true
     const ctrl = new AbortController()
 
-    fetch('/api/ai', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        mode: 'compare',
-        productA,
-        productB,
-        profile,
-        winner,
-        lang: lang === 'kz' ? 'kz' : 'ru',
-        messages: [{ role: 'user', content: t('compare.aiExplainPrompt') }],
-      }),
-      signal: ctrl.signal,
-    })
-      .then((r) => {
-        if (!r.ok) throw new Error('API error')
-        return r.json()
-      })
-      .then((d) => {
-        if (mounted && d.reply) setAiText(d.reply)
-      })
-      .catch(() => {
-        if (mounted) setAiText(t('compare.aiError') || '')
-      })
-      .finally(() => {
+    async function loadAiExplanation() {
+      await Promise.resolve()
+      if (!mounted) return
+      setAiText(null)
+      setAiLoading(true)
+
+      try {
+        const response = await fetch('/api/ai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mode: 'compare',
+            productA,
+            productB,
+            profile,
+            winner,
+            lang: lang === 'kz' ? 'kz' : 'ru',
+            messages: [{ role: 'user', content: t('compare.aiExplainPrompt') }],
+          }),
+          signal: ctrl.signal,
+        })
+        if (!response.ok) throw new Error('API error')
+        const data = await response.json()
+        if (mounted) setAiText(data.reply || '')
+      } catch (error) {
+        if (mounted && error.name !== 'AbortError') setAiText(t('compare.aiError') || '')
+      } finally {
         if (mounted) setAiLoading(false)
-      })
+      }
+    }
+
+    loadAiExplanation()
 
     return () => {
       mounted = false
       ctrl.abort()
     }
-  }, []) // eslint-disable-line
+  }, [productA, productB, profile, winner, lang, t, comparisonView])
 
-  if (!productA || !productB) {
+  if (!productA || !productB || !comparisonView) {
     return (
-      <div
-        className="screen"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '80vh',
-        }}
-      >
-        <div style={{ textAlign: 'center', color: 'var(--text-dim)' }}>
-          <span
-            className="material-symbols-outlined"
-            style={{
-              fontSize: 48,
-              color: 'rgba(167,139,250,0.4)',
-              marginBottom: 16,
-              display: 'block',
-            }}
-          >
+      <main className="compare-empty screen">
+        <div className="compare-empty-card">
+          <span className="material-symbols-outlined" aria-hidden="true">
             compare_arrows
           </span>
-          <p style={{ marginBottom: 16 }}>{t('common.notFound')}</p>
-          <button className="btn btn-secondary" onClick={() => navigate(-1)}>
+          <p>{t('common.notFound')}</p>
+          <button className="btn btn-secondary" type="button" onClick={() => navigate(-1)}>
             {t('common.back')}
           </button>
         </div>
-      </div>
+      </main>
     )
   }
 
   const winnerProduct = winner === 'A' ? productA : winner === 'B' ? productB : null
+  const winnerName = winner === 'A' ? localNameA : winner === 'B' ? localNameB : ''
+  const profilePreferenceName =
+    comparisonView.profileNote?.winnerSide === 'A'
+      ? localNameA
+      : comparisonView.profileNote?.winnerSide === 'B'
+        ? localNameB
+        : ''
+  const isBlocked = comparisonView.status === 'blocked'
+  const isDraw = comparisonView.status === 'draw'
+  const actionProduct = winnerProduct || productA
+  const actionLabel = isBlocked ? t(comparisonView.actionKey) : t('compare.askMore')
+
+  function handlePrimaryAction() {
+    if (isBlocked) {
+      navigate(buildProductAlternativesPath(activeSlug, productA.ean))
+      return
+    }
+    navigate(buildProductAIPath(activeSlug, actionProduct.ean))
+  }
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100dvh',
-        background: 'var(--bg, #07070F)',
-        overflow: 'hidden',
-      }}
+    <main
+      className={`compare-screen compare-screen--${comparisonView?.status || 'loading'} compare-screen--${comparisonView?.confidence || 'unknown'}`}
     >
-      {/* ── Sticky header ─────────────────────────────────────────────── */}
-      <div
-        style={{
-          flexShrink: 0,
-          background: 'var(--bg-app)',
-          borderBottom: '1px solid rgba(139,92,246,0.15)',
-          zIndex: 20,
-        }}
-      >
-        {/* Nav bar */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '12px 16px 10px',
-          }}
-        >
+      <header className="compare-header">
+        <nav className="compare-nav" aria-label={t('compare.title')}>
           <button
+            className="compare-back"
+            type="button"
             onClick={() => navigate(-1)}
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 12,
-              border: '1px solid rgba(255,255,255,0.1)',
-              background: 'rgba(255,255,255,0.05)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
+            aria-label={t('common.back')}
           >
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: 20, color: 'rgba(255,255,255,0.8)' }}
-            >
+            <span className="material-symbols-outlined" aria-hidden="true">
               arrow_back
             </span>
           </button>
-          <div
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 16,
-              fontWeight: 800,
-              color: 'var(--text)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#A78BFA' }}>
+          <div className="compare-title" translate="no">
+            <span className="material-symbols-outlined" aria-hidden="true">
               compare_arrows
             </span>
             {t('compare.title')}
           </div>
-          <div style={{ width: 36 }} />
+          <div className="compare-nav-spacer" aria-hidden="true" />
+        </nav>
+
+        <div className="compare-products" aria-label={t('compare.title')}>
+          <ProductPanel
+            product={productA}
+            productName={localNameA}
+            fit={fitA}
+            side="A"
+            sideLabel="A"
+            t={t}
+          />
+          <ProductPanel
+            product={productB}
+            productName={localNameB}
+            fit={fitB}
+            side="B"
+            sideLabel="B"
+            t={t}
+          />
         </div>
+      </header>
 
-        {/* Product headers — side by side */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
-          {[
-            { product: productA, fit: fitA, side: 'A' },
-            { product: productB, fit: fitB, side: 'B' },
-          ].map(({ product, fit, side }) => {
-            const severityKey = resolveFitSeverityKey(fit)
-            const badge = getFitBadgeMeta(severityKey)
-            const badgeStyle = {
-              safe: {
-                background: 'rgba(16,185,129,0.15)',
-                color: '#34D399',
-                border: 'rgba(52,211,153,0.3)',
-              },
-              caution: {
-                background: 'rgba(251,191,36,0.15)',
-                color: '#FBBF24',
-                border: 'rgba(251,191,36,0.3)',
-              },
-              warning: {
-                background: 'rgba(249,115,22,0.15)',
-                color: '#FB923C',
-                border: 'rgba(249,115,22,0.3)',
-              },
-              danger: {
-                background: 'rgba(239,68,68,0.15)',
-                color: '#F87171',
-                border: 'rgba(248,113,113,0.3)',
-              },
-            }[badge.key]
-
-            return (
-              <div
-                key={side}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  padding: '8px 10px 10px',
-                  borderLeft: side === 'B' ? '1px solid rgba(255,255,255,0.06)' : 'none',
-                }}
-              >
-                <div
-                  className="catalog-img-box"
-                  style={{
-                    width: 72,
-                    height: 72,
-                    borderRadius: 14,
-                    // Keep inline border and overflow to override if needed,
-                    // but rely on catalog-img-box for the premium radial light source
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    overflow: 'hidden',
-                    marginBottom: 7,
-                    flexShrink: 0,
-                  }}
-                >
-                  <ProductPhoto product={product} />
-                </div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: 'var(--text)',
-                    textAlign: 'center',
-                    lineHeight: 1.3,
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                    marginBottom: 6,
-                    width: '100%',
-                    fontFamily: 'var(--font-display)',
-                  }}
-                >
-                  {side === 'A' ? localNameA : localNameB}
-                </div>
-                <div
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    padding: '3px 10px',
-                    borderRadius: 999,
-                    background: badgeStyle.background,
-                    color: badgeStyle.color,
-                    border: `1px solid ${badgeStyle.border}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                  }}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: 12 }}>
-                    {badge.icon}
-                  </span>
-                  {t(badge.labelKey)}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* ── Scrollable body ───────────────────────────────────────────── */}
-      <div
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          paddingBottom: 'calc(80px + env(safe-area-inset-bottom))',
-        }}
-      >
-        {/* Comparison table */}
-        <div style={{ marginBottom: 0 }}>
-          {rows.map((row, idx) => {
-            const betterA = isBetter(row, 'a')
-            const betterB = isBetter(row, 'b')
-            return (
-              <div
-                key={idx}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr auto 1fr',
-                  borderBottom: '1px solid rgba(255,255,255,0.05)',
-                  minHeight: 42,
-                }}
-              >
-                {/* Value A */}
-                <div
-                  style={{
-                    padding: '10px 10px 10px 14px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'flex-end',
-                    fontSize: 12,
-                    lineHeight: 1.35,
-                    textAlign: 'right',
-                    wordBreak: 'break-word',
-                    background: betterA ? 'rgba(124,58,237,0.07)' : 'transparent',
-                    fontWeight: betterA ? 700 : 400,
-                    color: betterA ? '#C4B5FD' : 'rgba(220,220,240,0.75)',
-                  }}
-                >
-                  {row.a}
-                </div>
-
-                {/* Label */}
-                <div
-                  style={{
-                    padding: '10px 8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: 'rgba(180,160,240,0.55)',
-                    letterSpacing: '0.03em',
-                    textTransform: 'uppercase',
-                    whiteSpace: 'nowrap',
-                    textAlign: 'center',
-                    borderLeft: '1px solid rgba(255,255,255,0.05)',
-                    borderRight: '1px solid rgba(255,255,255,0.05)',
-                    background: 'rgba(255,255,255,0.02)',
-                    minWidth: 72,
-                    maxWidth: 88,
-                  }}
-                >
-                  {row.label}
-                </div>
-
-                {/* Value B */}
-                <div
-                  style={{
-                    padding: '10px 14px 10px 10px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'flex-start',
-                    fontSize: 12,
-                    lineHeight: 1.35,
-                    textAlign: 'left',
-                    wordBreak: 'break-word',
-                    background: betterB ? 'rgba(124,58,237,0.07)' : 'transparent',
-                    fontWeight: betterB ? 700 : 400,
-                    color: betterB ? '#C4B5FD' : 'rgba(220,220,240,0.75)',
-                  }}
-                >
-                  {row.b}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        {/* ── Winner Block ────────────────────────────────────────────── */}
-        <div style={{ padding: '20px 16px 12px' }}>
-          <div
-            style={{
-              borderRadius: 22,
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(139,92,246,0.25)',
-              backdropFilter: 'blur(16px)',
-              padding: '20px 18px',
-              boxShadow: '0 4px 32px rgba(124,58,237,0.12)',
-            }}
-          >
-            {/* Bar header */}
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                fontSize: 11,
-                fontWeight: 700,
-                color: 'rgba(200,180,255,0.7)',
-                marginBottom: 8,
-                letterSpacing: '0.02em',
-              }}
-            >
-              <span
-                style={{
-                  maxWidth: '40%',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {productA.name}
-              </span>
-              <span
-                style={{
-                  maxWidth: '40%',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  textAlign: 'right',
-                }}
-              >
-                {productB.name}
-              </span>
-            </div>
-
-            {/* Progress bar */}
-            <div
-              style={{
-                height: 10,
-                borderRadius: 99,
-                overflow: 'hidden',
-                background: 'rgba(255,255,255,0.06)',
-                marginBottom: 6,
-              }}
-            >
-              <div
-                style={{
-                  height: '100%',
-                  background: `linear-gradient(90deg, #7C3AED ${barSplit}%, rgba(139,92,246,0.25) ${barSplit}%)`,
-                  borderRadius: 99,
-                  transition: 'all 0.6s cubic-bezier(0.4,0,0.2,1)',
-                }}
-              />
-            </div>
-
-            {/* Result labels */}
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                fontSize: 11,
-                fontWeight: 800,
-                fontFamily: 'var(--font-display)',
-                marginBottom: 16,
-                textTransform: 'uppercase',
-              }}
-            >
-              <span style={{ color: winner === 'A' ? '#C4B5FD' : 'rgba(180,160,230,0.5)' }}>
-                {t(getSideLabelKey(comparison?.a?.label))}
-              </span>
-              <span style={{ color: winner === 'B' ? '#C4B5FD' : 'rgba(180,160,230,0.5)' }}>
-                {t(getSideLabelKey(comparison?.b?.label))}
-              </span>
-            </div>
-
-            {/* Winner title */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                marginBottom: 12,
-              }}
-            >
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 12,
-                  flexShrink: 0,
-                  background:
-                    winner === 'draw' ? 'rgba(148,163,184,0.12)' : 'rgba(124,58,237,0.18)',
-                  border: `1px solid ${winner === 'draw' ? 'rgba(148,163,184,0.25)' : 'rgba(167,139,250,0.35)'}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <span
-                  className="material-symbols-outlined"
-                  style={{
-                    fontSize: 20,
-                    color: winner === 'draw' ? '#94A3B8' : '#C4B5FD',
-                  }}
-                >
-                  {winner === 'draw' ? 'balance' : 'workspace_premium'}
-                </span>
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontFamily: 'var(--font-display)',
-                    fontSize: 15,
-                    fontWeight: 800,
-                    color: winner === 'draw' ? '#94A3B8' : '#E9D5FF',
-                  }}
-                >
-                  {winner === 'draw'
-                    ? t('compare.draw')
-                    : `${winnerProduct.name} ${t('compare.better')}`}
-                </div>
-                <div
-                  style={{
-                    marginTop: 4,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: 'rgba(220,210,255,0.68)',
-                    lineHeight: 1.35,
-                  }}
-                >
-                  {t(`compare.reason.${comparison?.summaryKey || 'similar_fit'}`, {
-                    name: winnerProduct?.name || '',
-                  })}
-                </div>
-                <div
-                  style={{
-                    marginTop: 5,
-                    fontSize: 10,
-                    fontWeight: 800,
-                    color: 'rgba(180,160,230,0.56)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.03em',
-                  }}
-                >
-                  {t(`compare.confidence.${toneKey}`)}
-                </div>
-              </div>
-            </div>
-
-            {/* LLM commentary */}
-            {(aiLoading || aiText) && (
-              <div
-                style={{
-                  padding: '12px 14px',
-                  borderRadius: 14,
-                  background: 'rgba(124,58,237,0.08)',
-                  border: '1px solid rgba(139,92,246,0.2)',
-                  marginBottom: 14,
-                }}
-              >
-                {aiLoading && !aiText ? (
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <div
-                      style={{
-                        width: 14,
-                        height: 14,
-                        borderRadius: '50%',
-                        border: '2px solid rgba(167,139,250,0.25)',
-                        borderTop: '2px solid #A78BFA',
-                        animation: 'compareSpinAnim 0.8s linear infinite',
-                        flexShrink: 0,
-                      }}
-                    />
-                    <span style={{ fontSize: 12, color: 'rgba(180,160,240,0.6)' }}>
-                      {t('compare.aiLoading')}
-                    </span>
-                  </div>
-                ) : (
-                  <p
-                    style={{
-                      fontSize: 13,
-                      color: 'rgba(220,210,255,0.82)',
-                      lineHeight: 1.55,
-                      margin: 0,
-                    }}
-                  >
-                    {aiText}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Ask AI button */}
-            <button
-              onClick={() =>
-                navigate(buildProductAIPath(activeSlug, (winnerProduct || productA).ean))
-              }
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                borderRadius: 14,
-                cursor: 'pointer',
-                background: 'rgba(124,58,237,0.12)',
-                border: '1px solid rgba(139,92,246,0.35)',
-                color: '#C4B5FD',
-                fontSize: 13,
-                fontWeight: 700,
-                fontFamily: 'var(--font-display)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                auto_awesome
-              </span>
-              {t('compare.askMore')}
-            </button>
+      <section className="compare-body" aria-live="polite">
+        <section className="compare-verdict-card" aria-labelledby="compare-verdict-title">
+          <div className="compare-verdict-topline">
+            <span>{t(`compare.confidence.${comparisonView.confidence}`)}</span>
+            <span>{t(comparisonView.sections[0]?.titleKey || 'compare.section.decision')}</span>
           </div>
-        </div>
-      </div>
 
-      <style>{`
-        @keyframes compareSpinAnim { to { transform: rotate(360deg) } }
-      `}</style>
-    </div>
+          {comparisonView.status === 'winner' ? (
+            <div className="compare-rail" aria-hidden="true">
+              <span>{localNameA}</span>
+              <div className="compare-rail-track">
+                <div className="compare-rail-fill" style={{ '--compare-split': `${barSplit}%` }} />
+              </div>
+              <span>{localNameB}</span>
+            </div>
+          ) : (
+            <div className="compare-state-strip" aria-hidden="true">
+              <span className="material-symbols-outlined">{getComparisonIcon(comparisonView)}</span>
+            </div>
+          )}
+
+          <div className="compare-verdict-main">
+            <div className="compare-verdict-icon">
+              <span className="material-symbols-outlined" aria-hidden="true">
+                {getComparisonIcon(comparisonView)}
+              </span>
+            </div>
+            <div className="compare-verdict-copy">
+              <h1 id="compare-verdict-title">
+                {t(comparisonView.verdictKey)}
+                {winnerName ? `: ${winnerName}` : ''}
+              </h1>
+              <p>
+                {comparisonView.reasonKey
+                  ? t(comparisonView.reasonKey, { name: winnerName })
+                  : t('compare.reason.similar_fit', { name: winnerName })}
+              </p>
+            </div>
+          </div>
+
+          <div className="compare-side-labels" aria-label={t('compare.section.profile')}>
+            <span className={winner === 'A' ? 'is-active' : ''}>
+              {t(getSideLabelKey(comparison.a.label))}
+            </span>
+            <span className={winner === 'B' ? 'is-active' : ''}>
+              {t(getSideLabelKey(comparison.b.label))}
+            </span>
+          </div>
+        </section>
+
+        {(comparisonView.profileNote || comparisonView.dataNote || isBlocked || isDraw) && (
+          <section className="compare-notes" aria-label={t('compare.section.data')}>
+            {isBlocked && (
+              <CompareNote tone="blocked" icon="category">
+                {t('compare.reason.different_category')}
+              </CompareNote>
+            )}
+            {isDraw && (
+              <CompareNote tone="neutral" icon="balance">
+                {t('compare.reason.similar_fit', { name: winnerName })}
+              </CompareNote>
+            )}
+            {comparisonView.profileNote && (
+              <CompareNote tone="profile" icon="person_check">
+                {t(comparisonView.profileNote.messageKey)}
+                {profilePreferenceName ? ` ${profilePreferenceName}.` : ''}
+              </CompareNote>
+            )}
+            {comparisonView.dataNote && (
+              <CompareNote tone="data" icon="fact_check">
+                {t(comparisonView.dataNote.messageKey)}
+              </CompareNote>
+            )}
+          </section>
+        )}
+
+        {comparisonView.topFactors.length > 0 && (
+          <section className="compare-factors" aria-labelledby="compare-factors-title">
+            <div className="compare-section-heading">
+              <span>{t('compare.section.decision')}</span>
+              <span>{comparisonView.topFactors.length}</span>
+            </div>
+            <h2 id="compare-factors-title">{t('compare.section.decision')}</h2>
+            <div className="compare-factor-list">
+              {comparisonView.topFactors.map((factor) => (
+                <FactorCard
+                  key={factor.id}
+                  factor={factor}
+                  localNameA={localNameA}
+                  localNameB={localNameB}
+                  t={t}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {(aiLoading || aiText) && (
+          <section className="compare-ai-card" aria-live="polite" aria-label={t('compare.askMore')}>
+            {aiLoading && !aiText ? (
+              <div className="compare-ai-loading">
+                <span className="compare-spinner" aria-hidden="true" />
+                <span>{t('compare.aiLoading')}</span>
+              </div>
+            ) : (
+              <p>{aiText}</p>
+            )}
+          </section>
+        )}
+
+        <button className="compare-primary-action" type="button" onClick={handlePrimaryAction}>
+          <span className="material-symbols-outlined" aria-hidden="true">
+            {isBlocked ? 'travel_explore' : 'auto_awesome'}
+          </span>
+          {actionLabel}
+        </button>
+      </section>
+    </main>
   )
 }

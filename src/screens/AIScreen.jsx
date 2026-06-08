@@ -234,6 +234,8 @@ export default function AIScreen() {
   const activeStoreSlug = storeSlug || currentStore?.slug || null
   const storeContext = buildStoreAIContext(currentStore, { slug: activeStoreSlug })
   const fallbackProduct = location.state?.product || null
+  const initialPrompt =
+    typeof location.state?.initialPrompt === 'string' ? location.state.initialPrompt : ''
   const alternativeScenario = location.state?.alternativeScenario || null
   const passedAlternatives = useMemo(
     () =>
@@ -260,7 +262,7 @@ export default function AIScreen() {
         key: chatKey,
       }).messages
   )
-  const [input, setInput] = useState('')
+  const [input, setInput] = useState(initialPrompt)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const bottomRef = useRef(null)

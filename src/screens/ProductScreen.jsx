@@ -27,6 +27,7 @@ import {
   buildCatalogPath,
   buildProductAIPath,
   buildProductAlternativesPath,
+  buildProductCompositionPath,
 } from '../utils/routes.js'
 import { buildProductUnitPrice } from '../domain/product/unitPrice.js'
 import { hasProductScreenCharacteristics } from '../domain/product/productScreenSections.js'
@@ -37,7 +38,7 @@ import ImageCarousel from '../components/product/ImageCarousel.jsx'
 import CollapsibleFitCheck from '../components/product/CollapsibleFitCheck.jsx'
 import DietBadges from '../components/product/DietBadges.jsx'
 import NutritionUnified from '../components/product/NutritionUnified.jsx'
-import IngredientsBlock from '../components/product/IngredientsBlock.jsx'
+import IngredientsPreview from '../components/product/IngredientsPreview.jsx'
 import SpecsGrid from '../components/product/SpecsGrid.jsx'
 import SectionLabel from '../components/product/SectionLabel.jsx'
 
@@ -78,10 +79,10 @@ export default function ProductScreen() {
   const activeStoreSlug = storeSlug || currentStore?.slug || null
   const fromScan = location.state?.fromScan === true
   const baseProduct = useMemo(() => {
-    const known = findProductInCatalog(catalogProducts, ean)
+    const known = findProductInCatalog(catalogProducts, ean, { allowAlternate: !fromScan })
     const stateProduct = coerceProductEntity(location.state?.product)
     return getProductScreenBaseProduct({ catalogProduct: known, stateProduct, ean })
-  }, [catalogProducts, ean, location.state])
+  }, [catalogProducts, ean, fromScan, location.state])
 
   const [fullProduct, setFullProduct] = useState(null)
   const [fetchingFull, setFetchingFull] = useState(false)
@@ -334,6 +335,18 @@ export default function ProductScreen() {
   const subtitleText =
     subtitleParts.length > 0 ? subtitleParts.join(' В· ') : manufacturerText || ''
 
+  const handleAskIngredientAI = (item) => {
+    navigate(buildProductAIPath(activeStoreSlug, product.ean), {
+      state: {
+        product,
+        initialPrompt: t(item.aiQuestionKey, {
+          ingredient: item.label,
+          name: localName || product.name,
+        }),
+      },
+    })
+  }
+
   return (
     <div
       className="screen"
@@ -558,13 +571,16 @@ export default function ProductScreen() {
 
         {/* 7. Ingredients */}
         {product.ingredients && (
-          <div>
-            <SectionLabel>{t('product.ingredients')}</SectionLabel>
-            <IngredientsBlock
-              text={product.ingredients}
-              userAllergens={profile?.allergens || product.allergens || []}
-            />
-          </div>
+          <IngredientsPreview
+            product={product}
+            profile={profile}
+            onOpenFull={() =>
+              navigate(buildProductCompositionPath(activeStoreSlug, product.ean), {
+                state: { product },
+              })
+            }
+            onAskAI={handleAskIngredientAI}
+          />
         )}
 
         {/* 8. Characteristics */}

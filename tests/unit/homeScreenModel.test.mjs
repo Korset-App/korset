@@ -20,20 +20,23 @@ test('home screen pilot order keeps scan before profile and secondary actions', 
   ])
 })
 
-test('home quick actions keep only catalog and AI on the main canvas', () => {
+test('home quick actions expose store-scoped secondary actions', () => {
   const actions = buildHomeQuickActions({
     routes: {
       catalog: '/s/mars/catalog',
       ai: '/s/mars/ai',
+      scan: '/s/mars/scan',
+      profile: '/s/mars/profile',
       history: '/s/mars/history',
     },
   })
 
   assert.deepEqual(
     actions.map((action) => action.key),
-    ['ai', 'catalog']
+    ['catalog', 'ai', 'compare', 'favorites', 'history', 'profile']
   )
-  assert.equal(actions.some((action) => action.path === '/s/mars/history'), false)
+  assert.deepEqual(actions.find((action) => action.key === 'compare')?.navState, { compareMode: true })
+  assert.equal(actions.find((action) => action.key === 'favorites')?.path, '/s/mars/profile?tab=favorites')
 })
 
 test('home store facts expose only shopper-useful public facts', () => {

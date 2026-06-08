@@ -4,10 +4,11 @@ import { enrichQuantity } from '../../utils/parseQuantity.js'
 import { normalizeNutrition, normalizeStringArray, parseJson, withProductImage } from './model.js'
 import { normalizeAlternativeScenario } from './alternativeScenarios.js'
 
-function eanMatches(product, ean) {
+function eanMatches(product, ean, { allowAlternate = true } = {}) {
   if (!product || !ean) return false
   const ref = String(ean)
   if (String(product.ean) === ref) return true
+  if (!allowAlternate) return false
   return Array.isArray(product.alternateEans) && product.alternateEans.map(String).includes(ref)
 }
 
@@ -148,9 +149,9 @@ function sortByScenario(a, b, { product, profile, scenario }) {
   )
 }
 
-export function findProductInCatalog(catalogProducts = [], ean) {
+export function findProductInCatalog(catalogProducts = [], ean, options = {}) {
   if (!Array.isArray(catalogProducts)) return null
-  return catalogProducts.find((product) => eanMatches(product, ean)) || null
+  return catalogProducts.find((product) => eanMatches(product, ean, options)) || null
 }
 
 export function mapProductAlternativeRpcRows(rows = []) {

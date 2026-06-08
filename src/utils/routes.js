@@ -55,6 +55,10 @@ export function buildProductAIPath(storeSlug = null, ean) {
   return `${buildProductPath(storeSlug, ean)}/ai`
 }
 
+export function buildProductCompositionPath(storeSlug = null, ean) {
+  return `${buildProductPath(storeSlug, ean)}/composition`
+}
+
 export function buildProductAlternativesPath(storeSlug = null, ean) {
   return `${buildProductPath(storeSlug, ean)}/alternatives`
 }

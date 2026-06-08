@@ -30,7 +30,11 @@ const STORE_HOURS_FALLBACKS = {
 }
 
 function HomeIcon({ name, className = '' }) {
-  return <span className={`material-symbols-outlined ${className}`}>{name}</span>
+  return (
+    <span className={`material-symbols-outlined ${className}`} aria-hidden="true">
+      {name}
+    </span>
+  )
 }
 
 function getStoreLogoUrl(store = {}) {
@@ -863,7 +867,7 @@ export default function HomeScreen() {
       <section className="home-actions" aria-label={t('home.quickActions')}>
         {actions.map((action) => (
           <button
-            className={`home-action-card home-action-card--${action.tone}`}
+            className={`home-action-card home-action-card--${action.key}`}
             key={action.key}
             type="button"
             onClick={() =>
@@ -873,7 +877,7 @@ export default function HomeScreen() {
             <span className="home-action-card__icon">
               <HomeIcon name={action.icon} />
             </span>
-            <span>
+            <span className="home-action-card__copy">
               <strong>{t(action.titleKey)}</strong>
               <small>{t(action.textKey)}</small>
             </span>
@@ -884,11 +888,27 @@ export default function HomeScreen() {
       {installHelpVisible && (
         <section
           ref={installSectionRef}
-          className="home-install-banner"
+          className="home-install-card"
           aria-label={t('home.installTitle')}
         >
-          <div>
-            <strong>{isIos ? t('home.installIosTitle') : t('home.installTitle')}</strong>
+          <div className="home-install-card__visual" aria-hidden="true">
+            <div className="home-install-card__app-icon">
+              <HomeIcon name="barcode_scanner" />
+            </div>
+            <div className="home-install-card__phone">
+              <span />
+              <strong>Körset</strong>
+              <small>{t('home.installVisualText')}</small>
+            </div>
+          </div>
+          <div className="home-install-card__content">
+            <span className="home-install-card__label">{t('home.installLabel')}</span>
+            <div className="home-install-card__headline">
+              <h2>{isIos ? t('home.installIosTitle') : t('home.installTitle')}</h2>
+              <button type="button" onClick={dismissInstall} aria-label={t('common.close')}>
+                <HomeIcon name="close" />
+              </button>
+            </div>
             <p>
               {isIos
                 ? t('home.installIosText')
@@ -896,19 +916,31 @@ export default function HomeScreen() {
                   ? t('home.installText')
                   : t('home.installBrowserText')}
             </p>
-            {!installPrompt && (
-              <ol className="home-install-steps">
-                <li>{isIos ? t('home.installStepShare') : t('home.installStepMenu')}</li>
-                <li>{isIos ? t('home.installStepHome') : t('home.installStepInstall')}</li>
-              </ol>
+            <div className="home-install-benefits" aria-label={t('home.installBenefitsLabel')}>
+              {[0, 1, 2].map((item) => (
+                <span key={item}>
+                  <HomeIcon
+                    name={item === 0 ? 'bolt' : item === 1 ? 'inventory_2' : 'storefront'}
+                  />
+                  {t(`home.installBenefit${item + 1}`)}
+                </span>
+              ))}
+            </div>
+            {installPrompt ? (
+              <button className="home-install-card__cta" type="button" onClick={handleInstallClick}>
+                <span>{t('home.installCta')}</span>
+                <HomeIcon name="download" />
+              </button>
+            ) : (
+              <div className="home-install-guide">
+                <span className="home-install-guide__title">{t('home.installGuideTitle')}</span>
+                <ol className="home-install-steps">
+                  <li>{isIos ? t('home.installStepShare') : t('home.installStepMenu')}</li>
+                  <li>{isIos ? t('home.installStepHome') : t('home.installStepInstall')}</li>
+                </ol>
+              </div>
             )}
           </div>
-          <button type="button" onClick={installPrompt ? handleInstallClick : scrollToInstall}>
-            {t('home.installCta')}
-          </button>
-          <button type="button" onClick={dismissInstall} aria-label={t('common.close')}>
-            <HomeIcon name="close" />
-          </button>
         </section>
       )}
 

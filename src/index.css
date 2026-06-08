@@ -2712,6 +2712,46 @@ body {
     0 10px 22px color-mix(in srgb, var(--text-dim) 12%, transparent);
 }
 
+:root[data-theme='light'] .catalog-category-sheen {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--text-inverse) 10%, transparent) 0%,
+      transparent 32%,
+      color-mix(in srgb, var(--tone-a) 18%, transparent) 100%
+    ),
+    linear-gradient(
+      150deg,
+      color-mix(in srgb, var(--tone-hi) 14%, transparent) 0%,
+      transparent 34%,
+      transparent 74%,
+      color-mix(in srgb, var(--tone-a) 22%, transparent) 100%
+    );
+  opacity: 0.85;
+}
+
+:root[data-theme='light'] .catalog-category-card::after {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--tone-a) 52%, transparent) 100%
+  );
+}
+
+:root[data-theme='light'] .catalog-category-card[data-text='light']::after {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--tone-a) 56%, transparent) 100%
+  );
+}
+
+:root[data-theme='light'] .catalog-category-title {
+  text-shadow:
+    0 2px 8px color-mix(in srgb, var(--tone-a) 68%, transparent),
+    0 0 1px color-mix(in srgb, var(--text-inverse) 58%, transparent);
+}
+
 :root[data-theme='light'] .catalog-category-media img {
   filter: drop-shadow(0 7px 12px color-mix(in srgb, var(--text-dim) 22%, transparent));
 }

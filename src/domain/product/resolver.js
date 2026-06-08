@@ -91,29 +91,6 @@ async function findStoreProduct(ean, storeId) {
       }
     }
 
-    if (storeId) {
-      const { data: altStoreData } = await supabase
-        .from('store_products')
-        .select(
-          'id, ean, price_kzt, shelf_zone, shelf_position, stock_status, global_product_id, global_products!inner(*)'
-        )
-        .eq('store_id', storeId)
-        .eq('is_active', true)
-        .contains('global_products.alternate_eans', [ean])
-        .maybeSingle()
-
-      if (altStoreData?.global_products) {
-        return normalizeGlobalProduct(altStoreData.global_products, {
-          storeProductId: altStoreData.id,
-          priceKzt: altStoreData.price_kzt || null,
-          shelf:
-            [altStoreData.shelf_zone, altStoreData.shelf_position].filter(Boolean).join(' / ') ||
-            null,
-          stockStatus: altStoreData.stock_status || null,
-        })
-      }
-    }
-
     return null
   } catch {
     return null
@@ -131,18 +108,16 @@ async function findGlobalProductByEan(ean) {
 
     if (data) return normalizeGlobalProduct(data)
 
-    const { data: altData, error: altError } = await supabase
-      .from('global_products')
-      .select('*')
-      .contains('alternate_eans', [ean])
-      .eq('is_active', true)
-      .maybeSingle()
-
-    if (altError || !altData) return null
-    return normalizeGlobalProduct(altData)
+    return null
   } catch {
     return null
   }
+}
+
+export function isResolvedProductExactForScannedEan(product, scannedEan) {
+  const productEan = product?.ean == null ? null : String(product.ean).trim()
+  const normalizedScannedEan = scannedEan == null ? null : String(scannedEan).trim()
+  return Boolean(productEan && normalizedScannedEan && productEan === normalizedScannedEan)
 }
 
 async function findGlobalProductById(id) {
@@ -308,7 +283,9 @@ async function findProductViaRPC(ean, storeId) {
           stockStatus: data._sp_stock_status || null,
         }
       : null
-    return normalizeGlobalProduct(data, storeOverlay)
+    const product = normalizeGlobalProduct(data, storeOverlay)
+    if (!isResolvedProductExactForScannedEan(product, ean)) return null
+    return product
   } catch {
     return { _rpcUnavailable: true }
   }

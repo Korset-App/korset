@@ -1,0 +1,165 @@
+.ingredient-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: var(--overlay-bg);
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+}
+
+body.ingredient-sheet-open .bottom-nav {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ingredient-sheet__panel {
+  width: 100%;
+  max-width: 430px;
+  border-radius: 24px 24px 20px 20px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, currentColor 4%, transparent), transparent 42%),
+    color-mix(in srgb, var(--bg-surface) 94%, var(--bg-card) 6%);
+  border: 1px solid var(--glass-soft-border);
+  box-shadow: var(--shadow-card);
+  color: var(--text);
+  padding: 10px 16px 16px;
+  max-height: calc(100dvh - 56px - env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  backdrop-filter: blur(22px) saturate(130%);
+}
+
+:root[data-theme='dark'] .ingredient-sheet__panel {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, currentColor 5%, transparent), transparent 42%),
+    color-mix(in srgb, var(--surface) 92%, var(--card) 8%);
+}
+
+.ingredient-sheet__panel--danger {
+  color: var(--error-bright);
+  border-color: var(--error-border);
+}
+
+.ingredient-sheet__panel--warning {
+  color: var(--warning);
+  border-color: var(--warning-border);
+}
+
+.ingredient-sheet__panel--additive {
+  color: var(--warning);
+  border-color: color-mix(in srgb, var(--warning) 26%, var(--glass-soft-border));
+}
+
+.ingredient-sheet__panel--info {
+  color: var(--primary-bright);
+  border-color: var(--badge-border);
+}
+
+.ingredient-sheet__handle {
+  width: 42px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--glass-handle);
+  margin: 0 auto 12px;
+}
+
+.ingredient-sheet__topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ingredient-sheet__badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: color-mix(in srgb, currentColor 9%, transparent);
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  color: currentColor;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.ingredient-sheet__close {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  border: 1px solid var(--glass-soft-border);
+  background: var(--glass-subtle);
+  color: var(--text-sub);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.ingredient-sheet__close .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.ingredient-sheet__title {
+  margin: 14px 0 8px;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 24px;
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+}
+
+.ingredient-sheet__reason,
+.ingredient-sheet__description {
+  margin: 0;
+  color: var(--text-sub);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.ingredient-sheet__reason {
+  color: var(--text);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.ingredient-sheet__actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.ingredient-sheet__ai,
+.ingredient-sheet__secondary {
+  min-height: 44px;
+  border-radius: 14px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.ingredient-sheet__ai {
+  border: 0;
+  background: linear-gradient(135deg, var(--primary), var(--primary-mid));
+  color: var(--text-inverse);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: var(--shadow-glow);
+}
+
+.ingredient-sheet__ai .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.ingredient-sheet__secondary {
+  border: 1px solid var(--glass-soft-border);
+  background: var(--glass-subtle);
+  color: var(--text-sub);
+  padding: 0 14px;
+}

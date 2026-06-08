@@ -177,5 +177,117 @@ test('buildProductComparison returns draw when deterministic difference is too s
   assert.equal(result.confidence, 'draw')
   assert.equal(result.primaryReason, 'similar')
   assert.equal(result.summaryKey, 'similar_fit')
-}
-)
+})
+
+test('buildProductComparison marks different categories as not comparable', () => {
+  const result = buildProductComparison(
+    {
+      name: 'Plain yogurt',
+      category: 'dairy_eggs',
+      ingredients: 'milk, starter culture',
+      stockStatus: 'in_stock',
+      priceKzt: 600,
+    },
+    {
+      name: 'Apple juice',
+      category: 'water_beverages',
+      ingredients: 'apple juice',
+      stockStatus: 'in_stock',
+      priceKzt: 800,
+    },
+    {}
+  )
+
+  assert.equal(result.isComparable, false)
+  assert.equal(result.winner, 'draw')
+  assert.equal(result.primaryReason, 'category_mismatch')
+  assert.equal(result.summaryKey, 'different_category')
+  assert.equal(result.confidence, 'blocked')
+})
+
+test('buildProductComparison keeps a winner but lowers confidence when key data is sparse', () => {
+  const result = buildProductComparison(
+    {
+      name: 'Budget oats',
+      category: 'grocery',
+      stockStatus: 'in_stock',
+      priceKzt: 420,
+    },
+    {
+      name: 'Premium oats',
+      category: 'grocery',
+      stockStatus: 'in_stock',
+      priceKzt: 1200,
+    },
+    {}
+  )
+
+  assert.equal(result.isComparable, true)
+  assert.equal(result.winner, 'A')
+  assert.equal(result.primaryReason, 'price')
+  assert.equal(result.confidence, 'preliminary')
+  assert.equal(result.dataCoverage.level, 'low')
+  assert.equal(result.dataCoverage.missing.includes('ingredients'), true)
+  assert.equal(result.dataCoverage.missing.includes('nutrition'), true)
+})
+
+test('buildProductComparison lets nutrition beat halal when profile is only a perspective', () => {
+  const result = buildProductComparison(
+    {
+      name: 'Halal soda',
+      category: 'water_beverages',
+      subcategory: 'soda',
+      halalStatus: 'yes',
+      ingredients: 'water, sugar, flavoring',
+      nutritionPer100: { kcal: 45, sugar: 11 },
+      stockStatus: 'in_stock',
+      priceKzt: 390,
+    },
+    {
+      name: 'Still water',
+      category: 'water_beverages',
+      subcategory: 'water',
+      halalStatus: 'unknown',
+      ingredients: 'water',
+      nutritionPer100: { kcal: 0, sugar: 0 },
+      stockStatus: 'in_stock',
+      priceKzt: 320,
+    },
+    { profile: { halalOnly: true } }
+  )
+
+  assert.equal(result.winner, 'B')
+  assert.equal(result.primaryReason, 'nutrition')
+  assert.equal(result.profilePerspective.winner, 'A')
+  assert.equal(result.profilePerspective.reason, 'halal')
+})
+
+test('buildProductComparison uses unit price for comparable same-category packs', () => {
+  const result = buildProductComparison(
+    {
+      name: 'Small crackers',
+      category: 'snacks',
+      subcategory: 'crackers',
+      quantity: '100 g',
+      ingredients: 'wheat flour, oil, salt',
+      nutritionPer100: { kcal: 430, fat: 12, carbs: 68, salt: 1.2 },
+      stockStatus: 'in_stock',
+      priceKzt: 450,
+    },
+    {
+      name: 'Family crackers',
+      category: 'snacks',
+      subcategory: 'crackers',
+      quantity: '300 g',
+      ingredients: 'wheat flour, oil, salt',
+      nutritionPer100: { kcal: 430, fat: 12, carbs: 68, salt: 1.2 },
+      stockStatus: 'in_stock',
+      priceKzt: 900,
+    },
+    {}
+  )
+
+  assert.equal(result.winner, 'B')
+  assert.equal(result.primaryReason, 'value')
+  assert.equal(result.summaryKey, 'better_value')
+})

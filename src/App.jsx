@@ -18,6 +18,7 @@ const AccountScreen = lazy(() => import('./screens/AccountScreen.jsx'))
 const CatalogScreen = lazy(() => import('./screens/CatalogScreen.jsx'))
 const ScanScreen = lazy(() => import('./screens/ScanScreen.jsx'))
 const ProductScreen = lazy(() => import('./screens/ProductScreen.jsx'))
+const ProductCompositionScreen = lazy(() => import('./screens/ProductCompositionScreen.jsx'))
 const AlternativesScreen = lazy(() => import('./screens/AlternativesScreen.jsx'))
 const AIScreen = lazy(() => import('./screens/AIScreen.jsx'))
 const AIAssistantScreen = lazy(() => import('./screens/AIAssistantScreen.jsx'))
@@ -106,6 +107,10 @@ function AppInner() {
           <Route path="/s/:storeSlug/about" element={<AboutScreen />} />
           <Route path="/s/:storeSlug/terms" element={<TermsScreen />} />
           <Route path="/s/:storeSlug/product/:ean" element={<ProductScreen />} />
+          <Route
+            path="/s/:storeSlug/product/:ean/composition"
+            element={<ProductCompositionScreen />}
+          />
           <Route path="/s/:storeSlug/product/:ean/alternatives" element={<AlternativesScreen />} />
           <Route path="/s/:storeSlug/product/:ean/ai" element={<AIScreen />} />
           <Route path="/s/:storeSlug/product/:ean/compare/:ean2" element={<CompareScreen />} />

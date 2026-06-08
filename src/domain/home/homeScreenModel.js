@@ -54,20 +54,11 @@ export const HOME_STORY_KEYS = [
 export function buildHomeQuickActions({ routes = {} } = {}) {
   return [
     {
-      key: 'scan',
-      icon: 'barcode_scanner',
-      titleKey: 'home.quickActionScan',
-      textKey: 'home.quickActionScanSub',
-      path: routes.scan,
-      tone: 'ember',
-    },
-    {
       key: 'catalog',
       icon: 'storefront',
       titleKey: 'home.quickActionCatalog',
       textKey: 'home.quickActionCatalogSub',
       path: routes.catalog,
-      tone: 'teal',
     },
     {
       key: 'ai',
@@ -75,8 +66,6 @@ export function buildHomeQuickActions({ routes = {} } = {}) {
       titleKey: 'home.quickActionAi',
       textKey: 'home.quickActionAiSub',
       path: routes.ai,
-      tone: 'plum',
-      featured: true,
     },
     {
       key: 'compare',
@@ -85,7 +74,6 @@ export function buildHomeQuickActions({ routes = {} } = {}) {
       textKey: 'home.quickActionCompareSub',
       path: routes.scan,
       navState: { compareMode: true },
-      tone: 'blue',
     },
     {
       key: 'favorites',
@@ -93,7 +81,6 @@ export function buildHomeQuickActions({ routes = {} } = {}) {
       titleKey: 'home.quickActionFavorites',
       textKey: 'home.quickActionFavoritesSub',
       path: routes.profile ? `${routes.profile}?tab=favorites` : '',
-      tone: 'rose',
     },
     {
       key: 'history',
@@ -101,7 +88,13 @@ export function buildHomeQuickActions({ routes = {} } = {}) {
       titleKey: 'home.quickActionHistory',
       textKey: 'home.quickActionHistorySub',
       path: routes.history || (routes.profile ? `${routes.profile}?tab=history` : ''),
-      tone: 'slate',
+    },
+    {
+      key: 'profile',
+      icon: 'person',
+      titleKey: 'home.quickActionProfile',
+      textKey: 'home.quickActionProfileSub',
+      path: routes.profile,
     },
   ].filter((action) => Boolean(action.path))
 }
