@@ -91,6 +91,9 @@ export function normalizeGlobalProduct(row, storeOverlay = null) {
         qualityScore: row.data_quality_score ?? null,
         aiEnriched: row.source_primary === 'ai_enriched',
         lastUpdatedAt: row.updated_at || row.created_at || null,
+        resolvedAliasEan: row._ean_alias_ean || null,
+        resolvedAliasStatus: row._ean_alias_status || null,
+        resolvedAliasConfidence: row._ean_alias_confidence ?? null,
       },
     })
   )

@@ -9,12 +9,13 @@
 ## 1. Current Goal
 
 Сделать Körset pilot-ready для первого продуктового магазина:
-- buyer PWA должна быстро и надежно помогать у полки;
-- retail cabinet должен выглядеть и работать как продаваемый B2B-инструмент;
+- buyer PWA должна быть отличным публичным цифровым каталогом для просмотра из дома и надежным помощником у полки;
+- retail cabinet должен выглядеть и работать как продаваемый B2B-инструмент (с удобным обновлением цен);
 - data pipeline должен честно обрабатывать unknown EAN и не выдумывать безопасность;
 - документация и Vault должны помогать нескольким ИИ-агентам работать без конфликтов.
 
 Критерий качества: не “быстро накидать”, а shipped-quality без лишнего усложнения.
+Стратегический сдвиг: продукт — это публичный каталог (Digital Storefront), а сканер — это лишь одна из фич у полки. Регистрация не требуется для просмотра.
 
 ---
 
@@ -40,8 +41,15 @@
    - Validate product import path for real CSV/XLS/XLSX.
    - Confirm unknown EAN recovery loop.
 
-5. Launch-quality checks
-   - Mobile scan flow.
+5. Digital Catalog Transition
+   - Implement SEO injection: Schema.org, Meta-tags, dynamic title/description per store and product.
+   - Rename "Favorites" to "Shopping List" (Список покупок) globally in UI and data.
+   - Hide `out_of_stock` products by default in public catalog.
+   - Implement `is_published` (draft mode) flag for stores to hide unready catalogs.
+   - Remove gating logic, ensure unhindered public access.
+
+6. Launch-quality checks
+   - Mobile catalog flow and SEO visibility.
    - Product page and Fit-Check.
    - Catalog search/category browsing.
    - Retail dashboard/products/import/settings.

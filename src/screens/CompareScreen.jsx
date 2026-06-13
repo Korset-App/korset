@@ -10,6 +10,7 @@ import { buildProductAIPath, buildProductAlternativesPath } from '../utils/route
 import { buildProductComparison } from '../domain/product/comparison.js'
 import { buildProductComparisonViewModel } from '../domain/product/comparisonViewModel.js'
 import { getFitBadgeMeta, resolveFitSeverityKey } from '../domain/product/fitVerdict.js'
+import { CompareIcon } from '../components/icons/CompareIcon.jsx'
 import './CompareScreen.css'
 
 function getComparisonBarSplit(comparisonView) {
@@ -18,11 +19,18 @@ function getComparisonBarSplit(comparisonView) {
   return comparisonView.confidence === 'clear' ? 34 : 42
 }
 
-function getComparisonIcon(comparisonView) {
-  if (comparisonView?.status === 'blocked') return 'block'
-  if (comparisonView?.status === 'draw') return 'balance'
-  if (comparisonView?.confidence === 'preliminary') return 'rule'
-  return 'workspace_premium'
+function getVerdictStateClass(comparisonView) {
+  if (comparisonView?.status === 'blocked') return 'compare-verdict-card--blocked'
+  if (comparisonView?.status === 'draw') return 'compare-verdict-card--draw'
+  if (comparisonView?.winnerSide === 'A') return 'compare-verdict-card--winner-a'
+  if (comparisonView?.winnerSide === 'B') return 'compare-verdict-card--winner-b'
+  return 'compare-verdict-card--draw'
+}
+
+function getVerdictMark(comparisonView) {
+  if (comparisonView?.status === 'blocked') return '!'
+  if (comparisonView?.status === 'draw') return '≈'
+  return comparisonView?.winnerSide || '≈'
 }
 
 function getSideLabelKey(label) {
@@ -39,6 +47,115 @@ function getProductImage(product) {
     product?.imageUrl ||
     (product?.ean ? `/products/${product.ean}.png` : null)
   )
+}
+
+function Icon({ name, className = '' }) {
+  const iconClass = `compare-icon ${className}`.trim()
+
+  if (name === 'back') {
+    return (
+      <svg className={iconClass} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M14.5 5.5 8 12l6.5 6.5" />
+        <path d="M9 12h10" />
+      </svg>
+    )
+  }
+
+  if (name === 'compare') {
+    return (
+      <svg className={iconClass} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M7 6h11" />
+        <path d="m15 3 3 3-3 3" />
+        <path d="M17 18H6" />
+        <path d="m9 15-3 3 3 3" />
+      </svg>
+    )
+  }
+
+  if (name === 'safe') {
+    return (
+      <svg className={iconClass} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="8" />
+        <path d="m8.8 12.2 2.1 2.1 4.5-4.8" />
+      </svg>
+    )
+  }
+
+  if (name === 'danger' || name === 'blocked') {
+    return (
+      <svg className={iconClass} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="8" />
+        <path d="m9 9 6 6" />
+        <path d="m15 9-6 6" />
+      </svg>
+    )
+  }
+
+  if (name === 'warning' || name === 'caution' || name === 'preliminary' || name === 'data') {
+    return (
+      <svg className={iconClass} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M12 4.5 20 18H4l8-13.5Z" />
+        <path d="M12 9v4" />
+        <path d="M12 16h.01" />
+      </svg>
+    )
+  }
+
+  if (name === 'draw') {
+    return (
+      <svg className={iconClass} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M7 8h10" />
+        <path d="M5.5 16h13" />
+        <path d="M9 5.5 7 8l2 2.5" />
+        <path d="m15 13.5 3 2.5-3 2.5" />
+      </svg>
+    )
+  }
+
+  if (name === 'profile') {
+    return (
+      <svg className={iconClass} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <circle cx="10" cy="8" r="3" />
+        <path d="M4.5 18c.9-3 2.8-4.5 5.5-4.5 1.3 0 2.4.3 3.2 1" />
+        <path d="m15 17 2 2 3.5-4" />
+      </svg>
+    )
+  }
+
+  if (name === 'category' || name === 'explore') {
+    return (
+      <svg className={iconClass} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M5 5h6v6H5z" />
+        <path d="M13 5h6v6h-6z" />
+        <path d="M5 13h6v6H5z" />
+        <path d="M14 16h5" />
+        <path d="M16.5 13.5v5" />
+      </svg>
+    )
+  }
+
+  if (name === 'ai') {
+    return (
+      <svg className={iconClass} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M12 3.5 13.6 9l5.4 1.5-5.4 1.6L12 17.5l-1.6-5.4L5 10.5 10.4 9 12 3.5Z" />
+        <path d="M18 15.5 18.7 18l2.3.7-2.3.7-.7 2.1-.7-2.1-2.3-.7 2.3-.7.7-2.5Z" />
+      </svg>
+    )
+  }
+
+  return (
+    <svg className={iconClass} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <circle cx="12" cy="12" r="8" />
+      <path d="m8.5 12 2.4 2.4 4.8-5" />
+    </svg>
+  )
+}
+
+function getFitIconName(severityKey) {
+  if (severityKey === 'safe') return 'safe'
+  if (severityKey === 'danger') return 'danger'
+  if (severityKey === 'warning') return 'warning'
+  return 'caution'
 }
 
 function ProductPhoto({ product }) {
@@ -80,9 +197,7 @@ function ProductPanel({ product, productName, fit, side, sideLabel, t }) {
       <div className="compare-product-side">{sideLabel}</div>
       <h2 className="compare-product-name">{productName}</h2>
       <div className={`compare-fit-badge compare-fit-badge--${badge.key}`}>
-        <span className="material-symbols-outlined" aria-hidden="true">
-          {badge.icon}
-        </span>
+        <Icon name={getFitIconName(badge.key)} />
         {t(badge.labelKey)}
       </div>
     </section>
@@ -108,12 +223,34 @@ function FactorCard({ factor, localNameA, localNameB, t }) {
   )
 }
 
+function getRowValue(row, side, t) {
+  const key = side === 'A' ? row.valueAKey : row.valueBKey
+  const value = side === 'A' ? row.valueA : row.valueB
+  if (key) return t(key)
+  return value || '—'
+}
+
+function DataRow({ row, t }) {
+  const winsA = row.winnerSide === 'A'
+  const winsB = row.winnerSide === 'B'
+
+  return (
+    <article className={`compare-data-row ${row.winnerSide ? 'compare-data-row--has-winner' : ''}`}>
+      <div className={`compare-data-value compare-data-value--a ${winsA ? 'is-winner' : ''}`}>
+        {getRowValue(row, 'A', t)}
+      </div>
+      <div className="compare-data-label">{t(row.labelKey)}</div>
+      <div className={`compare-data-value compare-data-value--b ${winsB ? 'is-winner' : ''}`}>
+        {getRowValue(row, 'B', t)}
+      </div>
+    </article>
+  )
+}
+
 function CompareNote({ tone = 'neutral', icon, children }) {
   return (
     <div className={`compare-note compare-note--${tone}`}>
-      <span className="material-symbols-outlined" aria-hidden="true">
-        {icon}
-      </span>
+      <Icon name={icon} />
       <p>{children}</p>
     </div>
   )
@@ -163,14 +300,15 @@ export default function CompareScreen() {
 
   const comparisonView = useMemo(() => {
     if (!productA || !productB || !comparison) return null
-    return buildProductComparisonViewModel({ productA, productB, comparison, profile })
-  }, [productA, productB, comparison, profile])
+    return buildProductComparisonViewModel({ productA, productB, comparison, profile, lang })
+  }, [productA, productB, comparison, profile, lang])
 
   const winner = comparisonView?.winnerSide || 'draw'
   const barSplit = getComparisonBarSplit(comparisonView)
 
   useEffect(() => {
     if (!productA || !productB || !comparisonView) return undefined
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') return undefined
 
     let mounted = true
     const ctrl = new AbortController()
@@ -200,7 +338,7 @@ export default function CompareScreen() {
         const data = await response.json()
         if (mounted) setAiText(data.reply || '')
       } catch (error) {
-        if (mounted && error.name !== 'AbortError') setAiText(t('compare.aiError') || '')
+        if (mounted && error.name !== 'AbortError') setAiText(null)
       } finally {
         if (mounted) setAiLoading(false)
       }
@@ -218,9 +356,7 @@ export default function CompareScreen() {
     return (
       <main className="compare-empty screen">
         <div className="compare-empty-card">
-          <span className="material-symbols-outlined" aria-hidden="true">
-            compare_arrows
-          </span>
+          <Icon name="compare" />
           <p>{t('common.notFound')}</p>
           <button className="btn btn-secondary" type="button" onClick={() => navigate(-1)}>
             {t('common.back')}
@@ -239,7 +375,6 @@ export default function CompareScreen() {
         ? localNameB
         : ''
   const isBlocked = comparisonView.status === 'blocked'
-  const isDraw = comparisonView.status === 'draw'
   const actionProduct = winnerProduct || productA
   const actionLabel = isBlocked ? t(comparisonView.actionKey) : t('compare.askMore')
 
@@ -263,14 +398,10 @@ export default function CompareScreen() {
             onClick={() => navigate(-1)}
             aria-label={t('common.back')}
           >
-            <span className="material-symbols-outlined" aria-hidden="true">
-              arrow_back
-            </span>
+            <Icon name="back" />
           </button>
           <div className="compare-title" translate="no">
-            <span className="material-symbols-outlined" aria-hidden="true">
-              compare_arrows
-            </span>
+            <CompareIcon size={18} />
             {t('compare.title')}
           </div>
           <div className="compare-nav-spacer" aria-hidden="true" />
@@ -297,7 +428,63 @@ export default function CompareScreen() {
       </header>
 
       <section className="compare-body" aria-live="polite">
-        <section className="compare-verdict-card" aria-labelledby="compare-verdict-title">
+        {comparisonView.dataRows.length > 0 && (
+          <section className="compare-data-section" aria-labelledby="compare-data-title">
+            <div className="compare-section-heading">
+              <span>A</span>
+              <h2 id="compare-data-title">{t('compare.section.data')}</h2>
+              <span>B</span>
+            </div>
+            <div className="compare-data-grid">
+              {comparisonView.dataRows.map((row) => (
+                <DataRow key={row.id} row={row} t={t} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {(comparisonView.profileNote || comparisonView.dataNote || isBlocked) && (
+          <section className="compare-notes" aria-label={t('compare.section.data')}>
+            {isBlocked && (
+              <CompareNote tone="blocked" icon="category">
+                {t('compare.reason.different_category')}
+              </CompareNote>
+            )}
+            {comparisonView.profileNote && (
+              <CompareNote tone="profile" icon="profile">
+                {t(comparisonView.profileNote.messageKey)}
+                {profilePreferenceName ? ` ${profilePreferenceName}.` : ''}
+              </CompareNote>
+            )}
+            {comparisonView.dataNote && (
+              <CompareNote tone="data" icon="data">
+                {t(comparisonView.dataNote.messageKey)}
+              </CompareNote>
+            )}
+          </section>
+        )}
+
+        {comparisonView.topFactors.length > 0 && (
+          <section className="compare-factors" aria-labelledby="compare-factors-title">
+            <h2 id="compare-factors-title">{t('compare.section.decision')}</h2>
+            <div className="compare-factor-list">
+              {comparisonView.topFactors.map((factor) => (
+                <FactorCard
+                  key={factor.id}
+                  factor={factor}
+                  localNameA={localNameA}
+                  localNameB={localNameB}
+                  t={t}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        <section
+          className={`compare-verdict-card ${getVerdictStateClass(comparisonView)}`}
+          aria-labelledby="compare-verdict-title"
+        >
           <div className="compare-verdict-topline">
             <span>{t(`compare.confidence.${comparisonView.confidence}`)}</span>
             <span>{t(comparisonView.sections[0]?.titleKey || 'compare.section.decision')}</span>
@@ -313,15 +500,15 @@ export default function CompareScreen() {
             </div>
           ) : (
             <div className="compare-state-strip" aria-hidden="true">
-              <span className="material-symbols-outlined">{getComparisonIcon(comparisonView)}</span>
+              <CompareIcon active={winner === 'B'} size={22} />
+              <span>{getVerdictMark(comparisonView)}</span>
             </div>
           )}
 
           <div className="compare-verdict-main">
             <div className="compare-verdict-icon">
-              <span className="material-symbols-outlined" aria-hidden="true">
-                {getComparisonIcon(comparisonView)}
-              </span>
+              <CompareIcon active={winner === 'B'} size={30} />
+              <span className="compare-verdict-mark">{getVerdictMark(comparisonView)}</span>
             </div>
             <div className="compare-verdict-copy">
               <h1 id="compare-verdict-title">
@@ -346,53 +533,6 @@ export default function CompareScreen() {
           </div>
         </section>
 
-        {(comparisonView.profileNote || comparisonView.dataNote || isBlocked || isDraw) && (
-          <section className="compare-notes" aria-label={t('compare.section.data')}>
-            {isBlocked && (
-              <CompareNote tone="blocked" icon="category">
-                {t('compare.reason.different_category')}
-              </CompareNote>
-            )}
-            {isDraw && (
-              <CompareNote tone="neutral" icon="balance">
-                {t('compare.reason.similar_fit', { name: winnerName })}
-              </CompareNote>
-            )}
-            {comparisonView.profileNote && (
-              <CompareNote tone="profile" icon="person_check">
-                {t(comparisonView.profileNote.messageKey)}
-                {profilePreferenceName ? ` ${profilePreferenceName}.` : ''}
-              </CompareNote>
-            )}
-            {comparisonView.dataNote && (
-              <CompareNote tone="data" icon="fact_check">
-                {t(comparisonView.dataNote.messageKey)}
-              </CompareNote>
-            )}
-          </section>
-        )}
-
-        {comparisonView.topFactors.length > 0 && (
-          <section className="compare-factors" aria-labelledby="compare-factors-title">
-            <div className="compare-section-heading">
-              <span>{t('compare.section.decision')}</span>
-              <span>{comparisonView.topFactors.length}</span>
-            </div>
-            <h2 id="compare-factors-title">{t('compare.section.decision')}</h2>
-            <div className="compare-factor-list">
-              {comparisonView.topFactors.map((factor) => (
-                <FactorCard
-                  key={factor.id}
-                  factor={factor}
-                  localNameA={localNameA}
-                  localNameB={localNameB}
-                  t={t}
-                />
-              ))}
-            </div>
-          </section>
-        )}
-
         {(aiLoading || aiText) && (
           <section className="compare-ai-card" aria-live="polite" aria-label={t('compare.askMore')}>
             {aiLoading && !aiText ? (
@@ -407,9 +547,7 @@ export default function CompareScreen() {
         )}
 
         <button className="compare-primary-action" type="button" onClick={handlePrimaryAction}>
-          <span className="material-symbols-outlined" aria-hidden="true">
-            {isBlocked ? 'travel_explore' : 'auto_awesome'}
-          </span>
+          <Icon name={isBlocked ? 'explore' : 'ai'} />
           {actionLabel}
         </button>
       </section>

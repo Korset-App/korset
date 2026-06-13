@@ -1,12 +1,12 @@
 {
   "history.authRequiredTitle": "Войдите, чтобы видеть историю",
-  "history.authRequiredDesc": "Войдите, чтобы видеть отсканированные товары и избранное",
-  "history.authNavigateMsg": "Войдите, чтобы видеть историю и избранное.",
+  "history.authRequiredDesc": "Войдите, чтобы видеть отсканированные товары и Список покупок",
+  "history.authNavigateMsg": "Войдите, чтобы видеть историю и Список покупок.",
   "history.loginBtn": "Войти",
   "history.title": "Мои товары",
   "history.tabHistory": "История",
-  "history.tabFavorites": "Избранные",
+  "history.tabFavorites": "Список покупок",
   "history.loading": "Загрузка...",
-  "history.emptyHistory": "Вы ещё ничего не сканировали",
-  "history.emptyFavorites": "У вас пока нет избранных"
+  "history.emptyHistory": "У вас пока нет истории",
+  "history.emptyFavorites": "Ваш список покупок пуст"
 }

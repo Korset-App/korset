@@ -7,6 +7,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env.local') })
 
 const { createClient } = require('@supabase/supabase-js')
 const { classifyBarcode } = require('./validate-ean.cjs')
+const { buildArbuzImportEanDecision } = require('./import-ean-policy.cjs')
 
 let downloadAndUpload = null
 try {
@@ -879,31 +880,17 @@ async function main() {
       const nutrition = parseNutrition(full.nutrition)
       const halal = isHalalCharacteristic(full.characteristics || [])
 
-      // EAN parsing
       const barcode = full.barcode || null
-      let ean = barcode ? String(barcode).trim() : null
-      if (ean) {
-        const bc = classifyBarcode(ean)
-        if (bc.valid && bc.ean13) ean = bc.ean13
-      }
-
-      // If EAN is missing, search NPC (with multiple strategies)
-      let alternateEans = []
-      if (!ean) {
-        const npcResult = await npcSearchByName(full.name, full.brandName)
-        if (npcResult && npcResult.primary) {
-          ean = npcResult.primary
-          stats.npcMatches++
-          if (npcResult.alternates && npcResult.alternates.length > 0) {
-            alternateEans = npcResult.alternates
-          }
-        }
-      }
-
-      // Final EAN fallback
-      if (!ean) {
-        ean = 'arbuz_' + full.id
-      }
+      const barcodeInfo = barcode ? classifyBarcode(String(barcode).trim()) : null
+      const npcResult = !barcodeInfo?.valid ? await npcSearchByName(full.name, full.brandName) : null
+      const eanDecision = buildArbuzImportEanDecision({
+        sourceBarcode: barcode,
+        fallbackId: full.id,
+        npcResult,
+      })
+      const ean = eanDecision.ean
+      const alternateEans = eanDecision.alternateEans
+      if (eanDecision.reviewCandidates.length > 0) stats.npcMatches++
 
       let imageUrl = full.image ? full.image.replace(/w=%w&h=%h/, 'w=400&h=400') : null
       let r2Key = null
@@ -1348,6 +1335,7 @@ async function main() {
           arbuz_id: full.id,
           arbuz_price: full.priceActual || null,
           storage_conditions: stripHtml(full.storageConditions) || null,
+          ean_recovery_candidates: eanDecision.reviewCandidates,
         },
         source_primary: 'arbuz',
         source_confidence: 90,

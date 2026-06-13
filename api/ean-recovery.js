@@ -1,5 +1,8 @@
+/* global process, console */
 import { createClient } from '@supabase/supabase-js'
 import { normalizeName } from '../src/domain/product/nameNormalizer.js'
+import { buildProductCorrectionStatusUpdate } from '../src/domain/product/correctionReview.js'
+import { buildTrustedAliasPromotionUpdate, isScannableAliasEan } from '../src/domain/product/eanAliases.js'
 
 const CORS_ORIGINS = [
   'https://korset.app',
@@ -40,6 +43,229 @@ function getAdmin() {
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
 }
 
+async function isStoreOwner(admin, storeId, userId) {
+  if (!storeId || !userId) return false
+  const { data, error } = await admin.from('stores').select('owner_id').eq('id', storeId).maybeSingle()
+  if (error || !data) return false
+  return data.owner_id === userId
+}
+
+export async function handleCorrectionStatusUpdate({ admin, cors, id, status, res, user, isAdmin }) {
+  if (!id) return res.status(400).set(cors).json({ error: 'Missing correction event id' })
+  if (!status) return res.status(400).set(cors).json({ error: 'Missing status' })
+
+  const { data: event, error: eventError } = await admin
+    .from('product_correction_events')
+    .select('id, store_id, status')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (eventError) {
+    console.error('[ean-recovery] correction event lookup error', eventError)
+    return res.status(500).set(cors).json({ error: 'Correction lookup failed' })
+  }
+  if (!event) return res.status(404).set(cors).json({ error: 'Correction event not found' })
+
+  const ownsStore = isAdmin ? true : await isStoreOwner(admin, event.store_id, user.id)
+  if (!ownsStore) return res.status(403).set(cors).json({ error: 'Forbidden' })
+
+  const update = buildProductCorrectionStatusUpdate({
+    currentStatus: event.status,
+    nextStatus: status,
+    reviewerAuthId: user.id,
+  })
+  if (!update.ok) return res.status(400).set(cors).json({ error: update.reason })
+
+  const { data, error: updateError } = await admin
+    .from('product_correction_events')
+    .update(update.update)
+    .eq('id', id)
+    .eq('status', event.status)
+    .select('id, status, reviewed_at')
+    .single()
+
+  if (updateError) {
+    console.error('[ean-recovery] correction status update error', updateError)
+    return res.status(500).set(cors).json({ error: 'Correction update failed' })
+  }
+
+  return res.status(200).set(cors).json({ ok: true, action: 'update-correction-status', event: data })
+}
+
+export async function handleTrustedAliasPromotion({ admin, cors, id, res, user, isAdmin }) {
+  if (!id) return res.status(400).set(cors).json({ error: 'Missing alias id' })
+  if (!isAdmin) return res.status(403).set(cors).json({ error: 'Forbidden' })
+
+  const { data: alias, error: aliasError } = await admin
+    .from('product_ean_aliases')
+    .select('id, ean, global_product_id, status, source, confidence, evidence_json, is_active')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (aliasError) {
+    console.error('[ean-recovery] alias lookup error', aliasError)
+    return res.status(500).set(cors).json({ error: 'Alias lookup failed' })
+  }
+  if (!alias) return res.status(404).set(cors).json({ error: 'Alias not found' })
+
+  const { data: currentTrustedForEan, error: trustedError } = await admin
+    .from('product_ean_aliases')
+    .select('id, global_product_id')
+    .eq('ean', alias.ean)
+    .eq('status', 'trusted')
+    .eq('is_active', true)
+    .maybeSingle()
+
+  if (trustedError) {
+    console.error('[ean-recovery] trusted alias conflict lookup error', trustedError)
+    return res.status(500).set(cors).json({ error: 'Trusted conflict lookup failed' })
+  }
+
+  const { data: primaryTargetForEan, error: primaryError } = await admin
+    .from('global_products')
+    .select('id')
+    .eq('ean', alias.ean)
+    .eq('is_active', true)
+    .maybeSingle()
+
+  if (primaryError) {
+    console.error('[ean-recovery] primary EAN conflict lookup error', primaryError)
+    return res.status(500).set(cors).json({ error: 'Primary conflict lookup failed' })
+  }
+
+  const update = buildTrustedAliasPromotionUpdate({
+    alias,
+    reviewerAuthId: user.id,
+    currentTrustedForEan,
+    primaryTargetForEan,
+  })
+  if (!update.ok) {
+    return res.status(400).set(cors).json({ error: 'promotion_blocked', reasons: update.reasons })
+  }
+
+  const { data, error: updateError } = await admin
+    .from('product_ean_aliases')
+    .update(update.update)
+    .eq('id', id)
+    .eq('status', alias.status)
+    .select('id, ean, global_product_id, status, confidence, reviewed_at')
+    .single()
+
+  if (updateError) {
+    console.error('[ean-recovery] trusted alias promotion update error', updateError)
+    return res.status(500).set(cors).json({ error: 'Alias promotion failed' })
+  }
+
+  return res.status(200).set(cors).json({ ok: true, action: 'promote-ean-alias-trusted', alias: data })
+}
+
+export async function handleManualAliasCandidateCreate({
+  admin,
+  cors,
+  ean,
+  globalProductId,
+  res,
+  user,
+  isAdmin,
+}) {
+  if (!isAdmin) return res.status(403).set(cors).json({ error: 'Forbidden' })
+  if (!globalProductId) return res.status(400).set(cors).json({ error: 'Missing product id' })
+  if (!isScannableAliasEan(ean)) {
+    return res.status(400).set(cors).json({ error: 'manual_candidate_blocked', reasons: ['ean_not_scannable'] })
+  }
+
+  const cleanEan = String(ean).trim()
+
+  const { data: product, error: productError } = await admin
+    .from('global_products')
+    .select('id, ean, name, is_active')
+    .eq('id', globalProductId)
+    .maybeSingle()
+
+  if (productError) {
+    console.error('[ean-recovery] manual alias product lookup error', productError)
+    return res.status(500).set(cors).json({ error: 'Product lookup failed' })
+  }
+  if (!product || product.is_active === false) return res.status(404).set(cors).json({ error: 'Product not found' })
+
+  const { data: currentTrustedForEan, error: trustedError } = await admin
+    .from('product_ean_aliases')
+    .select('id, global_product_id')
+    .eq('ean', cleanEan)
+    .eq('status', 'trusted')
+    .eq('is_active', true)
+    .maybeSingle()
+
+  if (trustedError) {
+    console.error('[ean-recovery] manual alias trusted conflict lookup error', trustedError)
+    return res.status(500).set(cors).json({ error: 'Trusted conflict lookup failed' })
+  }
+
+  const { data: primaryTargetForEan, error: primaryError } = await admin
+    .from('global_products')
+    .select('id')
+    .eq('ean', cleanEan)
+    .eq('is_active', true)
+    .maybeSingle()
+
+  if (primaryError) {
+    console.error('[ean-recovery] manual alias primary conflict lookup error', primaryError)
+    return res.status(500).set(cors).json({ error: 'Primary conflict lookup failed' })
+  }
+
+  const reasons = []
+  if (primaryTargetForEan?.id) {
+    if (String(primaryTargetForEan.id) === String(globalProductId)) {
+      reasons.push('ean_already_primary_for_same_product')
+    } else {
+      reasons.push('ean_is_another_primary_product')
+    }
+  }
+  if (
+    currentTrustedForEan?.global_product_id &&
+    String(currentTrustedForEan.global_product_id) !== String(globalProductId)
+  ) {
+    reasons.push('ean_already_trusted_for_another_product')
+  }
+  if (reasons.length > 0) {
+    return res.status(400).set(cors).json({ error: 'manual_candidate_blocked', reasons })
+  }
+
+  const now = new Date().toISOString()
+  const payload = {
+    ean: cleanEan,
+    global_product_id: globalProductId,
+    status: 'review',
+    source: 'manual_admin',
+    confidence: 95,
+    created_by_auth_id: user.id,
+    evidence_json: {
+      reviewerConfirmedSameSku: true,
+      manualAdminCandidate: {
+        reviewerAuthId: user.id,
+        createdAt: now,
+        targetProductPrimaryEan: product.ean || null,
+      },
+    },
+  }
+
+  const { data, error: insertError } = await admin
+    .from('product_ean_aliases')
+    .insert(payload)
+    .select('id, ean, global_product_id, status, source, confidence, created_at')
+    .single()
+
+  if (insertError) {
+    if (insertError.code === '23505' || insertError.message?.includes('duplicate key')) {
+      return res.status(409).set(cors).json({ error: 'duplicate', message: 'EAN candidate already exists' })
+    }
+    console.error('[ean-recovery] manual alias candidate insert error', insertError)
+    return res.status(500).set(cors).json({ error: 'Manual alias candidate create failed' })
+  }
+
+  return res.status(200).set(cors).json({ ok: true, action: 'create-manual-alias-candidate', alias: data })
+}
+
 export default async function handler(req, res) {
   const origin = req.headers.origin || ''
   const cors = corsHeaders(origin)
@@ -63,14 +289,18 @@ export default async function handler(req, res) {
     return res.status(500).set(cors).json({ error: 'Server misconfiguration' })
   }
 
-  // Admin-only endpoint (migration 017_security_hardening.sql).
+  const { action, id, ean, name, status } = req.body || {}
+
+  // Admin-only by default; correction status updates have a separate owner/admin check.
+  let isAdmin
   try {
-    const { data: isAdmin, error: rpcError } = await admin.rpc('is_admin_user', { p_auth_id: user.id })
+    const { data: adminResult, error: rpcError } = await admin.rpc('is_admin_user', { p_auth_id: user.id })
     if (rpcError) {
       console.error('[ean-recovery] is_admin_user rpc error', rpcError)
       return res.status(500).set(cors).json({ error: 'Authorization check failed' })
     }
-    if (isAdmin !== true) {
+    isAdmin = adminResult === true
+    if (!isAdmin && action !== 'update-correction-status') {
       console.warn('[ean-recovery] Forbidden attempt by user', user.id)
       return res.status(403).set(cors).json({ error: 'Forbidden' })
     }
@@ -79,13 +309,31 @@ export default async function handler(req, res) {
     return res.status(500).set(cors).json({ error: 'Authorization check failed' })
   }
 
-  const { action, id, ean, name } = req.body || {}
-
   if (!id && action !== 'delete-store-products') {
     return res.status(400).set(cors).json({ error: 'Missing product id' })
   }
 
   try {
+    if (action === 'update-correction-status') {
+      return handleCorrectionStatusUpdate({ admin, cors, id, status, res, user, isAdmin })
+    }
+
+    if (action === 'promote-ean-alias-trusted') {
+      return handleTrustedAliasPromotion({ admin, cors, id, res, user, isAdmin })
+    }
+
+    if (action === 'create-manual-alias-candidate') {
+      return handleManualAliasCandidateCreate({
+        admin,
+        cors,
+        ean,
+        globalProductId: id,
+        res,
+        user,
+        isAdmin,
+      })
+    }
+
     if (action === 'delete') {
       await admin.from('store_products').delete().eq('global_product_id', id)
       const { error: gpError } = await admin.from('global_products').delete().eq('id', id)

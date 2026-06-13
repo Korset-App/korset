@@ -1298,27 +1298,28 @@
 .home-action-card {
   --home-action-accent: var(--primary-bright);
   display: grid;
-  grid-column: span 2;
-  min-height: 92px;
+  grid-column: span 3;
+  min-height: 96px;
   align-content: space-between;
   justify-items: start;
-  gap: 14px;
-  padding: 12px;
+  gap: 10px;
+  padding: 14px;
   border: 1px solid color-mix(in srgb, var(--home-line) 74%, transparent);
-  border-radius: 18px;
+  border-radius: 20px;
   background:
-    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--home-action-accent) 12%, transparent), transparent 44%),
-    color-mix(in srgb, var(--bg-card) 88%, var(--bg-app));
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--home-action-accent) 10%, transparent), transparent 44%),
+    color-mix(in srgb, var(--bg-card) 92%, var(--bg-app));
   color: var(--home-ink);
   text-align: left;
   cursor: pointer;
   box-shadow:
-    0 12px 28px color-mix(in srgb, var(--bg-app) 18%, transparent),
-    inset 0 1px 0 color-mix(in srgb, var(--text) 6%, transparent);
+    0 8px 24px color-mix(in srgb, #000 8%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #fff 4%, transparent);
   transition:
-    transform 180ms ease,
-    border-color 180ms ease,
-    background 180ms ease;
+    transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 220ms ease,
+    background 220ms ease,
+    box-shadow 220ms ease;
 }
 
 .home-action-card__icon {
@@ -1372,34 +1373,92 @@
 }
 
 .home-action-card:hover {
-  border-color: color-mix(in srgb, var(--home-action-accent) 36%, var(--home-line));
-  background: color-mix(in srgb, var(--bg-card) 96%, var(--home-action-accent) 4%);
+  border-color: color-mix(in srgb, var(--home-action-accent) 40%, var(--home-line));
+  background: color-mix(in srgb, var(--bg-card) 98%, var(--home-action-accent) 6%);
+  box-shadow:
+    0 12px 32px color-mix(in srgb, #000 12%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #fff 8%, transparent);
+  transform: translateY(-1px);
 }
 
-.home-action-card--catalog,
-.home-action-card--ai {
-  grid-column: span 3;
-  min-height: 124px;
+.home-action-card--catalog {
+  position: relative;
+  grid-column: span 6;
+  min-height: 140px;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--bg-card) 90%, transparent), color-mix(in srgb, var(--home-action-accent) 10%, transparent)),
+    var(--bg-card);
 }
 
-.home-action-card--catalog .home-action-card__icon,
-.home-action-card--ai .home-action-card__icon {
-  width: 38px;
-  height: 38px;
+/* Add a subtle glowing orb inside the catalog card for premium feel */
+.home-action-card--catalog::before {
+  content: '';
+  position: absolute;
+  top: -20px;
+  right: -20px;
+  width: 140px;
+  height: 140px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--home-action-accent) 15%, transparent) 0%, transparent 70%);
+  pointer-events: none;
 }
 
-.home-action-card--catalog strong,
-.home-action-card--ai strong {
-  font-size: 17px;
+.home-action-card--catalog .home-action-card__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--home-action-accent) 15%, var(--bg-app));
 }
 
-.home-action-card--history,
-.home-action-card--profile {
-  grid-column: span 3;
+.home-action-card--catalog .home-action-card__icon .material-symbols-outlined {
+  font-size: 24px;
+}
+
+.home-action-card--catalog strong {
+  font-size: 22px;
+}
+
+.home-action-card--catalog small {
+  font-size: 13px;
+  opacity: 0.9;
 }
 
 .home-action-card--scan,
-.home-action-card--compare {
+.home-action-card--favorites {
+  grid-column: span 3;
+  min-height: 110px;
+}
+
+.home-action-card--ai,
+.home-action-card--history,
+.home-action-card--profile {
+  grid-column: span 2;
+  min-height: 94px;
+  justify-items: center;
+  align-content: center;
+  text-align: center;
+  gap: 8px;
+}
+
+.home-action-card--ai .home-action-card__copy,
+.home-action-card--history .home-action-card__copy,
+.home-action-card--profile .home-action-card__copy {
+  justify-items: center;
+}
+
+.home-action-card--ai strong,
+.home-action-card--history strong,
+.home-action-card--profile strong {
+  font-size: 11.5px;
+}
+
+.home-action-card--ai small,
+.home-action-card--history small,
+.home-action-card--profile small {
+  display: none;
+}
+
+.home-action-card--scan {
   --home-action-accent: color-mix(in srgb, var(--accent-sky) 74%, var(--primary-bright));
 }
 

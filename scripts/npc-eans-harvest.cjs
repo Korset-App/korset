@@ -6,6 +6,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env.local') })
 
 const { createClient } = require('@supabase/supabase-js')
 const { classifyBarcode } = require('./validate-ean.cjs')
+const { assertLegacyEanScriptDryRunOnly } = require('./legacy-ean-script-guard.cjs')
 
 const NPC_API_KEY = process.env.NPC_API_KEY
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
@@ -121,6 +122,7 @@ function parseArgs() {
 
 async function main() {
   const opts = parseArgs()
+  assertLegacyEanScriptDryRunOnly({ scriptName: 'npc-eans-harvest.cjs' })
 
   if (!NPC_API_KEY) { console.error('NPC_API_KEY not set'); process.exit(1) }
   if (!SUPABASE_URL || !SUPABASE_KEY) { console.error('SUPABASE_URL/SERVICE_ROLE_KEY not set'); process.exit(1) }

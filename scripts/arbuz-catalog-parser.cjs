@@ -6,7 +6,7 @@ const { URL } = require('url')
 require('dotenv').config({ path: path.join(__dirname, '..', '.env.local') })
 
 const { createClient } = require('@supabase/supabase-js')
-const { classifyBarcode } = require('./validate-ean.cjs')
+const { buildArbuzImportEanDecision } = require('./import-ean-policy.cjs')
 const { downloadAndUpload } = require('./utils/r2-upload.cjs')
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
@@ -320,16 +320,15 @@ async function main() {
 
       const npcItem = await npcSearchByName(p.name, p.brand)
       if (npcItem) {
-        const gtin = npcItem.gtin || null
-        if (gtin) {
-          const bc = classifyBarcode(gtin.trim())
-          if (bc.valid && bc.ean13) {
-            p.ean = bc.ean13
-            npcEanCount++
-            console.log(`✓ EAN=${bc.ean13}`)
-          } else {
-            console.log(`invalid GTIN=${gtin}`)
-          }
+        if (npcItem.gtin) {
+          const decision = buildArbuzImportEanDecision({
+            sourceBarcode: null,
+            fallbackId: p.arbuzId,
+            npcResult: { primary: npcItem.gtin, alternates: [] },
+          })
+          p.eanRecoveryCandidates = decision.reviewCandidates
+          npcEanCount += decision.reviewCandidates.length > 0 ? 1 : 0
+          console.log(decision.reviewCandidates.length > 0 ? 'review-only NPC candidate' : `invalid GTIN=${npcItem.gtin}`)
         } else {
           console.log('no GTIN')
         }
@@ -427,7 +426,12 @@ async function main() {
       merge.name_kz = existing.name_kz || null
 
       const existingSpecs = existing.specs_json || {}
-      merge.specs_json = { ...existingSpecs, arbuz_id: p.arbuzId, arbuz_price: p.price }
+      merge.specs_json = {
+        ...existingSpecs,
+        arbuz_id: p.arbuzId,
+        arbuz_price: p.price,
+        ean_recovery_candidates: p.eanRecoveryCandidates || existingSpecs.ean_recovery_candidates || [],
+      }
 
       merge.source_primary = (existing.source_primary === 'arbuz') ? 'arbuz' : 'arbuz'
       merge.source_confidence = 90
@@ -465,7 +469,11 @@ async function main() {
         country_of_origin: p.country,
         manufacturer: p.brand,
         ...globalThis._normalizeCategory(p.category || null, null, p.name, p.brand),
-        specs_json: { arbuz_id: p.arbuzId, arbuz_price: p.price },
+        specs_json: {
+          arbuz_id: p.arbuzId,
+          arbuz_price: p.price,
+          ean_recovery_candidates: p.eanRecoveryCandidates || [],
+        },
         is_active: true,
         created_at: now,
         updated_at: now,

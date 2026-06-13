@@ -1,5 +1,6 @@
-﻿import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import { checkProductFit, formatPrice, getCategoryLabel } from '../utils/fitCheck.js'
 import { getDisplayQuantity } from '../utils/parseQuantity.js'
 import { useProfile } from '../contexts/ProfileContext.jsx'
@@ -33,7 +34,6 @@ import { buildProductUnitPrice } from '../domain/product/unitPrice.js'
 import { hasProductScreenCharacteristics } from '../domain/product/productScreenSections.js'
 import { resolveFitSeverityKey } from '../domain/product/fitVerdict.js'
 import { buildAuthNavigateState } from '../utils/authFlow.js'
-import { HeartIcon } from '../components/icons/HeartIcon.jsx'
 import ImageCarousel from '../components/product/ImageCarousel.jsx'
 import CollapsibleFitCheck from '../components/product/CollapsibleFitCheck.jsx'
 import DietBadges from '../components/product/DietBadges.jsx'
@@ -174,6 +174,9 @@ export default function ProductScreen() {
   if (!product && fetchingFull) {
     return (
       <div className="screen" style={{ padding: '0 20px 120px', overflowY: 'auto' }}>
+        <Helmet>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
         <style>{`
           @keyframes _shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
           ._skel{background:linear-gradient(90deg,var(--skel-base) 25%,var(--skel-hi) 50%,var(--skel-base) 75%);background-size:200% 100%;animation:_shimmer 1.4s ease-in-out infinite;border-radius:8px;}
@@ -234,6 +237,9 @@ export default function ProductScreen() {
           padding: '28px 20px',
         }}
       >
+        <Helmet>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
         <div
           style={{
             width: '100%',
@@ -354,6 +360,10 @@ export default function ProductScreen() {
         paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))',
       }}
     >
+      <Helmet>
+        <title>{`${localName || product.name} | Körset`}</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       {/* HEADER вЂ” Р±РµР· "Р”РµС‚Р°Р»Рё" */}
       <div
         style={{
@@ -423,16 +433,22 @@ export default function ProductScreen() {
             height: 38,
             borderRadius: 12,
             border: '1px solid var(--glass-border)',
-            background: isFavorite ? 'rgba(239,68,68,0.15)' : 'var(--glass-bg)',
+            background: isFavorite ? 'var(--glass-muted)' : 'var(--glass-bg)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
             flexShrink: 0,
             transition: 'background 0.15s, border-color 0.15s',
+            color: 'var(--text)',
           }}
         >
-          <HeartIcon filled={isFavorite} size={18} color={isFavorite ? '#EF4444' : 'var(--text)'} />
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: 20, fontVariationSettings: isFavorite ? "'FILL' 1" : "'FILL' 0" }}
+          >
+            checklist
+          </span>
         </button>
       </div>
 

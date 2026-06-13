@@ -7,7 +7,6 @@ import { useI18n } from '../i18n/index.js'
 import { getLocalName } from '../utils/localName.js'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { buildProductPath } from '../utils/routes.js'
-import { HeartIcon } from '../components/icons/HeartIcon.jsx'
 import {
   hydrateProductsFromFavoriteRows,
   hydrateProductsFromScanRows,
@@ -445,8 +444,8 @@ export default function HistoryScreen() {
               fontWeight: 600,
               fontFamily: 'var(--font-display)',
               border: 'none',
-              background: tab === 'favorites' ? 'rgba(239,68,68,0.15)' : 'transparent',
-              color: tab === 'favorites' ? '#FCA5A5' : 'var(--text-dim)',
+              background: tab === 'favorites' ? 'var(--glass-muted)' : 'transparent',
+              color: tab === 'favorites' ? 'var(--text)' : 'var(--text-dim)',
               cursor: 'pointer',
               transition: 'all 0.2s',
               display: 'flex',
@@ -455,20 +454,18 @@ export default function HistoryScreen() {
               gap: 6,
             }}
           >
-            <HeartIcon
-              filled={tab === 'favorites'}
-              size={14}
-              color={tab === 'favorites' ? 'currentColor' : 'currentColor'}
-            />
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+              checklist
+            </span>
             {t('history.tabFavorites')}
             {favorites.length > 0 && (
               <span
                 style={{
                   fontSize: 10,
-                  background: 'rgba(239,68,68,0.2)',
+                  background: 'var(--glass-border)',
                   padding: '1px 6px',
                   borderRadius: 8,
-                  color: '#FCA5A5',
+                  color: 'var(--text)',
                 }}
               >
                 {favorites.length}
@@ -530,7 +527,12 @@ export default function HistoryScreen() {
                   <polyline points="12 6 12 12 16 14" />
                 </svg>
               ) : (
-                <HeartIcon filled={false} size={28} color="var(--icon-muted)" />
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: 28, color: 'var(--icon-muted)' }}
+                >
+                  checklist
+                </span>
               )}
             </div>
             <p
@@ -660,9 +662,9 @@ export default function HistoryScreen() {
                       width: 32,
                       height: 32,
                       borderRadius: 8,
-                      background: 'rgba(239,68,68,0.1)',
-                      border: 'none',
-                      color: '#F87171',
+                      background: 'var(--glass-muted)',
+                      border: '1px solid var(--glass-border)',
+                      color: 'var(--text-dim)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -670,7 +672,9 @@ export default function HistoryScreen() {
                       flexShrink: 0,
                     }}
                   >
-                    <HeartIcon filled={true} size={16} color="#F87171" />
+                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+                      delete_outline
+                    </span>
                   </button>
                 ) : (
                   <svg

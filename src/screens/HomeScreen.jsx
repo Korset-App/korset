@@ -17,6 +17,7 @@ import {
 import { setLang, useI18n } from '../i18n/index.js'
 import { useTheme } from '../utils/theme.js'
 import LandingScreen from './LandingScreen.jsx'
+import { Helmet } from 'react-helmet-async'
 import './HomeScreen.css'
 
 const STORE_LOGO_FALLBACKS = {
@@ -470,8 +471,68 @@ export default function HomeScreen() {
     }, 900)
   }
 
+  const storeName = getStoreName(currentStore)
+  const storeCity = currentStore?.city || 'Астана'
+  const storeAddress = currentStore?.address || ''
+  const storeUrl = window.location.origin + `/s/${currentStore?.slug || currentStore?.code}`
+  const storeLogo = getStoreLogoUrl(currentStore)
+  const fullLogoUrl = storeLogo
+    ? storeLogo.startsWith('http')
+      ? storeLogo
+      : window.location.origin + storeLogo
+    : ''
+
+  const schemaOrg = {
+    '@context': 'https://schema.org',
+    '@type': 'GroceryStore',
+    name: storeName,
+    image: fullLogoUrl || `${window.location.origin}/favicon.png`,
+    url: storeUrl,
+    telephone: currentStore?.phone || '',
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: storeCity,
+      streetAddress: storeAddress,
+      addressCountry: 'KZ',
+    },
+    priceRange: '$$',
+  }
+
+  if (currentStore?.opening_hours) {
+    const hoursParts = currentStore.opening_hours.split('-')
+    schemaOrg.openingHoursSpecification = {
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+      opens: hoursParts[0] || '09:00',
+      closes: hoursParts[1] || '23:00',
+    }
+  }
+
   return (
     <main className="screen home-screen">
+      <Helmet>
+        <title>{`${storeName} — онлайн-каталог товаров, цены | Körset`}</title>
+        <meta
+          name="description"
+          content={`Смотрите каталог товаров магазина ${storeName} в городе ${storeCity}. Цены, состав продуктов, Fit-Check на аллергены и халал.`}
+        />
+
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta
+          property="og:title"
+          content={`${storeName} — онлайн-каталог товаров, цены | Körset`}
+        />
+        <meta
+          property="og:description"
+          content={`Смотрите каталог товаров магазина ${storeName} в городе ${storeCity}. Цены, состав продуктов, Fit-Check на аллергены и халал.`}
+        />
+        {fullLogoUrl && <meta property="og:image" content={fullLogoUrl} />}
+        <meta property="og:url" content={storeUrl} />
+
+        {/* Structured Data */}
+        <script type="application/ld+json">{JSON.stringify(schemaOrg)}</script>
+      </Helmet>
       <header className="home-hero">
         <div className="home-brand-row">
           <div className="home-store-header">
@@ -645,28 +706,6 @@ export default function HomeScreen() {
           ))}
         </section>
       </header>
-
-      <section className="home-scan-stage" aria-label={t('home.scanBtn')}>
-        <div className="home-scan-card">
-          <div className="home-scan-card__copy">
-            <p className="home-scan-card__eyebrow">{t('home.scanEyebrow')}</p>
-            <h2>{t('home.scanProduct')}</h2>
-            <p className="home-scan-card__text">{t('home.scanProductSub')}</p>
-            <button
-              className="home-scan-card__cta"
-              type="button"
-              onClick={() => navigate(routes.scan)}
-            >
-              <HomeIcon name="barcode_scanner" />
-              <span>{t('home.scanBtn')}</span>
-            </button>
-          </div>
-          <div className="home-scan-card__visual" aria-hidden="true">
-            <img src="/landing/how_step_2.png" alt="" />
-            <span className="home-scan-card__badge">{t('home.scanVisualBadge')}</span>
-          </div>
-        </div>
-      </section>
 
       {fitSetupVisible && (
         <section ref={fitSectionRef} className="home-fit-card home-fit-card--setup">

@@ -20,6 +20,7 @@ import {
   coerceProductEntity,
 } from './normalizers.js'
 import { isUuid, parseRouteProductRef } from './model.js'
+import { canEanAliasResolveBuyerProduct } from './eanAliases.js'
 
 // ─── Session EAN cache (в памяти, сбрасывается при обновлении страницы) ──────
 const _eanCache = new Map()
@@ -118,6 +119,25 @@ export function isResolvedProductExactForScannedEan(product, scannedEan) {
   const productEan = product?.ean == null ? null : String(product.ean).trim()
   const normalizedScannedEan = scannedEan == null ? null : String(scannedEan).trim()
   return Boolean(productEan && normalizedScannedEan && productEan === normalizedScannedEan)
+}
+
+export function isResolvedProductAllowedForScannedEan(product, scannedEan) {
+  if (isResolvedProductExactForScannedEan(product, scannedEan)) return true
+
+  const normalizedScannedEan = scannedEan == null ? null : String(scannedEan).trim()
+  const resolvedAliasEan = product?.sourceMeta?.resolvedAliasEan
+    ? String(product.sourceMeta.resolvedAliasEan).trim()
+    : null
+
+  return Boolean(
+    normalizedScannedEan &&
+    resolvedAliasEan === normalizedScannedEan &&
+    canEanAliasResolveBuyerProduct({
+      status: product?.sourceMeta?.resolvedAliasStatus,
+      confidence: product?.sourceMeta?.resolvedAliasConfidence,
+      is_active: true,
+    })
+  )
 }
 
 async function findGlobalProductById(id) {
@@ -284,7 +304,7 @@ async function findProductViaRPC(ean, storeId) {
         }
       : null
     const product = normalizeGlobalProduct(data, storeOverlay)
-    if (!isResolvedProductExactForScannedEan(product, ean)) return null
+    if (!isResolvedProductAllowedForScannedEan(product, ean)) return null
     return product
   } catch {
     return { _rpcUnavailable: true }

@@ -284,6 +284,9 @@ test.describe('AI shelf-use UI smoke', () => {
 
     await expect(page.getByText('Йогурт натуральный без сахара').first()).toBeVisible()
     await expect(page.getByText('Напиток овсяный без молока').first()).toBeVisible()
+    await expect(page.getByText('Цена').first()).toBeVisible()
+    await expect(page.getByText('Наличие').first()).toBeVisible()
+    await expect(page.getByText('Халал').first()).toBeVisible()
     await expect(page.getByText('Хороший вариант').first()).toBeVisible()
     await expect(page.getByText('Разница небольшая')).toBeVisible()
     await expect(page.getByText('%')).toHaveCount(0)

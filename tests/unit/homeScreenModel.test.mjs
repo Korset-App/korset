@@ -33,9 +33,9 @@ test('home quick actions expose store-scoped secondary actions', () => {
 
   assert.deepEqual(
     actions.map((action) => action.key),
-    ['catalog', 'ai', 'compare', 'favorites', 'history', 'profile']
+    ['catalog', 'scan', 'favorites', 'ai', 'history', 'profile']
   )
-  assert.deepEqual(actions.find((action) => action.key === 'compare')?.navState, { compareMode: true })
+  assert.equal(actions.find((action) => action.key === 'scan')?.path, '/s/mars/scan')
   assert.equal(actions.find((action) => action.key === 'favorites')?.path, '/s/mars/profile?tab=favorites')
 })
 

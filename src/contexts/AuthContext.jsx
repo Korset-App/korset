@@ -10,13 +10,23 @@ import {
   writeCachedProfileName,
 } from '../utils/userIdentity.js'
 
-const AuthContext = createContext({ user: null, session: null, loading: true, isAdmin: false })
+const AuthContext = createContext({
+  user: null,
+  session: null,
+  loading: true,
+  isAdmin: false,
+  isSuperadmin: false,
+})
 
 // Читает admin-флаг из app_metadata (JWT claim, модифицируется ТОЛЬКО service_role).
 // НЕ используем user_metadata — оно модифицируемо самим юзером и не является источником истины.
 // Синхронизация users.is_admin → app_metadata делается в supabase/migrations/021.
 function extractIsAdmin(authUser) {
   return Boolean(authUser?.app_metadata?.is_admin)
+}
+
+function extractIsSuperadmin(authUser) {
+  return Boolean(authUser?.app_metadata?.is_superadmin)
 }
 
 function buildFallbackName(authUser) {
@@ -93,6 +103,7 @@ export function AuthProvider({ children }) {
   const [avatarId, setAvatarId] = useState(null)
   const [bannerUrl, setBannerUrl] = useState(null)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [isSuperadmin, setIsSuperadmin] = useState(false)
 
   const mountedRef = useRef(true)
   const userRef = useRef(null)
@@ -108,6 +119,7 @@ export function AuthProvider({ children }) {
     setAvatarId(null)
     setBannerUrl(null)
     setIsAdmin(false)
+    setIsSuperadmin(false)
   }, [])
 
   const applyProfileSnapshot = useCallback((authId, snapshot = {}) => {
@@ -188,6 +200,7 @@ export function AuthProvider({ children }) {
     setSession(nextSession)
     setUser(nextSession?.user ?? null)
     setIsAdmin(extractIsAdmin(nextSession?.user))
+    setIsSuperadmin(extractIsSuperadmin(nextSession?.user))
     setLoading(false)
   }, [])
 
@@ -249,6 +262,7 @@ export function AuthProvider({ children }) {
         avatarId,
         bannerUrl,
         isAdmin,
+        isSuperadmin,
         refreshAccountProfile,
         applyProfileSnapshot,
         logout,

@@ -9,6 +9,10 @@ function buildView(productA, productB, profile = {}) {
   return buildProductComparisonViewModel({ productA, productB, comparison, profile })
 }
 
+function rowById(view, id) {
+  return view.dataRows.find((row) => row.id === id)
+}
+
 test('buildProductComparisonViewModel prompts setup when profile has no personal signals', () => {
   const view = buildView(
     {
@@ -120,4 +124,45 @@ test('buildProductComparisonViewModel marks preliminary low-data winners', () =>
   assert.equal(view.confidence, 'preliminary')
   assert.equal(view.verdictKey, 'compare.verdict.preliminary')
   assert.equal(view.dataNote.messageKey, 'compare.data.low')
+})
+
+test('buildProductComparisonViewModel exposes concrete data rows for product comparisons', () => {
+  const view = buildView(
+    {
+      name: 'Жевательная резинка Dirol Морозная мята, 13,6 г',
+      category: 'sweets',
+      subcategory: 'gum',
+      quantity: '13,6 г',
+      flavorMeta: { value: 'Морозная мята', confidence: 'high' },
+      priceKzt: 180,
+      stockStatus: 'in_stock',
+      halalStatus: 'unknown',
+      nutritionPer100: { kcal: 170, sugar: 0 },
+    },
+    {
+      name: 'Леденцы Halls с оригинальным вкусом, 25,2 г',
+      category: 'sweets',
+      subcategory: 'candy',
+      quantity: '25,2 г',
+      priceKzt: 320,
+      stockStatus: 'in_stock',
+      halalStatus: 'unknown',
+      nutritionPer100: { kcal: 390, sugar: 95 },
+    },
+    {}
+  )
+
+  assert.equal(rowById(view, 'type').valueA, 'Жевательная резинка')
+  assert.equal(rowById(view, 'type').valueB, 'Леденцы')
+  assert.equal(rowById(view, 'quantity').valueA, '13,6 г')
+  assert.equal(rowById(view, 'quantity').valueB, '25,2 г')
+  assert.equal(rowById(view, 'flavor').valueA, 'Морозная мята')
+  assert.equal(rowById(view, 'flavor').valueB, 'Оригинальный')
+  assert.equal(rowById(view, 'price').valueA, '180 ₸')
+  assert.equal(rowById(view, 'price').winnerSide, 'A')
+  assert.equal(rowById(view, 'unit_price').valueA, '1 324 ₸ / 100 г')
+  assert.equal(rowById(view, 'unit_price').valueB, '1 270 ₸ / 100 г')
+  assert.equal(rowById(view, 'unit_price').winnerSide, 'B')
+  assert.equal(rowById(view, 'sugar').winnerSide, 'A')
+  assert.equal(rowById(view, 'kcal').winnerSide, 'A')
 })

@@ -44,6 +44,7 @@ const RetailSettingsScreen = lazy(() => import('./screens/RetailSettingsScreen.j
 const EanRecoveryScreen = lazy(() => import('./screens/EanRecoveryScreen.jsx'))
 const CompareScreen = lazy(() => import('./screens/CompareScreen.jsx'))
 const ProductMockScreen = lazy(() => import('./screens/_mock/ProductMockScreen.jsx'))
+const SuperAdminStoresScreen = lazy(() => import('./screens/SuperAdminStoresScreen.jsx'))
 
 function AppInner() {
   const { pathname } = useLocation()
@@ -58,7 +59,8 @@ function AppInner() {
     pathname === '/auth' ||
     pathname === '/setup-profile' ||
     pathname.startsWith('/retail') ||
-    pathname.startsWith('/_mock')
+    pathname.startsWith('/_mock') ||
+    pathname.startsWith('/korset-admin')
   useEffect(() => {
     if (!user) return
     if (new URLSearchParams(window.location.search).has('dev')) return
@@ -123,6 +125,9 @@ function AppInner() {
 
           {/* Mock screens (dev preview, not in production nav) */}
           <Route path="/_mock/product" element={<ProductMockScreen />} />
+
+          {/* Super Admin Panel */}
+          <Route path="/korset-admin/stores" element={<SuperAdminStoresScreen />} />
 
           {/* Retail Cabinet Entry — finds store by owner_id */}
           <Route path="/retail" element={<RetailEntryScreen />} />

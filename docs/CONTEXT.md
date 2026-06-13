@@ -8,16 +8,24 @@
 
 ## 1. Проект В Одном Экране
 
-Körset — store-context AI assistant для офлайн-продуктовых магазинов Казахстана.
-Это mobile-first PWA: покупатель открывает магазинный контекст, сканирует штрихкод и получает Fit-Check по аллергиям, халал-статусу, диетам, составу и фактам о товаре.
+Körset — цифровой каталог + smart assistant для офлайн-продуктовых магазинов Казахстана.
+Это mobile-first PWA: публичный онлайн-каталог магазина с ценами + Fit-Check по аллергиям, халал-статусу, диетам и составу.
+
+**Стратегический поворот (2026-06-11):** продукт перешёл от «закрытого ассистента для сканирования» к «публичному цифровому каталогу магазина». Деталь: `docs/vault/plans/2026-06-11-store-access-and-digital-catalog-strategy.md`.
 
 Модель: B2B2C. Платят магазины; покупатели используют consumer-приложение.
-V1 scope: только продуктовые магазины.
+V1 scope: только продуктовые магазины. Пилот: Астана.
 
 Главная ценность:
 
-- Покупателю: быстро понять, подходит ли продукт прямо у полки.
-- Магазину: лояльность, меньше потерянных продаж, аналитика сканов, сигналы спроса по unknown EAN, цифровой слой поверх офлайн-магазина.
+- **Магазину:** публичная страница `korset.kz/s/mars` — онлайн-каталог с ценами, который люди смотрят из дома и из 2GIS. B2B pitch: «У вас есть онлайн-каталог, 380 человек смотрят ваши товары из дома».
+- **Покупателю:** каталог без барьеров + Fit-Check (халал, аллергены, диеты) + Список покупок для планирования + сканер у полки.
+- **Конкурентная ниша:** прямых конкурентов в Казахстане нет. Мировые аналоги (Dukaan и др.) не имеют Fit-Check + халал.
+
+**Модель доступа — всё открыто без регистрации:**
+Каталог, цены, Fit-Check, AI-ассистент, Список покупок, История — всё работает без аккаунта (localStorage). Регистрация = апгрейд для синхронизации между устройствами, предлагается в контексте, не принудительно.
+
+**Access gate, токены, 4-значные коды — отменены и не строятся.**
 
 ---
 
@@ -58,6 +66,23 @@ V1 scope: только продуктовые магазины.
 /setup-profile            -> настройка профиля
 /qr-print                 -> печать QR
 /privacy-policy           -> политика приватности
+```
+
+Retail:
+
+```text
+/retail                         -> вход в retail cabinet по владельцу
+/retail/:storeSlug/dashboard    -> дашборд
+/retail/:storeSlug/products     -> товары
+/retail/:storeSlug/import       -> импорт прайс-листа
+/retail/:storeSlug/ean-recovery -> EAN recovery
+/retail/:storeSlug/settings     -> настройки магазина и QR
+```
+
+Super Admin:
+
+```text
+/korset-admin/stores            -> панель супер-администратора (управление всеми магазинами)
 ```
 
 Consumer внутри магазина:
@@ -145,6 +170,14 @@ Stores:
 - Добавление магазина: `node scripts/create-store.mjs --slug xxx --name "Name" --type minimarket --city "City" --owner-email xxx@korset.kz --owner-password Pass!`
 - Деактивация: `node scripts/deactivate-store.mjs --slug xxx`
 - Сидирование каталога: `node scripts/seed-store-catalog.mjs --store-slug xxx --max-products N --category-weights '{...}'`
+
+Super Admin & Smart SEO (Фаза 2):
+- Панель суперадминистратора `/korset-admin/stores`: Bento-статистика, живой поиск и фильтрация, переключатели активности (мягкая деактивация магазина `is_active = false`).
+- Выдвижная Drawer-форма создания магазина: автоматическая транслитерация (Slugify) кириллицы/казахских букв на лету, валидация полей, маски телефонов, транзакционное создание владельца в Auth + записи в `stores` (с авто-откатом при ошибках бэкенда).
+- Защита роутов: роль `isSuperadmin` берется из JWT `app_metadata.is_superadmin` (синхронизируется через триггеры БД на `public.users.is_superadmin`).
+- Безопасное API: `api/admin-stores.js` работает под `service_role` для выгрузки email-адресов владельцев из защищенной таблицы `auth.users`.
+- Smart SEO & Schema.org: на `HomeScreen` встроена разметка JSON-LD `LocalBusiness`/`GroceryStore` и динамические OpenGraph теги. Товарные карточки в `ProductScreen` закрыты от парсинга тегом `<meta name="robots" content="noindex, nofollow" />`.
+- Sitemap & Robots: серверный эндпоинт `api/sitemap.js` выдает XML-карту со ссылками только на активные магазины (проксируется в `vercel.json` как `/sitemap.xml`). Создан `robots.txt`, разрешающий витрины магазинов и запрещающий индексацию карточек товаров.
 
 Infrastructure:
 
@@ -429,7 +462,7 @@ Before rebuilding Compare, finish the professional ProductScreen/product normali
 - hide missing sections in ProductScreen instead of exposing "not enough data" messages;
 - do not show packaging type, data source, data quality, NOVA group, Nutri-Score, or technical categories;
 - keep product scoring for the later Compare workstream.
-- Compare rebuild Stage 1-5 is complete: `src/domain/product/comparison.js` now returns `isComparable`, blocks direct winner selection for different known categories, downgrades low-data non-clear winners to `preliminary`, uses category-aware nutrition/value scoring, and exposes `profilePerspective` so profile-specific guidance does not blindly override the overall winner. `src/domain/product/comparisonViewModel.js` converts this result into UI-ready verdict/profile/data/factor sections. `CompareScreen.jsx` now consumes that view model, has a dedicated `CompareScreen.css` visual layer, explicit `winner/preliminary/draw/blocked` state treatments, improved accessibility, theme-token styling, and a corrected compare AI explanation effect. Handoffs: `docs/vault/changelog/2026-05-31-compare-stage1-domain-contract.md`, `docs/vault/changelog/2026-05-31-compare-stage2-category-scoring.md`, `docs/vault/changelog/2026-05-31-compare-stage3-ui-model.md`, `docs/vault/changelog/2026-05-31-compare-stage4-screen-refactor.md`, `docs/vault/changelog/2026-06-08-compare-stage5-visual-ux.md`.
+- Compare rebuild Stage 1-5 is complete: `src/domain/product/comparison.js` now returns `isComparable`, blocks direct winner selection for different known categories, downgrades low-data non-clear winners to `preliminary`, uses category-aware nutrition/value scoring, and exposes `profilePerspective` so profile-specific guidance does not blindly override the overall winner. `src/domain/product/comparisonViewModel.js` converts this result into UI-ready verdict/profile/data/factor sections and now also exposes concrete `dataRows` for type, weight/volume, flavor, price, unit price, halal, availability, and known nutrition values. `CompareScreen.jsx` renders factual comparison rows before the final verdict, uses a dedicated non-glass `CompareScreen.css` visual layer, local SVG icons, explicit `winner/preliminary/draw/blocked` state treatments, improved accessibility, theme-token styling, and a corrected compare AI explanation effect. Handoffs: `docs/vault/changelog/2026-05-31-compare-stage1-domain-contract.md`, `docs/vault/changelog/2026-05-31-compare-stage2-category-scoring.md`, `docs/vault/changelog/2026-05-31-compare-stage3-ui-model.md`, `docs/vault/changelog/2026-05-31-compare-stage4-screen-refactor.md`, `docs/vault/changelog/2026-06-08-compare-stage5-visual-ux.md`.
 
 ## 13. Current Halal Enrichment Focus
 
@@ -487,5 +520,19 @@ Keto handling is now being tightened around structured tags and nutrition qualit
 - Owner direction: do not delete `alternate_eans` wholesale because multi-EAN support is required. Proposed recovery should quarantine existing unsafe alternates, preserve candidates as evidence, rebuild trusted aliases with strict identity/source gates, and ensure one trusted active product per scannable EAN. Detailed plan: `docs/vault/plans/2026-06-01-product-ean-integrity-recovery-plan.md`.
 - Stage-by-stage recovery plan is now defined in the same Vault plan. Recommended execution order: Stage 1 buyer scan containment, Stage 2 trusted alias data model, Stage 3 legacy alias quarantine/classification, Stage 4 resolver switch to trusted aliases, Stage 5 user-facing error reporting, Stage 6 admin audit mode/review queue, Stage 7 parser/import hardening, Stage 8 mass QA/supermarket audit.
 - Stage 1 scan containment is complete locally: resolver rejects RPC results whose returned primary EAN differs from the scanned EAN, direct fallback no longer uses legacy `alternate_eans`, and ProductScreen scan-origin catalog lookup is exact-only. No Supabase data/live function was changed. Verification: containment unit 4/4, related product unit set 13/13, lint 0 errors with existing warnings. Handoff: `docs/vault/changelog/2026-06-01-ean-stage1-scan-containment.md`.
-- Stage 2 trusted alias model is complete locally but not applied to live Supabase. Added `src/domain/product/eanAliases.js`, unit tests, and migration `supabase/migrations/047_product_ean_aliases.sql` for `product_ean_aliases` with status/source/confidence/evidence, admin-only RLS, and a partial unique index enforcing one active trusted product per scannable EAN. Verification: EAN alias tests 4/4, alias+containment tests 8/8, targeted ESLint, docs check. Supabase CLI local migration listing is currently blocked by `.env.local` parse issue; apply via SQL Editor or after env override/fix. Handoff: `docs/vault/changelog/2026-06-01-ean-stage2-trusted-alias-model.md`.
+- Stage 2 trusted alias model is complete and migration `047_product_ean_aliases.sql` has been applied to live Supabase. `product_ean_aliases` stores status/source/confidence/evidence with admin-only RLS and a partial unique index enforcing one active trusted product per scannable EAN. Handoff: `docs/vault/changelog/2026-06-01-ean-stage2-trusted-alias-model.md`.
 - Stage 3 legacy alias dry-run is complete with no live writes. Live `product_ean_aliases` exists and stayed at 0 rows after dry-run. Added `src/domain/product/eanAliasClassification.js`, `scripts/migrate-legacy-ean-aliases.mjs`, and tests. Dry-run report: `C:\tmp\korset-ean-alias-migration-dry-run.json`; candidate JSONL: `C:\tmp\korset-ean-alias-candidates.jsonl`. Results: 146,805 legacy alias relations, 144,860 insertable evidence candidates, 1,945 skipped; 118,086 quarantined (80.4%), 26,774 review (18.2%), 1,945 rejected/skipped (1.3%), 0 trusted by design. Handoff: `docs/vault/changelog/2026-06-08-ean-stage3-legacy-alias-dry-run.md`.
+- Stage 3B live evidence insert is complete. `product_ean_aliases` now has 144,856 rows: trusted=0, review=26,771, quarantined=118,085, rejected=0. This does not change buyer scan behavior because no trusted aliases exist and Stage 4 trusted-alias resolver is not active. Live report: `C:\tmp\korset-ean-alias-live-insert.json`; candidate JSONL: `C:\tmp\korset-ean-alias-live-candidates.jsonl`. Handoff: `docs/vault/changelog/2026-06-08-ean-stage3b-live-evidence-insert.md`.
+- Stage 5A product correction reporting is complete and live-smoked after owner-applied migration 048. Added metadata-only `product_correction_events` migration, `src/domain/product/correctionReports.js`, ProductScreen “Сообщить об ошибке” modal, and RU/KZ i18n. Live anon submit through the domain helper returned `{ ok: true }`, and the smoke row was deleted. Anonymous readback is intentionally blocked; the app submit path does not use `insert().select()`. Handoff: `docs/vault/changelog/2026-06-08-ean-stage5a-product-correction-reporting.md`.
+- Stage 6A correction inbox is complete locally. `/retail/:storeSlug/ean-recovery` now shows a read-only shopper correction reports card for the current store: open count, identity/EAN issues, data issues, and latest report rows. No review actions, trusted alias promotion, photo upload, or broad alternate resolution were added. Live sanity currently shows 0 open reports for `mars`, `nurly`, and `kalina`. Handoff: `docs/vault/changelog/2026-06-08-ean-stage6a-correction-inbox.md`.
+- Stage 6B correction status actions are complete locally. `/retail/:storeSlug/ean-recovery` can mark open reports as `reviewing`, `fixed`, `rejected`, or `duplicate`; the server action updates only `product_correction_events` status/review metadata. Product mutation actions remain admin-only, while correction status updates are allowed only for admin or the owner of the report's `store_id`. No product EAN/name/price writes, no `product_ean_aliases` writes, no trusted alias promotion, and no broad alternate resolution were added. Handoff: `docs/vault/changelog/2026-06-08-ean-stage6b-review-actions.md`.
+- Stage 6C-A trusted promotion guardrails are complete locally. `src/domain/product/eanAliases.js` now has local helpers for future trusted-alias promotion: candidates must be active, scannable, confidence >=80, from trustable sources (`manual_admin`, `audit_scan`, `store_import`, `external_exact_barcode`, `arbuz_barcode`, `openfoodfacts`), include `reviewerConfirmedSameSku: true`, and have no primary-EAN or existing-trusted conflict. Legacy/broad sources (`legacy_alternate_eans`, `npc_search`, `arbuz_search`, `kaspi`, `korzinavdom`, `unknown`) are blocked. No UI/API promotion action or DB writes were added; live `trusted` count remains 0. Handoff: `docs/vault/changelog/2026-06-08-ean-stage6c-promotion-guardrails.md`.
+- Stage 6C-B server promotion action is complete locally. `api/ean-recovery.js` now has admin-only `promote-ean-alias-trusted`, which reads the alias candidate, current trusted conflict, and primary-EAN conflict from Supabase before applying Stage 6C-A guardrails and updating the alias. No UI button was added, no live promotion was executed, and live `trusted` count remains 0. Handoff: `docs/vault/changelog/2026-06-08-ean-stage6c-server-promotion-action.md`.
+- Stage 6C-C admin candidate review UI is complete locally. `/retail/:storeSlug/ean-recovery` now shows an admin-only read-only trusted EAN candidates block with product name/brand, candidate EAN, target product id, source, confidence, and block reasons. It uses explicit Supabase FK relationship `global_products!product_ean_aliases_global_product_id_fkey(...)`. No promotion button or UI API call was added; live `trusted` count remains 0. Handoff: `docs/vault/changelog/2026-06-08-ean-stage6c-admin-candidate-review-ui.md`.
+- Stage 6C-D explicit admin-only typed confirmation UI is complete locally. The trusted candidate block shows a promotion action only to admins and only when local `canRequestPromotion=true`; the modal requires manual same-product/same-package review plus entering the last 4 EAN digits before calling `promote-ean-alias-trusted`. No bulk promotion, no retail-owner promotion, no broad alternate resolution, and no live promotion was executed; live `trusted` count remains 0. Handoff: `docs/vault/changelog/2026-06-09-ean-stage6c-typed-promotion-confirmation.md`.
+- Stage 7-A parser/import hardening is complete locally. `scripts/arbuz-subcategory-parser.cjs` and `scripts/arbuz-catalog-parser.cjs` no longer turn broad NPC/name search results into buyer-visible primary `ean` or `alternate_eans`; exact Arbuz barcode fields can still become primary EAN, while NPC search codes are stored only as review evidence under `specs_json.ean_recovery_candidates`. No live import or data write was run. Handoff: `docs/vault/changelog/2026-06-10-ean-stage7a-parser-import-hardening.md`.
+- Stage 7-B legacy script live-write guard is complete locally. `scripts/npc-eans-harvest.cjs`, `scripts/npc-enrich.cjs`, `scripts/resolve-v3.cjs`, and `scripts/resolve-alternate-eans.cjs` are now dry-run-only through `scripts/legacy-ean-script-guard.cjs`; live mode aborts before DB/API work. No live data write was run. Handoff: `docs/vault/changelog/2026-06-10-ean-stage7b-legacy-script-live-guard.md`.
+- Stage 7-C manual exact-evidence candidate path is complete locally. `api/ean-recovery.js` now supports admin-only `create-manual-alias-candidate`, which inserts only `review` rows into `product_ean_aliases` with `source='manual_admin'`, `confidence=95`, same-SKU evidence, and conflict checks against active primary/trusted EAN ownership. No live candidate insert or trusted promotion was executed. Handoff: `docs/vault/changelog/2026-06-13-ean-stage7c-manual-alias-candidate.md`.
+- Stage 7-D manual alias UI is complete locally. `/retail/:storeSlug/ean-recovery` now has an admin-only `В review` / `Review-ге` action in the fake-EAN edit row that calls `create-manual-alias-candidate`, refreshes trusted alias candidates, and does not mutate product primary EAN or legacy `alternate_eans`. No live UI action/write was executed. Handoff: `docs/vault/changelog/2026-06-13-ean-stage7d-manual-alias-ui.md`.
+- Stage 7-E self-primary guard is complete locally. Manual alias candidate creation now blocks redundant rows when the entered EAN is already the target product's active primary EAN (`ean_already_primary_for_same_product`), keeping `product_ean_aliases` review queue cleaner. No live write was executed. Handoff: `docs/vault/changelog/2026-06-13-ean-stage7e-self-primary-guard.md`.
+- Stage 4 trusted-alias resolver path is complete and migration `049_trusted_ean_alias_resolver.sql` has been applied live by owner. The resolver contract is exact primary/store EAN first, then active `product_ean_aliases.status='trusted'` with confidence >=80 only; it does not read legacy `global_products.alternate_eans`. Client scan containment accepts non-primary RPC results only with explicit trusted-alias metadata for the scanned EAN. Live no-op smoke passed while `trusted=0`: exact primary EAN resolved, quarantined alias returned `null`. Current live alias evidence has only `source='legacy_alternate_eans'`, so controlled promotion needs a new exact-evidence candidate first. Handoff: `docs/vault/changelog/2026-06-11-ean-stage4-trusted-alias-resolver.md`.

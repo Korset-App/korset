@@ -339,6 +339,46 @@ Important interpretation:
 - A future live insert should likely insert `review` and `quarantined` rows as evidence/review queue, not buyer-resolvable trusted rows.
 - Trusted aliases should be created only from stronger evidence sources: store import, manual admin review, audit scan with evidence, or exact external barcode lookup.
 
+### Stage 3B Live Evidence Insert Results
+
+Status: complete on 2026-06-08.
+
+Goal: insert legacy `alternate_eans` as non-buyer-resolvable evidence rows only. No `trusted` rows were inserted.
+
+Live safety behavior:
+
+- Script: `scripts/migrate-legacy-ean-aliases.mjs --live`.
+- The script refuses to write if any legacy candidate becomes `trusted`.
+- Only `review` and `quarantined` rows are inserted.
+- Existing rows are skipped by default to avoid slow per-row updates; `--update-existing` exists but was not used for the final full insert.
+- Buyer scan behavior is unchanged because Stage 4 trusted-alias resolver has not been implemented and `trusted=0`.
+
+Live execution notes:
+
+- A small smoke insert with `--limit-products=10` inserted 21 `review` rows successfully.
+- First full insert attempt stopped safely on the DB unique constraint because legacy data produced duplicate candidate pairs. The writer was fixed to dedupe candidates by `ean::global_product_id` before writing.
+- A second run with per-row update behavior timed out while trying to update existing rows; the writer was switched to skip existing rows by default.
+- Final full insert completed successfully.
+
+Final live counts:
+
+- Total `product_ean_aliases`: 144,856.
+- `trusted`: 0.
+- `review`: 26,771.
+- `quarantined`: 118,085.
+- `rejected`: 0.
+
+Artifacts:
+
+- Live report: `C:\tmp\korset-ean-alias-live-insert.json`.
+- Live candidate JSONL: `C:\tmp\korset-ean-alias-live-candidates.jsonl`.
+
+Important interpretation:
+
+- Stage 3B created a controlled evidence/review layer; it did not restore buyer-visible alternate matching.
+- The large `quarantined` count confirms old `alternate_eans` are not safe as scan truth.
+- Next trusted aliases should come from stronger evidence workflows, not from blind promotion of this legacy evidence.
+
 ### Stage 4 — Resolver Switch To Trusted Aliases
 
 Goal: make product resolution use exact primary EAN plus trusted aliases only.
@@ -372,6 +412,8 @@ Stop point:
 ### Stage 5 — User-Facing Error Reporting
 
 Goal: convert real scan/card mistakes into structured correction events.
+
+Status: Stage 5A complete on 2026-06-08. Migration 048 was applied to live Supabase by the owner and live smoke submit passed.
 
 Two user-facing entry points:
 
@@ -418,9 +460,45 @@ Stop point:
 
 - Ask owner before adding photo upload/storage behavior.
 
+### Stage 5A Completion Notes
+
+Implemented locally:
+
+- `src/domain/product/correctionReports.js` defines metadata-only correction report payloads.
+- `tests/unit/productCorrectionReports.test.mjs` covers allowed reasons, payload shape, no profile/allergen/ingredient persistence, comment/name truncation, and client-token/EAN requirements.
+- `supabase/migrations/048_product_correction_events.sql` creates `public.product_correction_events` with RLS and metadata-only constraints.
+- `ProductScreen.jsx` now has a compact “Сообщить об ошибке” action and modal with correction reasons, optional short comment, and client-side submit helper.
+- RU/KZ i18n keys were added under `product.report.*`.
+
+Privacy/security contract:
+
+- Stage 5A stores EAN, shown product ids/EAN, store id, reason, context, optional <=500 char comment, client token, and small metadata (`shownProductName`).
+- It does not store shopper profile, allergens, ingredients, AI messages, email, phone, IP, or photos.
+- Photo upload/storage is explicitly deferred.
+
+Verification:
+
+- `node --test tests/unit/productCorrectionReports.test.mjs` — 4/4 passed.
+- `node --test tests/unit/productCorrectionReports.test.mjs tests/unit/eanAliasClassification.test.mjs tests/unit/eanAliasModel.test.mjs tests/unit/productScanContainment.test.mjs` — 17/17 passed.
+- `node scripts/check-i18n.mjs` — PASS, all KZ keys present.
+- `npx eslint src/domain/product/correctionReports.js src/screens/ProductScreen.jsx` — passed with no output.
+- `npm run check:agent:docs` — PASS.
+- `npm run build` — passed with existing Vite/Sentry warnings.
+- Live smoke after owner-applied migration 048: domain helper submit through anon key returned `{ ok: true }`; smoke row cleanup deleted 1 row.
+
+Live note:
+
+- `product_correction_events` is present in live Supabase. Anonymous insert without readback works; anonymous `insert().select()` is intentionally blocked because public users do not have read access to the correction queue.
+
+Next required action:
+
+- Continue to admin review tooling and trusted alias promotion workflows. Do not bulk-promote legacy aliases and do not re-enable broad alternate resolution.
+
 ### Stage 6 — Admin Audit Mode And Review Queue
 
 Goal: support the owner’s supermarket scanning idea safely, without mixing audit scans with ordinary shopper analytics.
+
+Status: Stage 6A read-only correction inbox and Stage 6B correction status actions are complete locally on 2026-06-08.
 
 Expected behavior:
 
@@ -444,6 +522,161 @@ Verification gate:
 Stop point:
 
 - Owner confirms workflow is usable before mass supermarket audit.
+
+### Stage 6A Completion Notes
+
+Implemented locally:
+
+- `src/domain/product/correctionReview.js` normalizes correction report rows for retail review UI and summarizes open/identity/data-quality counts.
+- `tests/unit/productCorrectionReview.test.mjs` covers metadata-safe normalization and open report summary logic.
+- `/retail/:storeSlug/ean-recovery` now loads open `product_correction_events` for the current store and shows a read-only inbox card above the fake-EAN product queue.
+- RU/KZ i18n keys were added under `retail.eanRecovery.*`.
+
+Safety contract:
+
+- Stage 6A does not update report status.
+- Stage 6A does not write to `product_ean_aliases`.
+- Stage 6A does not promote anything to `trusted`.
+- Stage 6A does not re-enable `alternate_eans` scan resolution.
+- Stage 6A does not add photo upload/storage.
+
+Verification:
+
+- TDD red was verified first: `node --test tests/unit/productCorrectionReview.test.mjs` failed with `ERR_MODULE_NOT_FOUND` before implementation.
+- `node --test tests/unit/productCorrectionReview.test.mjs tests/unit/productCorrectionReports.test.mjs` — 6/6 passed.
+- `node scripts/check-i18n.mjs` — PASS, no missing KZ keys.
+- `npx eslint src/domain/product/correctionReview.js src/screens/EanRecoveryScreen.jsx` — 0 errors, existing `set-state-in-effect` warnings remain in `EanRecoveryScreen.jsx`.
+- Live service-role sanity: `mars`, `nurly`, and `kalina` currently have 0 open correction reports.
+
+Next required action:
+
+- Design Stage 6C trusted-alias candidate review and hard conflict checks before implementing any alias promotion. Do not add a trusted-promotion button until conflict checks and evidence requirements are explicit and tested.
+
+### Stage 6B Completion Notes
+
+Implemented locally:
+
+- `src/domain/product/correctionReview.js` now validates correction status transitions and builds metadata-only update payloads.
+- `api/ean-recovery.js` supports `update-correction-status`.
+- Existing product mutation actions in `api/ean-recovery.js` remain admin-only.
+- Correction status updates are allowed for admin or the owner of the correction report's `store_id`.
+- `/retail/:storeSlug/ean-recovery` now shows status action buttons on open correction reports: `reviewing`, `fixed`, `rejected`, and `duplicate`.
+- RU/KZ i18n keys were added for the action labels.
+
+Safety contract:
+
+- Stage 6B writes only `product_correction_events.status`, `reviewed_by_auth_id`, `reviewed_at`, and `resolution_json`.
+- Stage 6B does not write to `product_ean_aliases`.
+- Stage 6B does not update `global_products`, `store_products`, or `global_products.alternate_eans`.
+- Stage 6B does not promote anything to `trusted`.
+- Stage 6B does not re-enable broad alternate scan resolution.
+
+Verification:
+
+- TDD red was verified for transition helpers before implementation.
+- `node --test tests/unit/eanRecoveryApiCorrectionStatus.test.mjs tests/unit/productCorrectionReview.test.mjs tests/unit/productCorrectionReports.test.mjs tests/unit/eanAliasClassification.test.mjs tests/unit/eanAliasModel.test.mjs tests/unit/productScanContainment.test.mjs` — 24/24 passed.
+- `node --check api/ean-recovery.js` — passed.
+- `npx eslint src/domain/product/correctionReview.js src/screens/EanRecoveryScreen.jsx api/ean-recovery.js` — 0 errors, existing `EanRecoveryScreen.jsx` warnings remain.
+- `node scripts/check-i18n.mjs` — PASS, no missing KZ keys.
+- `npm run check:agent:docs` — PASS.
+- `npm run build` — passed with existing Vite/Sentry warnings.
+- Live DB smoke inserted, updated `new -> rejected`, and deleted one temporary correction event row.
+
+Next required action:
+
+- Stage 6C-B: design server-side trusted alias promotion action with live conflict checks before any promotion UI exists.
+
+### Stage 6C-A Completion Notes
+
+Implemented locally:
+
+- `src/domain/product/eanAliases.js` now has trusted promotion guard helpers:
+  - `canPromoteEanAliasToTrusted()`;
+  - `buildTrustedAliasPromotionUpdate()`.
+- `tests/unit/eanAliasModel.test.mjs` covers strong evidence acceptance, legacy/broad source rejection, primary EAN conflicts, existing trusted conflicts, and update payload shape.
+
+Safety contract:
+
+- Stage 6C-A is local domain logic only.
+- No UI/API trusted promotion action was added.
+- No `product_ean_aliases` writes were made.
+- Live `trusted` count remains 0.
+- Legacy/broad search sources are explicitly blocked from trusted promotion: `legacy_alternate_eans`, `npc_search`, `arbuz_search`, `kaspi`, `korzinavdom`, `unknown`.
+- Promotion requires active/scannable alias, confidence >=80, trustable source, `reviewerConfirmedSameSku: true`, no primary-EAN conflict, and no existing trusted conflict for another product.
+
+Verification:
+
+- TDD red was verified: `node --test tests/unit/eanAliasModel.test.mjs` failed before new exports existed.
+- `node --test tests/unit/eanAliasModel.test.mjs` — 8/8 passed.
+- `node --test tests/unit/eanAliasModel.test.mjs tests/unit/eanAliasClassification.test.mjs tests/unit/productScanContainment.test.mjs tests/unit/eanRecoveryApiCorrectionStatus.test.mjs tests/unit/productCorrectionReview.test.mjs tests/unit/productCorrectionReports.test.mjs` — 28/28 passed.
+- `npx eslint src/domain/product/eanAliases.js` — passed with no output.
+- Live alias count check: total `144856`, `trusted=0`, `review=26771`, `quarantined=118085`, `rejected=0`.
+
+Next required action:
+
+- Stage 6C-C should add admin-only trusted-candidate review UI/read-only affordance before exposing the promotion API in the interface.
+
+### Stage 6C-B Completion Notes
+
+Implemented locally:
+
+- `api/ean-recovery.js` now supports admin-only `promote-ean-alias-trusted` through exported `handleTrustedAliasPromotion()`.
+- `tests/unit/eanRecoveryApiTrustedPromotion.test.mjs` covers successful promotion after conflict reads, admin-only access, primary-EAN conflict blocking, and legacy-source blocking.
+
+Safety contract:
+
+- Stage 6C-B adds a server-side API contract only.
+- No UI promotion button was added.
+- No live promotion write was executed.
+- The server reads current alias data, active trusted alias for the same EAN, and active primary `global_products.ean` target in the same request before update.
+- The server applies Stage 6C-A guardrails before update.
+- The update is guarded with current alias id and current status to reduce stale-status races.
+- Non-admin users cannot call trusted promotion.
+
+Verification:
+
+- TDD red was verified: `node --test tests/unit/eanRecoveryApiTrustedPromotion.test.mjs` failed before `handleTrustedAliasPromotion` existed.
+- `node --test tests/unit/eanRecoveryApiTrustedPromotion.test.mjs` — 4/4 passed.
+- `node --test tests/unit/eanRecoveryApiTrustedPromotion.test.mjs tests/unit/eanRecoveryApiCorrectionStatus.test.mjs tests/unit/eanAliasModel.test.mjs tests/unit/eanAliasClassification.test.mjs tests/unit/productScanContainment.test.mjs tests/unit/productCorrectionReview.test.mjs tests/unit/productCorrectionReports.test.mjs` — 32/32 passed.
+- `node --check api/ean-recovery.js` — passed.
+- `npx eslint api/ean-recovery.js src/domain/product/eanAliases.js` — passed with no output.
+- Live alias count check: total `144856`, `trusted=0`, `review=26771`, `quarantined=118085`, `rejected=0`.
+
+Next required action:
+
+- Stage 6C-D: design explicit admin-only typed confirmation before calling the promotion API from UI. Do not expose promotion to retail owners yet.
+
+### Stage 6C-C Completion Notes
+
+Implemented locally:
+
+- `src/domain/product/eanAliases.js` now exposes `normalizeTrustedAliasReviewCandidate()` for read-only review cards.
+- `tests/unit/eanAliasModel.test.mjs` covers read-only candidate normalization and blocked reason exposure.
+- `/retail/:storeSlug/ean-recovery` now shows an admin-only read-only trusted EAN candidates block.
+- RU/KZ i18n keys were added under `retail.eanRecovery.alias*`.
+
+Safety contract:
+
+- Stage 6C-C does not add a promotion button.
+- Stage 6C-C does not call `promote-ean-alias-trusted` from the UI.
+- Stage 6C-C does not write to `product_ean_aliases`.
+- Retail owners do not see the candidate block unless they are also admin.
+- The UI marks locally passable candidates as needing server check, not as safe to promote.
+
+Verification:
+
+- TDD red was verified: `node --test tests/unit/eanAliasModel.test.mjs` failed before `normalizeTrustedAliasReviewCandidate()` existed.
+- `node --test tests/unit/eanAliasModel.test.mjs tests/unit/eanRecoveryApiTrustedPromotion.test.mjs` — 14/14 passed.
+- Broader EAN/correction unit set — 29/29 passed.
+- `node scripts/check-i18n.mjs` — PASS, no missing KZ keys.
+- `npx eslint src/domain/product/eanAliases.js src/screens/EanRecoveryScreen.jsx` — 0 errors, existing `set-state-in-effect` warnings remain.
+- `npm run build` — passed with existing Vite/Sentry warnings.
+- Live candidate query with explicit FK returned sample rows.
+- Live alias count check: total `144856`, `trusted=0`, `review=26771`, `quarantined=118085`, `rejected=0`.
+
+Next required action:
+
+- Stage 6C-D should add explicit admin-only typed confirmation and call the promotion API only for candidates that still pass server-side guardrails.
 
 ### Stage 7 — Parser And Import Hardening
 
@@ -473,6 +706,173 @@ Verification gate:
 Stop point:
 
 - Owner confirms parser policy: fewer false recognitions are acceptable to avoid false products.
+
+### Stage 7-A Completion Notes
+
+Implemented locally on 2026-06-10:
+
+- Added `scripts/import-ean-policy.cjs` with `buildArbuzImportEanDecision()`.
+- Added `tests/unit/importEanPolicy.test.mjs`.
+- `scripts/arbuz-subcategory-parser.cjs` now keeps exact Arbuz barcode fields as primary EAN, but broad NPC/name search results no longer become primary `ean` or `alternate_eans`.
+- `scripts/arbuz-catalog-parser.cjs` now stores NPC/name search codes only as review evidence.
+- NPC review evidence is stored under `specs_json.ean_recovery_candidates` for later admin/audit processing.
+
+Safety contract:
+
+- No live import was run.
+- No live data was changed.
+- No `global_products.alternate_eans` deletion or mutation was performed.
+- Broad NPC/name search results remain review-only evidence, not buyer-visible scan truth.
+- Exact source barcode fields can still become primary EAN.
+
+Verification:
+
+- TDD red was verified: `node --test tests/unit/importEanPolicy.test.mjs` failed before `scripts/import-ean-policy.cjs` existed.
+- `node --test tests/unit/importEanPolicy.test.mjs` — 3/3 passed.
+- `node --test tests/unit/importEanPolicy.test.mjs tests/unit/eanAliasModel.test.mjs tests/unit/eanAliasClassification.test.mjs tests/unit/productScanContainment.test.mjs` — 24/24 passed.
+- `node --check scripts/import-ean-policy.cjs` — passed.
+- `node --check scripts/arbuz-subcategory-parser.cjs` — passed.
+- `node --check scripts/arbuz-catalog-parser.cjs` — passed.
+
+Remaining Stage 7 work:
+
+- Harden or retire legacy NPC enrichment scripts such as `scripts/npc-eans-harvest.cjs`, `scripts/npc-enrich.cjs`, and old resolver/promoter scripts before any live run.
+- Add a clean path that writes strong exact evidence into `product_ean_aliases` instead of uncontrolled `alternate_eans`.
+
+### Stage 7-B Completion Notes
+
+Implemented locally on 2026-06-10:
+
+- Added `scripts/legacy-ean-script-guard.cjs`.
+- Added `tests/unit/legacyEanScriptGuard.test.mjs`.
+- Guarded legacy risky scripts:
+  - `scripts/npc-eans-harvest.cjs`;
+  - `scripts/npc-enrich.cjs`;
+  - `scripts/resolve-v3.cjs`;
+  - `scripts/resolve-alternate-eans.cjs`.
+
+Safety contract:
+
+- These scripts are now dry-run-only.
+- Running them without `--dry-run` aborts before DB/API work.
+- No live data was changed.
+- No `global_products.ean`, `global_products.alternate_eans`, or `global_products.is_active` writes were executed.
+
+Verification:
+
+- TDD red was verified: `node --test tests/unit/legacyEanScriptGuard.test.mjs` failed before `scripts/legacy-ean-script-guard.cjs` existed.
+- `node --test tests/unit/legacyEanScriptGuard.test.mjs tests/unit/importEanPolicy.test.mjs tests/unit/eanAliasModel.test.mjs tests/unit/eanAliasClassification.test.mjs tests/unit/productScanContainment.test.mjs` — 27/27 passed.
+- `node --check scripts/legacy-ean-script-guard.cjs` — passed.
+- `node --check scripts/npc-eans-harvest.cjs` — passed.
+- `node --check scripts/npc-enrich.cjs` — passed.
+- `node --check scripts/resolve-v3.cjs` — passed.
+- `node --check scripts/resolve-alternate-eans.cjs` — passed.
+- Live guard smoke: `node scripts/npc-enrich.cjs --limit=1` aborted with the expected guard error before live work.
+
+Live read-only stats after Stage 7-B:
+
+- Active `global_products`: 13,101.
+- Products with non-empty legacy `alternate_eans`: 9,429.
+- Legacy alias relations: 146,805.
+- Unique legacy alias codes: 54,950.
+- Duplicate legacy alias codes: 26,024.
+- Legacy alias relations that are also an active primary EAN: 35,516.
+- `product_ean_aliases`: total 144,856; trusted 0; review 26,771; quarantined 118,085; rejected 0.
+- `product_correction_events`: 0 rows across `new`, `reviewing`, `fixed`, `rejected`, and `duplicate` in the live count query.
+
+Remaining Stage 7 work:
+
+- Review remaining barcode/enrichment scripts outside the Stage 7-B set before live use.
+- Build a clean exact-evidence insert path into `product_ean_aliases` instead of adding uncontrolled `alternate_eans`.
+
+### Stage 7-C Completion Notes
+
+Implemented locally on 2026-06-13:
+
+- Added admin-only `handleManualAliasCandidateCreate()` to `api/ean-recovery.js`.
+- Added API action `create-manual-alias-candidate`.
+- The action creates only `review` candidates in `product_ean_aliases` with `source='manual_admin'`, `confidence=95`, `created_by_auth_id`, and evidence confirming same SKU/package review.
+- Before insert, the server checks target product existence, scannable EAN format, active primary-EAN conflicts, and active trusted-alias conflicts.
+
+Safety contract:
+
+- No live data write was run.
+- No candidate is automatically promoted to `trusted`.
+- No writes to `global_products.ean`, `global_products.alternate_eans`, `store_products.ean`, or product facts.
+- Retail owners cannot create manual candidates unless they are admins.
+
+Verification:
+
+- TDD red was verified: `tests/unit/eanRecoveryApiTrustedPromotion.test.mjs` failed before `handleManualAliasCandidateCreate` was exported by `api/ean-recovery.js`.
+- `node --test tests/unit/eanRecoveryApiTrustedPromotion.test.mjs` — 7/7 passed.
+- `node --test tests/unit/productScanContainment.test.mjs tests/unit/eanAliasModel.test.mjs tests/unit/eanRecoveryApiTrustedPromotion.test.mjs tests/unit/importEanPolicy.test.mjs tests/unit/legacyEanScriptGuard.test.mjs` — 31/31 passed.
+- `node --check api/ean-recovery.js` — passed.
+- `npx eslint api/ean-recovery.js src/domain/product/eanAliases.js tests/unit/eanRecoveryApiTrustedPromotion.test.mjs` — passed with no output.
+
+Remaining Stage 7 work:
+
+- Wire a controlled admin UI/workflow to call `create-manual-alias-candidate` during manual review.
+- Review remaining barcode/enrichment scripts outside the Stage 7-B guard set before live use.
+- Start Stage 8 audit scans with manual candidate creation plus existing typed trusted promotion.
+
+### Stage 7-D Completion Notes
+
+Implemented locally on 2026-06-13:
+
+- Added `buildManualAliasCandidateRequest()` to `src/domain/product/eanAliases.js`.
+- Added an admin-only `В review` / `Review-ге` UI action to the existing fake-EAN edit row in `/retail/:storeSlug/ean-recovery`.
+- The UI calls `create-manual-alias-candidate`, refreshes trusted alias candidates, and leaves product data unchanged.
+- RU/KZ i18n keys were added for success, duplicate, invalid EAN, and failure states.
+
+Safety contract:
+
+- No live write was run.
+- The UI action creates only `review` rows.
+- No automatic `trusted` promotion.
+- No writes to `global_products.ean`, `global_products.alternate_eans`, `store_products.ean`, or product facts.
+
+Verification:
+
+- TDD red was verified: `node --test tests/unit/eanAliasModel.test.mjs` failed before `buildManualAliasCandidateRequest()` was exported.
+- `node --test tests/unit/eanAliasModel.test.mjs` — 14/14 passed.
+- `node --test tests/unit/eanAliasModel.test.mjs tests/unit/eanRecoveryApiTrustedPromotion.test.mjs tests/unit/productScanContainment.test.mjs tests/unit/importEanPolicy.test.mjs tests/unit/legacyEanScriptGuard.test.mjs` — 32/32 passed.
+- `node scripts/check-i18n.mjs` — PASS, no missing KZ keys.
+- `npx eslint src/domain/product/eanAliases.js src/screens/EanRecoveryScreen.jsx api/ean-recovery.js tests/unit/eanAliasModel.test.mjs tests/unit/eanRecoveryApiTrustedPromotion.test.mjs` — 0 errors, existing `react-hooks/set-state-in-effect` warnings remain in `EanRecoveryScreen.jsx`.
+
+Remaining Stage 7 work:
+
+- Controlled live smoke on one verified package: create review candidate, confirm it appears, then promote only if same SKU/package is manually verified.
+- Review remaining barcode/enrichment scripts outside the Stage 7-B guard set before live use.
+- Start Stage 8 audit scans after the owner confirms this workflow is usable in-store.
+
+### Stage 7-E Completion Notes
+
+Implemented locally on 2026-06-13:
+
+- `handleManualAliasCandidateCreate()` now blocks redundant aliases when the entered EAN is already the target product's active primary EAN.
+- New block reason: `ean_already_primary_for_same_product`.
+- RU/KZ i18n labels were added for the block reason.
+
+Safety contract:
+
+- No live write was run.
+- No product data is mutated.
+- Cross-product primary EAN conflicts remain blocked.
+- Same-product primary EAN duplicates are now blocked before insert, keeping the review queue cleaner.
+
+Verification:
+
+- TDD red was verified: `node --test tests/unit/eanRecoveryApiTrustedPromotion.test.mjs` failed with `200 !== 400` before the guard was added.
+- `node --test tests/unit/eanRecoveryApiTrustedPromotion.test.mjs` — 8/8 passed.
+- `node --test tests/unit/eanAliasModel.test.mjs tests/unit/eanRecoveryApiTrustedPromotion.test.mjs tests/unit/productScanContainment.test.mjs tests/unit/importEanPolicy.test.mjs tests/unit/legacyEanScriptGuard.test.mjs` — 33/33 passed.
+- `node scripts/check-i18n.mjs` — PASS, no missing KZ keys.
+- `npx eslint api/ean-recovery.js tests/unit/eanRecoveryApiTrustedPromotion.test.mjs` — passed with no output.
+
+Remaining Stage 7 work:
+
+- Controlled live smoke on one verified package: create review candidate, confirm it appears, then promote only if same SKU/package is manually verified.
+- Review remaining barcode/enrichment scripts outside the Stage 7-B guard set before live use.
+- Start Stage 8 audit scans after the owner confirms this workflow is usable in-store.
 
 ### Stage 8 — Mass QA And Supermarket Audit
 

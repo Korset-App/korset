@@ -1,4 +1,3 @@
-import { HeartIcon } from '../icons/HeartIcon.jsx'
 import ProductMiniCard from '../ProductMiniCard.jsx'
 import './ProfileStatsTabs.css'
 
@@ -52,10 +51,14 @@ export default function ProfileStatsTabs({
       tone: 'favorites',
       value: favoritesCount,
       label: t('profile.favorites'),
-      iconBg: 'rgba(220,38,38,0.18)',
-      iconBorder: 'rgba(248,113,113,0.55)',
-      iconShadow: '0 4px 22px rgba(220,38,38,0.32)',
-      icon: <HeartIcon filled size={24} color="#F87171" />,
+      iconBg: 'var(--glass-muted)',
+      iconBorder: 'var(--glass-border)',
+      iconShadow: '0 4px 22px rgba(0,0,0,0.1)',
+      icon: (
+        <span className="material-symbols-outlined" style={{ fontSize: 24, color: 'var(--text)' }}>
+          checklist
+        </span>
+      ),
     },
     {
       id: 'preferences',
@@ -262,22 +265,13 @@ export default function ProfileStatsTabs({
 
 const TONE_STYLES = {
   favorites: {
-    bg: 'rgba(220,38,38,0.18)',
-    border: 'rgba(248,113,113,0.45)',
-    color: '#F87171',
+    bg: 'var(--glass-muted)',
+    border: 'var(--glass-border)',
+    color: 'var(--text)',
     icon: (
-      <svg
-        width="26"
-        height="26"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="#F87171"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-      </svg>
+      <span className="material-symbols-outlined" style={{ fontSize: 26, color: 'var(--text)' }}>
+        checklist
+      </span>
     ),
   },
   history: {

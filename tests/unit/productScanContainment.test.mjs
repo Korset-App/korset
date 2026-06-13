@@ -2,7 +2,10 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { findProductInCatalog } from '../../src/domain/product/alternatives.js'
-import { isResolvedProductExactForScannedEan } from '../../src/domain/product/resolver.js'
+import {
+  isResolvedProductAllowedForScannedEan,
+  isResolvedProductExactForScannedEan,
+} from '../../src/domain/product/resolver.js'
 
 test('findProductInCatalog can ignore alternate EANs for scan-origin routes', () => {
   const product = {
@@ -42,4 +45,26 @@ test('isResolvedProductExactForScannedEan accepts exact primary EAN matches', ()
   }
 
   assert.equal(isResolvedProductExactForScannedEan(product, '4870035005035'), true)
+})
+
+test('isResolvedProductAllowedForScannedEan accepts explicit trusted alias metadata only', () => {
+  const product = {
+    ean: '4870035007932',
+    alternateEans: ['4870035005035'],
+    sourceMeta: {
+      resolvedAliasEan: '4870035005035',
+      resolvedAliasStatus: 'trusted',
+      resolvedAliasConfidence: 95,
+    },
+  }
+
+  assert.equal(isResolvedProductExactForScannedEan(product, '4870035005035'), false)
+  assert.equal(isResolvedProductAllowedForScannedEan(product, '4870035005035'), true)
+  assert.equal(
+    isResolvedProductAllowedForScannedEan(
+      { ...product, sourceMeta: { ...product.sourceMeta, resolvedAliasStatus: 'review' } },
+      '4870035005035'
+    ),
+    false
+  )
 })
