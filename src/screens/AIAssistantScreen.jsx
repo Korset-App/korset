@@ -5,6 +5,13 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useI18n } from '../i18n/index.js'
 import KorsetAvatar from '../components/KorsetAvatar.jsx'
 import { HistoryIcon } from '../components/icons/HistoryIcon.jsx'
+import { TrashIcon } from '../components/icons/TrashIcon.jsx'
+import { WalletIcon } from '../components/icons/WalletIcon.jsx'
+import { FlaskIcon } from '../components/icons/FlaskIcon.jsx'
+import { CartIcon } from '../components/icons/CartIcon.jsx'
+import { CameraIcon } from '../components/icons/CameraIcon.jsx'
+import { GalleryIcon } from '../components/icons/GalleryIcon.jsx'
+import { IconGallery } from '../components/icons/IconGallery.jsx'
 import { askGeneralAI, askPackageImageAI, transcribeVoiceInput } from '../services/ai.js'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { useProfile } from '../contexts/ProfileContext.jsx'
@@ -746,7 +753,7 @@ export default function AIAssistantScreen() {
               aria-label={t('ai.clearChat')}
               title={t('ai.clearChat')}
             >
-              <span className="material-symbols-outlined ai-icon-button__icon">delete</span>
+              <TrashIcon size={20} />
             </button>
           )}
         </div>
@@ -860,9 +867,7 @@ export default function AIAssistantScreen() {
                         className="ai-history-item__delete"
                         aria-label={t('ai.history.delete')}
                       >
-                        <span className="material-symbols-outlined ai-history-item__delete-icon">
-                          delete
-                        </span>
+                        <TrashIcon size={18} />
                       </button>
                       {deleteCandidateId === item.id && (
                         <div className="ai-history-item__confirm">
@@ -909,25 +914,39 @@ export default function AIAssistantScreen() {
               </div>
             </div>
             <div className="ai-capability-carousel" aria-label={t('ai.empty.title')}>
-              {GENERAL_AI_CAPABILITIES.map((capability) => (
-                <button
-                  key={capability.id}
-                  type="button"
-                  className={`ai-capability-card ai-capability-card--${capability.tone}`}
-                  onClick={() => sendMessage(t(capability.promptKey))}
-                  disabled={loading}
-                >
-                  <span className="material-symbols-outlined ai-capability-card__icon">
-                    {capability.icon}
-                  </span>
-                  <span className="ai-capability-card__content">
-                    <span className="ai-capability-card__title">{t(capability.titleKey)}</span>
-                    <span className="ai-capability-card__description">
-                      {t(capability.descriptionKey)}
+              {GENERAL_AI_CAPABILITIES.map((capability) => {
+                const capIcons = {
+                  budget_pick: WalletIcon,
+                  explain_composition: FlaskIcon,
+                  build_shopping_list: CartIcon,
+                }
+                const CapIcon = capIcons[capability.id]
+                return (
+                  <button
+                    key={capability.id}
+                    type="button"
+                    className={`ai-capability-card ai-capability-card--${capability.tone}`}
+                    onClick={() => sendMessage(t(capability.promptKey))}
+                    disabled={loading}
+                  >
+                    {CapIcon ? (
+                      <span className="ai-capability-card__icon">
+                        <CapIcon size={20} />
+                      </span>
+                    ) : (
+                      <span className="material-symbols-outlined ai-capability-card__icon">
+                        {capability.icon}
+                      </span>
+                    )}
+                    <span className="ai-capability-card__content">
+                      <span className="ai-capability-card__title">{t(capability.titleKey)}</span>
+                      <span className="ai-capability-card__description">
+                        {t(capability.descriptionKey)}
+                      </span>
                     </span>
-                  </span>
-                </button>
-              ))}
+                  </button>
+                )
+              })}
             </div>
           </div>
         )}
@@ -996,8 +1015,8 @@ export default function AIAssistantScreen() {
                 className="ai-image-picker__option"
                 onClick={() => cameraInputRef.current?.click()}
               >
-                <span className="material-symbols-outlined ai-image-picker__icon">
-                  photo_camera
+                <span className="ai-image-picker__icon">
+                  <CameraIcon size={18} />
                 </span>
                 {t('ai.image.camera')}
               </button>
@@ -1006,8 +1025,8 @@ export default function AIAssistantScreen() {
                 className="ai-image-picker__option"
                 onClick={() => galleryInputRef.current?.click()}
               >
-                <span className="material-symbols-outlined ai-image-picker__icon">
-                  photo_library
+                <span className="ai-image-picker__icon">
+                  <GalleryIcon size={18} />
                 </span>
                 {t('ai.image.gallery')}
               </button>
@@ -1122,8 +1141,8 @@ export default function AIAssistantScreen() {
                 aria-label={t('ai.image.open')}
                 title={t('ai.image.open')}
               >
-                <span className="material-symbols-outlined ai-image-button__icon">
-                  add_photo_alternate
+                <span className="ai-image-button__icon">
+                  <IconGallery size={18} />
                 </span>
               </button>
               <button

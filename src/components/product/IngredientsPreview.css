@@ -9,16 +9,6 @@
 
 .ingredients-preview--compact {
   padding: 14px;
-  cursor: pointer;
-  transition: border-color 0.2s ease, background 0.2s ease;
-}
-
-.ingredients-preview--compact:hover {
-  border-color: color-mix(in srgb, var(--glass-soft-border) 64%, var(--text) 12%);
-}
-
-.ingredients-preview--compact:active {
-  background: color-mix(in srgb, var(--glass-muted) 88%, var(--bg-surface) 12%);
 }
 
 .ingredients-preview--full {
@@ -48,31 +38,17 @@
   line-height: 1.35;
 }
 
-.ingredients-preview__expand-hint {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  padding: 6px 0 1px;
-  color: var(--text-faint);
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.ingredients-preview__expand-hint .material-symbols-outlined {
-  font-size: 15px;
-}
-
 .ingredients-preview__text {
   color: var(--text-soft);
   font-size: 13px;
-  line-height: 1.78;
+  line-height: 1.85;
 }
 
 .ingredients-preview__text--clamped {
-  max-height: calc(1.78em * 4);
+  max-height: calc(1.85em * 4);
   overflow: hidden;
   position: relative;
+  cursor: pointer;
 }
 
 .ingredients-preview__text--clamped::after {
@@ -81,18 +57,19 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 48px;
+  height: 56px;
   background: linear-gradient(
     to bottom,
     transparent 0%,
-    color-mix(in srgb, var(--glass-subtle) 88%, var(--bg-surface) 12%) 85%
+    color-mix(in srgb, var(--glass-subtle) 72%, var(--bg-surface) 28%) 58%,
+    color-mix(in srgb, var(--glass-subtle) 88%, var(--bg-surface) 12%) 100%
   );
   pointer-events: none;
 }
 
 .ingredients-preview__token {
   border: 0;
-  border-bottom: 1.5px solid color-mix(in srgb, currentColor 54%, transparent);
+  border-bottom: 1.5px solid color-mix(in srgb, currentColor 48%, transparent);
   border-radius: 0;
   background: transparent;
   color: currentColor;
@@ -105,10 +82,15 @@
   cursor: pointer;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
+  transition: background 0.15s ease;
+}
+
+.ingredients-preview__token:hover {
+  background: color-mix(in srgb, currentColor 6%, transparent);
 }
 
 .ingredients-preview__token:active {
-  background: color-mix(in srgb, currentColor 9%, transparent);
+  background: color-mix(in srgb, currentColor 12%, transparent);
 }
 
 .ingredients-preview__token--danger {
@@ -127,11 +109,64 @@
   color: var(--primary-bright);
 }
 
+.ingredients-preview__expand-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 0 2px;
+  border: 0;
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 0.15s ease;
+}
+
+.ingredients-preview__expand-btn:hover {
+  color: var(--text-dim);
+}
+
+.ingredients-preview__expand-btn .material-symbols-outlined {
+  font-size: 16px;
+}
+
 .ingredients-preview__hint {
   margin: 12px 0 0;
   color: var(--text-faint);
   font-size: 11px;
   line-height: 1.35;
+}
+
+.ingredients-preview__breakdown-btn {
+  width: 100%;
+  min-height: 46px;
+  margin-top: 14px;
+  border: 1px solid color-mix(in srgb, var(--primary-bright) 20%, var(--glass-soft-border) 80%);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--primary-bright) 6%, transparent);
+  color: var(--primary-bright);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.ingredients-preview__breakdown-btn:hover {
+  background: color-mix(in srgb, var(--primary-bright) 10%, transparent);
+  border-color: color-mix(in srgb, var(--primary-bright) 32%, var(--glass-soft-border) 68%);
+}
+
+.ingredients-preview__breakdown-btn .material-symbols-outlined {
+  font-size: 18px;
 }
 
 .ingredients-preview__cards {

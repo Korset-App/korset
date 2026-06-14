@@ -70,7 +70,7 @@ export default function ProductScreen() {
   const navigate = useNavigate()
   const location = useLocation()
   const { profile } = useProfile()
-  const { user } = useAuth()
+  const { user, internalUserId } = useAuth()
   const { lang, t } = useI18n()
   const { currentStore, storeId, catalogProducts = [] } = useStore()
   const { checkIsFavorite, toggleFavorite, favoriteEans } = useUserData()
@@ -165,7 +165,7 @@ export default function ProductScreen() {
   }
 
   const handleToggleFavorite = async () => {
-    if (!user) {
+    if (!user || !internalUserId) {
       navigate('/auth', {
         state: buildAuthNavigateState(location, {
           reason: 'favorites_requires_auth',

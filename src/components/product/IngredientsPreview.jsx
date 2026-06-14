@@ -16,12 +16,13 @@ function enrichHighlight(item, t, lang) {
         : custom.ru
       : t(item.reasonKey, { ingredient: item.label }),
     description: custom
-      ? undefined
+      ? lang === 'kz'
+        ? custom.kz
+        : custom.ru
       : t(item.descriptionKey || `product.ingredients.description.${item.kind}`, {
           ingredient: item.label,
         }),
     askAiLabel: t('product.ingredients.askAiIngredient'),
-    closeLabel: t('common.close'),
     searchGoogleLabel: t('product.ingredients.searchGoogle'),
   }
 }
@@ -36,7 +37,10 @@ function IngredientTokens({ tokens, highlightsById, onSelect }) {
         type="button"
         key={token.id}
         className={`ingredients-preview__token ingredients-preview__token--${highlight.tone}`}
-        onClick={() => onSelect(highlight)}
+        onClick={(e) => {
+          e.stopPropagation()
+          onSelect(highlight)
+        }}
       >
         {token.text}
       </button>
@@ -70,31 +74,15 @@ export default function IngredientsPreview({
   const isFull = variant === 'full'
 
   const isClamped = !isFull && !expanded
-  const handleCardClick = () => {
-    if (isFull) return
-    if (onOpenFull) {
-      onOpenFull()
-    } else {
-      setExpanded(true)
-    }
+  const handleExpandClick = () => {
+    if (isClamped) setExpanded(true)
   }
 
   if (!analysis.text) return null
 
   return (
     <>
-      <section
-        className={`ingredients-preview ingredients-preview--${variant}`}
-        role={!isFull ? 'button' : undefined}
-        tabIndex={!isFull ? 0 : undefined}
-        onClick={handleCardClick}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            handleCardClick()
-          }
-        }}
-      >
+      <section className={`ingredients-preview ingredients-preview--${variant}`}>
         <div className="ingredients-preview__head">
           <div>
             <h2 className="ingredients-preview__title">{t('product.ingredients')}</h2>
@@ -109,7 +97,19 @@ export default function IngredientsPreview({
 
         <div
           className={`ingredients-preview__text ${isClamped ? 'ingredients-preview__text--clamped' : ''}`}
-          onClick={isClamped ? handleCardClick : undefined}
+          role={isClamped ? 'button' : undefined}
+          tabIndex={isClamped ? 0 : undefined}
+          onClick={isClamped ? handleExpandClick : undefined}
+          onKeyDown={
+            isClamped
+              ? (e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    handleExpandClick()
+                  }
+                }
+              : undefined
+          }
         >
           <IngredientTokens
             tokens={analysis.tokens}
@@ -119,12 +119,29 @@ export default function IngredientsPreview({
         </div>
 
         {isClamped && (
-          <div className="ingredients-preview__expand-hint" onClick={handleCardClick}>
+          <button
+            type="button"
+            className="ingredients-preview__expand-btn"
+            onClick={handleExpandClick}
+          >
             <span className="material-symbols-outlined" aria-hidden="true">
               expand_more
             </span>
             {t('product.ingredients.tapToExpand')}
-          </div>
+          </button>
+        )}
+
+        {!isFull && !isClamped && highlights.length > 0 && (
+          <p className="ingredients-preview__hint">{t('product.ingredients.tapHint')}</p>
+        )}
+
+        {!isFull && !isClamped && onOpenFull && (
+          <button type="button" className="ingredients-preview__breakdown-btn" onClick={onOpenFull}>
+            <span className="material-symbols-outlined" aria-hidden="true">
+              fact_check
+            </span>
+            {t('product.ingredients.openFull')}
+          </button>
         )}
 
         {isFull && highlights.length > 0 && (
@@ -146,10 +163,6 @@ export default function IngredientsPreview({
             ))}
           </div>
         )}
-
-        {!isFull && !isClamped && highlights.length > 0 && (
-          <p className="ingredients-preview__hint">{t('product.ingredients.tapHint')}</p>
-        )}
       </section>
 
       <IngredientInfoSheet
@@ -159,6 +172,7 @@ export default function IngredientsPreview({
           setSelected(null)
           onAskAI?.(item)
         }}
+        lang={lang}
       />
     </>
   )

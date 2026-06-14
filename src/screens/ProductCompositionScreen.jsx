@@ -26,9 +26,11 @@ function CollapsibleSection({ icon, title, children, defaultOpen = false }) {
         onClick={() => setOpen((x) => !x)}
         aria-expanded={open}
       >
-        <span className="material-symbols-outlined" aria-hidden="true">
-          {icon}
-        </span>
+        <div className="collapsible-section__icon-box">
+          <span className="material-symbols-outlined" aria-hidden="true">
+            {icon}
+          </span>
+        </div>
         <span className="collapsible-section__title">{title}</span>
         <span
           className={`material-symbols-outlined collapsible-section__chevron${open ? ' open' : ''}`}
@@ -126,8 +128,20 @@ export default function ProductCompositionScreen() {
 
         {product && (
           <>
-            <CollapsibleSection icon="fact_check" title={t('product.ingredients.summaryTitle')}>
-              <p>{t('product.ingredients.summaryBody')}</p>
+            <CollapsibleSection icon="smart_toy" title={t('product.ingredients.summaryTitle')}>
+              <p className="product-composition-analysis__hint">
+                {t('product.ingredients.summaryBody')}
+              </p>
+              <button
+                type="button"
+                className="product-composition-analysis__btn"
+                onClick={() => askAI()}
+              >
+                <span className="material-symbols-outlined" aria-hidden="true">
+                  auto_awesome
+                </span>
+                {t('product.ingredients.askAiComposition')}
+              </button>
             </CollapsibleSection>
 
             <CollapsibleSection icon="palette" title={t('product.ingredients.legendTitle')}>

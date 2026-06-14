@@ -101,7 +101,7 @@
   text-align: left;
 }
 
-.collapsible-section__trigger .material-symbols-outlined:first-child {
+.collapsible-section__icon-box {
   width: 42px;
   height: 42px;
   border-radius: 14px;
@@ -110,6 +110,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  font-size: 22px;
+}
+
+.collapsible-section__icon-box .material-symbols-outlined {
   font-size: 22px;
 }
 
@@ -133,6 +137,36 @@
   color: var(--text-sub);
   font-size: 13px;
   line-height: 1.5;
+}
+
+.product-composition-analysis__hint {
+  margin-bottom: 12px;
+}
+
+.product-composition-analysis__btn {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid color-mix(in srgb, var(--primary-bright) 22%, var(--glass-soft-border) 78%);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--primary-bright) 7%, transparent);
+  color: var(--primary-bright);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.product-composition-analysis__btn:hover {
+  background: color-mix(in srgb, var(--primary-bright) 12%, transparent);
+}
+
+.product-composition-analysis__btn .material-symbols-outlined {
+  font-size: 18px;
 }
 
 @keyframes collapsibleFadeIn {

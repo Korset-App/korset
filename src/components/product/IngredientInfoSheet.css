@@ -7,12 +7,6 @@
   justify-content: center;
   background: var(--overlay-bg);
   padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
-  animation: sheetFadeIn 0.25s ease forwards;
-}
-
-@keyframes sheetFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
 }
 
 body.ingredient-sheet-open .bottom-nav {
@@ -25,7 +19,7 @@ body.ingredient-sheet-open .bottom-nav {
   max-width: 430px;
   border-radius: 24px 24px 20px 20px;
   background:
-    linear-gradient(180deg, color-mix(in srgb, currentColor 4%, transparent), transparent 42%),
+    linear-gradient(180deg, color-mix(in srgb, currentColor 3%, transparent), transparent 50%),
     color-mix(in srgb, var(--bg-surface) 94%, var(--bg-card) 6%);
   border: 1px solid var(--glass-soft-border);
   box-shadow: var(--shadow-card);
@@ -35,39 +29,18 @@ body.ingredient-sheet-open .bottom-nav {
   overflow-y: auto;
   overscroll-behavior: contain;
   backdrop-filter: blur(22px) saturate(130%);
-  animation: sheetSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes sheetSlideUp {
-  from { transform: translateY(10%); }
-  to { transform: translateY(0); }
 }
 
 :root[data-theme='dark'] .ingredient-sheet__panel {
   background:
-    linear-gradient(180deg, color-mix(in srgb, currentColor 5%, transparent), transparent 42%),
+    linear-gradient(180deg, color-mix(in srgb, currentColor 4%, transparent), transparent 50%),
     color-mix(in srgb, var(--surface) 92%, var(--card) 8%);
 }
 
-.ingredient-sheet__panel--danger {
-  color: var(--error-bright);
-  border-color: var(--error-border);
-}
-
-.ingredient-sheet__panel--warning {
-  color: var(--warning);
-  border-color: var(--warning-border);
-}
-
-.ingredient-sheet__panel--additive {
-  color: var(--additive);
-  border-color: var(--additive-border);
-}
-
-.ingredient-sheet__panel--info {
-  color: var(--primary-bright);
-  border-color: var(--badge-border);
-}
+.ingredient-sheet__panel--danger { color: var(--error-bright); }
+.ingredient-sheet__panel--warning { color: var(--warning); }
+.ingredient-sheet__panel--additive { color: var(--additive); }
+.ingredient-sheet__panel--info { color: var(--primary-bright); }
 
 .ingredient-sheet__handle {
   width: 42px;
@@ -75,6 +48,7 @@ body.ingredient-sheet-open .bottom-nav {
   border-radius: 999px;
   background: var(--glass-handle);
   margin: 0 auto 12px;
+  cursor: grab;
 }
 
 .ingredient-sheet__topline {
@@ -139,42 +113,42 @@ body.ingredient-sheet-open .bottom-nav {
 
 .ingredient-sheet__actions {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
   margin-top: 16px;
 }
 
 .ingredient-sheet__ai,
-.ingredient-sheet__secondary {
+.ingredient-sheet__google {
   min-height: 44px;
   border-radius: 14px;
   font-family: var(--font-display);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .ingredient-sheet__ai {
   border: 0;
   background: linear-gradient(135deg, var(--primary), var(--primary-mid));
   color: var(--text-inverse);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
   box-shadow: var(--shadow-glow);
 }
 
-.ingredient-sheet__ai .material-symbols-outlined {
-  font-size: 18px;
+.ingredient-sheet__ai svg {
+  flex-shrink: 0;
 }
 
-.ingredient-sheet__secondary {
+.ingredient-sheet__google {
   border: 1px solid var(--glass-soft-border);
   background: var(--glass-subtle);
   color: var(--text-sub);
-  padding: 0 14px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+}
+
+.ingredient-sheet__google svg {
+  flex-shrink: 0;
 }
