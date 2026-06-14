@@ -121,7 +121,7 @@ Infrastructure: RLS + JWT. Sentry + Telegram alerts. Offline (SW + IndexedDB). R
 
 **Halal:** Mustakshif (822 YES/11,862), HalalDamu (1,130), AHIK (668), OFF (0.2%). Ingredient-based анализ: 9,532 продукта. Helper: `src/domain/product/halalEvidence.js`. Покрытие частичное, авто-matching ненадёжен.
 
-**Product Normalization:** 9 stages + Compare rebuild 5 stages. Nutrition mapping, specs, flavor, unit prices. Детали: `docs/vault/changelog/2026-06-08-compare-stage5-visual-ux.md`.
+**Product Normalization:** 9 stages + Compare rebuild 5 stages. Nutrition mapping, specs, flavor, unit prices. ProductScreen now preserves known catalog ingredients/nutrition when a later full fetch is sparse. Детали: `docs/vault/changelog/2026-06-08-compare-stage5-visual-ux.md`, `docs/vault/changelog/2026-06-14-productscreen-sparse-full-fetch-merge-fix.md`.
 
 **EAN Integrity:** КРИТИЧНО: загрязнённые `alternate_eans` (146,805 alias, 81.4% critical). Recovery (8 stages): 1-7D завершены — containment, trusted model (migration 047-049), quarantine (144,856 rows), resolver, parser hardening, correction UI. Trusted=0 (нужна ручная promotion). План: `docs/vault/plans/2026-06-01-product-ean-integrity-recovery-plan.md`.
 

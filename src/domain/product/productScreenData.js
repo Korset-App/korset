@@ -10,8 +10,47 @@ export function productMatchesRouteEan(product, ean) {
   return Array.isArray(alternateEans) && alternateEans.map(String).includes(routeEan)
 }
 
+function hasUsefulValue(value) {
+  if (value == null) return false
+  if (typeof value === 'string') return value.trim().length > 0
+  if (Array.isArray(value)) return value.length > 0
+  if (typeof value === 'object') return Object.keys(value).length > 0
+  return true
+}
+
+function preserveBaseFactsWhenFullIsSparse(baseProduct, fullProduct) {
+  if (!baseProduct) return fullProduct
+  if (!fullProduct) return baseProduct
+
+  const merged = { ...baseProduct, ...fullProduct }
+  const factKeys = [
+    'ingredients',
+    'ingredientsKz',
+    'nutritionPer100',
+    'allergens',
+    'dietTags',
+    'tags',
+    'additivesTags',
+    'traces',
+    'categoriesTags',
+    'description',
+    'image',
+    'images',
+  ]
+
+  for (const key of factKeys) {
+    if (!hasUsefulValue(fullProduct[key]) && hasUsefulValue(baseProduct[key])) {
+      merged[key] = baseProduct[key]
+    }
+  }
+
+  return merged
+}
+
 export function getProductScreenProduct({ baseProduct, fullProduct, ean }) {
-  if (productMatchesRouteEan(fullProduct, ean)) return fullProduct
+  if (productMatchesRouteEan(fullProduct, ean)) {
+    return preserveBaseFactsWhenFullIsSparse(baseProduct, fullProduct)
+  }
   return baseProduct || null
 }
 

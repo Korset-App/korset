@@ -51,6 +51,32 @@ test('getProductScreenProduct accepts full product matched through alternate EAN
   assert.equal(getProductScreenProduct({ baseProduct, fullProduct, ean: '22222222' }).name, 'Full')
 })
 
+test('getProductScreenProduct does not let a sparse full fetch erase catalog ingredients', () => {
+  const baseProduct = product({
+    ean: '22222222',
+    name: 'Catalog product',
+    ingredients: 'Молоко нормализованное, закваска',
+    nutritionPer100: { kcal: 58, protein: 3, fat: 3.2, carbs: 4.7 },
+    allergens: ['milk'],
+  })
+  const fullProduct = product({
+    ean: '22222222',
+    name: 'Full product',
+    ingredients: null,
+    nutritionPer100: {},
+    allergens: [],
+    productScreenFull: true,
+  })
+
+  const result = getProductScreenProduct({ baseProduct, fullProduct, ean: '22222222' })
+
+  assert.equal(result.name, 'Full product')
+  assert.equal(result.ingredients, 'Молоко нормализованное, закваска')
+  assert.deepEqual(result.nutritionPer100, { kcal: 58, protein: 3, fat: 3.2, carbs: 4.7 })
+  assert.deepEqual(result.allergens, ['milk'])
+  assert.equal(result.productScreenFull, true)
+})
+
 test('shouldFetchFullProductForProductScreen fetches when route has no base product', () => {
   assert.equal(
     shouldFetchFullProductForProductScreen({
