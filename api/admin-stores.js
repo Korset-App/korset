@@ -234,7 +234,15 @@ export default async function handler(req, res) {
         updateData.plan = plan
       }
       if (planExpiresAt !== undefined) {
-        updateData.plan_expires_at = planExpiresAt ? new Date(planExpiresAt).toISOString() : null
+        if (planExpiresAt) {
+          const parsedDate = new Date(planExpiresAt)
+          if (isNaN(parsedDate.getTime())) {
+            return res.status(400).set(cors).json({ error: 'invalid_date_format', message: 'Некорректный формат даты окончания подписки' })
+          }
+          updateData.plan_expires_at = parsedDate.toISOString()
+        } else {
+          updateData.plan_expires_at = null
+        }
       }
 
       const { data: updatedStore, error: updateError } = await admin

@@ -25,6 +25,7 @@ import {
   omitStoreSettingsColumn,
 } from '../domain/retail/storeSettings.js'
 import { useOffline } from './OfflineContext.jsx'
+import { useAuth } from './AuthContext.jsx'
 
 const StoreContext = createContext(null)
 export const STORE_KEY = 'korset_store_slug'
@@ -183,6 +184,7 @@ export async function fetchFullProduct(storeId, ean) {
 export function StoreProvider({ children }) {
   const location = useLocation()
   const { isOnline } = useOffline()
+  const { user, isSuperadmin } = useAuth()
   const pathStoreSlug = getStoreSlugFromPath(location.pathname)
   const [rememberedStoreSlug, setRememberedStoreSlug] = useState(
     () => localStorage.getItem(STORE_KEY) || null
@@ -363,6 +365,11 @@ export function StoreProvider({ children }) {
     localStorage.removeItem(STORE_KEY)
   }, [])
 
+  const isStoreOwnerOrAdmin = useMemo(() => {
+    if (!currentStore || !user) return false
+    return currentStore.owner_id === user.id || isSuperadmin
+  }, [currentStore, user, isSuperadmin])
+
   const value = useMemo(
     () => ({
       storeSlug: currentStore?.slug || null,
@@ -378,6 +385,7 @@ export function StoreProvider({ children }) {
       updateStoreSettings,
       rememberStore,
       clearRememberedStore,
+      isStoreOwnerOrAdmin,
       appPath: (subPath = '') => {
         if (!currentStore) return subPath || '/'
         if (!subPath || subPath === '/') return `/s/${currentStore.slug}`
@@ -410,6 +418,7 @@ export function StoreProvider({ children }) {
       updateStoreSettings,
       rememberStore,
       clearRememberedStore,
+      isStoreOwnerOrAdmin,
     ]
   )
 

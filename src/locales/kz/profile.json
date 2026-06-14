@@ -47,5 +47,8 @@
   "about.feat6Desc": "Аллергендеріңіз туралы деректер жергілікті түрде сақталады және үшінші тұлғаларға берілмейді",
   "about.copyright": "© {year} Körset. Барлық құқықтар қорғалған.",
   "about.madeIn": "Қазақстанда жасалған 🇰🇿",
-  "profileSetup.saveError": "Профильді сақтау мүмкін болмады"
+  "profileSetup.saveError": "Профильді сақтау мүмкін болмады",
+  "profile.platformAdminSection": "Платформаны басқару",
+  "profile.superAdminPanel": "Супер-әкімші панелі",
+  "profile.retailCabinet": "Ритейлер кабинеті"
 }

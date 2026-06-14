@@ -47,5 +47,8 @@
   "about.feat6Desc": "Данные о ваших аллергенах хранятся локально и не передаются третьим лицам",
   "about.copyright": "© {year} Körset. Все права защищены.",
   "about.madeIn": "Разработано в Казахстане 🇰🇿",
-  "profileSetup.saveError": "Не удалось сохранить профиль"
+  "profileSetup.saveError": "Не удалось сохранить профиль",
+  "profile.platformAdminSection": "Управление платформой",
+  "profile.superAdminPanel": "Панель супер-администратора",
+  "profile.retailCabinet": "Кабинет ритейлера"
 }

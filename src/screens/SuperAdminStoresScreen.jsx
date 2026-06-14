@@ -119,6 +119,7 @@ export default function SuperAdminStoresScreen() {
 
   // Drawer (выдвижная панель) states
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [selectedStore, setSelectedStore] = useState(null)
   const [submittingStore, setSubmittingStore] = useState(false)
   const [formError, setFormError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -135,6 +136,9 @@ export default function SuperAdminStoresScreen() {
     ownerPassword: '',
     shortDescription: '',
     description: '',
+    planExpiresAt: '',
+    newEmail: '',
+    newPassword: '',
   })
 
   // Fetch stores
@@ -155,7 +159,7 @@ export default function SuperAdminStoresScreen() {
       if (response.ok && result.ok) {
         setStores(result.stores || [])
       } else {
-        setErrorMessage(result.message || 'Не удалось загрузить список магазинов')
+        setErrorMessage(result.message || result.error || 'Не удалось загрузить список магазинов')
       }
     } catch (err) {
       console.error(err)
@@ -171,8 +175,73 @@ export default function SuperAdminStoresScreen() {
     }
   }, [isSuperadmin, session])
 
-  // Handle store creation
-  const handleCreateStore = async (e) => {
+  // Open drawer for creation
+  const openCreateDrawer = () => {
+    setSelectedStore(null)
+    setFormValues({
+      name: '',
+      slug: '',
+      type: 'minimarket',
+      plan: 'pilot',
+      city: 'Астана',
+      address: '',
+      phone: '',
+      whatsappNumber: '',
+      ownerEmail: '',
+      ownerPassword: '',
+      shortDescription: '',
+      description: '',
+      planExpiresAt: '',
+      newEmail: '',
+      newPassword: '',
+    })
+    setFormError('')
+    setShowPassword(false)
+    setIsDrawerOpen(true)
+  }
+
+  // Open drawer for edit
+  const openEditDrawer = (store) => {
+    setSelectedStore(store)
+    setFormValues({
+      name: store.name || '',
+      slug: store.code || '',
+      type: store.type || 'minimarket',
+      plan: store.plan || 'pilot',
+      city: store.city || '',
+      address: store.address || '',
+      phone: store.phone ? initLocalPhone(store.phone) : '',
+      whatsappNumber: store.whatsapp_number ? initLocalPhone(store.whatsapp_number) : '',
+      ownerEmail: store.owner_email || '',
+      ownerPassword: '',
+      shortDescription: store.short_description || '',
+      description: store.description || '',
+      planExpiresAt: store.plan_expires_at ? store.plan_expires_at.slice(0, 10) : '',
+      newEmail: '',
+      newPassword: '',
+    })
+    setFormError('')
+    setShowPassword(false)
+    setIsDrawerOpen(true)
+  }
+
+  // Password generator
+  const generateRandomPassword = () => {
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%'
+    let pass = ''
+    for (let i = 0; i < 12; i++) {
+      pass += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    if (selectedStore) {
+      setFormValues((prev) => ({ ...prev, newPassword: pass }))
+    } else {
+      setFormValues((prev) => ({ ...prev, ownerPassword: pass }))
+    }
+    setShowPassword(true)
+  }
+
+  // Handle store creation and updates
+  const handleSubmitStore = async (e) => {
     e.preventDefault()
     setFormError('')
     setSubmittingStore(true)
@@ -183,23 +252,26 @@ export default function SuperAdminStoresScreen() {
       setSubmittingStore(false)
       return
     }
-    if (!formValues.slug.trim() || !/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(formValues.slug)) {
-      setFormError('URL-адрес (slug) должен состоять из строчных латинских букв, цифр и дефисов')
-      setSubmittingStore(false)
-      return
-    }
-    if (
-      !formValues.ownerEmail.trim() ||
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formValues.ownerEmail)
-    ) {
-      setFormError('Введите корректный email владельца')
-      setSubmittingStore(false)
-      return
-    }
-    if (!formValues.ownerPassword || formValues.ownerPassword.length < 8) {
-      setFormError('Пароль владельца должен быть не менее 8 символов')
-      setSubmittingStore(false)
-      return
+
+    if (!selectedStore) {
+      if (!formValues.slug.trim() || !/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(formValues.slug)) {
+        setFormError('URL-адрес (slug) должен состоять из строчных латинских букв, цифр и дефисов')
+        setSubmittingStore(false)
+        return
+      }
+      if (
+        !formValues.ownerEmail.trim() ||
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formValues.ownerEmail)
+      ) {
+        setFormError('Введите корректный email владельца')
+        setSubmittingStore(false)
+        return
+      }
+      if (!formValues.ownerPassword || formValues.ownerPassword.length < 8) {
+        setFormError('Пароль владельца должен быть не менее 8 символов')
+        setSubmittingStore(false)
+        return
+      }
     }
 
     const rawPhone = formValues.phone.replace(/\D/g, '')
@@ -217,58 +289,115 @@ export default function SuperAdminStoresScreen() {
     }
 
     try {
-      const payload = {
-        action: 'create',
-        slug: formValues.slug,
-        name: formValues.name,
-        type: formValues.type,
-        plan: formValues.plan,
-        city: formValues.city,
-        address: formValues.address,
-        phone: rawPhone ? `7${rawPhone}` : undefined,
-        whatsappNumber: rawWhatsapp ? `7${rawWhatsapp}` : undefined,
-        shortDescription: formValues.shortDescription,
-        description: formValues.description,
-        ownerEmail: formValues.ownerEmail,
-        ownerPassword: formValues.ownerPassword,
-      }
+      if (selectedStore) {
+        // Edit mode: update details
+        const detailsPayload = {
+          action: 'update-store-details',
+          storeId: selectedStore.id,
+          name: formValues.name,
+          type: formValues.type,
+          plan: formValues.plan,
+          city: formValues.city,
+          address: formValues.address,
+          phone: rawPhone ? `7${rawPhone}` : null,
+          whatsappNumber: rawWhatsapp ? `7${rawWhatsapp}` : null,
+          shortDescription: formValues.shortDescription,
+          description: formValues.description,
+          planExpiresAt: formValues.planExpiresAt || null,
+        }
 
-      const response = await fetch('/api/admin-stores', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify(payload),
-      })
-
-      const result = await response.json()
-      if (response.ok && result.ok) {
-        setSuccessMessage(`Магазин "${formValues.name}" успешно создан!`)
-        setIsDrawerOpen(false)
-        // Reset form
-        setFormValues({
-          name: '',
-          slug: '',
-          type: 'minimarket',
-          plan: 'pilot',
-          city: 'Астана',
-          address: '',
-          phone: '',
-          whatsappNumber: '',
-          ownerEmail: '',
-          ownerPassword: '',
-          shortDescription: '',
-          description: '',
+        const detailsResponse = await fetch('/api/admin-stores', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify(detailsPayload),
         })
+
+        const detailsResult = await detailsResponse.json()
+        if (!detailsResponse.ok || !detailsResult.ok) {
+          throw new Error(
+            detailsResult.message || detailsResult.error || 'Ошибка при обновлении данных магазина'
+          )
+        }
+
+        // Edit mode: update owner credentials if provided
+        if (formValues.newEmail || formValues.newPassword) {
+          const authPayload = {
+            action: 'update-owner-auth',
+            ownerId: selectedStore.owner_id,
+          }
+          if (formValues.newEmail) {
+            authPayload.newEmail = formValues.newEmail
+          }
+          if (formValues.newPassword) {
+            authPayload.newPassword = formValues.newPassword
+          }
+
+          const authResponse = await fetch('/api/admin-stores', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify(authPayload),
+          })
+
+          const authResult = await authResponse.json()
+          if (!authResponse.ok || !authResult.ok) {
+            throw new Error(
+              authResult.message ||
+                authResult.error ||
+                'Данные сохранены, но не удалось изменить email/пароль владельца'
+            )
+          }
+        }
+
+        setSuccessMessage(`Магазин "${formValues.name}" успешно обновлен!`)
+        setIsDrawerOpen(false)
         fetchStores()
         setTimeout(() => setSuccessMessage(''), 4000)
       } else {
-        setFormError(result.message || 'Ошибка создания магазина')
+        // Create mode
+        const payload = {
+          action: 'create',
+          slug: formValues.slug,
+          name: formValues.name,
+          type: formValues.type,
+          plan: formValues.plan,
+          city: formValues.city,
+          address: formValues.address,
+          phone: rawPhone ? `7${rawPhone}` : undefined,
+          whatsappNumber: rawWhatsapp ? `7${rawWhatsapp}` : undefined,
+          shortDescription: formValues.shortDescription,
+          description: formValues.description,
+          ownerEmail: formValues.ownerEmail,
+          ownerPassword: formValues.ownerPassword,
+        }
+
+        const response = await fetch('/api/admin-stores', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify(payload),
+        })
+
+        const result = await response.json()
+        if (response.ok && result.ok) {
+          setSuccessMessage(`Магазин "${formValues.name}" успешно создан!`)
+          setIsDrawerOpen(false)
+          fetchStores()
+          setTimeout(() => setSuccessMessage(''), 4000)
+        } else {
+          setFormError(result.message || result.error || 'Ошибка создания магазина')
+        }
       }
     } catch (err) {
       console.error(err)
-      setFormError('Ошибка сети при создании магазина')
+      setFormError(err.message || 'Ошибка сети')
     } finally {
       setSubmittingStore(false)
     }
@@ -301,7 +430,7 @@ export default function SuperAdminStoresScreen() {
         setStores((prev) =>
           prev.map((s) => (s.id === storeId ? { ...s, is_active: currentStatus } : s))
         )
-        alert(result.message || 'Не удалось обновить статус магазина')
+        alert(result.message || result.error || 'Не удалось обновить статус магазина')
       }
     } catch (err) {
       console.error(err)
@@ -393,10 +522,20 @@ export default function SuperAdminStoresScreen() {
           <h1 className="superadmin-title">Управление магазинами</h1>
           <p className="superadmin-subtitle">Панель супер-администратора Körset</p>
         </div>
-        <button className="create-store-btn" onClick={() => setIsDrawerOpen(true)}>
-          <span className="material-symbols-outlined">add</span>
-          Добавить магазин
-        </button>
+        <div className="header-actions-row">
+          <button
+            className="refresh-stores-btn"
+            onClick={fetchStores}
+            disabled={loadingStores}
+            title="Обновить список"
+          >
+            <span className="material-symbols-outlined">sync</span>
+          </button>
+          <button className="create-store-btn" onClick={openCreateDrawer}>
+            <span className="material-symbols-outlined">add</span>
+            Добавить магазин
+          </button>
+        </div>
       </div>
 
       {/* Bento Statistics Cards */}
@@ -500,17 +639,36 @@ export default function SuperAdminStoresScreen() {
                   </span>
                   <button
                     className={`toggle-switch-btn ${store.is_active ? 'on' : 'off'}`}
-                    onClick={() => handleToggleStoreStatus(store.id, store.is_active)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleToggleStoreStatus(store.id, store.is_active)
+                    }}
                   >
                     <span className="material-symbols-outlined">
                       {store.is_active ? 'toggle_on' : 'toggle_off'}
                     </span>
                   </button>
+                  <button
+                    className="store-edit-icon-btn"
+                    title="Редактировать магазин"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      openEditDrawer(store)
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                      edit
+                    </span>
+                  </button>
                 </div>
               </div>
 
-              <div className="store-card-info">
+              <div
+                className="store-card-info"
+                style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
+              >
                 <h3 className="store-card-name">{store.name}</h3>
+
                 <div className="store-card-links">
                   <a
                     href={`/s/${store.code}`}
@@ -522,23 +680,67 @@ export default function SuperAdminStoresScreen() {
                     Витрина: {store.code}
                   </a>
                   <a
-                    href={`/retail/${store.code}/dashboard`}
+                    href={`/retail/${store.code}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="store-link-tag retail"
                   >
-                    <span className="material-symbols-outlined">dashboard</span>
-                    Кабинет
+                    <span className="material-symbols-outlined">login</span>
+                    Войти в кабинет
                   </a>
                 </div>
 
-                <div className="plan-badge-wrapper">
+                {/* Plan Info */}
+                <div className="plan-badge-row">
                   <span className={`plan-badge-pill ${store.plan}`}>
                     {store.plan.toUpperCase()}
                   </span>
+                  <span className="plan-expiry-text">
+                    {store.plan_expires_at
+                      ? `до ${new Date(store.plan_expires_at).toLocaleDateString('ru-RU')}`
+                      : 'Бессрочно'}
+                  </span>
                 </div>
 
-                <div className="store-meta-details">
+                {/* Metrics Grid */}
+                <div className="store-metrics-grid">
+                  <div className="metric-box">
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 18, color: 'var(--text-dim)' }}
+                    >
+                      inventory_2
+                    </span>
+                    <span className="metric-num">{store.catalog_count ?? 0}</span>
+                    <span className="metric-lbl">Товары</span>
+                  </div>
+                  <div className="metric-box">
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 18, color: 'var(--text-dim)' }}
+                    >
+                      qr_code_scanner
+                    </span>
+                    <span className="metric-num">{store.scan_count ?? 0}</span>
+                    <span className="metric-lbl">Сканы</span>
+                  </div>
+                  <div className={`metric-box ${store.ean_recovery_count > 0 ? 'alert' : ''}`}>
+                    <span
+                      className="material-symbols-outlined"
+                      style={{
+                        fontSize: 18,
+                        color:
+                          store.ean_recovery_count > 0 ? 'var(--error-bright)' : 'var(--text-dim)',
+                      }}
+                    >
+                      report
+                    </span>
+                    <span className="metric-num">{store.ean_recovery_count ?? 0}</span>
+                    <span className="metric-lbl">Ошибки EAN</span>
+                  </div>
+                </div>
+
+                <div className="store-meta-details" style={{ marginTop: 0, paddingTop: 8 }}>
                   <div className="meta-detail-row">
                     <span className="material-symbols-outlined detail-icon">location_on</span>
                     <span className="detail-text">
@@ -572,20 +774,20 @@ export default function SuperAdminStoresScreen() {
         </div>
       )}
 
-      {/* Sliding Drawer for adding store */}
+      {/* Sliding Drawer */}
       <div
         className={`superadmin-drawer-overlay ${isDrawerOpen ? 'open' : ''}`}
         onClick={() => setIsDrawerOpen(false)}
       >
         <div className="superadmin-drawer" onClick={(e) => e.stopPropagation()}>
           <div className="drawer-header">
-            <h3>Новый магазин</h3>
+            <h3>{selectedStore ? 'Редактирование магазина' : 'Новый магазин'}</h3>
             <button className="drawer-close-btn" onClick={() => setIsDrawerOpen(false)}>
               <span className="material-symbols-outlined">close</span>
             </button>
           </div>
 
-          <form onSubmit={handleCreateStore} className="drawer-form-content">
+          <form onSubmit={handleSubmitStore} className="drawer-form-content">
             {formError && (
               <div className="drawer-form-error">
                 <span className="material-symbols-outlined">error</span>
@@ -610,10 +812,12 @@ export default function SuperAdminStoresScreen() {
               <input
                 type="text"
                 required
+                disabled={!!selectedStore}
                 value={formValues.slug}
                 placeholder="Например, mars"
                 onChange={(e) => setFormValues((prev) => ({ ...prev, slug: e.target.value }))}
                 className="drawer-input"
+                style={selectedStore ? { opacity: 0.7, cursor: 'not-allowed' } : {}}
               />
               <span className="input-hint">Ссылка: korset.app/s/{formValues.slug || '...'}</span>
             </div>
@@ -646,6 +850,18 @@ export default function SuperAdminStoresScreen() {
                   <option value="enterprise">Enterprise</option>
                 </select>
               </div>
+            </div>
+
+            <div className="form-group">
+              <label>Срок действия тарифа (оставьте пустым для бессрочного)</label>
+              <input
+                type="date"
+                value={formValues.planExpiresAt}
+                onChange={(e) =>
+                  setFormValues((prev) => ({ ...prev, planExpiresAt: e.target.value }))
+                }
+                className="drawer-input"
+              />
             </div>
 
             <div className="form-row-2">
@@ -723,53 +939,150 @@ export default function SuperAdminStoresScreen() {
               />
             </div>
 
-            <div className="drawer-section-title">Аккаунт владельца</div>
-
-            <div className="form-group">
-              <label>Email владельца *</label>
-              <input
-                type="email"
-                required
-                value={formValues.ownerEmail}
-                placeholder="owner@korset.kz"
-                onChange={(e) => setFormValues((prev) => ({ ...prev, ownerEmail: e.target.value }))}
-                className="drawer-input"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Пароль владельца *</label>
-              <div className="password-input-wrapper">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={formValues.ownerPassword}
-                  placeholder="Минимум 8 символов"
-                  onChange={(e) =>
-                    setFormValues((prev) => ({ ...prev, ownerPassword: e.target.value }))
-                  }
-                  className="drawer-input password-input"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="password-toggle-btn"
-                >
-                  <span className="material-symbols-outlined">
-                    {showPassword ? 'visibility_off' : 'visibility'}
-                  </span>
-                </button>
-              </div>
-            </div>
+            {selectedStore ? (
+              <>
+                <div className="drawer-section-title">Аккаунт владельца</div>
+                <div className="form-group">
+                  <label>Текущий Email владельца</label>
+                  <input
+                    type="text"
+                    disabled
+                    value={formValues.ownerEmail || 'Нет привязки'}
+                    className="drawer-input"
+                    style={{ opacity: 0.7, cursor: 'not-allowed' }}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Новый Email владельца (опционально)</label>
+                  <input
+                    type="email"
+                    value={formValues.newEmail}
+                    placeholder="owner-new@korset.kz"
+                    onChange={(e) =>
+                      setFormValues((prev) => ({ ...prev, newEmail: e.target.value }))
+                    }
+                    className="drawer-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Смена пароля владельца (опционально)</label>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={formValues.newPassword}
+                      placeholder="Новый пароль владельца"
+                      onChange={(e) =>
+                        setFormValues((prev) => ({ ...prev, newPassword: e.target.value }))
+                      }
+                      className="drawer-input"
+                      style={{ flex: 1 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="drawer-select"
+                      style={{
+                        width: 'auto',
+                        padding: '11px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                      title="Показать/скрыть"
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                        {showPassword ? 'visibility_off' : 'visibility'}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={generateRandomPassword}
+                      className="create-store-btn"
+                      style={{
+                        padding: '11px 14px',
+                        fontSize: 12,
+                        borderRadius: 10,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      Сгенерировать
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="drawer-section-title">Аккаунт владельца</div>
+                <div className="form-group">
+                  <label>Email владельца *</label>
+                  <input
+                    type="email"
+                    required
+                    value={formValues.ownerEmail}
+                    placeholder="owner@korset.kz"
+                    onChange={(e) =>
+                      setFormValues((prev) => ({ ...prev, ownerEmail: e.target.value }))
+                    }
+                    className="drawer-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Пароль владельца *</label>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={formValues.ownerPassword}
+                      placeholder="Минимум 8 символов"
+                      onChange={(e) =>
+                        setFormValues((prev) => ({ ...prev, ownerPassword: e.target.value }))
+                      }
+                      className="drawer-input"
+                      style={{ flex: 1 }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="drawer-select"
+                      style={{
+                        width: 'auto',
+                        padding: '11px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                      title="Показать/скрыть"
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                        {showPassword ? 'visibility_off' : 'visibility'}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={generateRandomPassword}
+                      className="create-store-btn"
+                      style={{
+                        padding: '11px 14px',
+                        fontSize: 12,
+                        borderRadius: 10,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      Сгенерировать
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
 
             <button type="submit" disabled={submittingStore} className="drawer-submit-btn">
               {submittingStore ? (
                 <>
                   <div className="superadmin-spinner spinner-small" />
-                  Создание...
+                  Сохранение...
                 </>
               ) : (
-                <>Создать магазин</>
+                <>{selectedStore ? 'Сохранить изменения' : 'Создать магазин'}</>
               )}
             </button>
           </form>

@@ -70,7 +70,7 @@ function NoAccessScreen({ storeName }) {
 }
 
 export default function RetailLayout() {
-  const { user, isAdmin, loading: authLoading } = useAuth()
+  const { user, isAdmin, isSuperadmin, loading: authLoading } = useAuth()
   const location = useLocation()
   const { t } = useI18n()
   const { currentStore, isStoreLoading } = useStore()
@@ -95,7 +95,7 @@ export default function RetailLayout() {
   // Используем isAdmin из useAuth() (app_metadata.is_admin, server-controlled JWT claim).
   // РАНЬШЕ: user.user_metadata?.role === 'admin' — это был security hole,
   // т.к. user_metadata модифицируется клиентом через supabase.auth.updateUser({data:{role:'admin'}}).
-  if (currentStore && !isOwner && !isAdmin) {
+  if (currentStore && !isOwner && !isAdmin && !isSuperadmin) {
     return <NoAccessScreen storeName={currentStore?.name} />
   }
 

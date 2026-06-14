@@ -674,3 +674,104 @@
   color: var(--text-sub);
   margin: 0;
 }
+
+/* Metrics Grid in Store Card */
+.store-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  background: var(--glass-subtle);
+  border: 1px solid var(--glass-soft-border);
+  border-radius: 12px;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.metric-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 2px;
+}
+
+.metric-num {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.metric-lbl {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.metric-box.alert .metric-num {
+  color: var(--error-bright);
+}
+
+/* Plan Badge and Expiration Row */
+.plan-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.plan-expiry-text {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+/* Header Action Buttons */
+.header-actions-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.refresh-stores-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--glass-subtle);
+  border: 1px solid var(--glass-soft-border);
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.refresh-stores-btn:hover {
+  background: var(--glass-strong);
+  border-color: var(--glass-strong-border);
+}
+
+.refresh-stores-btn:active {
+  transform: scale(0.95);
+}
+
+/* Edit button on card or card click */
+.store-edit-icon-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.store-edit-icon-btn:hover {
+  background: var(--glass-subtle);
+  color: var(--text);
+}

@@ -421,7 +421,7 @@ export default function ProfileScreen() {
   const { lang, t } = useI18n()
   const allergenInputRef = useRef(null)
   const { profile, updateProfile: setProfile } = useProfile()
-  const { user, displayName, avatarId, bannerUrl, internalUserId, logout } = useAuth()
+  const { user, displayName, avatarId, bannerUrl, internalUserId, logout, isSuperadmin } = useAuth()
   const { favoritesCount, scanCount } = useUserData()
   const { currentStore } = useStore()
   const { theme, toggleTheme } = useTheme()
@@ -1887,6 +1887,59 @@ export default function ProfileScreen() {
                         onClick: () =>
                           currentStore?.slug && navigate(`/retail/${currentStore.slug}`),
                       },
+                    ],
+                  },
+                ]
+              : []),
+            ...(isSuperadmin
+              ? [
+                  {
+                    title: t('profile.platformAdminSection'),
+                    items: [
+                      {
+                        icon: (
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="var(--primary)"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                          </svg>
+                        ),
+                        label: t('profile.superAdminPanel'),
+                        labelStyle: { color: 'var(--primary)', fontWeight: 600 },
+                        iconStyle: { background: 'var(--primary-dim)' },
+                        onClick: () => navigate('/korset-admin/stores'),
+                      },
+                      ...(currentStore?.slug
+                        ? [
+                            {
+                              icon: (
+                                <svg
+                                  width="18"
+                                  height="18"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="var(--primary)"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <path d="M20 20a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h16z" />
+                                  <path d="M3 7l2-4h14l2 4" />
+                                  <path d="M3 12h18" />
+                                </svg>
+                              ),
+                              label: t('profile.retailCabinet'),
+                              onClick: () => navigate(`/retail/${currentStore.slug}`),
+                            },
+                          ]
+                        : []),
                     ],
                   },
                 ]
