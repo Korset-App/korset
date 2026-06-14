@@ -162,19 +162,72 @@ function countIngredients(text) {
     .filter(Boolean).length
 }
 
+function tokenizeWithPositions(text) {
+  const tokens = []
+  const regex = /[\s,;().:]+/g
+  let match
+  let cursor = 0
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > cursor) {
+      tokens.push({
+        word: text.slice(cursor, match.index),
+        start: cursor,
+        end: match.index,
+      })
+    }
+    cursor = match.index + match[0].length
+  }
+  if (cursor < text.length) {
+    tokens.push({
+      word: text.slice(cursor),
+      start: cursor,
+      end: text.length,
+    })
+  }
+  return tokens
+}
+
+function hasLeftBoundary(text, charIndex) {
+  if (charIndex <= 0) return true
+  return /[\s,;().:]/.test(text[charIndex - 1])
+}
+
+function hasRightBoundary(text, charIndex) {
+  if (charIndex >= text.length) return true
+  return /[\s,;().:]/.test(text[charIndex])
+}
+
 function findTermRanges(text, term) {
   const ranges = []
   const normalizedText = normalizeText(text)
   const normalizedTerm = normalizeText(term)
   if (!normalizedText || !normalizedTerm) return ranges
 
-  let from = 0
-  while (from < normalizedText.length) {
-    const index = normalizedText.indexOf(normalizedTerm, from)
-    if (index === -1) break
-    ranges.push({ start: index, end: index + normalizedTerm.length })
-    from = index + Math.max(normalizedTerm.length, 1)
+  const isMultiWord = /\s/.test(normalizedTerm)
+
+  if (isMultiWord) {
+    let from = 0
+    while (from < normalizedText.length) {
+      const index = normalizedText.indexOf(normalizedTerm, from)
+      if (index === -1) break
+      const end = index + normalizedTerm.length
+      const leftOk = hasLeftBoundary(text, index)
+      const rightOk = hasRightBoundary(text, end)
+      if (leftOk && rightOk) {
+        ranges.push({ start: index, end })
+      }
+      from = index + 1
+    }
+  } else {
+    const tokens = tokenizeWithPositions(text)
+    for (const token of tokens) {
+      const normalizedWord = normalizeText(token.word)
+      if (normalizedWord.startsWith(normalizedTerm)) {
+        ranges.push({ start: token.start, end: token.end })
+      }
+    }
   }
+
   return ranges
 }
 

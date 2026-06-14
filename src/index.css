@@ -22,9 +22,12 @@
   --error-bright: #f87171;
   --error-dim: rgba(220, 38, 38, 0.13);
   --error-border: rgba(239, 68, 68, 0.2);
-  --warning: #d97706;
-  --warning-dim: rgba(217, 119, 6, 0.12);
-  --warning-border: rgba(217, 119, 6, 0.22);
+  --warning: #f97316;
+  --warning-dim: rgba(249, 115, 22, 0.12);
+  --warning-border: rgba(249, 115, 22, 0.22);
+  --additive: #f59e0b;
+  --additive-dim: rgba(245, 158, 11, 0.12);
+  --additive-border: rgba(245, 158, 11, 0.22);
   --text: #e8e8ff;
   --text-sub: #c9c9e8;
   --text-dim: #8e8eb6;
@@ -125,9 +128,12 @@
   --error-bright: #dc2626;
   --error-dim: rgba(220, 38, 38, 0.1);
   --error-border: rgba(220, 38, 38, 0.2);
-  --warning: #b45309;
-  --warning-dim: rgba(180, 83, 9, 0.1);
-  --warning-border: rgba(180, 83, 9, 0.2);
+  --warning: #ea580c;
+  --warning-dim: rgba(234, 88, 12, 0.1);
+  --warning-border: rgba(234, 88, 12, 0.2);
+  --additive: #d97706;
+  --additive-dim: rgba(217, 119, 6, 0.1);
+  --additive-border: rgba(217, 119, 6, 0.2);
   --text: #111827;
   --text-sub: #40506a;
   --text-dim: #71809a;
@@ -1364,6 +1370,20 @@ body {
 .product-alternative-nudge-arrow {
   justify-self: end;
   opacity: 0.8;
+}
+
+.product-header__shopping-btn--animating .material-symbols-outlined {
+  animation: shoppingPop 0.38s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes shoppingPop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+
+.product-header__shopping-btn--active {
+  color: var(--accent-sky);
 }
 
 .alternatives-notice,

@@ -73,7 +73,7 @@ export default function ProductScreen() {
   const { user } = useAuth()
   const { lang, t } = useI18n()
   const { currentStore, storeId, catalogProducts = [] } = useStore()
-  const { checkIsFavorite, toggleFavorite } = useUserData()
+  const { checkIsFavorite, toggleFavorite, favoriteEans } = useUserData()
   const { isOnline, formatCacheAge } = useOffline()
 
   const activeStoreSlug = storeSlug || currentStore?.slug || null
@@ -87,6 +87,12 @@ export default function ProductScreen() {
   const [fullProduct, setFullProduct] = useState(null)
   const [fetchingFull, setFetchingFull] = useState(false)
   const [unknownRequestStatus, setUnknownRequestStatus] = useState('idle')
+  const [shoppingAdding, setShoppingAdding] = useState(false)
+
+  const addShoppingAnimation = () => {
+    setShoppingAdding(true)
+    setTimeout(() => setShoppingAdding(false), 400)
+  }
 
   // Optimistic scan path: arrived from ScanScreen without pre-loaded product
   const needsResolve = fromScan && !location.state?.product && !baseProduct
@@ -149,7 +155,7 @@ export default function ProductScreen() {
   const localName = useLocalName(product)
   const canRequestUnknown = canRequestUnknownProduct({ ean, storeId })
 
-  const isFavorite = checkIsFavorite(product?.ean)
+  const isFavorite = useMemo(() => checkIsFavorite(product?.ean), [product?.ean, favoriteEans])
 
   const handleUnknownProductRequest = async () => {
     if (!canRequestUnknown || unknownRequestStatus === 'sending') return
@@ -168,7 +174,11 @@ export default function ProductScreen() {
       })
       return
     }
-    await toggleFavorite(product)
+    addShoppingAnimation()
+    const ok = await toggleFavorite(product)
+    if (!ok) {
+      addShoppingAnimation()
+    }
   }
 
   if (!product && fetchingFull) {
@@ -428,6 +438,7 @@ export default function ProductScreen() {
         </div>
         <button
           onClick={handleToggleFavorite}
+          className={`product-header__shopping-btn${isFavorite ? ' product-header__shopping-btn--active' : ''}${shoppingAdding ? ' product-header__shopping-btn--animating' : ''}`}
           style={{
             width: 38,
             height: 38,
@@ -439,8 +450,8 @@ export default function ProductScreen() {
             justifyContent: 'center',
             cursor: 'pointer',
             flexShrink: 0,
-            transition: 'background 0.15s, border-color 0.15s',
-            color: 'var(--text)',
+            transition: 'background 0.15s, border-color 0.15s, transform 0.2s ease',
+            color: isFavorite ? 'var(--accent-sky)' : 'var(--text)',
           }}
         >
           <span

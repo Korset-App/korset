@@ -102,24 +102,24 @@ export function UserDataProvider({ children }) {
 
   const toggleFavorite = useCallback(
     async (product) => {
-      if (!internalUserId) return
-      if (!product || !product.ean) return
+      if (!product || !product.ean) return false
+      if (!internalUserId) return false
 
       const ean = product.ean
-      if (togglingRef.current.has(ean)) return
+      if (togglingRef.current.has(ean)) return false
       togglingRef.current.add(ean)
 
-      const isFav = favoriteEans.has(ean)
-
+      let wasFavorite = false
       setFavoriteEans((prev) => {
+        wasFavorite = prev.has(ean)
         const next = new Set(prev)
-        if (isFav) next.delete(ean)
+        if (wasFavorite) next.delete(ean)
         else next.add(ean)
         return next
       })
 
       try {
-        if (!isFav) {
+        if (!wasFavorite) {
           const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
           const candidateGlobalId = product?.sourceMeta?.globalProductId || product?.id || null
           const validGlobalId =
@@ -147,15 +147,17 @@ export function UserDataProvider({ children }) {
         console.error('Toggle favorite failed', err)
         setFavoriteEans((prev) => {
           const next = new Set(prev)
-          if (isFav) next.add(ean)
+          if (wasFavorite) next.add(ean)
           else next.delete(ean)
           return next
         })
+        return false
       } finally {
         togglingRef.current.delete(ean)
       }
+      return true
     },
-    [internalUserId, favoriteEans]
+    [internalUserId]
   )
 
   const syncScanCount = () => {

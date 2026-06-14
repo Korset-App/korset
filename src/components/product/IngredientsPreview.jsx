@@ -44,6 +44,7 @@ export default function IngredientsPreview({
 }) {
   const { t, lang } = useI18n()
   const [selected, setSelected] = useState(null)
+  const [expanded, setExpanded] = useState(false)
   const analysis = useMemo(
     () => analyzeProductIngredients({ product, profile, lang }),
     [product, profile, lang]
@@ -59,11 +60,32 @@ export default function IngredientsPreview({
   const counts = analysis.summary.counts
   const isFull = variant === 'full'
 
+  const isClamped = !isFull && !expanded
+  const handleCardClick = () => {
+    if (isFull) return
+    if (onOpenFull) {
+      onOpenFull()
+    } else {
+      setExpanded(true)
+    }
+  }
+
   if (!analysis.text) return null
 
   return (
     <>
-      <section className={`ingredients-preview ingredients-preview--${variant}`}>
+      <section
+        className={`ingredients-preview ingredients-preview--${variant}`}
+        role={!isFull ? 'button' : undefined}
+        tabIndex={!isFull ? 0 : undefined}
+        onClick={handleCardClick}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            handleCardClick()
+          }
+        }}
+      >
         <div className="ingredients-preview__head">
           <div>
             <h2 className="ingredients-preview__title">{t('product.ingredients')}</h2>
@@ -74,18 +96,11 @@ export default function IngredientsPreview({
               })}
             </p>
           </div>
-          {!isFull && (
-            <button type="button" className="ingredients-preview__open" onClick={onOpenFull}>
-              {t('product.ingredients.openFull')}
-              <span className="material-symbols-outlined" aria-hidden="true">
-                arrow_forward
-              </span>
-            </button>
-          )}
         </div>
 
         <div
-          className={`ingredients-preview__text ${isFull ? '' : 'ingredients-preview__text--clamped'}`}
+          className={`ingredients-preview__text ${isClamped ? 'ingredients-preview__text--clamped' : ''}`}
+          onClick={isClamped ? handleCardClick : undefined}
         >
           <IngredientTokens
             tokens={analysis.tokens}
@@ -93,6 +108,15 @@ export default function IngredientsPreview({
             onSelect={setSelected}
           />
         </div>
+
+        {isClamped && (
+          <div className="ingredients-preview__expand-hint" onClick={handleCardClick}>
+            <span className="material-symbols-outlined" aria-hidden="true">
+              expand_more
+            </span>
+            {t('product.ingredients.tapToExpand')}
+          </div>
+        )}
 
         {isFull && highlights.length > 0 && (
           <div
@@ -114,7 +138,7 @@ export default function IngredientsPreview({
           </div>
         )}
 
-        {!isFull && highlights.length > 0 && (
+        {!isFull && !isClamped && highlights.length > 0 && (
           <p className="ingredients-preview__hint">{t('product.ingredients.tapHint')}</p>
         )}
       </section>

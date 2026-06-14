@@ -144,7 +144,7 @@
   "product.specStorage": "Сақтау",
   "product.specCaloriesPerUnit": "1 данаға ккал",
   "product.ingredients.meta": "{count} ингредиент · {important} маңызды",
-  "product.ingredients.openFull": "Талдау",
+  "product.ingredients.tapToExpand": "Толық көру үшін басыңыз",
   "product.ingredients.tapHint": "Неге белгіленгенін түсіну үшін боялған ингредиентті басыңыз.",
   "product.ingredients.fullTitle": "Құрамы",
   "product.ingredients.summaryTitle": "Құрам талдауы",
