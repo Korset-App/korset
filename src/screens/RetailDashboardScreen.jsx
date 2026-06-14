@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../i18n/index.js'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { buildRetailAIInsights } from '../domain/retail/aiInsights.js'
@@ -590,6 +591,7 @@ function EmptyState({ icon, label, sub }) {
 // ── Main screen ────────────────────────────────────────────────────
 export default function RetailDashboardScreen() {
   const { t, exists } = useI18n()
+  const navigate = useNavigate()
   const { storeId, currentStore } = useStore()
   const [period, setPeriod] = useState(7)
   const [missedFilter, setMissedFilter] = useState('all')
@@ -767,6 +769,46 @@ export default function RetailDashboardScreen() {
 
   return (
     <div style={{ padding: '20px 16px 8px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {currentStore?.isPublished === false && (
+        <div
+          style={{
+            background: 'rgba(245, 158, 11, 0.08)',
+            border: '1px solid rgba(245, 158, 11, 0.22)',
+            borderRadius: 16,
+            padding: '12px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
+            <span className="material-symbols-outlined" style={{ color: '#F59E0B', fontSize: 24, flexShrink: 0 }}>
+              visibility_off
+            </span>
+            <div style={{ fontSize: 13, color: 'var(--text-sub)', lineHeight: 1.4 }}>
+              {t('retail.dashboard.draftWarning') || 'Ваш магазин находится в режиме черновика и не виден покупателям. Настройте каталог и опубликуйте его в Настройках.'}
+            </div>
+          </div>
+          <button
+            onClick={() => navigate(`/retail/${currentStore.slug}/settings`)}
+            style={{
+              background: 'rgba(245, 158, 11, 0.15)',
+              border: '1px solid rgba(245, 158, 11, 0.3)',
+              color: '#F59E0B',
+              padding: '6px 12px',
+              borderRadius: 8,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {t('retail.dashboard.draftWarningBtn') || 'Настроить'}
+          </button>
+        </div>
+      )}
+
       {/* ── Store + Period Toggle ── */}
       <div
         style={{

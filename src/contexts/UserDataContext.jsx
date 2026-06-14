@@ -36,7 +36,14 @@ export function UserDataProvider({ children }) {
 
       if (!user || !internalUserId) {
         if (!cancelled) {
-          setFavoriteEans(new Set())
+          const localFavsRaw = localStorage.getItem('korset_local_favorites')
+          let localFavs = []
+          try {
+            if (localFavsRaw) localFavs = JSON.parse(localFavsRaw)
+          } catch (e) {
+            console.error('Failed to parse local favorites', e)
+          }
+          setFavoriteEans(new Set(localFavs))
           setScanCount(localCount)
           setUserDataLoaded(true)
         }
@@ -44,6 +51,31 @@ export function UserDataProvider({ children }) {
       }
 
       setUserDataLoaded(false)
+
+      // Sync guest favorites to cloud if any exist
+      const localFavsRaw = localStorage.getItem('korset_local_favorites')
+      let localFavs = []
+      try {
+        if (localFavsRaw) localFavs = JSON.parse(localFavsRaw)
+      } catch (e) {
+        console.error('Failed to parse local favorites for sync', e)
+      }
+
+      if (localFavs.length > 0) {
+        try {
+          const upsertRows = localFavs.map((ean) => ({
+            user_id: internalUserId,
+            ean,
+          }))
+          const { error } = await supabase
+            .from('user_favorites')
+            .upsert(upsertRows, { onConflict: 'user_id, ean' })
+          if (error) throw error
+          localStorage.removeItem('korset_local_favorites')
+        } catch (err) {
+          console.error('Failed to sync guest favorites to cloud', err)
+        }
+      }
 
       const [favRes, scanRes] = await Promise.allSettled([
         withTimeout(
@@ -103,9 +135,21 @@ export function UserDataProvider({ children }) {
   const toggleFavorite = useCallback(
     async (product) => {
       if (!product || !product.ean) return false
-      if (!internalUserId) return false
-
       const ean = product.ean
+
+      if (!internalUserId) {
+        let wasFavorite = false
+        setFavoriteEans((prev) => {
+          wasFavorite = prev.has(ean)
+          const next = new Set(prev)
+          if (wasFavorite) next.delete(ean)
+          else next.add(ean)
+          localStorage.setItem('korset_local_favorites', JSON.stringify(Array.from(next)))
+          return next
+        })
+        return true
+      }
+
       if (togglingRef.current.has(ean)) return false
       togglingRef.current.add(ean)
 

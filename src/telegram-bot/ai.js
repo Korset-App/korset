@@ -88,7 +88,7 @@ export async function getAIResponse(question, lang, faqItems) {
         max_completion_tokens: MAX_TOKENS,
         temperature: 0.5,
         messages: [
-          { role: 'developer', content: systemPrompt },
+          { role: 'system', content: systemPrompt },
           { role: 'user', content: question },
         ],
       }),

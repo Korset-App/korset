@@ -8,5 +8,7 @@
   "history.tabFavorites": "Список покупок",
   "history.loading": "Загрузка...",
   "history.emptyHistory": "У вас пока нет истории",
-  "history.emptyFavorites": "Ваш список покупок пуст"
+  "history.emptyFavorites": "Ваш список покупок пуст",
+  "history.guestFavoritesBanner": "Войдите в аккаунт, чтобы сохранять список покупок между вашими устройствами.",
+  "history.guestFavoritesBannerBtn": "Войти"
 }

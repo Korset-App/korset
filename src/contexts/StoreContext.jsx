@@ -149,6 +149,10 @@ function normalizeStore(data) {
     ...data,
     slug: data.code,
     isActive: data.is_active,
+    isPublished: data.is_published !== false,
+    images: data.images || [],
+    latitude: data.latitude ? Number(data.latitude) : null,
+    longitude: data.longitude ? Number(data.longitude) : null,
   }
 }
 

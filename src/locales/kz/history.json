@@ -8,5 +8,7 @@
   "history.tabFavorites": "Сатып алу тізімі",
   "history.loading": "Жүктелуде...",
   "history.emptyHistory": "Сізде әлі тарих жоқ",
-  "history.emptyFavorites": "Сіздің сатып алу тізіміңіз бос"
+  "history.emptyFavorites": "Сіздің сатып алу тізіміңіз бос",
+  "history.guestFavoritesBanner": "Сатып алу тізімін құрылғыларыңыз арасында сақтау үшін аккаунтқа кіріңіз.",
+  "history.guestFavoritesBannerBtn": "Кіру"
 }

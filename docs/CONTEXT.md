@@ -91,13 +91,13 @@ Consumer:
 - **CompareScreen** — сравнение товаров с human-readable вердиктами.
 - **AI Assistant** — store-scoped chat: text + voice (MediaRecorder, 30s) + photo (одно изображение, без сохранения). Локальная история IndexedDB. `/api/ai.js`, `/api/ai-image`, `/api/ai-transcribe`.
 - **CatalogScreen** — 18 категорий, bento, RPC v2 поиск, фильтры/сортировка. ProductCard: `src/components/catalog/CatalogProductCard.jsx`
-- History, favorites, profile, account, сервисные экраны.
+- History, favorites (поддержка гостевого чек-листа в localStorage с авто-миграцией при логине), profile, account, сервисные экраны.
 
 Auth:
 - Supabase Auth: Google OAuth, email/password, email OTP. Password recovery. `<ProfileAvatar />`. Валидация: `src/utils/authHelpers.js` (9/9 tests).
 
 Retail:
-- Dashboard (метрики + AI-инсайты), Products (price/stock, barcode search), Import (CSV/XLS/XLSX), Settings (store data, QR), EAN Recovery (correction inbox, trusted candidates). Multi-store.
+- Dashboard (метрики + AI-инсайты + баннер черновика), Products (price/stock, barcode search), Import (CSV/XLS/XLSX), Settings (store data, QR, управление картинками со сжатием, геокоординаты, интеграция Leaflet-карты), EAN Recovery (correction inbox, trusted candidates). Multi-store.
 
 Stores:
 - 3 активных: Марс (mars, ~10K), Нұрлы (nurly, ~2.5K), Калина (kalina, ~2K).

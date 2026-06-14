@@ -30,6 +30,7 @@ export default async function handler(req, res) {
       .from('stores')
       .select('code, updated_at')
       .eq('is_active', true)
+      .eq('is_published', true)
 
     if (error) {
       console.error('[sitemap] Database fetch error', error)

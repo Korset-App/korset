@@ -165,15 +165,6 @@ export default function ProductScreen() {
   }
 
   const handleToggleFavorite = async () => {
-    if (!user || !internalUserId) {
-      navigate('/auth', {
-        state: buildAuthNavigateState(location, {
-          reason: 'favorites_requires_auth',
-          message: t('product.loginForFavorites'),
-        }),
-      })
-      return
-    }
     addShoppingAnimation()
     const ok = await toggleFavorite(product)
     if (!ok) {

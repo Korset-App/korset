@@ -227,12 +227,17 @@ export default function SuperAdminStoresScreen() {
         },
         body: JSON.stringify({ action: 'scan-activity' }),
       })
+      if (!response.ok) {
+        const text = await response.text()
+        console.error('[superadmin] fetchScanActivity non-ok', response.status, text.slice(0, 200))
+        return
+      }
       const result = await response.json()
-      if (response.ok && result.ok) {
+      if (result.ok) {
         setScanActivity(result.activity || {})
       }
     } catch (err) {
-      console.error('Failed to fetch scan activity:', err)
+      console.error('[superadmin] fetchScanActivity error', err)
     } finally {
       setLoadingActivity(false)
     }
@@ -273,14 +278,20 @@ export default function SuperAdminStoresScreen() {
         },
         body: JSON.stringify({ action: 'list' }),
       })
+      if (!response.ok) {
+        const text = await response.text()
+        console.error('[superadmin] fetchStores non-ok', response.status, text.slice(0, 200))
+        setErrorMessage(`Ошибка сервера (${response.status})`)
+        return
+      }
       const result = await response.json()
-      if (response.ok && result.ok) {
+      if (result.ok) {
         setStores(result.stores || [])
       } else {
-        setErrorMessage(result.message || result.error || 'Не удалось загрузить список магазинов')
+        setErrorMessage(result.error || 'Не удалось загрузить список магазинов')
       }
     } catch (err) {
-      console.error(err)
+      console.error('[superadmin] fetchStores error', err)
       setErrorMessage('Ошибка сети при загрузке магазинов')
     } finally {
       setLoadingStores(false)

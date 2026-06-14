@@ -85,43 +85,44 @@ export default function HistoryScreen() {
     const ownerKey = buildHistoryOwnerKey(user)
     const scopedLocalHistory = readLocalScanHistory(ownerKey)
 
-    if (!user || !internalUserId) {
-      setHistory(scopedLocalHistory)
-      setFavorites([])
-      setLoading(false)
-      return
-    }
-
     let cancelled = false
     setLoading(true)
 
     async function loadData() {
-      const [histRes, favRes] = await Promise.allSettled([
-        withTimeout(
-          supabase
-            .from('scan_events')
-            .select('ean, global_product_id, scanned_at')
-            .eq('user_id', internalUserId)
-            .order('scanned_at', { ascending: false })
-            .limit(50),
-          5000
-        ),
-        withTimeout(
-          supabase
-            .from('user_favorites')
-            .select('ean, global_product_id, added_at')
-            .eq('user_id', internalUserId)
-            .order('added_at', { ascending: false }),
-          5000
-        ),
-      ])
+      let historyRows = []
+      let favoriteRows = []
 
-      const historyRows =
-        histRes.status === 'fulfilled' && !histRes.value?.error ? histRes.value?.data || [] : []
-      const favoriteRows =
-        favRes.status === 'fulfilled' && !favRes.value?.error
-          ? favRes.value?.data || []
-          : [...favoriteEans].map((ean) => ({ ean, added_at: null }))
+      if (user && internalUserId) {
+        const [histRes, favRes] = await Promise.allSettled([
+          withTimeout(
+            supabase
+              .from('scan_events')
+              .select('ean, global_product_id, scanned_at')
+              .eq('user_id', internalUserId)
+              .order('scanned_at', { ascending: false })
+              .limit(50),
+            5000
+          ),
+          withTimeout(
+            supabase
+              .from('user_favorites')
+              .select('ean, global_product_id, added_at')
+              .eq('user_id', internalUserId)
+              .order('added_at', { ascending: false }),
+            5000
+          ),
+        ])
+
+        historyRows =
+          histRes.status === 'fulfilled' && !histRes.value?.error ? histRes.value?.data || [] : []
+        favoriteRows =
+          favRes.status === 'fulfilled' && !favRes.value?.error
+            ? favRes.value?.data || []
+            : [...favoriteEans].map((ean) => ({ ean, added_at: null }))
+      } else {
+        historyRows = scopedLocalHistory.map((item) => ({ ean: item.ean, scanned_at: item.scannedAt }))
+        favoriteRows = [...favoriteEans].map((ean) => ({ ean, added_at: null }))
+      }
 
       const [hydratedHistoryRes, hydratedFavoritesRes] = await Promise.allSettled([
         withTimeout(hydrateProductsFromScanRows(historyRows), 5000),
@@ -183,7 +184,7 @@ export default function HistoryScreen() {
 
   const removeFavorite = async (product, event) => {
     event.stopPropagation()
-    if (!user || !internalUserId || !product?.ean) return
+    if (!product?.ean) return
     try {
       await toggleFavorite(product)
       setFavorites((prev) => prev.filter((item) => item.ean !== product.ean))
@@ -206,122 +207,7 @@ export default function HistoryScreen() {
 
   const list = useMemo(() => (tab === 'history' ? history : favorites), [tab, history, favorites])
 
-  if (!user) {
-    return (
-      <div
-        className="screen"
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 24,
-          textAlign: 'center',
-        }}
-      >
-        <button
-          onClick={() => navigate(-1)}
-          style={{
-            position: 'absolute',
-            top: 16,
-            left: 16,
-            width: 40,
-            height: 40,
-            borderRadius: 12,
-            background: 'var(--glass-bg)',
-            border: '1px solid var(--glass-soft-border)',
-            color: 'var(--text)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            zIndex: 10,
-          }}
-        >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          >
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-        </button>
-        <div
-          style={{
-            width: 72,
-            height: 72,
-            borderRadius: '50%',
-            background: 'rgba(124,58,237,0.1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: 20,
-          }}
-        >
-          <svg
-            width="28"
-            height="28"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#A78BFA"
-            strokeWidth="2"
-            strokeLinecap="round"
-          >
-            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
-            <circle cx="12" cy="7" r="4" />
-          </svg>
-        </div>
-        <h2
-          style={{
-            fontSize: 20,
-            fontFamily: 'var(--font-display)',
-            color: 'var(--text)',
-            marginBottom: 8,
-          }}
-        >
-          {t('history.authRequiredTitle')}
-        </h2>
-        <p
-          style={{
-            fontSize: 13,
-            color: 'var(--text-dim)',
-            marginBottom: 24,
-            lineHeight: 1.5,
-            fontFamily: 'var(--font-display)',
-          }}
-        >
-          {t('history.authRequiredDesc')}
-        </p>
-        <button
-          onClick={() =>
-            navigate('/auth', {
-              state: buildAuthNavigateState(location, {
-                reason: 'history_required',
-                message: t('history.authNavigateMsg'),
-              }),
-            })
-          }
-          style={{
-            background: 'var(--primary)',
-            color: 'var(--text)',
-            border: 'none',
-            padding: '14px 28px',
-            borderRadius: 14,
-            fontSize: 15,
-            fontWeight: 600,
-            fontFamily: 'var(--font-display)',
-            cursor: 'pointer',
-          }}
-        >
-          {t('history.loginBtn')}
-        </button>
-      </div>
-    )
-  }
+
 
   return (
     <div className="screen" style={{ paddingTop: 0 }}>
@@ -476,6 +362,54 @@ export default function HistoryScreen() {
       </div>
 
       <div style={{ padding: '16px 20px', paddingBottom: 100 }}>
+        {!user && tab === 'favorites' && (
+          <div
+            style={{
+              background: 'rgba(124, 58, 237, 0.08)',
+              border: '1px solid rgba(124, 58, 237, 0.18)',
+              borderRadius: 16,
+              padding: '12px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              marginBottom: 16,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
+              <span className="material-symbols-outlined" style={{ color: '#A78BFA', fontSize: 24, flexShrink: 0 }}>
+                sync
+              </span>
+              <div style={{ fontSize: 13, color: 'var(--text-sub)', lineHeight: 1.4 }}>
+                {t('history.guestFavoritesBanner') || 'Войдите в аккаунт, чтобы сохранять список покупок между вашими устройствами.'}
+              </div>
+            </div>
+            <button
+              onClick={() =>
+                navigate('/auth', {
+                  state: buildAuthNavigateState(location, {
+                    reason: 'history_required',
+                    message: t('history.authNavigateMsg'),
+                  }),
+                })
+              }
+              style={{
+                background: 'rgba(124, 58, 237, 0.15)',
+                border: '1px solid rgba(124, 58, 237, 0.3)',
+                color: '#C4B5FD',
+                padding: '6px 12px',
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {t('history.guestFavoritesBannerBtn') || 'Войти'}
+            </button>
+          </div>
+        )}
+
         {loading ? (
           <div
             style={{

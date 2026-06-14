@@ -573,7 +573,7 @@ async function handleChat(req, res) {
     }
     const requestBody = {
       ...completionLimits,
-      messages: [{ role: 'developer', content: systemPrompt }, ...validMessages],
+      messages: [{ role: 'system', content: systemPrompt }, ...validMessages],
     }
 
     const azureEndpointBase = process.env.AZURE_OPENAI_ENDPOINT_BASE
@@ -1230,7 +1230,7 @@ async function handleImageAnalysis(req, res) {
       temperature: 0.4,
       messages: [
         {
-          role: 'developer',
+          role: 'system',
           content: buildPackageImagePrompt({
             lang: request.lang,
             storeSlug: request.storeSlug,

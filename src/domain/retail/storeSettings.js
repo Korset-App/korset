@@ -13,6 +13,10 @@ const STORE_SETTINGS_COLUMNS = new Set([
   'notify_oos_enabled',
   'notify_daily_enabled',
   'logo_url',
+  'images',
+  'latitude',
+  'longitude',
+  'is_published',
 ])
 
 function cleanString(value, max = 500) {
@@ -51,6 +55,10 @@ export function buildRetailStoreSettingsPayload(settings = {}) {
     whatsapp_number: normalizeKzPhone(settings.whatsapp_number),
     twogis_url: cleanString(settings.twogis_url, 300),
     ai_store_notes: cleanString(settings.ai_store_notes, AI_STORE_NOTES_LIMIT),
+    images: Array.isArray(settings.images) ? settings.images : [],
+    latitude: settings.latitude !== undefined && settings.latitude !== '' && settings.latitude !== null ? Number(settings.latitude) : null,
+    longitude: settings.longitude !== undefined && settings.longitude !== '' && settings.longitude !== null ? Number(settings.longitude) : null,
+    is_published: settings.is_published !== undefined ? Boolean(settings.is_published) : true,
   }
 }
 
