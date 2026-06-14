@@ -11,7 +11,7 @@ import {
   isSupportedTranscriptionAudioType,
   parseMultipartFormData,
   sanitizeTranscriptionMeta,
-} from '../../api/ai-transcribe.js'
+} from '../../api/ai.js'
 
 test('transcription API limits are explicit and privacy-safe', () => {
   assert.equal(TRANSCRIPTION_LIMITS.maxDurationMs, 30_000)
@@ -115,7 +115,7 @@ test('transcription rate limit identity separates authenticated users from anony
   })
 
   assert.deepEqual(anonymous, {
-    key: 'ip:1.2.3.4',
+    key: 'transcribe:ip:1.2.3.4',
     limit: TRANSCRIPTION_RATE_LIMITS.anonymous,
     authenticated: false,
   })
@@ -126,7 +126,7 @@ test('transcription rate limit identity separates authenticated users from anony
   })
 
   assert.deepEqual(authenticated, {
-    key: 'user:user-123',
+    key: 'transcribe:user:user-123',
     limit: TRANSCRIPTION_RATE_LIMITS.authenticated,
     authenticated: true,
   })

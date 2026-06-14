@@ -8,7 +8,7 @@ import {
   buildPackageImagePrompt,
   classifyImageAIError,
   sanitizeImageAIRequest,
-} from '../../api/ai-image.js'
+} from '../../api/ai.js'
 
 const validDataUrl = `data:image/png;base64,${Buffer.from('package').toString('base64')}`
 

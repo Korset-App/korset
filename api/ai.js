@@ -130,6 +130,8 @@ export const CHAT_RATE_LIMITS = {
   anonymous: { maxRequests: 8, windowMs: 60_000 },
 }
 
+export const RATE_LIMITS = CHAT_RATE_LIMITS
+
 export function selectOpenAIModel({ mode } = {}) {
   return {
     model: AI_MODELS.default,

@@ -85,19 +85,82 @@ export default async function handler(req, res) {
     return res.status(500).set(cors).json({ error: 'Authorization check failed' })
   }
 
-  const { action, slug, name, type, city, address, phone, whatsappNumber, shortDescription, description, ownerEmail, ownerPassword, plan, storeId, isActive } = req.body || {}
+  const {
+    action,
+    slug,
+    name,
+    type,
+    city,
+    address,
+    phone,
+    whatsappNumber,
+    shortDescription,
+    description,
+    ownerEmail,
+    ownerPassword,
+    plan,
+    storeId,
+    isActive,
+    planExpiresAt,
+    ownerId,
+    newEmail,
+    newPassword,
+  } = req.body || {}
 
   try {
-    // ACTION: LIST STORES
+    // ACTION: LIST STORES WITH METRICS
     if (action === 'list') {
-      const { data: stores, error: storesError } = await admin
-        .from('stores')
-        .select('*')
-        .order('created_at', { ascending: false })
+      let stores = []
+      const { data: rpcData, error: rpcError } = await admin.rpc('fn_admin_get_stores_with_metrics')
 
-      if (storesError) {
-        console.error('[admin-stores] list error', storesError)
-        return res.status(500).set(cors).json({ error: 'Failed to list stores' })
+      if (rpcError && (rpcError.message?.includes('Could not find the function') || rpcError.code === 'PGRST202')) {
+        // Fallback: load stores and calculate metrics manually
+        const { data: dbStores, error: storesError } = await admin
+          .from('stores')
+          .select('*')
+          .order('created_at', { ascending: false })
+
+        if (storesError) {
+          console.error('[admin-stores] list error', storesError)
+          return res.status(500).set(cors).json({ error: 'Failed to list stores' })
+        }
+
+        stores = await Promise.all(
+          dbStores.map(async (store) => {
+            const { count: catalogCount } = await admin
+              .from('store_products')
+              .select('*', { count: 'exact', head: true })
+              .eq('store_id', store.id)
+
+            const { count: scanCount } = await admin
+              .from('scan_events')
+              .select('*', { count: 'exact', head: true })
+              .eq('store_id', store.id)
+
+            const { count: eanRecoveryCount } = await admin
+              .from('product_correction_events')
+              .select('*', { count: 'exact', head: true })
+              .eq('store_id', store.id)
+              .in('status', ['new', 'reviewing'])
+
+            return {
+              ...store,
+              catalog_count: Number(catalogCount || 0),
+              scan_count: Number(scanCount || 0),
+              ean_recovery_count: Number(eanRecoveryCount || 0),
+            }
+          })
+        )
+      } else if (rpcError) {
+        console.error('[admin-stores] metrics rpc error', rpcError)
+        return res.status(500).set(cors).json({ error: 'Failed to load stores with metrics' })
+      } else {
+        stores = (rpcData || []).map((store) => ({
+          ...store,
+          catalog_count: Number(store.catalog_count || 0),
+          scan_count: Number(store.scan_count || 0),
+          ean_recovery_count: Number(store.ean_recovery_count || 0),
+        }))
       }
 
       // Fetch owner emails/phones from auth.users (requires service_role)
@@ -108,8 +171,8 @@ export default async function handler(req, res) {
         return res.status(200).set(cors).json({ ok: true, stores })
       }
 
-      const usersMap = new Map(listResult.users.map(u => [u.id, u]))
-      const storesWithOwners = stores.map(store => {
+      const usersMap = new Map(listResult.users.map((u) => [u.id, u]))
+      const storesWithOwners = stores.map((store) => {
         const owner = usersMap.get(store.owner_id)
         return {
           ...store,
@@ -143,6 +206,89 @@ export default async function handler(req, res) {
       }
 
       return res.status(200).set(cors).json({ ok: true, store: updatedStore })
+    }
+
+    // ACTION: UPDATE STORE DETAILS
+    if (action === 'update-store-details') {
+      if (!storeId) {
+        return res.status(400).set(cors).json({ error: 'Missing storeId' })
+      }
+
+      const updateData = {}
+      if (name !== undefined) updateData.name = name
+      if (type !== undefined) updateData.type = type
+      if (city !== undefined) updateData.city = city
+      if (address !== undefined) updateData.address = address
+      if (phone !== undefined) updateData.phone = phone
+      if (whatsappNumber !== undefined) updateData.whatsapp_number = whatsappNumber
+      if (shortDescription !== undefined) {
+        updateData.short_description = shortDescription ? shortDescription.substring(0, 240) : null
+      }
+      if (description !== undefined) {
+        updateData.description = description ? description.substring(0, 1200) : null
+      }
+      if (plan !== undefined) {
+        if (!VALID_PLANS.includes(plan)) {
+          return res.status(400).set(cors).json({ error: 'invalid_plan' })
+        }
+        updateData.plan = plan
+      }
+      if (planExpiresAt !== undefined) {
+        updateData.plan_expires_at = planExpiresAt ? new Date(planExpiresAt).toISOString() : null
+      }
+
+      const { data: updatedStore, error: updateError } = await admin
+        .from('stores')
+        .update(updateData)
+        .eq('id', storeId)
+        .select()
+        .single()
+
+      if (updateError) {
+        console.error('[admin-stores] update-store-details error', updateError)
+        return res.status(500).set(cors).json({ error: 'Failed to update store details' })
+      }
+
+      return res.status(200).set(cors).json({ ok: true, store: updatedStore })
+    }
+
+    // ACTION: UPDATE OWNER AUTH
+    if (action === 'update-owner-auth') {
+      if (!ownerId) {
+        return res.status(400).set(cors).json({ error: 'Missing ownerId' })
+      }
+
+      const updatePayload = {}
+      if (newEmail) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!emailRegex.test(newEmail)) {
+          return res.status(400).set(cors).json({ error: 'invalid_email_format' })
+        }
+        updatePayload.email = newEmail
+        updatePayload.email_confirm = true
+      }
+      if (newPassword) {
+        if (newPassword.length < 8) {
+          return res.status(400).set(cors).json({ error: 'password_too_short' })
+        }
+        updatePayload.password = newPassword
+      }
+
+      if (Object.keys(updatePayload).length === 0) {
+        return res.status(400).set(cors).json({ error: 'No update parameters provided' })
+      }
+
+      const { data: updatedUser, error: authError } = await admin.auth.admin.updateUserById(
+        ownerId,
+        updatePayload
+      )
+
+      if (authError) {
+        console.error('[admin-stores] update-owner-auth error', authError)
+        return res.status(500).set(cors).json({ error: 'auth_update_failed', message: authError.message })
+      }
+
+      return res.status(200).set(cors).json({ ok: true, user: updatedUser.user })
     }
 
     // ACTION: CREATE STORE
