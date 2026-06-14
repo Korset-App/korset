@@ -1,4 +1,4 @@
-/* global FileReader, Image */
+/* global FileReader */
 
 export const AI_IMAGE_INPUT_LIMITS = {
   acceptedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],

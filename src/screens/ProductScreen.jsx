@@ -33,7 +33,6 @@ import {
 import { buildProductUnitPrice } from '../domain/product/unitPrice.js'
 import { hasProductScreenCharacteristics } from '../domain/product/productScreenSections.js'
 import { resolveFitSeverityKey } from '../domain/product/fitVerdict.js'
-import { buildAuthNavigateState } from '../utils/authFlow.js'
 import ImageCarousel from '../components/product/ImageCarousel.jsx'
 import CollapsibleFitCheck from '../components/product/CollapsibleFitCheck.jsx'
 import DietBadges from '../components/product/DietBadges.jsx'
@@ -70,7 +69,7 @@ export default function ProductScreen() {
   const navigate = useNavigate()
   const location = useLocation()
   const { profile } = useProfile()
-  const { user, internalUserId } = useAuth()
+  const { user: _user, internalUserId: _internalUserId } = useAuth()
   const { lang, t } = useI18n()
   const { currentStore, storeId, catalogProducts = [] } = useStore()
   const { checkIsFavorite, toggleFavorite, favoriteEans } = useUserData()
@@ -155,7 +154,7 @@ export default function ProductScreen() {
   const localName = useLocalName(product)
   const canRequestUnknown = canRequestUnknownProduct({ ean, storeId })
 
-  const isFavorite = useMemo(() => checkIsFavorite(product?.ean), [product?.ean, favoriteEans])
+  const isFavorite = useMemo(() => checkIsFavorite(product?.ean), [product?.ean, checkIsFavorite])
 
   const handleUnknownProductRequest = async () => {
     if (!canRequestUnknown || unknownRequestStatus === 'sending') return

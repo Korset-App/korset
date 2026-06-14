@@ -37,32 +37,32 @@ const formatLocalPhone = (local) => {
 const loadLeaflet = () => {
   return new Promise((resolve, reject) => {
     if (typeof window === 'undefined') {
-      reject(new Error('Window is undefined'));
-      return;
+      reject(new Error('Window is undefined'))
+      return
     }
     if (window.L) {
-      resolve(window.L);
-      return;
+      resolve(window.L)
+      return
     }
     // Load CSS
     if (!document.getElementById('leaflet-css')) {
-      const link = document.createElement('link');
-      link.id = 'leaflet-css';
-      link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-      document.head.appendChild(link);
+      const link = document.createElement('link')
+      link.id = 'leaflet-css'
+      link.rel = 'stylesheet'
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
+      document.head.appendChild(link)
     }
     // Load JS
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    const script = document.createElement('script')
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
     script.onload = () => {
-      if (window.L) resolve(window.L);
-      else reject(new Error('Leaflet is not available on window'));
-    };
-    script.onerror = () => reject(new Error('Failed to load Leaflet script'));
-    document.body.appendChild(script);
-  });
-};
+      if (window.L) resolve(window.L)
+      else reject(new Error('Leaflet is not available on window'))
+    }
+    script.onerror = () => reject(new Error('Failed to load Leaflet script'))
+    document.body.appendChild(script)
+  })
+}
 
 export default function RetailSettingsScreen() {
   const { t } = useI18n()
@@ -118,9 +118,14 @@ export default function RetailSettingsScreen() {
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
 
-  // Sync ALL fields when store data arrives from Supabase
+  const lastSyncedStoreIdRef = useRef(null)
+
   useEffect(() => {
-    if (currentStore) {
+    if (!currentStore) return
+    if (currentStore.id === lastSyncedStoreIdRef.current) return
+    lastSyncedStoreIdRef.current = currentStore.id
+
+    async function sync() {
       setSettings((prev) => ({
         ...prev,
         name: currentStore.name || '',
@@ -142,7 +147,8 @@ export default function RetailSettingsScreen() {
       }))
       setLogoUrl(currentStore.logo_url || null)
     }
-  }, [currentStore?.id])
+    sync()
+  }, [currentStore])
 
   const handleChange = (key, val) => {
     setSettings((p) => ({ ...p, [key]: val }))
@@ -204,7 +210,8 @@ export default function RetailSettingsScreen() {
       console.warn('Logo compression failed, uploading original', err)
     }
 
-    const ext = uploadFile.type === 'image/webp' ? 'webp' : uploadFile.type === 'image/png' ? 'png' : 'jpg'
+    const ext =
+      uploadFile.type === 'image/webp' ? 'webp' : uploadFile.type === 'image/png' ? 'png' : 'jpg'
     const path = `${currentStore.id}/logo.${ext}`
 
     const { error: uploadError } = await supabase.storage
@@ -244,7 +251,10 @@ export default function RetailSettingsScreen() {
 
     const currentCount = settings.images.length
     if (currentCount + files.length > 5) {
-      alert(t('retail.settings.imagesLimitError') || 'Вы можете загрузить не более 5 фотографий магазина')
+      alert(
+        t('retail.settings.imagesLimitError') ||
+          'Вы можете загрузить не более 5 фотографий магазина'
+      )
       if (imagesInputRef.current) imagesInputRef.current.value = ''
       return
     }
@@ -270,13 +280,22 @@ export default function RetailSettingsScreen() {
       for (const file of files) {
         let uploadFile = file
         try {
-          const compressed = await compressImage(file, { maxWidth: 1200, maxHeight: 1200, quality: 0.8 })
+          const compressed = await compressImage(file, {
+            maxWidth: 1200,
+            maxHeight: 1200,
+            quality: 0.8,
+          })
           uploadFile = compressed
         } catch (err) {
           console.warn('Store photo compression failed, uploading original', err)
         }
 
-        const ext = uploadFile.type === 'image/webp' ? 'webp' : uploadFile.type === 'image/png' ? 'png' : 'jpg'
+        const ext =
+          uploadFile.type === 'image/webp'
+            ? 'webp'
+            : uploadFile.type === 'image/png'
+              ? 'png'
+              : 'jpg'
         const randomId = Math.random().toString(36).substring(2, 11)
         const path = `${currentStore.id}/photo_${Date.now()}_${randomId}.${ext}`
 
@@ -318,6 +337,13 @@ export default function RetailSettingsScreen() {
   const mapContainerRef = useRef(null)
   const mapRef = useRef(null)
   const markerRef = useRef(null)
+  const settingsLatRef = useRef(settings.latitude)
+  const settingsLonRef = useRef(settings.longitude)
+
+  useEffect(() => {
+    settingsLatRef.current = settings.latitude
+    settingsLonRef.current = settings.longitude
+  })
 
   const handleGeocode = async () => {
     if (!settings.address) {
@@ -327,16 +353,24 @@ export default function RetailSettingsScreen() {
     setGeocoding(true)
     try {
       const query = encodeURIComponent(settings.address)
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`)
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`
+      )
       const data = await res.json()
       if (data && data[0]) {
         const lat = Number(data[0].lat)
         const lon = Number(data[0].lon)
         handleChange('latitude', lat)
         handleChange('longitude', lon)
-        alert(t('retail.settings.geocodeSuccess') || `Координаты успешно определены: ${lat.toFixed(4)}, ${lon.toFixed(4)}`)
+        alert(
+          t('retail.settings.geocodeSuccess') ||
+            `Координаты успешно определены: ${lat.toFixed(4)}, ${lon.toFixed(4)}`
+        )
       } else {
-        alert(t('retail.settings.geocodeFailed') || 'Не удалось определить координаты автоматически. Попробуйте уточнить адрес или выбрать на карте.')
+        alert(
+          t('retail.settings.geocodeFailed') ||
+            'Не удалось определить координаты автоматически. Попробуйте уточнить адрес или выбрать на карте.'
+        )
       }
     } catch (err) {
       console.error('Geocoding failed', err)
@@ -352,28 +386,30 @@ export default function RetailSettingsScreen() {
     let active = true
     let mapInstance = null
 
-    loadLeaflet().then((L) => {
-      if (!active) return
+    loadLeaflet()
+      .then((L) => {
+        if (!active) return
 
-      const initialLat = settings.latitude ? Number(settings.latitude) : 51.1693
-      const initialLon = settings.longitude ? Number(settings.longitude) : 71.4491
+        const initialLat = settingsLatRef.current ? Number(settingsLatRef.current) : 51.1693
+        const initialLon = settingsLonRef.current ? Number(settingsLonRef.current) : 71.4491
 
-      mapInstance = L.map(mapContainerRef.current).setView([initialLat, initialLon], 15)
-      mapRef.current = mapInstance
+        mapInstance = L.map(mapContainerRef.current).setView([initialLat, initialLon], 15)
+        mapRef.current = mapInstance
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-      }).addTo(mapInstance)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors',
+        }).addTo(mapInstance)
 
-      const marker = L.marker([initialLat, initialLon], { draggable: true }).addTo(mapInstance)
-      markerRef.current = marker
+        const marker = L.marker([initialLat, initialLon], { draggable: true }).addTo(mapInstance)
+        markerRef.current = marker
 
-      mapInstance.on('click', (e) => {
-        marker.setLatLng(e.latlng)
+        mapInstance.on('click', (e) => {
+          marker.setLatLng(e.latlng)
+        })
       })
-    }).catch(err => {
-      console.error('Leaflet failed to load', err)
-    })
+      .catch((err) => {
+        console.error('Leaflet failed to load', err)
+      })
 
     return () => {
       active = false
@@ -529,7 +565,9 @@ export default function RetailSettingsScreen() {
 
         {/* ── Статус публикации каталога ── */}
         <div>
-          <div style={SECTION_LABEL_STYLE}>{t('retail.settings.publishStatusTitle') || 'Публикация каталога'}</div>
+          <div style={SECTION_LABEL_STYLE}>
+            {t('retail.settings.publishStatusTitle') || 'Публикация каталога'}
+          </div>
           <div style={CARD_STYLE}>
             <div
               style={{
@@ -543,19 +581,23 @@ export default function RetailSettingsScreen() {
                 <div
                   style={{ fontSize: 15, color: 'var(--text)', fontWeight: 600, marginBottom: 4 }}
                 >
-                  {settings.is_published ? (t('retail.settings.published') || 'Опубликован') : (t('retail.settings.draft') || 'Черновик')}
+                  {settings.is_published
+                    ? t('retail.settings.published') || 'Опубликован'
+                    : t('retail.settings.draft') || 'Черновик'}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text-sub)' }}>
-                  {settings.is_published 
-                    ? (t('retail.settings.publishedHint') || 'Каталог виден покупателям, доступен по ссылке и индексируется поисковиками.')
-                    : (t('retail.settings.draftHint') || 'Магазин скрыт от покупателей. Доступен только вам и супер-администрации.')}
+                  {settings.is_published
+                    ? t('retail.settings.publishedHint') ||
+                      'Каталог виден покупателям, доступен по ссылке и индексируется поисковиками.'
+                    : t('retail.settings.draftHint') ||
+                      'Магазин скрыт от покупателей. Доступен только вам и супер-администрации.'}
                 </div>
               </div>
               <div
                 onClick={() => {
-                  const newVal = !settings.is_published;
-                  handleChange('is_published', newVal);
-                  updateStoreSettings({ is_published: newVal });
+                  const newVal = !settings.is_published
+                  handleChange('is_published', newVal)
+                  updateStoreSettings({ is_published: newVal })
                 }}
                 style={{
                   width: 50,
@@ -667,11 +709,27 @@ export default function RetailSettingsScreen() {
 
         {/* ── Фотографии магазина ── */}
         <div>
-          <div style={SECTION_LABEL_STYLE}>{t('retail.settings.imagesTitle') || 'Фотографии магазина'}</div>
-          <div style={{ ...CARD_STYLE, padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={SECTION_LABEL_STYLE}>
+            {t('retail.settings.imagesTitle') || 'Фотографии магазина'}
+          </div>
+          <div
+            style={{
+              ...CARD_STYLE,
+              padding: 16,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 16,
+            }}
+          >
             {/* Grid of existing photos */}
             {settings.images && settings.images.length > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: 10 }}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))',
+                  gap: 10,
+                }}
+              >
                 {settings.images.map((url, idx) => (
                   <div
                     key={url}
@@ -717,17 +775,26 @@ export default function RetailSettingsScreen() {
                 ))}
               </div>
             )}
-            
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+              }}
+            >
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, color: 'var(--text-sub)', marginBottom: 4 }}>
-                  {t('retail.settings.imagesCountLabel') || 'Загружено фотографий:'} <strong>{settings.images.length}/5</strong>
+                  {t('retail.settings.imagesCountLabel') || 'Загружено фотографий:'}{' '}
+                  <strong>{settings.images.length}/5</strong>
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>
-                  {t('retail.settings.imagesHint') || 'Добавьте фото интерьера и входа, чтобы покупатели узнавали ваш магазин. Максимум 5 фотографий.'}
+                  {t('retail.settings.imagesHint') ||
+                    'Добавьте фото интерьера и входа, чтобы покупатели узнавали ваш магазин. Максимум 5 фотографий.'}
                 </div>
               </div>
-              
+
               <input
                 ref={imagesInputRef}
                 type="file"
@@ -736,7 +803,7 @@ export default function RetailSettingsScreen() {
                 style={{ display: 'none' }}
                 onChange={handleImagesUpload}
               />
-              
+
               <button
                 type="button"
                 onClick={() => imagesInputRef.current?.click()}
@@ -749,11 +816,11 @@ export default function RetailSettingsScreen() {
                   color: '#38BDF8',
                   fontSize: 13,
                   fontWeight: 600,
-                  cursor: (imagesUploading || settings.images.length >= 5) ? 'default' : 'pointer',
+                  cursor: imagesUploading || settings.images.length >= 5 ? 'default' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 6,
-                  opacity: (imagesUploading || settings.images.length >= 5) ? 0.5 : 1,
+                  opacity: imagesUploading || settings.images.length >= 5 ? 0.5 : 1,
                   flexShrink: 0,
                 }}
               >
@@ -761,8 +828,8 @@ export default function RetailSettingsScreen() {
                   {imagesUploading ? 'progress_activity' : 'add_a_photo'}
                 </span>
                 {imagesUploading
-                  ? (t('retail.settings.imagesUploading') || 'Загрузка...')
-                  : (t('retail.settings.imagesAdd') || 'Добавить')}
+                  ? t('retail.settings.imagesUploading') || 'Загрузка...'
+                  : t('retail.settings.imagesAdd') || 'Добавить'}
               </button>
             </div>
           </div>
@@ -825,7 +892,9 @@ export default function RetailSettingsScreen() {
             <div style={DIVIDER} />
 
             <div style={{ padding: '16px 16px' }}>
-              <div style={FIELD_LABEL}>{t('retail.settings.coordinatesLabel') || 'Гео-координаты (для SEO-поиска)'}</div>
+              <div style={FIELD_LABEL}>
+                {t('retail.settings.coordinatesLabel') || 'Гео-координаты (для SEO-поиска)'}
+              </div>
               <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
                 <input
                   type="text"
@@ -866,7 +935,9 @@ export default function RetailSettingsScreen() {
                   <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
                     {geocoding ? 'progress_activity' : 'location_searching'}
                   </span>
-                  {geocoding ? (t('retail.settings.geocoding') || 'Поиск...') : (t('retail.settings.geocodeBtn') || 'Определить по адресу')}
+                  {geocoding
+                    ? t('retail.settings.geocoding') || 'Поиск...'
+                    : t('retail.settings.geocodeBtn') || 'Определить по адресу'}
                 </button>
                 <button
                   type="button"
@@ -1588,7 +1659,15 @@ export default function RetailSettingsScreen() {
             }}
           >
             {/* Header */}
-            <div style={{ padding: '20px 20px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--line-soft)' }}>
+            <div
+              style={{
+                padding: '20px 20px 16px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderBottom: '1px solid var(--line-soft)',
+              }}
+            >
               <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>
                 {t('retail.settings.mapModalTitle') || 'Выбор на карте'}
               </span>
@@ -1621,7 +1700,15 @@ export default function RetailSettingsScreen() {
             />
 
             {/* Footer */}
-            <div style={{ padding: 16, display: 'flex', gap: 12, borderTop: '1px solid var(--line-soft)', background: 'var(--card-bg-hover)' }}>
+            <div
+              style={{
+                padding: 16,
+                display: 'flex',
+                gap: 12,
+                borderTop: '1px solid var(--line-soft)',
+                background: 'var(--card-bg-hover)',
+              }}
+            >
               <button
                 type="button"
                 onClick={() => setShowMapModal(false)}

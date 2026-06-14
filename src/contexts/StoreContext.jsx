@@ -202,7 +202,6 @@ export function StoreProvider({ children }) {
   )
   const [fullCatalog, setFullCatalog] = useState(null)
   const [isCatalogLoading, setIsCatalogLoading] = useState(false)
-  const fetchAbortRef = useRef(null)
 
   useEffect(() => {
     const syncStorage = () => {
@@ -218,41 +217,51 @@ export function StoreProvider({ children }) {
 
   useEffect(() => {
     if (pathStoreSlug) {
-      setRememberedStoreSlug(pathStoreSlug)
-      localStorage.setItem(STORE_KEY, pathStoreSlug)
+      async function sync() {
+        setRememberedStoreSlug(pathStoreSlug)
+        localStorage.setItem(STORE_KEY, pathStoreSlug)
+      }
+      sync()
     }
   }, [pathStoreSlug])
 
   useEffect(() => {
-    if (!storeSlug) {
-      setCurrentStore(null)
-      setIsStoreLoading(false)
-      return
-    }
+    let aborted = false
 
-    const cached = loadStoreFromCache(storeSlug)
-    if (cached) {
-      setCurrentStore(cached)
-      setIsStoreLoading(false)
-    } else {
-      setIsStoreLoading(true)
-    }
-
-    if (fetchAbortRef.current) fetchAbortRef.current = true
-    const aborted = { value: false }
-    fetchAbortRef.current = aborted
-
-    fetchStoreBySlug(storeSlug).then((store) => {
-      if (aborted.value) return
-      if (store) {
-        setCurrentStore(store)
-        saveStoreToCache(storeSlug, store)
+    async function loadStore() {
+      if (!storeSlug) {
+        setCurrentStore(null)
+        setIsStoreLoading(false)
+        return
       }
-      setIsStoreLoading(false)
-    })
+
+      const cached = loadStoreFromCache(storeSlug)
+      if (cached) {
+        setCurrentStore(cached)
+        setIsStoreLoading(false)
+      } else {
+        setIsStoreLoading(true)
+      }
+
+      if (aborted) return
+
+      try {
+        const store = await fetchStoreBySlug(storeSlug)
+        if (aborted) return
+        if (store) {
+          setCurrentStore(store)
+          saveStoreToCache(storeSlug, store)
+        }
+        setIsStoreLoading(false)
+      } catch {
+        if (!aborted) setIsStoreLoading(false)
+      }
+    }
+
+    loadStore()
 
     return () => {
-      aborted.value = true
+      aborted = true
     }
   }, [storeSlug])
 
@@ -260,32 +269,33 @@ export function StoreProvider({ children }) {
 
   useEffect(() => {
     const storeId = currentStore?.id
-    if (!storeId) {
-      if (loadedStoreIdRef.current !== null) {
-        setFullCatalog(null)
-        loadedStoreIdRef.current = null
+    let aborted = false
+
+    async function loadCatalog() {
+      if (!storeId) {
+        if (loadedStoreIdRef.current !== null) {
+          setFullCatalog(null)
+          loadedStoreIdRef.current = null
+        }
+        return
       }
-      return
-    }
 
-    if (loadedStoreIdRef.current !== storeId) {
+      if (loadedStoreIdRef.current !== storeId) {
+        setFullCatalog(null)
+        loadedStoreIdRef.current = storeId
+      }
+
+      if (!isOnline) return
+
       setFullCatalog(null)
-      loadedStoreIdRef.current = storeId
-    }
+      setIsCatalogLoading(true)
 
-    if (!isOnline) return
-
-    const aborted = { value: false }
-    setFullCatalog(null)
-    setIsCatalogLoading(true)
-
-    async function fetchAll() {
       let offset = 0
       const batchSize = 1000
       let allProducts = []
 
       while (true) {
-        if (aborted.value) return
+        if (aborted) return
         const { data, error } = await supabase
           .rpc('fn_get_store_catalog', { p_store_id: storeId })
           .range(offset, offset + batchSize - 1)
@@ -305,7 +315,7 @@ export function StoreProvider({ children }) {
         offset += batchSize
       }
 
-      if (aborted.value) return
+      if (aborted) return
       setIsCatalogLoading(false)
 
       if (allProducts.length > 0) {
@@ -315,10 +325,10 @@ export function StoreProvider({ children }) {
       }
     }
 
-    fetchAll()
+    loadCatalog()
 
     return () => {
-      aborted.value = true
+      aborted = true
     }
   }, [currentStore?.id, isOnline])
 

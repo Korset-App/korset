@@ -1,4 +1,4 @@
-/* global FileReader, Image */
+/* global FileReader */
 
 export function compressImage(file, maxDim, quality) {
   return new Promise((resolve, reject) => {

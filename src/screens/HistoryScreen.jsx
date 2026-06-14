@@ -71,26 +71,20 @@ export default function HistoryScreen() {
   const { currentStore } = useStore()
   const { toggleFavorite, favoriteEans } = useUserData()
 
-  const [history, setHistory] = useState([])
+  const [history, setHistory] = useState(null)
   const [favorites, setFavorites] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState(searchParams.get('tab') || 'history')
-
-  useEffect(() => {
-    const nextTab = searchParams.get('tab') || 'history'
-    if (nextTab !== tab) setTab(nextTab)
-  }, [searchParams, tab])
+  const tab = searchParams.get('tab') || 'history'
+  const loading = history === null
 
   useEffect(() => {
     const ownerKey = buildHistoryOwnerKey(user)
     const scopedLocalHistory = readLocalScanHistory(ownerKey)
 
     let cancelled = false
-    setLoading(true)
 
     async function loadData() {
-      let historyRows = []
-      let favoriteRows = []
+      let historyRows
+      let favoriteRows
 
       if (user && internalUserId) {
         const [histRes, favRes] = await Promise.allSettled([
@@ -120,7 +114,10 @@ export default function HistoryScreen() {
             ? favRes.value?.data || []
             : [...favoriteEans].map((ean) => ({ ean, added_at: null }))
       } else {
-        historyRows = scopedLocalHistory.map((item) => ({ ean: item.ean, scanned_at: item.scannedAt }))
+        historyRows = scopedLocalHistory.map((item) => ({
+          ean: item.ean,
+          scanned_at: item.scannedAt,
+        }))
         favoriteRows = [...favoriteEans].map((ean) => ({ ean, added_at: null }))
       }
 
@@ -140,7 +137,6 @@ export default function HistoryScreen() {
 
       setHistory(mergeHistoryItems(hydratedHistory, scopedLocalHistory))
       setFavorites(hydratedFavorites)
-      setLoading(false)
     }
 
     loadData().catch((error) => {
@@ -148,7 +144,6 @@ export default function HistoryScreen() {
       if (!cancelled) {
         setHistory(mergeHistoryItems([], scopedLocalHistory))
         setFavorites([...favoriteEans].map((ean) => ({ ean, name: `Товар ${ean}` })))
-        setLoading(false)
       }
     })
 
@@ -156,10 +151,6 @@ export default function HistoryScreen() {
       cancelled = true
     }
   }, [user, internalUserId, favoriteEans])
-
-  useEffect(() => {
-    setFavorites((prev) => prev.filter((item) => !item.ean || favoriteEans.has(item.ean)))
-  }, [favoriteEans])
 
   useEffect(() => {
     const syncLocalHistory = () => {
@@ -201,13 +192,18 @@ export default function HistoryScreen() {
   }
 
   const setActiveTab = (nextTab) => {
-    setTab(nextTab)
     setSearchParams(nextTab === 'history' ? {} : { tab: nextTab }, { replace: true })
   }
 
-  const list = useMemo(() => (tab === 'history' ? history : favorites), [tab, history, favorites])
+  const displayedFavorites = useMemo(
+    () => favorites.filter((item) => !item.ean || favoriteEans.has(item.ean)),
+    [favorites, favoriteEans]
+  )
 
-
+  const list = useMemo(
+    () => (tab === 'history' ? history : displayedFavorites),
+    [tab, history, displayedFavorites]
+  )
 
   return (
     <div className="screen" style={{ paddingTop: 0 }}>
@@ -344,7 +340,7 @@ export default function HistoryScreen() {
               checklist
             </span>
             {t('history.tabFavorites')}
-            {favorites.length > 0 && (
+            {displayedFavorites.length > 0 && (
               <span
                 style={{
                   fontSize: 10,
@@ -354,7 +350,7 @@ export default function HistoryScreen() {
                   color: 'var(--text)',
                 }}
               >
-                {favorites.length}
+                {displayedFavorites.length}
               </span>
             )}
           </button>
@@ -377,11 +373,15 @@ export default function HistoryScreen() {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
-              <span className="material-symbols-outlined" style={{ color: '#A78BFA', fontSize: 24, flexShrink: 0 }}>
+              <span
+                className="material-symbols-outlined"
+                style={{ color: '#A78BFA', fontSize: 24, flexShrink: 0 }}
+              >
                 sync
               </span>
               <div style={{ fontSize: 13, color: 'var(--text-sub)', lineHeight: 1.4 }}>
-                {t('history.guestFavoritesBanner') || 'Войдите в аккаунт, чтобы сохранять список покупок между вашими устройствами.'}
+                {t('history.guestFavoritesBanner') ||
+                  'Войдите в аккаунт, чтобы сохранять список покупок между вашими устройствами.'}
               </div>
             </div>
             <button

@@ -204,9 +204,9 @@ export function UserDataProvider({ children }) {
     [internalUserId]
   )
 
-  const syncScanCount = () => {
+  const syncScanCount = useCallback(() => {
     setScanCount((prev) => Math.max(prev, getScopedLocalScanCount(user)))
-  }
+  }, [user])
 
   useEffect(() => {
     const handleScanAdded = (event) => {
@@ -236,7 +236,7 @@ export function UserDataProvider({ children }) {
       window.removeEventListener('focus', handleFocus)
       window.removeEventListener(PRIVACY_EVENT, handleFocus)
     }
-  }, [user])
+  }, [user, syncScanCount])
 
   return (
     <UserDataContext.Provider

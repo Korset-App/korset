@@ -1,4 +1,4 @@
-/* global Image, File */
+/* global File */
 /**
  * Compresses an image file client-side using HTML5 Canvas API.
  * Resizes the image to fit within maxWidth/maxHeight preserving aspect ratio.
