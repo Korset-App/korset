@@ -7,6 +7,12 @@
   justify-content: center;
   background: var(--overlay-bg);
   padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  animation: sheetFadeIn 0.25s ease forwards;
+}
+
+@keyframes sheetFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 body.ingredient-sheet-open .bottom-nav {
@@ -29,6 +35,12 @@ body.ingredient-sheet-open .bottom-nav {
   overflow-y: auto;
   overscroll-behavior: contain;
   backdrop-filter: blur(22px) saturate(130%);
+  animation: sheetSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes sheetSlideUp {
+  from { transform: translateY(10%); }
+  to { transform: translateY(0); }
 }
 
 :root[data-theme='dark'] .ingredient-sheet__panel {
@@ -48,8 +60,8 @@ body.ingredient-sheet-open .bottom-nav {
 }
 
 .ingredient-sheet__panel--additive {
-  color: var(--warning);
-  border-color: color-mix(in srgb, var(--warning) 26%, var(--glass-soft-border));
+  color: var(--additive);
+  border-color: var(--additive-border);
 }
 
 .ingredient-sheet__panel--info {
@@ -162,4 +174,7 @@ body.ingredient-sheet-open .bottom-nav {
   background: var(--glass-subtle);
   color: var(--text-sub);
   padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }

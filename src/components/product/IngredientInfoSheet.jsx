@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import './IngredientInfoSheet.css'
 
 export default function IngredientInfoSheet({ item, onClose, onAskAI }) {
@@ -10,7 +11,12 @@ export default function IngredientInfoSheet({ item, onClose, onAskAI }) {
 
   if (!item) return null
 
-  return (
+  const handleGoogleSearch = () => {
+    const query = encodeURIComponent(`${item.label} ингредиент что это`)
+    window.open(`https://www.google.com/search?q=${query}`, '_blank', 'noopener')
+  }
+
+  return createPortal(
     <div className="ingredient-sheet" role="presentation" onClick={onClose}>
       <div
         className={`ingredient-sheet__panel ingredient-sheet__panel--${item.tone}`}
@@ -36,7 +42,7 @@ export default function IngredientInfoSheet({ item, onClose, onAskAI }) {
         </h2>
 
         <p className="ingredient-sheet__reason">{item.reason}</p>
-        <p className="ingredient-sheet__description">{item.description}</p>
+        {item.description && <p className="ingredient-sheet__description">{item.description}</p>}
 
         <div className="ingredient-sheet__actions">
           <button type="button" className="ingredient-sheet__ai" onClick={() => onAskAI(item)}>
@@ -45,11 +51,19 @@ export default function IngredientInfoSheet({ item, onClose, onAskAI }) {
             </span>
             {item.askAiLabel}
           </button>
-          <button type="button" className="ingredient-sheet__secondary" onClick={onClose}>
-            {item.closeLabel}
+          <button
+            type="button"
+            className="ingredient-sheet__secondary"
+            onClick={handleGoogleSearch}
+          >
+            <span className="material-symbols-outlined" aria-hidden="true">
+              search
+            </span>
+            {item.searchGoogleLabel}
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

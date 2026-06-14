@@ -1,19 +1,28 @@
 import { useMemo, useState } from 'react'
 import { useI18n } from '../../i18n/index.js'
 import { analyzeProductIngredients } from '../../domain/product/ingredientAnalysis.js'
+import { INGREDIENT_DESCRIPTIONS } from '../../constants/ingredientDescriptions.js'
 import IngredientInfoSheet from './IngredientInfoSheet.jsx'
 import './IngredientsPreview.css'
 
-function enrichHighlight(item, t) {
+function enrichHighlight(item, t, lang) {
+  const custom = INGREDIENT_DESCRIPTIONS[item.label] || INGREDIENT_DESCRIPTIONS[item.matchedText]
   return {
     ...item,
     kindLabel: t(`product.ingredients.kind.${item.kind}`),
-    reason: t(item.reasonKey, { ingredient: item.label }),
-    description: t(item.descriptionKey || `product.ingredients.description.${item.kind}`, {
-      ingredient: item.label,
-    }),
+    reason: custom
+      ? lang === 'kz'
+        ? custom.kz
+        : custom.ru
+      : t(item.reasonKey, { ingredient: item.label }),
+    description: custom
+      ? undefined
+      : t(item.descriptionKey || `product.ingredients.description.${item.kind}`, {
+          ingredient: item.label,
+        }),
     askAiLabel: t('product.ingredients.askAiIngredient'),
     closeLabel: t('common.close'),
+    searchGoogleLabel: t('product.ingredients.searchGoogle'),
   }
 }
 
@@ -50,8 +59,8 @@ export default function IngredientsPreview({
     [product, profile, lang]
   )
   const highlights = useMemo(
-    () => analysis.highlights.map((item) => enrichHighlight(item, t)),
-    [analysis.highlights, t]
+    () => analysis.highlights.map((item) => enrichHighlight(item, t, lang)),
+    [analysis.highlights, t, lang]
   )
   const highlightsById = useMemo(
     () => new Map(highlights.map((item) => [item.id, item])),

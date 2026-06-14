@@ -120,7 +120,7 @@
 }
 
 .ingredients-preview__token--additive {
-  color: var(--warning);
+  color: var(--additive);
 }
 
 .ingredients-preview__token--info {
@@ -168,9 +168,12 @@
   color: var(--error-bright);
 }
 
-.ingredients-preview__card--warning,
-.ingredients-preview__card--additive {
+.ingredients-preview__card--warning {
   color: var(--warning);
+}
+
+.ingredients-preview__card--additive {
+  color: var(--additive);
 }
 
 .ingredients-preview__card--info {

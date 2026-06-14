@@ -105,6 +105,11 @@ export default async function handler(req, res) {
     ownerId,
     newEmail,
     newPassword,
+    isPublished,
+    ownerPrivatePhone,
+    ownerPrivateNotes,
+    targetUserId,
+    searchQuery,
   } = req.body || {}
 
   try {
@@ -178,6 +183,7 @@ export default async function handler(req, res) {
           ...store,
           owner_email: owner?.email || null,
           owner_phone: owner?.phone || null,
+          owner_is_superadmin: Boolean(owner?.app_metadata?.is_superadmin),
         }
       })
 
@@ -226,6 +232,18 @@ export default async function handler(req, res) {
       }
       if (description !== undefined) {
         updateData.description = description ? description.substring(0, 1200) : null
+      }
+      if (isPublished !== undefined) {
+        updateData.is_published = Boolean(isPublished)
+      }
+      if (ownerPrivatePhone !== undefined) {
+        updateData.owner_private_phone = ownerPrivatePhone || null
+      }
+      if (ownerPrivateNotes !== undefined) {
+        updateData.owner_private_notes = ownerPrivateNotes || null
+      }
+      if (ownerId !== undefined) {
+        updateData.owner_id = ownerId || null
       }
       if (plan !== undefined) {
         if (!VALID_PLANS.includes(plan)) {
@@ -307,20 +325,22 @@ export default async function handler(req, res) {
       if (!name) errors.push('name_required')
       if (!type) errors.push('type_required')
       if (!city) errors.push('city_required')
-      if (!ownerEmail) errors.push('owner_email_required')
-      if (!ownerPassword) errors.push('owner_password_required')
 
       if (slug && !VALID_SLUG.test(slug)) errors.push('invalid_slug_format')
       if (type && !VALID_TYPES.includes(type)) errors.push('invalid_type')
       if (plan && !VALID_PLANS.includes(plan)) errors.push('invalid_plan')
-      if (ownerPassword && ownerPassword.length < 8) errors.push('password_too_short')
-
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (ownerEmail && !emailRegex.test(ownerEmail)) errors.push('invalid_email_format')
 
       const phoneRegex = /^7\d{10}$/
       if (phone && !phoneRegex.test(phone)) errors.push('invalid_phone_format')
       if (whatsappNumber && !phoneRegex.test(whatsappNumber)) errors.push('invalid_whatsapp_format')
+
+      if (!ownerId) {
+        if (!ownerEmail) errors.push('owner_email_required')
+        if (!ownerPassword) errors.push('owner_password_required')
+        if (ownerPassword && ownerPassword.length < 8) errors.push('password_too_short')
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (ownerEmail && !emailRegex.test(ownerEmail)) errors.push('invalid_email_format')
+      }
 
       if (errors.length > 0) {
         return res.status(400).set(cors).json({ error: 'validation_failed', reasons: errors })
@@ -337,26 +357,30 @@ export default async function handler(req, res) {
         return res.status(409).set(cors).json({ error: 'slug_taken', message: 'URL-адрес (slug) магазина уже занят' })
       }
 
-      // Check if owner email already exists
-      const { data: listResult } = await admin.auth.admin.listUsers()
-      const existingUser = listResult?.users?.find(u => u.email?.toLowerCase() === ownerEmail.toLowerCase())
-      if (existingUser) {
-        return res.status(409).set(cors).json({ error: 'owner_email_taken', message: 'Пользователь с таким Email уже существует' })
+      let finalOwnerId = ownerId
+
+      if (!finalOwnerId) {
+        // Check if owner email already exists
+        const { data: listResult } = await admin.auth.admin.listUsers()
+        const existingUser = listResult?.users?.find(u => u.email?.toLowerCase() === ownerEmail.toLowerCase())
+        if (existingUser) {
+          return res.status(409).set(cors).json({ error: 'owner_email_taken', message: 'Пользователь с таким Email уже существует' })
+        }
+
+        // Step 1: Create owner auth user
+        const { data: authData, error: authError } = await admin.auth.admin.createUser({
+          email: ownerEmail,
+          password: ownerPassword,
+          email_confirm: true,
+        })
+
+        if (authError) {
+          console.error('[admin-stores] createUser error', authError)
+          return res.status(500).set(cors).json({ error: 'auth_creation_failed', message: authError.message })
+        }
+
+        finalOwnerId = authData.user.id
       }
-
-      // Step 1: Create owner auth user
-      const { data: authData, error: authError } = await admin.auth.admin.createUser({
-        email: ownerEmail,
-        password: ownerPassword,
-        email_confirm: true,
-      })
-
-      if (authError) {
-        console.error('[admin-stores] createUser error', authError)
-        return res.status(500).set(cors).json({ error: 'auth_creation_failed', message: authError.message })
-      }
-
-      const ownerId = authData.user.id
 
       // Step 2: Create store record
       const storeRecord = {
@@ -366,13 +390,16 @@ export default async function handler(req, res) {
         type,
         plan: plan || 'pilot',
         is_active: true,
-        owner_id: ownerId,
+        is_published: isPublished !== undefined ? Boolean(isPublished) : true,
+        owner_id: finalOwnerId,
       }
       if (address) storeRecord.address = address
       if (phone) storeRecord.phone = phone
       if (whatsappNumber) storeRecord.whatsapp_number = whatsappNumber
       if (shortDescription) storeRecord.short_description = shortDescription.substring(0, 240)
       if (description) storeRecord.description = description.substring(0, 1200)
+      if (ownerPrivatePhone) storeRecord.owner_private_phone = ownerPrivatePhone
+      if (ownerPrivateNotes) storeRecord.owner_private_notes = ownerPrivateNotes
 
       const { data: storeData, error: storeError } = await admin
         .from('stores')
@@ -383,11 +410,105 @@ export default async function handler(req, res) {
       if (storeError) {
         console.error('[admin-stores] store insert error', storeError)
         // Clean up created auth user to avoid orphan accounts
-        await admin.auth.admin.deleteUser(ownerId)
+        if (!ownerId) {
+          await admin.auth.admin.deleteUser(finalOwnerId)
+        }
         return res.status(500).set(cors).json({ error: 'store_insertion_failed', message: storeError.message })
       }
-
       return res.status(200).set(cors).json({ ok: true, store: storeData })
+    }
+    // ACTION: SCAN ACTIVITY FOR CHARTING
+    if (action === 'scan-activity') {
+      const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
+
+      const { data: scanData, error: scanError } = await admin
+        .from('scan_events')
+        .select('scanned_at, store_id')
+        .gte('scanned_at', fourteenDaysAgo)
+        .order('scanned_at', { ascending: true })
+
+      if (scanError) {
+        console.error('[admin-stores] scan-activity error', scanError)
+        return res.status(500).set(cors).json({ error: 'Failed to fetch scan activity' })
+      }
+
+      // Group scan activity by store and date
+      const counts = {} // { storeId: { 'YYYY-MM-DD': count } }
+      scanData.forEach((event) => {
+        const date = event.scanned_at.slice(0, 10)
+        const sId = event.store_id || 'global'
+        if (!counts[sId]) counts[sId] = {}
+        counts[sId][date] = (counts[sId][date] || 0) + 1
+      })
+
+      return res.status(200).set(cors).json({ ok: true, activity: counts })
+    }
+
+    // ACTION: TOGGLE USER SUPERADMIN PRIVILEGES
+    if (action === 'toggle-superadmin') {
+      if (!targetUserId) {
+        return res.status(400).set(cors).json({ error: 'Missing targetUserId' })
+      }
+      if (typeof isActive !== 'boolean') {
+        return res.status(400).set(cors).json({ error: 'isActive must be a boolean' })
+      }
+
+      const { data: updatedUser, error: updateError } = await admin
+        .from('users')
+        .update({ is_superadmin: isActive })
+        .eq('auth_id', targetUserId)
+        .select()
+        .single()
+
+      if (updateError) {
+        console.error('[admin-stores] toggle-superadmin error', updateError)
+        return res.status(500).set(cors).json({ error: 'Failed to update superadmin status' })
+      }
+
+      return res.status(200).set(cors).json({ ok: true, user: updatedUser })
+    }
+
+    // ACTION: SEARCH USER CANDIDATES FOR STORE OWNERSHIP
+    if (action === 'search-owners') {
+      const { data: listResult, error: listError } = await admin.auth.admin.listUsers()
+      if (listError) {
+        console.error('[admin-stores] search-owners listUsers error', listError)
+        return res.status(500).set(cors).json({ error: 'Failed to search owners' })
+      }
+
+      const { data: dbUsers, error: dbError } = await admin
+        .from('users')
+        .select('auth_id, name, is_superadmin')
+
+      if (dbError) {
+        console.error('[admin-stores] search-owners dbUsers error', dbError)
+        return res.status(500).set(cors).json({ error: 'Failed to query user records' })
+      }
+
+      const dbUsersMap = new Map(dbUsers.map((u) => [u.auth_id, u]))
+      const query = (searchQuery || '').toLowerCase().trim()
+
+      const results = listResult.users
+        .map((u) => {
+          const dbUser = dbUsersMap.get(u.id)
+          return {
+            id: u.id,
+            email: u.email,
+            phone: u.phone || null,
+            name: dbUser?.name || u.email.split('@')[0],
+            is_superadmin: dbUser?.is_superadmin || false,
+          }
+        })
+        .filter((u) => {
+          if (!query) return true
+          return (
+            u.email.toLowerCase().includes(query) ||
+            u.name.toLowerCase().includes(query)
+          )
+        })
+        .slice(0, 30)
+
+      return res.status(200).set(cors).json({ ok: true, users: results })
     }
 
     return res.status(400).set(cors).json({ error: 'Unknown action' })

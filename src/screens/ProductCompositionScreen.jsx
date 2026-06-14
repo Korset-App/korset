@@ -16,6 +16,32 @@ import { buildProductAIPath } from '../utils/routes.js'
 import IngredientsPreview from '../components/product/IngredientsPreview.jsx'
 import './ProductCompositionScreen.css'
 
+function CollapsibleSection({ icon, title, children, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <section className="collapsible-section">
+      <button
+        type="button"
+        className="collapsible-section__trigger"
+        onClick={() => setOpen((x) => !x)}
+        aria-expanded={open}
+      >
+        <span className="material-symbols-outlined" aria-hidden="true">
+          {icon}
+        </span>
+        <span className="collapsible-section__title">{title}</span>
+        <span
+          className={`material-symbols-outlined collapsible-section__chevron${open ? ' open' : ''}`}
+          aria-hidden="true"
+        >
+          expand_more
+        </span>
+      </button>
+      {open && <div className="collapsible-section__body">{children}</div>}
+    </section>
+  )
+}
+
 export default function ProductCompositionScreen() {
   const { ean, storeSlug } = useParams()
   const navigate = useNavigate()
@@ -87,15 +113,6 @@ export default function ProductCompositionScreen() {
           <span>{t('product.ingredients.fullTitle')}</span>
           {product && <strong>{localName}</strong>}
         </div>
-        <button
-          type="button"
-          className="product-composition-header__info"
-          aria-label={t('product.ingredients.legendTitle')}
-        >
-          <span className="material-symbols-outlined" aria-hidden="true">
-            info
-          </span>
-        </button>
       </header>
 
       <main className="product-composition-content">
@@ -109,18 +126,11 @@ export default function ProductCompositionScreen() {
 
         {product && (
           <>
-            <section className="product-composition-summary">
-              <span className="material-symbols-outlined" aria-hidden="true">
-                fact_check
-              </span>
-              <div>
-                <h1>{t('product.ingredients.summaryTitle')}</h1>
-                <p>{t('product.ingredients.summaryBody')}</p>
-              </div>
-            </section>
+            <CollapsibleSection icon="fact_check" title={t('product.ingredients.summaryTitle')}>
+              <p>{t('product.ingredients.summaryBody')}</p>
+            </CollapsibleSection>
 
-            <section className="product-composition-legend">
-              <h2>{t('product.ingredients.legendTitle')}</h2>
+            <CollapsibleSection icon="palette" title={t('product.ingredients.legendTitle')}>
               <div className="product-composition-legend__grid">
                 {['danger', 'warning', 'additive', 'info'].map((tone) => (
                   <div key={tone} className={`product-composition-legend__item ${tone}`}>
@@ -129,7 +139,7 @@ export default function ProductCompositionScreen() {
                   </div>
                 ))}
               </div>
-            </section>
+            </CollapsibleSection>
 
             <IngredientsPreview
               product={product}

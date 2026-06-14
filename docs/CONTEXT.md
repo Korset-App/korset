@@ -103,7 +103,7 @@ Stores:
 - 3 активных: Марс (mars, ~10K), Нұрлы (nurly, ~2.5K), Калина (kalina, ~2K).
 - Управление: `node scripts/create-store.mjs --slug xxx ...`, `node scripts/deactivate-store.mjs --slug xxx`, `node scripts/seed-store-catalog.mjs --store-slug xxx ...`
 
-Super Admin: `/korset-admin/stores` — статистика, поиск, фильтрация, drawer-форма создания.
+Super Admin: `/korset-admin/stores` — премиум Bento-дашборд с KPI, интерактивный SVG-график сканов (14 дней), спарклайны в карточках, умная Drawer-панель управления (CRM, биллинг-пресеты, живой поиск и смена владельцев, менеджер ролей, режим публикации/черновика).
 
 Infrastructure: RLS + JWT. Sentry + Telegram alerts. Offline (SW + IndexedDB). RAG (pgvector). Dark/light themes. Telegram Support Bot.
 
