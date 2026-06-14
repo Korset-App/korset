@@ -1,26 +1,112 @@
-/* global process, fetch, console */
-// Vercel Serverless Function — server-side proxy for OpenAI chat models
-// API ключ ТОЛЬКО на сервере (process.env.OPENAI_API_KEY)
-// Клиент вызывает: POST /api/ai { messages, mode, product?, lang }
-// RAG: перед OpenAI-вызовом подтягивает контекст из vault_embeddings (pgvector)
-// Auth: JWT verification + IP-based rate limiting
+/* global process, fetch, console, Buffer, Blob, FormData */
+// Vercel Serverless Function — unified AI proxy (chat + transcription + image)
+// Routes:
+//   POST /api/ai              → chat (JSON body)
+//   POST /api/ai-transcribe   → transcription (multipart) — rewrites to /api/ai
+//   POST /api/ai-image        → image analysis (JSON body) — rewrites to /api/ai
 
 import { createClient } from '@supabase/supabase-js'
 import { buildGeneralAIFollowUps } from '../src/domain/ai/followUps.js'
 import {
   buildAIProductGroups,
   buildProductAIResponseMeta,
+  normalizeAIResponse,
 } from '../src/domain/ai/responseShape.js'
 import { buildSafetyNotes } from '../src/domain/ai/safetyContract.js'
 import { resolveControlledProductEnrichment } from '../src/domain/ai/productEnrichmentService.js'
 import { buildProductComparison } from '../src/domain/product/comparison.js'
+import {
+  AI_IMAGE_INPUT_LIMITS,
+  validateAIImagePayload,
+} from '../src/domain/ai/imageInput.js'
 
+// ── bodyParser disabled: we handle JSON and multipart manually ──
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+}
+
+// ── CORS ─────────────────────────────────────────────────────────
 const CORS_ORIGINS = [
   'https://korset.app',
   'https://www.korset.app',
   'http://localhost:5173',
   'http://localhost:4173',
 ]
+
+function corsHeaders(req, res) {
+  const origin = req.headers.origin || ''
+  const allowOrigin = CORS_ORIGINS.includes(origin) ? origin : CORS_ORIGINS[0]
+  res.setHeader('Access-Control-Allow-Origin', allowOrigin)
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  res.setHeader('Vary', 'Origin')
+}
+
+// ── Helpers ──────────────────────────────────────────────────────
+function cleanString(value, max = 200) {
+  if (typeof value !== 'string') return ''
+  return value.replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max)
+}
+
+function getClientIp(req) {
+  const forwarded = cleanString(req.headers['x-forwarded-for'], 200)
+  return forwarded.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown'
+}
+
+// ── Rate limit (in-memory per cold start) ────────────────────────
+const rateLimitStore = new Map()
+
+function checkRateLimit(key, limit) {
+  const now = Date.now()
+  const entry = rateLimitStore.get(key)
+  if (!entry || now - entry.windowStart > limit.windowMs) {
+    rateLimitStore.set(key, { windowStart: now, count: 1 })
+    return { allowed: true, remaining: limit.maxRequests - 1 }
+  }
+  if (entry.count >= limit.maxRequests) return { allowed: false, remaining: 0 }
+  entry.count++
+  return { allowed: true, remaining: limit.maxRequests - entry.count }
+}
+
+// ── Auth ─────────────────────────────────────────────────────────
+async function verifyAuth(req) {
+  const authHeader = req.headers.authorization
+  if (!authHeader?.startsWith('Bearer ')) return { user: null, authenticated: false }
+
+  const token = authHeader.slice(7)
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
+  const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY
+  if (!supabaseUrl || !supabaseKey) return { user: null, authenticated: false }
+
+  try {
+    const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } })
+    const { data, error } = await supabase.auth.getUser(token)
+    if (error || !data.user) return { user: null, authenticated: false }
+    return { user: data.user, authenticated: true }
+  } catch {
+    return { user: null, authenticated: false }
+  }
+}
+
+// ── Body parsing ─────────────────────────────────────────────────
+async function readRequestBody(req) {
+  const chunks = []
+  for await (const chunk of req) {
+    chunks.push(Buffer.from(chunk))
+  }
+  return Buffer.concat(chunks)
+}
+
+async function parseJsonBody(req) {
+  const buffer = await readRequestBody(req)
+  return JSON.parse(buffer.toString('utf8'))
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  CHAT HANDLER (was api/ai.js)
+// ══════════════════════════════════════════════════════════════════
 
 export const AI_MODELS = {
   default: process.env.OPENAI_CHAT_MODEL || 'gpt-4o-mini',
@@ -39,7 +125,7 @@ export const AI_LIMITS = {
   maxStructuredProducts: 12,
 }
 
-export const RATE_LIMITS = {
+export const CHAT_RATE_LIMITS = {
   authenticated: { maxRequests: 30, windowMs: 60_000 },
   anonymous: { maxRequests: 8, windowMs: 60_000 },
 }
@@ -147,33 +233,6 @@ function logAIUsage(event) {
   console.info('[ai] usage', event)
 }
 
-const rateLimitStore = new Map()
-
-function checkRateLimit(key, limit) {
-  const now = Date.now()
-  const entry = rateLimitStore.get(key)
-  if (!entry || now - entry.windowStart > limit.windowMs) {
-    rateLimitStore.set(key, { windowStart: now, count: 1 })
-    return { allowed: true, remaining: limit.maxRequests - 1 }
-  }
-  if (entry.count >= limit.maxRequests) {
-    return { allowed: false, remaining: 0 }
-  }
-  entry.count++
-  return { allowed: true, remaining: limit.maxRequests - entry.count }
-}
-
-function corsHeaders(req, res) {
-  const origin = req.headers.origin || ''
-  const allowOrigin = CORS_ORIGINS.includes(origin) ? origin : CORS_ORIGINS[0]
-  res.setHeader('Access-Control-Allow-Origin', allowOrigin)
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-  res.setHeader('Vary', 'Origin')
-}
-
-// ── Input validation & sanitization ─────────────────────────────
-
 export function validateMessages(messages) {
   if (!Array.isArray(messages) || messages.length === 0 || messages.length > AI_LIMITS.maxMessages) {
     return null
@@ -195,11 +254,6 @@ export function validateMessages(messages) {
     cleanMessages.push({ role: m.role, content: m.content })
   }
   return cleanMessages
-}
-
-function cleanString(value, max = 200) {
-  if (typeof value !== 'string') return ''
-  return value.replace(/[\r\n\t]+/g, ' ').trim().slice(0, max)
 }
 
 function sanitizeProduct(product) {
@@ -315,25 +369,6 @@ export function getOpenAICompletionLimits(mode) {
   return { max_completion_tokens: 320, temperature: 0.6 }
 }
 
-async function verifyAuth(req) {
-  const authHeader = req.headers.authorization
-  if (!authHeader?.startsWith('Bearer ')) return { user: null, authenticated: false }
-
-  const token = authHeader.slice(7)
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
-  const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY
-  if (!supabaseUrl || !supabaseKey) return { user: null, authenticated: false }
-
-  try {
-    const supabase = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } })
-    const { data, error } = await supabase.auth.getUser(token)
-    if (error || !data.user) return { user: null, authenticated: false }
-    return { user: data.user, authenticated: true }
-  } catch {
-    return { user: null, authenticated: false }
-  }
-}
-
 const RAG_EMBEDDING_MODEL = 'text-embedding-3-small'
 const RAG_EMBEDDING_DIMENSIONS = 1536
 const RAG_MAX_CHUNKS = 3
@@ -422,34 +457,40 @@ async function fetchRagContext(product, _mode, profile) {
   }
 }
 
-export default async function handler(req, res) {
+async function handleChat(req, res) {
   const requestStartedAt = Date.now()
   corsHeaders(req, res)
 
-  if (req.method === 'OPTIONS') return res.status(200).end()
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+  if (req.method === 'OPTIONS') return void res.status(200).end()
+  if (req.method !== 'POST') return void res.status(405).json({ error: 'Method not allowed' })
 
   const apiKey = process.env.OPENAI_API_KEY
   const azureApiKey = process.env.AZURE_OPENAI_KEY
   if (!apiKey && !azureApiKey) {
-    return res.status(500).json({ error: 'Neither OPENAI_API_KEY nor AZURE_OPENAI_KEY is configured' })
+    return void res.status(500).json({ error: 'Neither OPENAI_API_KEY nor AZURE_OPENAI_KEY is configured' })
   }
 
   // ── Auth + Rate limit ──
   const { user, authenticated } = await verifyAuth(req)
   const rateLimitKey = authenticated
-    ? `user:${user.id}`
-    : `ip:${req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown'}`
-  const limit = authenticated ? RATE_LIMITS.authenticated : RATE_LIMITS.anonymous
+    ? `chat:user:${user.id}`
+    : `chat:ip:${getClientIp(req)}`
+  const limit = authenticated ? CHAT_RATE_LIMITS.authenticated : CHAT_RATE_LIMITS.anonymous
   const rateResult = checkRateLimit(rateLimitKey, limit)
 
   res.setHeader('X-RateLimit-Remaining', String(rateResult.remaining))
   if (!rateResult.allowed) {
-    return res.status(429).json({ error: 'Rate limit exceeded', retryAfterMs: limit.windowMs })
+    return void res.status(429).json({ error: 'Rate limit exceeded', retryAfterMs: limit.windowMs })
+  }
+
+  let body
+  try {
+    body = await parseJsonBody(req)
+  } catch {
+    return void res.status(400).json({ error: 'Invalid JSON body' })
   }
 
   try {
-    const body = req.body || {}
     const rawMode = body.mode
     const allowedModes = ['product', 'enrich', 'compare', 'general']
     const mode = allowedModes.includes(rawMode) ? rawMode : 'general'
@@ -457,7 +498,7 @@ export default async function handler(req, res) {
 
     const validMessages = validateMessages(body.messages)
     if (!validMessages) {
-      return res.status(400).json({ error: 'Invalid messages payload' })
+      return void res.status(400).json({ error: 'Invalid messages payload' })
     }
 
     const product = sanitizeProduct(body.product)
@@ -471,7 +512,7 @@ export default async function handler(req, res) {
         ? buildProductComparison(productA, productB, { profile })
         : null
 
-    // ── RAG: подтягиваем релевантный контекст из vault ──
+    // ── RAG ──
     let ragContext = null
     if (mode === 'product' && product) {
       ragContext = await fetchRagContext(product, mode, profile)
@@ -500,7 +541,7 @@ export default async function handler(req, res) {
       })
     }
 
-    // ── Формируем developer prompt на сервере ──
+    // ── System prompt ──
     let systemPrompt
 
     if (mode === 'product' && product) {
@@ -523,7 +564,7 @@ export default async function handler(req, res) {
     const completionLimits = getOpenAICompletionLimits(mode)
     const modelSelection = selectOpenAIModel({ mode, product, profile, catalogContext })
 
-    // ── Вызов API (стандартный OpenAI, нативный Azure OpenAI или MaaS в Azure) ──
+    // ── Вызов API ──
     let fetchUrl = 'https://api.openai.com/v1/chat/completions'
     const headers = {
       'Content-Type': 'application/json',
@@ -581,7 +622,7 @@ export default async function handler(req, res) {
           ragUsed: !!ragContext,
         })
       )
-      return res.status(502).json({ error: 'AI service unavailable' })
+      return void res.status(502).json({ error: 'AI service unavailable' })
     }
 
     const data = await openaiRes.json()
@@ -628,7 +669,7 @@ export default async function handler(req, res) {
       })
     )
 
-    return res.status(200).json({
+    return void res.status(200).json({
       reply: reply || '',
       productGroups: responseProductGroups,
       followUps,
@@ -648,11 +689,9 @@ export default async function handler(req, res) {
     })
   } catch (e) {
     console.error('API /ai error:', e)
-    return res.status(500).json({ error: 'Internal server error' })
+    return void res.status(500).json({ error: 'Internal server error' })
   }
 }
-
-// ── Developer prompts ───────────────────────────────────────────
 
 function formatStockStatusForPrompt(status, lang = 'ru') {
   if (status === 'in_stock') return lang === 'kz' ? 'бар' : 'есть в наличии'
@@ -783,9 +822,6 @@ ${winnerLine}${compareContract}${ragSection}`
 }
 
 function buildEnrichPrompt(product) {
-  // ID аллергенов — canonical из ТР ТС 022/2011 (см. src/constants/allergens.js).
-  // ВАЖНО: НЕ 'nuts' (legacy) → 'tree_nuts'; НЕ 'shellfish' → 'crustaceans';
-  // НЕ 'molluscs'/'sulphites' (OFF-форма) → 'mollusks'/'sulfites' (наша форма).
   return `Товар: "${product.name}"${product.brand ? `, бренд: ${product.brand}` : ''}.
 Ответь ТОЛЬКО JSON без markdown:
 {"ingredients":"состав на русском","allergens":["milk","eggs","gluten","peanuts","tree_nuts","soy","fish","crustaceans","mollusks","sesame","celery","mustard","lupin","sulfites"],"dietTags":["halal","vegan","vegetarian","gluten_free","dairy_free","sugar_free"],"description":"1 предложение о товаре"}
@@ -793,7 +829,6 @@ function buildEnrichPrompt(product) {
 }
 
 function formatNutrition(product) {
-  // Поддерживаем оба формата: nutrition (external) и nutritionPer100 (local)
   const n = product.nutrition || product.nutritionPer100
   if (!n) return 'не указано'
 
@@ -803,4 +838,524 @@ function formatNutrition(product) {
   const kcal = n.calories ?? n.kcal ?? '—'
 
   return `Белки ${protein}г, Жиры ${fat}г, Углеводы ${carbs}г, Ккал ${kcal}`
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  TRANSCRIPTION HANDLER (was api/ai-transcribe.js)
+// ══════════════════════════════════════════════════════════════════
+
+export const TRANSCRIPTION_MODEL = process.env.OPENAI_TRANSCRIPTION_MODEL || 'gpt-4o-mini-transcribe'
+
+export const TRANSCRIPTION_LIMITS = {
+  minDurationMs: 800,
+  maxDurationMs: 30_000,
+  maxBytes: 4 * 1024 * 1024,
+}
+
+export const TRANSCRIPTION_RATE_LIMITS = {
+  anonymous: { maxRequests: 10, windowMs: 60 * 60 * 1000 },
+  authenticated: { maxRequests: 30, windowMs: 60 * 60 * 1000 },
+}
+
+const SUPPORTED_AUDIO_TYPES = new Set([
+  'audio/webm',
+  'audio/mp4',
+  'audio/mpeg',
+  'audio/wav',
+  'audio/x-wav',
+])
+
+export function buildTranscriptionRateLimitIdentity({ req, auth } = {}) {
+  if (auth?.authenticated && auth.user?.id) {
+    return {
+      key: `transcribe:user:${auth.user.id}`,
+      limit: TRANSCRIPTION_RATE_LIMITS.authenticated,
+      authenticated: true,
+    }
+  }
+
+  return {
+    key: `transcribe:ip:${getClientIp(req || { headers: {} })}`,
+    limit: TRANSCRIPTION_RATE_LIMITS.anonymous,
+    authenticated: false,
+  }
+}
+
+function parseContentDisposition(value = '') {
+  const result = {}
+  for (const part of value.split(';')) {
+    const [rawKey, ...rawValue] = part.trim().split('=')
+    if (!rawValue.length) continue
+    result[rawKey] = rawValue.join('=').replace(/^"|"$/g, '')
+  }
+  return result
+}
+
+export function parseMultipartFormData(buffer, contentType = '') {
+  const boundary = contentType.match(/boundary=(?:(?:"([^"]+)")|([^;]+))/)?.[1] || contentType.match(/boundary=(?:(?:"([^"]+)")|([^;]+))/)?.[2]
+  if (!boundary) throw new Error('missing_boundary')
+
+  const raw = buffer.toString('binary')
+  const parts = raw.split(`--${boundary}`).slice(1, -1)
+  const fields = {}
+  let file = null
+
+  for (const part of parts) {
+    const normalized = part.replace(/^\r\n/, '').replace(/\r\n$/, '')
+    const splitAt = normalized.indexOf('\r\n\r\n')
+    if (splitAt === -1) continue
+
+    const headerLines = normalized.slice(0, splitAt).split('\r\n')
+    const body = normalized.slice(splitAt + 4)
+    const headers = Object.fromEntries(
+      headerLines.map((line) => {
+        const index = line.indexOf(':')
+        return index === -1
+          ? ['', '']
+          : [line.slice(0, index).toLowerCase(), line.slice(index + 1).trim()]
+      })
+    )
+    const disposition = parseContentDisposition(headers['content-disposition'])
+    const name = disposition.name
+    if (!name) continue
+
+    if (disposition.filename) {
+      file = {
+        fieldName: name,
+        filename: cleanString(disposition.filename, 180) || 'voice.webm',
+        contentType: cleanString(headers['content-type'], 80) || 'application/octet-stream',
+        buffer: Buffer.from(body, 'binary'),
+      }
+    } else {
+      fields[name] = Buffer.from(body, 'binary').toString('utf8').trim()
+    }
+  }
+
+  return { fields, file }
+}
+
+export function sanitizeTranscriptionMeta({ lang, storeSlug, durationMs } = {}) {
+  const safeLang = lang === 'ru' || lang === 'kz' ? lang : 'auto'
+  const safeDuration = Number(durationMs)
+  return {
+    lang: safeLang,
+    storeSlug: cleanString(storeSlug, 80) || null,
+    durationMs: Number.isFinite(safeDuration) && safeDuration >= 0 ? Math.round(safeDuration) : null,
+  }
+}
+
+export function classifyTranscriptionError(status) {
+  if (status === 400) return 'bad_request'
+  if (status === 401 || status === 403) return 'auth'
+  if (status === 429) return 'rate_limited'
+  if (status >= 500) return 'provider_error'
+  return 'unknown'
+}
+
+export function isSupportedTranscriptionAudioType(contentType = '') {
+  const baseType = cleanString(contentType, 100).split(';')[0].trim().toLowerCase()
+  return SUPPORTED_AUDIO_TYPES.has(baseType)
+}
+
+export function buildTranscriptionUsageEvent({
+  startedAt,
+  status = 'ok',
+  errorType = null,
+  model = TRANSCRIPTION_MODEL,
+  storeSlug = null,
+  durationMs = null,
+  audioBytes = null,
+  language = null,
+} = {}) {
+  return {
+    event: 'ai_transcription',
+    status,
+    errorType,
+    model,
+    durationMs: startedAt ? Math.max(0, Date.now() - startedAt) : null,
+    audioDurationMs: Number.isFinite(Number(durationMs)) ? Math.max(0, Number(durationMs)) : null,
+    audioBytes: Number.isFinite(Number(audioBytes)) ? Math.max(0, Number(audioBytes)) : null,
+    language: cleanString(language, 12) || null,
+    storeSlug: cleanString(storeSlug, 80) || null,
+  }
+}
+
+function logTranscriptionUsage(event) {
+  console.info('[ai-transcribe] usage', event)
+}
+
+function validateAudio({ file, durationMs }) {
+  if (!file?.buffer?.length) return 'audio_empty'
+  if (!isSupportedTranscriptionAudioType(file.contentType)) return 'unsupported_audio_type'
+  if (file.buffer.length > TRANSCRIPTION_LIMITS.maxBytes) return 'audio_too_large'
+  if (durationMs != null && durationMs < TRANSCRIPTION_LIMITS.minDurationMs) return 'audio_too_short'
+  if (durationMs != null && durationMs > TRANSCRIPTION_LIMITS.maxDurationMs) return 'audio_too_long'
+  return null
+}
+
+async function handleTranscription(req, res) {
+  const startedAt = Date.now()
+  corsHeaders(req, res)
+
+  if (req.method === 'OPTIONS') return void res.status(200).end()
+  if (req.method !== 'POST') return void res.status(405).json({ error: 'method_not_allowed' })
+
+  const apiKey = process.env.OPENAI_API_KEY
+  const azureApiKey = process.env.AZURE_OPENAI_KEY
+  if (!apiKey && !azureApiKey) {
+    return void res.status(500).json({ error: 'Neither OPENAI_API_KEY nor AZURE_OPENAI_KEY is configured' })
+  }
+
+  const auth = await verifyAuth(req)
+  const rateLimitIdentity = buildTranscriptionRateLimitIdentity({ req, auth })
+  const rateResult = checkRateLimit(rateLimitIdentity.key, rateLimitIdentity.limit)
+  res.setHeader('X-RateLimit-Remaining', String(rateResult.remaining))
+  if (!rateResult.allowed) {
+    return void res.status(429).json({ error: 'rate_limited', retryAfterMs: rateLimitIdentity.limit.windowMs })
+  }
+
+  try {
+    const contentType = req.headers['content-type'] || ''
+    const body = await readRequestBody(req)
+    const { fields, file } = parseMultipartFormData(body, contentType)
+    const meta = sanitizeTranscriptionMeta(fields)
+    const validationError = validateAudio({ file, durationMs: meta.durationMs })
+    if (validationError) return void res.status(400).json({ error: validationError })
+
+    const form = new FormData()
+    form.append('model', TRANSCRIPTION_MODEL)
+    form.append('response_format', 'json')
+    if (meta.lang === 'ru') form.append('language', 'ru')
+    if (meta.lang === 'kz') form.append('language', 'kk')
+    form.append('file', new Blob([file.buffer], { type: file.contentType }), file.filename)
+
+    let fetchUrl = 'https://api.openai.com/v1/audio/transcriptions'
+    const headers = {}
+
+    const azureEndpointBase = process.env.AZURE_OPENAI_ENDPOINT_BASE
+    const openAiBaseUrl = process.env.OPENAI_API_BASE_URL
+
+    if (azureEndpointBase && azureApiKey) {
+      const deploymentName = TRANSCRIPTION_MODEL
+      const apiVersion = process.env.AZURE_OPENAI_API_VERSION || '2024-02-15-preview'
+      const cleanBase = azureEndpointBase.replace(/^https?:\/\//, '').replace(/\/+$/, '')
+      fetchUrl = `https://${cleanBase}/openai/deployments/${deploymentName}/audio/transcriptions?api-version=${apiVersion}`
+      headers['api-key'] = azureApiKey
+    } else {
+      const base = openAiBaseUrl || 'https://api.openai.com/v1'
+      fetchUrl = `${base.replace(/\/+$/, '')}/audio/transcriptions`
+      headers['Authorization'] = `Bearer ${apiKey}`
+      if (fetchUrl.includes('.azure.com') || fetchUrl.includes('.services.ai.azure.com')) {
+        headers['api-key'] = apiKey
+      }
+    }
+
+    const openaiRes = await fetch(fetchUrl, {
+      method: 'POST',
+      headers,
+      body: form,
+    })
+
+    if (!openaiRes.ok) {
+      const errorType = classifyTranscriptionError(openaiRes.status)
+      logTranscriptionUsage(
+        buildTranscriptionUsageEvent({
+          startedAt,
+          status: 'error',
+          errorType,
+          model: TRANSCRIPTION_MODEL,
+          storeSlug: meta.storeSlug,
+          durationMs: meta.durationMs,
+          audioBytes: file.buffer.length,
+          language: meta.lang,
+        })
+      )
+      return void res.status(502).json({ error: 'transcription_failed' })
+    }
+
+    const data = await openaiRes.json()
+    const text = cleanString(data.text, 1200)
+    if (!text) return void res.status(422).json({ error: 'empty_transcription' })
+
+    logTranscriptionUsage(
+      buildTranscriptionUsageEvent({
+        startedAt,
+        status: 'ok',
+        model: TRANSCRIPTION_MODEL,
+        storeSlug: meta.storeSlug,
+        durationMs: meta.durationMs,
+        audioBytes: file.buffer.length,
+        language: data.language || meta.lang,
+      })
+    )
+
+    return void res.status(200).json({ text, language: data.language || meta.lang, durationMs: meta.durationMs })
+  } catch (error) {
+    console.error('[ai-transcribe] error', error)
+    logTranscriptionUsage(
+      buildTranscriptionUsageEvent({ startedAt, status: 'error', errorType: 'unknown' })
+    )
+    return void res.status(400).json({ error: 'invalid_audio_payload' })
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  IMAGE ANALYSIS HANDLER (was api/ai-image.js)
+// ══════════════════════════════════════════════════════════════════
+
+export const IMAGE_AI_MODEL =
+  process.env.OPENAI_VISION_MODEL || process.env.OPENAI_IMAGE_MODEL || 'gpt-4o-mini'
+
+export const IMAGE_AI_LIMITS = {
+  ...AI_IMAGE_INPUT_LIMITS,
+  maxMessageLength: 1200,
+  anonymous: { maxRequests: 4, windowMs: 60_000 },
+  authenticated: { maxRequests: 12, windowMs: 60_000 },
+}
+
+export function sanitizeImageAIRequest(body = {}) {
+  if (!body.image || typeof body.image !== 'object') return { ok: false, error: 'image_required' }
+  const mimeType = cleanString(body.image.mimeType, 80).toLowerCase()
+  const dataUrl = typeof body.image.dataUrl === 'string' ? body.image.dataUrl : ''
+  const payloadValidation = validateAIImagePayload({ dataUrl, mimeType })
+  if (!payloadValidation.ok) return { ok: false, error: payloadValidation.error }
+
+  const lang = body.lang === 'kz' ? 'kz' : 'ru'
+  const message = cleanString(body.message, IMAGE_AI_LIMITS.maxMessageLength)
+  return {
+    ok: true,
+    value: {
+      lang,
+      storeSlug: cleanString(body.storeSlug || body.storeContext?.slug, 120) || null,
+      storeName: cleanString(body.storeContext?.name, 160) || null,
+      message,
+      image: {
+        dataUrl,
+        mimeType,
+        bytes: payloadValidation.bytes,
+      },
+      profile: sanitizeProfile(body.profile),
+    },
+  }
+}
+
+export function buildPackageImagePrompt({ lang = 'ru', storeSlug = null, message = '' } = {}) {
+  const langNote = lang === 'kz' ? 'Қазақ тілінде жауап бер.' : 'Отвечай на русском языке.'
+  const storeLine = storeSlug ? `Магазин context: ${storeSlug}.` : 'Магазин context не указан.'
+  const userMessage = message ? `Запрос покупателя: ${message}` : 'Запрос покупателя: проверь упаковку и состав этого товара.'
+  return `Ты — Körset AI, помощник покупателя продуктового магазина в Казахстане. ${langNote} ${storeLine} ${userMessage}
+Анализируй только фото упаковки продуктового товара: состав, аллергены, следы аллергенов, халал-маркеры, КБЖУ, срок годности, условия хранения и предупреждения, если они видимы.
+Если фото не похоже на упаковку продуктового товара, честно скажи, что можешь работать только с упаковкой продуктов. Не анализируй людей, лица, документы, чеки, банковские карты, полки, витрины, лекарства, электронику, стройтовары, алкоголь или табак.
+Не выдумывай невидимый текст, сертификаты, состав, цену, наличие или халал-статус. Если часть упаковки не читается, так и скажи.
+Для аллергий, халал, детского питания, беременности, здоровья, срока годности и безопасности обязательно напиши покупателю: проверь физическую упаковку. Не представляй чтение фото как сертификат, медицинскую гарантию или окончательный вердикт.
+Не используй markdown-разметку: без **, *, заголовков, таблиц и bullet-списков. Ответь живым текстом, максимум 4 предложения.`
+}
+
+export function classifyImageAIError(status) {
+  if (status === 400) return 'bad_request'
+  if (status === 401 || status === 403) return 'auth'
+  if (status === 429) return 'rate_limited'
+  if (status >= 500) return 'provider_error'
+  return 'unknown'
+}
+
+export function buildImageAIUsageEvent({
+  startedAt,
+  status = 'ok',
+  errorType = null,
+  model = IMAGE_AI_MODEL,
+  storeSlug = null,
+  imageBytes = null,
+  imageMime = null,
+} = {}) {
+  return {
+    event: 'ai_image_analysis',
+    status,
+    errorType,
+    model,
+    durationMs: startedAt ? Math.max(0, Date.now() - startedAt) : null,
+    imageBytes: Number.isFinite(Number(imageBytes)) ? Math.max(0, Number(imageBytes)) : null,
+    imageMime: cleanString(imageMime, 80) || null,
+    storeSlug: cleanString(storeSlug, 120) || null,
+  }
+}
+
+function logImageAIUsage(event) {
+  console.info('[ai-image] usage', event)
+}
+
+async function handleImageAnalysis(req, res) {
+  const startedAt = Date.now()
+  corsHeaders(req, res)
+
+  if (req.method === 'OPTIONS') return void res.status(200).end()
+  if (req.method !== 'POST') return void res.status(405).json({ error: 'method_not_allowed' })
+
+  const apiKey = process.env.OPENAI_API_KEY
+  const azureApiKey = process.env.AZURE_OPENAI_KEY
+  if (!apiKey && !azureApiKey) {
+    return void res.status(500).json({ error: 'Neither OPENAI_API_KEY nor AZURE_OPENAI_KEY is configured' })
+  }
+
+  const auth = await verifyAuth(req)
+  const rateKey = auth.authenticated && auth.user?.id
+    ? `image:user:${auth.user.id}`
+    : `image:ip:${getClientIp(req)}`
+  const rateLimit = auth.authenticated ? IMAGE_AI_LIMITS.authenticated : IMAGE_AI_LIMITS.anonymous
+  const rateResult = checkRateLimit(rateKey, rateLimit)
+  res.setHeader('X-RateLimit-Remaining', String(rateResult.remaining))
+  if (!rateResult.allowed) return void res.status(429).json({ error: 'rate_limited', retryAfterMs: rateLimit.windowMs })
+
+  let body
+  try {
+    body = await parseJsonBody(req)
+  } catch {
+    return void res.status(400).json({ error: 'Invalid JSON body' })
+  }
+
+  const sanitized = sanitizeImageAIRequest(body)
+  if (!sanitized.ok) return void res.status(400).json({ error: sanitized.error })
+
+  const request = sanitized.value
+
+  try {
+    let fetchUrl = 'https://api.openai.com/v1/chat/completions'
+    const headers = {
+      'Content-Type': 'application/json',
+    }
+    const requestBody = {
+      max_completion_tokens: 360,
+      temperature: 0.4,
+      messages: [
+        {
+          role: 'developer',
+          content: buildPackageImagePrompt({
+            lang: request.lang,
+            storeSlug: request.storeSlug,
+            message: request.message,
+          }),
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text:
+                request.message ||
+                (request.lang === 'kz'
+                  ? 'Осы тауардың қаптамасы мен құрамын тексеріңіз.'
+                  : 'Проверь упаковку и состав этого товара.'),
+            },
+            { type: 'image_url', image_url: { url: request.image.dataUrl, detail: 'auto' } },
+          ],
+        },
+      ],
+    }
+
+    const azureEndpointBase = process.env.AZURE_OPENAI_ENDPOINT_BASE
+    const openAiBaseUrl = process.env.OPENAI_API_BASE_URL
+
+    if (azureEndpointBase && azureApiKey) {
+      const deploymentName = IMAGE_AI_MODEL
+      const apiVersion = process.env.AZURE_OPENAI_API_VERSION || '2024-02-15-preview'
+      const cleanBase = azureEndpointBase.replace(/^https?:\/\//, '').replace(/\/+$/, '')
+      fetchUrl = `https://${cleanBase}/openai/deployments/${deploymentName}/chat/completions?api-version=${apiVersion}`
+      headers['api-key'] = azureApiKey
+      requestBody.model = deploymentName
+    } else {
+      const base = openAiBaseUrl || 'https://api.openai.com/v1'
+      fetchUrl = `${base.replace(/\/+$/, '')}/chat/completions`
+      headers['Authorization'] = `Bearer ${apiKey}`
+      if (fetchUrl.includes('.azure.com') || fetchUrl.includes('.services.ai.azure.com')) {
+        headers['api-key'] = apiKey
+      }
+      requestBody.model = IMAGE_AI_MODEL
+    }
+
+    const openaiRes = await fetch(fetchUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(requestBody),
+    })
+
+    if (!openaiRes.ok) {
+      const errorType = classifyImageAIError(openaiRes.status)
+      logImageAIUsage(
+        buildImageAIUsageEvent({
+          startedAt,
+          status: 'error',
+          errorType,
+          model: IMAGE_AI_MODEL,
+          storeSlug: request.storeSlug,
+          imageBytes: request.image.bytes,
+          imageMime: request.image.mimeType,
+        })
+      )
+      return void res.status(502).json({ error: 'image_ai_unavailable' })
+    }
+
+    const data = await openaiRes.json()
+    const reply = data.choices?.[0]?.message?.content?.trim() || ''
+    logImageAIUsage(
+      buildImageAIUsageEvent({
+        startedAt,
+        status: 'ok',
+        model: IMAGE_AI_MODEL,
+        storeSlug: request.storeSlug,
+        imageBytes: request.image.bytes,
+        imageMime: request.image.mimeType,
+      })
+    )
+
+    return void res.status(200).json(
+      normalizeAIResponse({
+        reply,
+        productGroups: [],
+        followUps: [],
+        warnings: [],
+        ragUsed: false,
+      })
+    )
+  } catch (error) {
+    console.error('[ai-image] error', error)
+    logImageAIUsage(buildImageAIUsageEvent({ startedAt, status: 'error', errorType: 'unknown' }))
+    return void res.status(500).json({ error: 'image_ai_failed' })
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  ROUTER — main entry point
+// ══════════════════════════════════════════════════════════════════
+
+function routeByPath(url) {
+  if (!url) return 'chat'
+  if (url.includes('/ai-transcribe')) return 'transcribe'
+  if (url.includes('/ai-image')) return 'image'
+  return 'chat'
+}
+
+// Helper: add .json() / .end() convenience to the raw ServerResponse
+function patchRes(res) {
+  if (!res._patched) {
+    res._patched = true
+    res.json = (data) => {
+      res.setHeader('Content-Type', 'application/json')
+      res.end(JSON.stringify(data))
+    }
+  }
+  return res
+}
+
+export default async function handler(req, res) {
+  patchRes(res)
+
+  const action = routeByPath(req.url)
+
+  if (action === 'transcribe') {
+    return handleTranscription(req, res)
+  }
+  if (action === 'image') {
+    return handleImageAnalysis(req, res)
+  }
+  return handleChat(req, res)
 }

@@ -64,6 +64,10 @@ The project uses layered memory. Keep each layer in its role.
 
 - `AGENTS.md`: stable agent behavior rules. Keep concise.
 - `docs/CONTEXT.md`: fast-start project context. It should be fuller than this file, but not an archive. Keep current focus, working status, critical constraints, and links to deeper docs.
+  - **CRITICAL: Never add changelog entries, import logs, stage-by-stage completions, or vault-file summaries to CONTEXT.md.**
+  - Before writing a line to CONTEXT.md, ask: "Would a new agent make a mistake without this line?" If no, do not add it.
+  - Target: keep CONTEXT.md under 250 lines. When it grows, move details to vault and leave a short summary + link.
+  - Session results, operation histories, and detailed status belong in `docs/vault/changelog/`, NEVER in CONTEXT.md.
 - `docs/ARCHITECTURE.md`: deep system map and long-lived architecture.
 - `docs/ROADMAP_PILOT_V1.md`: current product roadmap and launch priorities.
 - `docs/AI_TASK_MODES.md`: task-specific workflows for UI, bugfix, DB, architecture, memory, and release work.
@@ -184,4 +188,10 @@ Do not add the following to `AGENTS.md`:
 - Tool lists that are specific to one IDE
 - Temporary plans or completed task history
 
-Put those in `docs/CONTEXT.md`, `docs/ARCHITECTURE.md`, `docs/ROADMAP_PILOT_V1.md`, or `docs/vault/` depending on their role.
+Put those in `docs/vault/` depending on their role:
+- Session changelogs → `docs/vault/changelog/`
+- Architecture details → `docs/vault/architecture/` or `docs/ARCHITECTURE.md`
+- Plans and audits → `docs/vault/plans/`
+- Decisions → `docs/vault/decisions/`
+- Tool lists and task modes → `docs/AI_TASK_MODES.md`, `docs/AI_TOOLS_MATRIX.md`
+- **NEVER put session logs or operation histories in `docs/CONTEXT.md`.**

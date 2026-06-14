@@ -1,6 +1,6 @@
 # KORSET — ROADMAP
 
-> Обновлено: 2026-05-06.
+> Обновлено: 2026-06-14.
 > Роль файла: текущие приоритеты, открытые решения и launch direction. Это не архив всех планов.
 > Архивные аудиты и старые фазы лежат в `docs/vault/plans/` и `docs/vault/changelog/`.
 
@@ -8,115 +8,90 @@
 
 ## 1. Current Goal
 
-Сделать Körset pilot-ready для первого продуктового магазина:
-- buyer PWA должна быть отличным публичным цифровым каталогом для просмотра из дома и надежным помощником у полки;
-- retail cabinet должен выглядеть и работать как продаваемый B2B-инструмент (с удобным обновлением цен);
-- data pipeline должен честно обрабатывать unknown EAN и не выдумывать безопасность;
-- документация и Vault должны помогать нескольким ИИ-агентам работать без конфликтов.
+Сделать Körset pilot-ready для продуктовых магазинов:
+- buyer PWA — публичный цифровой каталог для просмотра из дома + помощник у полки;
+- retail cabinet — продаваемый B2B-инструмент;
+- data pipeline — честная обработка unknown EAN без выдумывания;
+- документация и Vault — помощь нескольким ИИ-агентам без конфликтов.
 
-Критерий качества: не “быстро накидать”, а shipped-quality без лишнего усложнения.
-Стратегический сдвиг: продукт — это публичный каталог (Digital Storefront), а сканер — это лишь одна из фич у полки. Регистрация не требуется для просмотра.
+Критерий качества: shipped-quality без усложнения.
+Стратегический сдвиг (2026-06-11): продукт — публичный каталог (Digital Storefront), сканер — фича у полки. Регистрация не требуется.
 
 ---
 
 ## 2. P0 — Now
 
-1. Memory system normalization
-   - `AGENTS.md`, `CONTEXT.md`, `ARCHITECTURE.md`, `ROADMAP_PILOT_V1.md` должны иметь разные роли.
-   - Vault folders need README indexes and consistent metadata.
-   - `scripts/embed-vault.mjs` should index domains correctly on Windows.
+1. ~~Memory system normalization~~ 🔄
+   - ✅ `AGENTS.md`, `CONTEXT.md` — готово.
+   - 🔄 `ARCHITECTURE.md`, `ROADMAP_PILOT_V1.md` — обновляются (2026-06-14).
+   - ⬜ Vault README indexes, metadata.
+   - ⬜ `scripts/embed-vault.mjs` — Windows indexing.
 
-2. Verify/fix `AlternativesScreen.jsx`
-   - Check current runtime bug around `useLocalName(product)`.
-   - Remove old hardcoded core colors if still present.
-   - Verify product route, empty states and same-store alternative logic.
+2. ~~Verify/fix `AlternativesScreen.jsx`~~ ✅
+   → `docs/vault/changelog/2026-05-22-alternatives-professional-upgrade.md`
 
-3. Auth/profile final verification
-   - Confirm Supabase redirect URLs.
-   - Confirm email templates and password recovery.
-   - Smoke test Google, email/password, email code and account linked-method UI.
+3. ~~Auth/profile final verification~~ ✅ (2026-05-06)
+   - Redirect URLs, providers — verified. Tests 9/9.
+   - Единственный ручной остаток: вставить email-шаблоны в Supabase Dashboard.
+   → `docs/vault/architecture/supabase-email-templates.md`
 
-4. Pilot data readiness
-   - Choose first real pilot store/data source.
-   - Validate product import path for real CSV/XLS/XLSX.
-   - Confirm unknown EAN recovery loop.
+4. ~~Pilot data readiness~~ ✅
+   - Магазины: Mars (mars, ~10K), Нұрлы (nurly, ~2.5K), Калина (kalina, ~2K).
+   - Источник: Arbuz.kz (~5,000+ EAN импортировано).
+   - Import (CSV/XLS/XLSX) + EAN Recovery — работают.
 
-5. Digital Catalog Transition
-   - Implement SEO injection: Schema.org, Meta-tags, dynamic title/description per store and product.
-   - Rename "Favorites" to "Shopping List" (Список покупок) globally in UI and data.
-   - Hide `out_of_stock` products by default in public catalog.
-   - Implement `is_published` (draft mode) flag for stores to hide unready catalogs.
-   - Remove gating logic, ensure unhindered public access.
+5. ~~Digital Catalog Transition~~ 🔄
+   - ✅ SEO: Schema.org, OpenGraph, sitemap.xml, robots.txt.
+   - ✅ Gating logic removed (access gate, токены, коды — отменены).
+   - ⬜ "Favorites" → "Shopping List" (Список покупок) — pending verify.
+   - ⬜ `out_of_stock` hide, `is_published` flag — pending verify.
 
 6. Launch-quality checks
-   - Mobile catalog flow and SEO visibility.
-   - Product page and Fit-Check.
-   - Catalog search/category browsing.
-   - Retail dashboard/products/import/settings.
-   - Offline behavior in weak/no network.
+   - ✅ Mobile catalog flow, SEO.
+   - ✅ Product page, Fit-Check.
+   - ✅ Catalog search, category browsing.
+   - ✅ AI assistant (text/voice/image).
+   - ⬜ Полный smoke: retail dashboard, products, import, settings.
+   - ⬜ Offline behavior (weak/no network).
 
 ---
 
 ## 3. P1 — Next
 
-1. Data Moat v1
-   - product quality score;
-   - source confidence;
-   - TTL/freshness;
-   - Kazakhstan/EAEU barcode/data sources;
-   - clear “unknown / not enough data” states.
-
-2. Retail polish
-   - B2B metrics in money, not only counts;
-   - import report clarity;
-   - better owner-facing empty/error states;
-   - settings/branding polish.
-
-3. Database integrity and performance
-   - unique constraints where needed;
-   - cascade rules;
-   - indexes for search/analytics;
-   - RLS verification;
-   - scan_events growth plan.
-
-4. ProductScreen and resolver cleanup
-   - reduce monolith risk;
-   - keep deterministic safety logic clear;
-   - make unknown/enriched/cached states obvious.
-
-5. Launch materials
-   - QR poster/sticker/cashier assets;
-   - cashier pitch sheet;
-   - physical store test checklist.
+1. Data Moat v1 — product quality score, source confidence, TTL, KZ/EAEU barcode sources.
+2. Retail polish — B2B метрики в деньгах, import report clarity, empty/error states.
+3. DB integrity — unique constraints, cascade rules, indexes, RLS verification, scan_events growth.
+4. ProductScreen resolver cleanup — reduce monolith, clear unknown/enriched states.
+5. Launch materials — QR poster/sticker, cashier pitch, physical store test checklist.
 
 ---
 
 ## 4. Frozen For V1
 
-Do not build these unless the owner explicitly changes scope:
+Не строить без явного изменения scope владельцем:
 
-- non-grocery verticals;
+- non-grocery verticals (аптеки, электроника, строительные, alcohol/tobacco);
 - social/gamification;
 - in-app B2B payments;
 - full self-service owner onboarding;
-- AR/computer-vision recognition without barcode;
+- AR/computer-vision без barcode;
 - interactive 3D store map/planogram;
-- heavy health dashboards beyond the immediate Fit-Check value.
-
-These ideas may stay in Vault, but they should not distract from pilot readiness.
+- heavy health dashboards за пределами Fit-Check.
 
 ---
 
 ## 5. Open Decisions
 
-These require owner input before implementation:
+Требуют ввода владельца:
 
-- First pilot store and real dataset source.
 - Exact B2B offer: monthly price, trial/discount, included services.
-- Whether phone/WhatsApp identity returns later and in what form.
-- Product photo pipeline: manual, AI-assisted, R2/Supabase Storage, compression policy.
+- Product photo pipeline: manual vs AI-assisted, R2/Supabase Storage, compression.
 - How strict V1 must be on local JSON/demo fallbacks.
 - Which physical launch materials are needed first.
+
+Решено:
+- First pilot store → Mars, Нұрлы, Калина. Source: Arbuz.kz.
+- Phone/WhatsApp identity → удалён, не возвращается.
 
 ---
 
@@ -127,22 +102,15 @@ These require owner input before implementation:
 - AI collaboration protocol: `docs/AI_COLLAB_PROTOCOL.md`
 - Full legacy audit: `docs/vault/plans/audit-full.md`
 - Data Moat: `docs/vault/knowledge/data-moat-pipeline-strategy.md`
-- Retail import: `docs/vault/changelog/retail-import-v1-2026-04-25.md`
 - Offline resilience: `docs/vault/architecture/offline-resilience.md`
 - Auth system: `docs/vault/architecture/auth-system.md`
 - EAN recovery: `docs/vault/architecture/ean-recovery-system.md`
+- Context cleanup archive: `docs/vault/changelog/2026-06-14-context-cleanup-archive.md`
 
 ---
 
 ## 7. How To Update This File
 
 Keep it short.
-
-Add only:
-- current priorities;
-- open product decisions;
-- launch blockers;
-- frozen scope changes;
-- links to deeper plans.
-
+Add only: current priorities, open product decisions, launch blockers, frozen scope changes, links to deeper plans.
 Move completed histories and long reasoning into dated Vault changelog or plans.

@@ -1,6 +1,6 @@
 # KORSET — ARCHITECTURE MAP
 
-> Обновлено: 2026-05-06.
+> Обновлено: 2026-06-14.
 > Роль файла: карта системы для глубокого входа. Это не changelog, не roadmap и не архив всех прошлых идей.
 > Быстрый старт: `docs/CONTEXT.md`. Текущие приоритеты: `docs/ROADMAP_PILOT_V1.md`. Детальная память: `docs/vault/`.
 
@@ -94,6 +94,7 @@ Consumer store context:
 /s/:storeSlug/product/:ean/alternatives
 /s/:storeSlug/product/:ean/ai
 /s/:storeSlug/product/:ean/compare/:ean2
+/s/:storeSlug/product/:ean/composition
 ```
 
 Retail:
@@ -160,7 +161,7 @@ Known important screens:
 - `src/screens/CompareScreen.jsx`
 - `src/screens/AlternativesScreen.jsx`
 
-Risk note: `AlternativesScreen.jsx` needs a targeted verification/fix before it is treated as production-polished.
+Risk note (обновлено 2026-05-22): `AlternativesScreen.jsx` — verified/fixed. См. `docs/vault/changelog/2026-05-22-alternatives-professional-upgrade.md`.
 
 ---
 
@@ -302,7 +303,7 @@ Detailed doc: `docs/vault/operations/monitoring-runbook.md`.
 
 Keep these as caution flags, not as permanent truth:
 
-- `AlternativesScreen.jsx`: needs verification/fix before production polish.
+- `AlternativesScreen.jsx`: ✅ verified/fixed (2026-05-22). См. `docs/vault/changelog/2026-05-22-alternatives-professional-upgrade.md`.
 - Some legacy Vault plans may describe old priorities or model-specific workflows.
 - Old roadmap deadlines before 2026-05-06 are historical, not current commitments.
 - Any Supabase Dashboard settings, RLS policies and email templates must be verified against the live project before final claims.
