@@ -236,7 +236,10 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' })
 
   const apiKey = process.env.OPENAI_API_KEY
-  if (!apiKey) return res.status(500).json({ error: 'OPENAI_API_KEY not configured' })
+  const azureApiKey = process.env.AZURE_OPENAI_KEY
+  if (!apiKey && !azureApiKey) {
+    return res.status(500).json({ error: 'Neither OPENAI_API_KEY nor AZURE_OPENAI_KEY is configured' })
+  }
 
   const auth = await verifyAuth(req)
   const rateLimitIdentity = buildTranscriptionRateLimitIdentity({ req, auth })
@@ -261,9 +264,30 @@ export default async function handler(req, res) {
     if (meta.lang === 'kz') form.append('language', 'kk')
     form.append('file', new Blob([file.buffer], { type: file.contentType }), file.filename)
 
-    const openaiRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    let fetchUrl = 'https://api.openai.com/v1/audio/transcriptions'
+    const headers = {}
+
+    const azureEndpointBase = process.env.AZURE_OPENAI_ENDPOINT_BASE
+    const openAiBaseUrl = process.env.OPENAI_API_BASE_URL
+
+    if (azureEndpointBase && azureApiKey) {
+      const deploymentName = TRANSCRIPTION_MODEL
+      const apiVersion = process.env.AZURE_OPENAI_API_VERSION || '2024-02-15-preview'
+      const cleanBase = azureEndpointBase.replace(/^https?:\/\//, '').replace(/\/+$/, '')
+      fetchUrl = `https://${cleanBase}/openai/deployments/${deploymentName}/audio/transcriptions?api-version=${apiVersion}`
+      headers['api-key'] = azureApiKey
+    } else {
+      const base = openAiBaseUrl || 'https://api.openai.com/v1'
+      fetchUrl = `${base.replace(/\/+$/, '')}/audio/transcriptions`
+      headers['Authorization'] = `Bearer ${apiKey}`
+      if (fetchUrl.includes('.azure.com') || fetchUrl.includes('.services.ai.azure.com')) {
+        headers['api-key'] = apiKey
+      }
+    }
+
+    const openaiRes = await fetch(fetchUrl, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}` },
+      headers,
       body: form,
     })
 

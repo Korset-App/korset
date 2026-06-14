@@ -23,8 +23,8 @@ const CORS_ORIGINS = [
 ]
 
 export const AI_MODELS = {
-  default: process.env.OPENAI_CHAT_MODEL || 'gpt-5.4-nano',
-  highQuality: process.env.OPENAI_CHAT_MODEL_HIGH_QUALITY || 'gpt-5.4-mini',
+  default: process.env.OPENAI_CHAT_MODEL || 'gpt-4o-mini',
+  highQuality: process.env.OPENAI_CHAT_MODEL_HIGH_QUALITY || 'gpt-4o',
 }
 
 export const AI_MODEL = AI_MODELS.default
@@ -361,12 +361,20 @@ async function fetchRagContext(product, _mode, profile) {
     const queryText = queryParts.join(' ').slice(0, 500)
     if (!queryText) return null
 
-    const embRes = await fetch('https://api.openai.com/v1/embeddings', {
+    const openAiBaseUrl = process.env.OPENAI_API_BASE_URL
+    const base = openAiBaseUrl || 'https://api.openai.com/v1'
+    const fetchUrl = `${base.replace(/\/+$/, '')}/embeddings`
+    const headers = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    }
+    if (fetchUrl.includes('.azure.com') || fetchUrl.includes('.services.ai.azure.com')) {
+      headers['api-key'] = process.env.OPENAI_API_KEY
+    }
+
+    const embRes = await fetch(fetchUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
+      headers,
       body: JSON.stringify({
         model: RAG_EMBEDDING_MODEL,
         dimensions: RAG_EMBEDDING_DIMENSIONS,
@@ -422,7 +430,10 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   const apiKey = process.env.OPENAI_API_KEY
-  if (!apiKey) return res.status(500).json({ error: 'OPENAI_API_KEY not configured' })
+  const azureApiKey = process.env.AZURE_OPENAI_KEY
+  if (!apiKey && !azureApiKey) {
+    return res.status(500).json({ error: 'Neither OPENAI_API_KEY nor AZURE_OPENAI_KEY is configured' })
+  }
 
   // ── Auth + Rate limit ──
   const { user, authenticated } = await verifyAuth(req)
@@ -512,18 +523,40 @@ export default async function handler(req, res) {
     const completionLimits = getOpenAICompletionLimits(mode)
     const modelSelection = selectOpenAIModel({ mode, product, profile, catalogContext })
 
-    // ── Вызов OpenAI ──
-    const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+    // ── Вызов API (стандартный OpenAI, нативный Azure OpenAI или MaaS в Azure) ──
+    let fetchUrl = 'https://api.openai.com/v1/chat/completions'
+    const headers = {
+      'Content-Type': 'application/json',
+    }
+    const requestBody = {
+      ...completionLimits,
+      messages: [{ role: 'developer', content: systemPrompt }, ...validMessages],
+    }
+
+    const azureEndpointBase = process.env.AZURE_OPENAI_ENDPOINT_BASE
+    const openAiBaseUrl = process.env.OPENAI_API_BASE_URL
+
+    if (azureEndpointBase && azureApiKey) {
+      const deploymentName = modelSelection.model
+      const apiVersion = process.env.AZURE_OPENAI_API_VERSION || '2024-02-15-preview'
+      const cleanBase = azureEndpointBase.replace(/^https?:\/\//, '').replace(/\/+$/, '')
+      fetchUrl = `https://${cleanBase}/openai/deployments/${deploymentName}/chat/completions?api-version=${apiVersion}`
+      headers['api-key'] = azureApiKey
+      requestBody.model = deploymentName
+    } else {
+      const base = openAiBaseUrl || 'https://api.openai.com/v1'
+      fetchUrl = `${base.replace(/\/+$/, '')}/chat/completions`
+      headers['Authorization'] = `Bearer ${apiKey}`
+      if (fetchUrl.includes('.azure.com') || fetchUrl.includes('.services.ai.azure.com')) {
+        headers['api-key'] = apiKey
+      }
+      requestBody.model = modelSelection.model
+    }
+
+    const openaiRes = await fetch(fetchUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: modelSelection.model,
-        ...completionLimits,
-        messages: [{ role: 'developer', content: systemPrompt }, ...validMessages],
-      }),
+      headers,
+      body: JSON.stringify(requestBody),
     })
 
     if (!openaiRes.ok) {

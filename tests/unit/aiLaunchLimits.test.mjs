@@ -130,15 +130,15 @@ test('OpenAI completion limits stay mobile-sized by mode', () => {
 })
 
 test('OpenAI model routing defaults to nano without automatic premium routing', () => {
-  assert.equal(AI_MODELS.default, 'gpt-5.4-nano')
-  assert.equal(AI_MODELS.highQuality, 'gpt-5.4-mini')
+  assert.equal(AI_MODELS.default, 'gpt-4o-mini')
+  assert.equal(AI_MODELS.highQuality, 'gpt-4o')
   assert.deepEqual(selectOpenAIModel({ mode: 'general' }), {
-    model: 'gpt-5.4-nano',
+    model: 'gpt-4o-mini',
     route: 'default',
     reason: 'general:default',
   })
   assert.deepEqual(selectOpenAIModel({ mode: 'product', profile: { allergens: ['milk'] } }), {
-    model: 'gpt-5.4-nano',
+    model: 'gpt-4o-mini',
     route: 'default',
     reason: 'product:default',
   })
@@ -162,7 +162,7 @@ test('AI usage event is compact, diagnostic, and excludes user message content',
       buildAIUsageEvent({
         mode: 'general',
         modelRoute: 'default',
-        model: 'gpt-5.4-nano',
+        model: 'gpt-4o-mini',
         completionLimits: { max_completion_tokens: 320 },
         usage: {
           prompt_tokens: 240,
@@ -183,7 +183,7 @@ test('AI usage event is compact, diagnostic, and excludes user message content',
         event: 'ai_completion',
         mode: 'general',
         intent: 'catalog_recommendation',
-        model: 'gpt-5.4-nano',
+        model: 'gpt-4o-mini',
         modelRoute: 'default',
         status: 'ok',
         errorType: null,
@@ -210,7 +210,7 @@ test('AI usage event derives no-match diagnostics without message text', () => {
   const event = buildAIUsageEvent({
     mode: 'general',
     modelRoute: 'default',
-    model: 'gpt-5.4-nano',
+    model: 'gpt-4o-mini',
     status: 'error',
     errorType: 'provider_error',
     latencyMs: 35,

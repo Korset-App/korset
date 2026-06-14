@@ -168,7 +168,10 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' })
 
   const apiKey = process.env.OPENAI_API_KEY
-  if (!apiKey) return res.status(500).json({ error: 'OPENAI_API_KEY not configured' })
+  const azureApiKey = process.env.AZURE_OPENAI_KEY
+  if (!apiKey && !azureApiKey) {
+    return res.status(500).json({ error: 'Neither OPENAI_API_KEY nor AZURE_OPENAI_KEY is configured' })
+  }
 
   const auth = await verifyAuth(req)
   const rateKey = auth.authenticated && auth.user?.id ? `user:${auth.user.id}` : `ip:${getClientIp(req)}`
@@ -183,41 +186,64 @@ export default async function handler(req, res) {
   const request = sanitized.value
 
   try {
-    const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+    // ── Вызов API (стандартный OpenAI, нативный Azure OpenAI или MaaS в Azure) ──
+    let fetchUrl = 'https://api.openai.com/v1/chat/completions'
+    const headers = {
+      'Content-Type': 'application/json',
+    }
+    const requestBody = {
+      max_completion_tokens: 360,
+      temperature: 0.4,
+      messages: [
+        {
+          role: 'developer',
+          content: buildPackageImagePrompt({
+            lang: request.lang,
+            storeSlug: request.storeSlug,
+            message: request.message,
+          }),
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text:
+                request.message ||
+                (request.lang === 'kz'
+                  ? 'Осы тауардың қаптамасы мен құрамын тексеріңіз.'
+                  : 'Проверь упаковку и состав этого товара.'),
+            },
+            { type: 'image_url', image_url: { url: request.image.dataUrl, detail: 'auto' } },
+          ],
+        },
+      ],
+    }
+
+    const azureEndpointBase = process.env.AZURE_OPENAI_ENDPOINT_BASE
+    const openAiBaseUrl = process.env.OPENAI_API_BASE_URL
+
+    if (azureEndpointBase && azureApiKey) {
+      const deploymentName = IMAGE_AI_MODEL
+      const apiVersion = process.env.AZURE_OPENAI_API_VERSION || '2024-02-15-preview'
+      const cleanBase = azureEndpointBase.replace(/^https?:\/\//, '').replace(/\/+$/, '')
+      fetchUrl = `https://${cleanBase}/openai/deployments/${deploymentName}/chat/completions?api-version=${apiVersion}`
+      headers['api-key'] = azureApiKey
+      requestBody.model = deploymentName
+    } else {
+      const base = openAiBaseUrl || 'https://api.openai.com/v1'
+      fetchUrl = `${base.replace(/\/+$/, '')}/chat/completions`
+      headers['Authorization'] = `Bearer ${apiKey}`
+      if (fetchUrl.includes('.azure.com') || fetchUrl.includes('.services.ai.azure.com')) {
+        headers['api-key'] = apiKey
+      }
+      requestBody.model = IMAGE_AI_MODEL
+    }
+
+    const openaiRes = await fetch(fetchUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: IMAGE_AI_MODEL,
-        max_completion_tokens: 360,
-        temperature: 0.4,
-        messages: [
-          {
-            role: 'developer',
-            content: buildPackageImagePrompt({
-              lang: request.lang,
-              storeSlug: request.storeSlug,
-              message: request.message,
-            }),
-          },
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text:
-                  request.message ||
-                  (request.lang === 'kz'
-                    ? 'Осы тауардың қаптамасы мен құрамын тексеріңіз.'
-                    : 'Проверь упаковку и состав этого товара.'),
-              },
-              { type: 'image_url', image_url: { url: request.image.dataUrl, detail: 'auto' } },
-            ],
-          },
-        ],
-      }),
+      headers,
+      body: JSON.stringify(requestBody),
     })
 
     if (!openaiRes.ok) {

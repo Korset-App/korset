@@ -275,21 +275,44 @@ async function generateEmbeddings(texts) {
     const batch = texts.slice(i, i + batchSize)
     const response = await retry(
       async () => {
-        const res = await fetch('https://api.openai.com/v1/embeddings', {
+        let fetchUrl = 'https://api.openai.com/v1/embeddings'
+        const headers = {
+          'Content-Type': 'application/json',
+        }
+        const requestBody = {
+          input: batch,
+        }
+
+        const azureEndpointBase = process.env.AZURE_OPENAI_ENDPOINT_BASE
+        const azureApiKey = process.env.AZURE_OPENAI_KEY
+        const openAiBaseUrl = process.env.OPENAI_API_BASE_URL
+
+        if (azureEndpointBase && azureApiKey) {
+          const deploymentName = process.env.AZURE_OPENAI_EMBEDDING_DEPLOYMENT || EMBEDDING_MODEL
+          const apiVersion = process.env.AZURE_OPENAI_API_VERSION || '2024-02-15-preview'
+          const cleanBase = azureEndpointBase.replace(/^https?:\/\//, '').replace(/\/+$/, '')
+          fetchUrl = `https://${cleanBase}/openai/deployments/${deploymentName}/embeddings?api-version=${apiVersion}`
+          headers['api-key'] = azureApiKey
+          requestBody.model = deploymentName
+        } else {
+          const base = openAiBaseUrl || 'https://api.openai.com/v1'
+          fetchUrl = `${base.replace(/\/+$/, '')}/embeddings`
+          headers['Authorization'] = `Bearer ${OPENAI_KEY}`
+          if (fetchUrl.includes('.azure.com') || fetchUrl.includes('.services.ai.azure.com')) {
+            headers['api-key'] = OPENAI_KEY
+          }
+          requestBody.model = EMBEDDING_MODEL
+          requestBody.dimensions = EMBEDDING_DIMENSIONS
+        }
+
+        const res = await fetch(fetchUrl, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${OPENAI_KEY}`,
-          },
-          body: JSON.stringify({
-            model: EMBEDDING_MODEL,
-            dimensions: EMBEDDING_DIMENSIONS,
-            input: batch,
-          }),
+          headers,
+          body: JSON.stringify(requestBody),
         })
         if (!res.ok) {
           const body = await res.json().catch(() => ({}))
-          throw new Error(body.error?.message || `OpenAI embeddings HTTP ${res.status}`)
+          throw new Error(body.error?.message || `Embeddings HTTP ${res.status}`)
         }
         return res.json()
       },

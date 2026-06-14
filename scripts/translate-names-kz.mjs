@@ -48,10 +48,18 @@ async function translateBatch(items) {
 
 ${lines}`
 
-  const r = await httpPost('https://api.openai.com/v1/chat/completions', {
+  const openAiBaseUrl = process.env.OPENAI_API_BASE_URL
+  const base = openAiBaseUrl || 'https://api.openai.com/v1'
+  const fetchUrl = `${base.replace(/\/+$/, '')}/chat/completions`
+  const headers = {
     'Authorization': 'Bearer ' + OPENAI_KEY,
     'Content-Type': 'application/json',
-  }, {
+  }
+  if (fetchUrl.includes('.azure.com') || fetchUrl.includes('.services.ai.azure.com')) {
+    headers['api-key'] = OPENAI_KEY
+  }
+
+  const r = await httpPost(fetchUrl, headers, {
     model: 'gpt-4o-mini',
     messages: [{ role: 'user', content: prompt }],
     temperature: 0.1,

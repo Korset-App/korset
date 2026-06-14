@@ -69,12 +69,20 @@ export async function getAIResponse(question, lang, faqItems) {
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS)
 
   try {
-    const res = await fetch(OPENAI_API, {
+    const openAiBaseUrl = process.env.OPENAI_API_BASE_URL
+    const base = openAiBaseUrl || 'https://api.openai.com/v1'
+    const fetchUrl = `${base.replace(/\/+$/, '')}/chat/completions`
+    const headers = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${API_KEY}`,
+    }
+    if (fetchUrl.includes('.azure.com') || fetchUrl.includes('.services.ai.azure.com')) {
+      headers['api-key'] = API_KEY
+    }
+
+    const res = await fetch(fetchUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${API_KEY}`,
-      },
+      headers,
       body: JSON.stringify({
         model: MODEL,
         max_completion_tokens: MAX_TOKENS,
