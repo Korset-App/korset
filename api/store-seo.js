@@ -60,8 +60,13 @@ export default async function handler(req, res) {
 
     // Dynamic metadata content
     const storeName = store.name || 'Магазин'
+    const storeCity = store.city || ''
+    const storeAddress = [storeCity, store.address].filter(Boolean).join(', ')
     const title = `${storeName} — Онлайн-каталог и Fit-Check продуктов | Körset`
-    const description = store.short_description || store.description || `Цифровой каталог продуктов для магазина ${storeName} в Körset. Цены, наличие, проверка халал-статуса и состава.`
+    const storeSummary = store.short_description || store.description || ''
+    const description = storeSummary
+      ? (storeCity ? `${storeSummary} в ${storeCity}. Каталог товаров с ценами, проверка халал-статуса и состава продуктов в Körset.` : `${storeSummary}. Каталог товаров с ценами, проверка халал-статуса и состава продуктов в Körset.`)
+      : `Каталог товаров магазина ${storeName}${storeCity ? ` в ${storeCity}` : ''}. Цены, состав продуктов, Fit-Check по аллергенам и халал.`
     const logoUrl = store.logo_url || 'https://korset.app/brand/korset-app-icon.png'
     const imageUrl = (store.images && store.images.length > 0) ? store.images[0] : logoUrl
     const storeUrl = `https://korset.app/s/${store.code}`
@@ -78,9 +83,13 @@ export default async function handler(req, res) {
       "address": {
         "@type": "PostalAddress",
         "streetAddress": store.address || "",
-        "addressLocality": "Astana",
+        "addressLocality": storeCity || "Астана",
         "addressCountry": "KZ"
       }
+    }
+
+    if (storeAddress) {
+      schemaJson.description = `Продуктовый магазин ${storeName} по адресу ${storeAddress}. Каталог товаров с ценами, проверка халал-статуса и состава продуктов в Körset.`
     }
 
     if (store.latitude && store.longitude) {
