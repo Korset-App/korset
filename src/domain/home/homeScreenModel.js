@@ -10,12 +10,28 @@ export const HOME_SCREEN_SECTIONS = [
 
 export const HOME_STORY_KEYS = [
   {
-    key: 'what',
+    key: 'store',
+    icon: 'storefront',
+    tone: 'green',
+    image: '/catalog-categories/category-grocery.webp',
+    cta: 'store',
+    slides: ['store.0', 'store.1', 'store.2'],
+  },
+  {
+    key: 'catalog',
     icon: 'auto_stories',
     tone: 'moon',
     image: '/landing/how_step_1.png',
-    cta: 'learn',
-    slides: ['what.0', 'what.1', 'what.2'],
+    cta: 'catalog',
+    slides: ['catalog.0', 'catalog.1', 'catalog.2'],
+  },
+  {
+    key: 'ai',
+    icon: 'auto_awesome',
+    tone: 'violet',
+    image: '/landing/audience_diet.png',
+    cta: 'ai',
+    slides: ['ai.0', 'ai.1', 'ai.2'],
   },
   {
     key: 'scan',
@@ -28,26 +44,10 @@ export const HOME_STORY_KEYS = [
   {
     key: 'fit',
     icon: 'tune',
-    tone: 'violet',
-    image: '/landing/audience_diet.png',
-    cta: 'fit',
-    slides: ['fit.0', 'fit.1', 'fit.2'],
-  },
-  {
-    key: 'safety',
-    icon: 'health_and_safety',
     tone: 'blue',
     image: '/landing/audience_halal.png',
     cta: 'fit',
-    slides: ['safety.0', 'safety.1', 'safety.2'],
-  },
-  {
-    key: 'store',
-    icon: 'storefront',
-    tone: 'green',
-    image: '/catalog-categories/category-grocery.webp',
-    cta: 'store',
-    slides: ['store.0', 'store.1', 'store.2'],
+    slides: ['fit.0', 'fit.1', 'fit.2'],
   },
 ]
 

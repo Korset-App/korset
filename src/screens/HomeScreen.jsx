@@ -89,13 +89,27 @@ function getLocalizedLabel(item, lang) {
   return item?.label?.[lang] || item?.label?.ru || item?.id || ''
 }
 
-function buildStoryVars(store) {
-  return { storeName: getStoreName(store) }
+function buildStoryVars(store, catalogProducts = []) {
+  return {
+    storeName: getStoreName(store),
+    catalogCount: catalogProducts?.length || 0,
+    address: [store?.city, store?.address].filter(Boolean).join(', ') || '',
+  }
 }
 
-function StoryViewer({ story, storyIndex, slideIndex, store, t, onClose, onSlide, onCta }) {
+function StoryViewer({
+  story,
+  storyIndex,
+  slideIndex,
+  store,
+  catalogProducts,
+  t,
+  onClose,
+  onSlide,
+  onCta,
+}) {
   const slideKey = story.slides[slideIndex] || story.slides[0]
-  const vars = buildStoryVars(store)
+  const vars = buildStoryVars(store, catalogProducts)
 
   return (
     <div className="home-story-viewer" role="dialog" aria-modal="true">
@@ -197,12 +211,14 @@ export default function HomeScreen() {
   const { theme, setTheme } = useTheme()
   const { avatarId, displayName, user } = useAuth()
   const { profile, updateProfile } = useProfile()
-  const { currentStore, isStoreApp, isStoreLoading, routes } = useStore()
+  const { currentStore, isStoreApp, isStoreLoading, routes, isStoreOwnerOrAdmin, catalogProducts } =
+    useStore()
   const avatarButtonRef = useRef(null)
   const fitSectionRef = useRef(null)
   const installSectionRef = useRef(null)
   const [activeStoryIndex, setActiveStoryIndex] = useState(null)
   const [activeSlideIndex, setActiveSlideIndex] = useState(0)
+  const [activePhotoIndex, setActivePhotoIndex] = useState(null)
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false)
   const [fitSetupDismissed, setFitSetupDismissed] = useState(false)
   const [fitSetupStep, setFitSetupStep] = useState(1)
@@ -407,6 +423,8 @@ export default function HomeScreen() {
     if (activeStory.cta === 'fit') openFitSetup()
     if (activeStory.cta === 'install') scrollToInstall()
     if (activeStory.cta === 'learn' || activeStory.cta === 'store') navigate(routes.publicPage)
+    if (activeStory.cta === 'catalog') navigate(routes.catalog)
+    if (activeStory.cta === 'ai') navigate(routes.ai)
     setActiveStoryIndex(null)
     setActiveSlideIndex(0)
   }
@@ -498,13 +516,25 @@ export default function HomeScreen() {
     priceRange: '$$',
   }
 
+  if (currentStore?.latitude && currentStore?.longitude) {
+    schemaOrg.geo = {
+      '@type': 'GeoCoordinates',
+      latitude: Number(currentStore.latitude),
+      longitude: Number(currentStore.longitude),
+    }
+  }
+
   if (currentStore?.opening_hours) {
     const hoursParts = currentStore.opening_hours.split('-')
-    schemaOrg.openingHoursSpecification = {
-      '@type': 'OpeningHoursSpecification',
-      dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-      opens: hoursParts[0] || '09:00',
-      closes: hoursParts[1] || '23:00',
+    const opens = (hoursParts[0] || '').trim()
+    const closes = (hoursParts[1] || '').trim()
+    if (opens && closes) {
+      schemaOrg.openingHoursSpecification = {
+        '@type': 'OpeningHoursSpecification',
+        dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+        opens,
+        closes,
+      }
     }
   }
 
@@ -530,34 +560,78 @@ export default function HomeScreen() {
         {fullLogoUrl && <meta property="og:image" content={fullLogoUrl} />}
         <meta property="og:url" content={storeUrl} />
 
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta
+          name="twitter:title"
+          content={`${storeName} — онлайн-каталог товаров, цены | Körset`}
+        />
+        <meta
+          name="twitter:description"
+          content={`Смотрите каталог товаров магазина ${storeName} в городе ${storeCity}. Цены, состав продуктов, Fit-Check на аллергены и халал.`}
+        />
+        {fullLogoUrl && <meta name="twitter:image" content={fullLogoUrl} />}
+
+        {/* Canonical */}
+        <link rel="canonical" href={storeUrl} />
+
         {/* Structured Data */}
         <script type="application/ld+json">{JSON.stringify(schemaOrg)}</script>
       </Helmet>
       <header className="home-hero">
         <div className="home-brand-row">
-          <div className="home-store-header">
+          <div
+            className="home-store-header"
+            onClick={() => navigate(routes.publicPage)}
+            role="button"
+            tabIndex={0}
+            aria-label={t('home.storeAbout')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                navigate(routes.publicPage)
+              }
+            }}
+          >
             <StoreLogo store={currentStore} className="home-store-logo--header" />
             <div className="home-store-header__copy">
               <div className="home-store-title-line">
                 <h1>{getStoreName(currentStore)}</h1>
-                <span className="home-powered-by" aria-label={t('home.poweredBy')}>
-                  by
-                  <img src={korsetWordmarkSrc} alt="Körset" />
-                </span>
+                <HomeIcon name="chevron_right" className="home-store-chevron" />
+                {isStoreOwnerOrAdmin && currentStore?.isPublished === false && (
+                  <span
+                    className="home-draft-badge"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      background: 'rgba(245, 158, 11, 0.15)',
+                      border: '1px solid rgba(245, 158, 11, 0.3)',
+                      color: '#F59E0B',
+                      padding: '2px 8px',
+                      borderRadius: 6,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      marginLeft: 8,
+                      verticalAlign: 'middle',
+                      height: 'fit-content',
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 10 }}>
+                      visibility_off
+                    </span>
+                    {t('home.draftBadge') || 'Черновик'}
+                  </span>
+                )}
               </div>
               <p>
                 <HomeIcon name="schedule" />
                 <span>{storeHours}</span>
+                <span className="home-store-more-dot">·</span>
+                <span className="home-store-more-text">{t('home.storeAbout')}</span>
               </p>
             </div>
-            <button
-              className="home-store-about-button"
-              type="button"
-              onClick={() => navigate(routes.publicPage)}
-            >
-              <span>{t('home.storeAbout')}</span>
-              <AboutChevronIcon />
-            </button>
           </div>
 
           <div className="home-avatar-wrap">
@@ -685,6 +759,94 @@ export default function HomeScreen() {
           </div>
         </div>
 
+        {/* Store Photos Carousel */}
+        {currentStore?.images && currentStore.images.length > 0 && (
+          <div
+            className="home-photos-carousel"
+            style={{
+              display: 'flex',
+              gap: 12,
+              overflowX: 'auto',
+              padding: '0 20px 16px',
+              margin: '12px -20px 0',
+              scrollSnapType: 'x mandatory',
+              scrollbarWidth: 'none',
+              WebkitOverflowScrolling: 'touch',
+            }}
+          >
+            {currentStore.images.map((url, idx) => (
+              <div
+                key={url}
+                style={{
+                  flex: '0 0 140px',
+                  height: 94,
+                  borderRadius: 16,
+                  overflow: 'hidden',
+                  border: '1.5px solid var(--glass-soft-border)',
+                  background: 'var(--input-bg)',
+                  scrollSnapAlign: 'start',
+                  cursor: 'pointer',
+                  boxShadow: 'var(--shadow-card)',
+                }}
+                onClick={() => setActivePhotoIndex(idx)}
+              >
+                <img
+                  src={url}
+                  alt={`${storeName} photo ${idx + 1}`}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Lightbox for Store Photos */}
+        {activePhotoIndex !== null && currentStore?.images && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 2000,
+              background: 'rgba(0,0,0,0.92)',
+              backdropFilter: 'blur(12px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            onClick={() => setActivePhotoIndex(null)}
+          >
+            <button
+              type="button"
+              style={{
+                position: 'absolute',
+                top: 'max(16px, env(safe-area-inset-top))',
+                right: 16,
+                background: 'rgba(255,255,255,0.1)',
+                border: 'none',
+                borderRadius: '50%',
+                width: 40,
+                height: 40,
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+              onClick={() => setActivePhotoIndex(null)}
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+            <img
+              src={currentStore.images[activePhotoIndex]}
+              alt="Store full view"
+              style={{ maxWidth: '90%', maxHeight: '85%', objectFit: 'contain', borderRadius: 12 }}
+            />
+          </div>
+        )}
+
         <section className="home-stories" aria-label={t('home.storiesLabel')}>
           {HOME_STORY_KEYS.map((story, index) => (
             <button
@@ -701,7 +863,9 @@ export default function HomeScreen() {
               <span className="home-story-card__badge" aria-hidden="true">
                 <HomeIcon name={story.icon} />
               </span>
-              <strong>{t(`home.stories.${index}.title`, buildStoryVars(currentStore))}</strong>
+              <strong>
+                {t(`home.stories.${index}.title`, buildStoryVars(currentStore, catalogProducts))}
+              </strong>
             </button>
           ))}
         </section>
@@ -1052,6 +1216,7 @@ export default function HomeScreen() {
           storyIndex={activeStoryIndex}
           slideIndex={activeSlideIndex}
           store={currentStore}
+          catalogProducts={catalogProducts}
           t={t}
           onClose={() => {
             setActiveStoryIndex(null)

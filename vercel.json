@@ -5,6 +5,9 @@
   "functions": {
     "api/store-seo.js": {
       "includeFiles": "dist/index.html"
+    },
+    "api/product-seo.js": {
+      "includeFiles": "dist/index.html"
     }
   },
   "rewrites": [
@@ -13,6 +16,7 @@
     { "source": "/api/ai-image", "destination": "/api/ai" },
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
+    { "source": "/s/:storeSlug/product/:ean", "destination": "/api/product-seo?storeSlug=$1&ean=$2" },
     { "source": "/s/:storeSlug", "destination": "/api/store-seo?storeSlug=$1" },
     { "source": "/stores/:storeSlug", "destination": "/api/store-seo?storeSlug=$1" },
     { "source": "/(.*)", "destination": "/index.html" }

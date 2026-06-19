@@ -85,7 +85,7 @@ Super Admin:
 ## 4. Что Работает
 
 Consumer:
-- **HomeScreen** — store entry: header + logo, stories, scan CTA, Fit-Check setup. `src/screens/HomeScreen.jsx`
+- **HomeScreen** — store entry: header + logo (с бейджем Черновик для владельца, если `is_published = false`), stories, карусель фотографий магазина (с Lightbox), разметка Schema.org с геокоординатами, scan CTA, Fit-Check setup. `src/screens/HomeScreen.jsx`
 - **Scanner** — barcode + ручной ввод EAN.
 - **ProductScreen** — Fit-Check, факты, цена, интерактивный состав с цветовыми маркерами.
 - **CompareScreen** — сравнение товаров с human-readable вердиктами.

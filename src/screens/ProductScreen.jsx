@@ -87,6 +87,7 @@ export default function ProductScreen() {
   const [fetchingFull, setFetchingFull] = useState(false)
   const [unknownRequestStatus, setUnknownRequestStatus] = useState('idle')
   const [shoppingAdding, setShoppingAdding] = useState(false)
+  const [shareCopied, setShareCopied] = useState(false)
 
   const addShoppingAnimation = () => {
     setShoppingAdding(true)
@@ -168,6 +169,31 @@ export default function ProductScreen() {
     const ok = await toggleFavorite(product)
     if (!ok) {
       addShoppingAnimation()
+    }
+  }
+
+  const handleShare = async () => {
+    if (!product || !activeStoreSlug) return
+    const url = `https://korset.app/s/${activeStoreSlug}/product/${product.ean}`
+    const name = localName || product.name || ''
+    const storeName = currentStore?.name || ''
+    const priceText = product.priceKzt ? ` · ${Math.round(product.priceKzt)} ₸` : ''
+    const text = [storeName, `${name}${priceText}`].filter(Boolean).join(' — ')
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: name, text, url })
+      } catch (_e) {
+        // User cancelled or API unavailable — silent
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(url)
+        setShareCopied(true)
+        setTimeout(() => setShareCopied(false), 2000)
+      } catch (_e) {
+        // Clipboard unavailable — silent
+      }
     }
   }
 
@@ -460,6 +486,8 @@ export default function ProductScreen() {
           images={product.images}
           fallbackEan={product.ean}
           singleImage={product.image}
+          onShare={handleShare}
+          shareLabel={t('product.share')}
         />
 
         {/* 2. Title + Price РІ РѕРґРЅСѓ СЃС‚СЂРѕРєСѓ */}
@@ -739,6 +767,44 @@ export default function ProductScreen() {
           </button>
         </div>
       </div>
+
+      {/* Share copied toast */}
+      {shareCopied && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            position: 'fixed',
+            bottom: 'calc(88px + env(safe-area-inset-bottom, 0px))',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'var(--glass-bg)',
+            border: '1px solid var(--glass-border)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            borderRadius: 12,
+            padding: '10px 18px',
+            fontSize: 13,
+            fontWeight: 600,
+            color: 'var(--text)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            zIndex: 1000,
+            whiteSpace: 'nowrap',
+            boxShadow: 'var(--shadow-card)',
+            animation: 'fadeInUp 0.2s ease',
+          }}
+        >
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: 16, color: 'var(--accent-sky)' }}
+          >
+            check_circle
+          </span>
+          {t('product.shareCopied')}
+        </div>
+      )}
     </div>
   )
 }

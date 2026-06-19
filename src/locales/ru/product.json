@@ -1,5 +1,7 @@
 {
   "product.title": "Карточка товара",
+  "product.share": "Поделиться",
+  "product.shareCopied": "Ссылка скопирована",
   "product.fits": "Подходит вам",
   "product.fitsDesc": "Соответствует вашему профилю",
   "product.notFits": "Не подходит",

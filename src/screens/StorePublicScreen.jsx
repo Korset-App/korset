@@ -36,6 +36,7 @@ export default function StorePublicScreen() {
   const { currentStore: store, isStoreLoading, rememberStore } = useStore()
   const [showFullDesc, setShowFullDesc] = useState(false)
   const showFullDescRef = useRef(false)
+  const [activePhotoIndex, setActivePhotoIndex] = useState(null)
 
   useEffect(() => {
     showFullDescRef.current = showFullDesc
@@ -255,6 +256,108 @@ export default function StorePublicScreen() {
                 <div style={{ paddingTop: 12 }}>{store.description || store.short_description}</div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Store Photos Grid */}
+        {store.images && store.images.length > 0 && (
+          <div
+            style={{
+              background: 'var(--glass-subtle)',
+              border: '1px solid var(--glass-soft-border)',
+              borderRadius: 16,
+              overflow: 'hidden',
+              padding: 16,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: 'var(--text-dim)',
+                textTransform: 'uppercase',
+                letterSpacing: 1,
+                marginBottom: 12,
+              }}
+            >
+              {t('home.storePhotos') || 'Фотографии магазина'}
+            </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+                gap: 10,
+              }}
+            >
+              {store.images.map((url, idx) => (
+                <div
+                  key={url}
+                  style={{
+                    aspectRatio: '4/3',
+                    borderRadius: 12,
+                    overflow: 'hidden',
+                    border: '1px solid var(--glass-soft-border)',
+                    background: 'var(--input-bg)',
+                    cursor: 'pointer',
+                    boxShadow: 'var(--shadow-card)',
+                  }}
+                  onClick={() => setActivePhotoIndex(idx)}
+                >
+                  <img
+                    src={url}
+                    alt={`${store.name} photo ${idx + 1}`}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Lightbox for Store Photos */}
+        {activePhotoIndex !== null && store.images && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 2000,
+              background: 'rgba(0,0,0,0.92)',
+              backdropFilter: 'blur(12px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            onClick={() => setActivePhotoIndex(null)}
+          >
+            <button
+              type="button"
+              style={{
+                position: 'absolute',
+                top: 'max(16px, env(safe-area-inset-top))',
+                right: 16,
+                background: 'rgba(255,255,255,0.1)',
+                border: 'none',
+                borderRadius: '50%',
+                width: 40,
+                height: 40,
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+              onClick={() => setActivePhotoIndex(null)}
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+            <img
+              src={store.images[activePhotoIndex]}
+              alt="Store full view"
+              style={{ maxWidth: '90%', maxHeight: '85%', objectFit: 'contain', borderRadius: 12 }}
+            />
           </div>
         )}
 

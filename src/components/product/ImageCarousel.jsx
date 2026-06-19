@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { useI18n } from '../../i18n/index.js'
 
-export default function ImageCarousel({ images, fallbackEan, singleImage }) {
+export default function ImageCarousel({ images, fallbackEan, singleImage, onShare, shareLabel }) {
   const { t } = useI18n()
   const [currentIndex, setCurrentIndex] = useState(0)
   const scrollRef = useRef(null)
@@ -27,9 +27,11 @@ export default function ImageCarousel({ images, fallbackEan, singleImage }) {
           justifyContent: 'center',
           color: 'var(--text-dim)',
           fontSize: 14,
+          position: 'relative',
         }}
       >
         {t('product.noPhoto')}
+        {onShare && <ShareButton onShare={onShare} label={shareLabel} />}
       </div>
     )
   }
@@ -112,6 +114,56 @@ export default function ImageCarousel({ images, fallbackEan, singleImage }) {
           ))}
         </div>
       )}
+      {onShare && <ShareButton onShare={onShare} label={shareLabel} />}
     </div>
+  )
+}
+
+function ShareButton({ onShare, label }) {
+  return (
+    <button
+      type="button"
+      aria-label={label || 'Share'}
+      onClick={(e) => {
+        e.stopPropagation()
+        onShare()
+      }}
+      style={{
+        position: 'absolute',
+        bottom: 12,
+        right: 12,
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        border: 'none',
+        background: 'rgba(0, 0, 0, 0.45)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+        color: '#fff',
+        flexShrink: 0,
+        transition: 'opacity 0.15s, transform 0.15s',
+        zIndex: 5,
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.opacity = '0.8'
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.opacity = '1'
+      }}
+      onMouseDown={(e) => {
+        e.currentTarget.style.transform = 'scale(0.9)'
+      }}
+      onMouseUp={(e) => {
+        e.currentTarget.style.transform = 'scale(1)'
+      }}
+    >
+      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+        ios_share
+      </span>
+    </button>
   )
 }
