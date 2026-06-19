@@ -88,11 +88,14 @@ export function isValidEAN(ean) {
 /** Sanitize string input: trim + truncate + strip control chars */
 export function sanitizeString(value, maxLength = 200) {
   if (typeof value !== 'string') return ''
-  return value
-    .replace(/[\x00-\x1F\x7F]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, maxLength)
+  return (
+    value
+      // eslint-disable-next-line no-control-regex
+      .replace(/[\x00-\x1F\x7F]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, maxLength)
+  )
 }
 
 // ── Sentry helpers ──────────────────────────────────────────────────────────
@@ -142,6 +145,7 @@ export async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
   try {
     const response = await fetch(url, {
       ...options,
+      // eslint-disable-next-line no-undef
       signal: AbortSignal.timeout(timeoutMs),
     })
     addBreadcrumb('External API response', 'http', {

@@ -1,12 +1,114 @@
+// Unified webhooks handler: Telegram support bot + Sentry alerts
+// Route:
+//   POST /api/webhooks/telegram  → Telegram bot webhook
+//   POST /api/webhooks/sentry    → Sentry → Telegram alert relay
+
 import { createClient } from '@supabase/supabase-js'
 import { t } from '../src/telegram-bot/i18n.js'
 import { getAIResponse } from '../src/telegram-bot/ai.js'
 import { verifyWebhookSecret } from '../src/telegram-bot/verifyWebhook.js'
 
-const API = 'https://api.telegram.org'
-const TOKEN = process.env.TELEGRAM_SUPPORT_BOT_TOKEN
+// ── Shared config ──
+const TELEGRAM_API = 'https://api.telegram.org'
+const SUPPORT_BOT_TOKEN = process.env.TELEGRAM_SUPPORT_BOT_TOKEN
 const OPERATOR = process.env.TELEGRAM_OPERATOR_CHAT_ID
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET
+const ALERT_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
+const ALERT_CHAT_ID = process.env.TELEGRAM_ALERT_CHAT_ID
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, x-telegram-bot-api-secret-token',
+}
+
+function json(res, status, payload) {
+  res.status(status).setHeader('Content-Type', 'application/json')
+  res.end(JSON.stringify(payload))
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SENTRY → TELEGRAM ALERT RELAY
+// ══════════════════════════════════════════════════════════════
+
+async function sendTelegram(token, chatId, text) {
+  const res = await fetch(`${TELEGRAM_API}/bot${token}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+      parse_mode: 'HTML',
+      disable_web_page_preview: true,
+    }),
+  })
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Telegram API ${res.status}: ${err}`)
+  }
+  return res.json()
+}
+
+function formatAlert(payload) {
+  const event = payload?.event || payload?.data?.event || {}
+  const issue = payload?.issue || payload?.data?.issue || {}
+
+  const title = event.title || issue.title || 'Unknown error'
+  const culprit = event.culprit || event.transaction || '—'
+  const issueUrl = issue.url || payload?.url || ''
+  const level = (event.level || 'error').toUpperCase()
+  const count = issue.count || event.count || 1
+  const userCount = event.userCount || issue.userCount || 0
+  const env = event.environment || 'production'
+  const project = payload?.project_name || payload?.project || 'korset-web'
+
+  const emojis = { FATAL: '💥', ERROR: '🚨', WARNING: '⚠️', INFO: 'ℹ️' }
+  const emoji = emojis[level] || '🚨'
+
+  const link = issueUrl ? `\n<a href="${issueUrl}">Open in Sentry</a>` : ''
+
+  return `${emoji} <b>Sentry ${level}</b> | ${project} | ${env}
+
+<b>${title}</b>
+<code>${culprit}</code>
+
+Events: ${count} | Users: ${userCount}${link}`
+}
+
+async function handleSentryWebhook(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+
+  if (!ALERT_BOT_TOKEN || !ALERT_CHAT_ID) {
+    console.error('[webhooks:sentry] Missing TELEGRAM_BOT_TOKEN or TELEGRAM_ALERT_CHAT_ID')
+    return res.status(200).json({ ok: false, error: 'Webhook not configured' })
+  }
+
+  let payload = {}
+  try {
+    if (typeof req.body === 'string') {
+      payload = JSON.parse(req.body)
+    } else if (req.body && typeof req.body === 'object') {
+      payload = req.body
+    }
+  } catch (e) {
+    return res.status(400).json({ error: 'Invalid JSON' })
+  }
+
+  const text = formatAlert(payload)
+
+  try {
+    await sendTelegram(ALERT_BOT_TOKEN, ALERT_CHAT_ID, text)
+    console.log('[webhooks:sentry] Sent:', payload?.event?.title || payload?.issue?.title || 'unknown')
+    return res.status(200).json({ ok: true })
+  } catch (e) {
+    console.error('[webhooks:sentry] Telegram error:', e.message)
+    return res.status(200).json({ ok: false, error: 'Telegram send failed' })
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TELEGRAM SUPPORT BOT WEBHOOK
+// ══════════════════════════════════════════════════════════════
 
 const sb = createClient(
   process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
@@ -15,7 +117,7 @@ const sb = createClient(
 )
 
 function fetchTg(method, payload) {
-  return fetch(`${API}/bot${TOKEN}/${method}`, {
+  return fetch(`${TELEGRAM_API}/bot${SUPPORT_BOT_TOKEN}/${method}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -42,7 +144,7 @@ function sendPhoto(chatId, fileId, caption, extra = {}) {
   return fetchTg('sendPhoto', { chat_id: chatId, photo: fileId, caption, parse_mode: 'HTML', ...extra })
 }
 
-// ─── Keyboards ───────────────────────────────────────────────
+// ── Keyboards ──
 
 function mainKB(lang) {
   return {
@@ -92,7 +194,7 @@ function operatorActiveKB(ticketId) {
   }
 }
 
-// ─── Helpers ─────────────────────────────────────────────────
+// ── Helpers ──
 
 const RATE_LIMIT_WINDOW_S = 60
 const RATE_LIMIT_MAX = 6
@@ -203,7 +305,7 @@ async function getOperatorAllActiveTickets() {
   return data || []
 }
 
-// ─── Operator notification ───────────────────────────────────
+// ── Operator notification ──
 
 async function notifyOperator(ticketId, lang, fromName, text, username, history) {
   if (!OPERATOR) return
@@ -230,7 +332,7 @@ async function forwardUserMessageToOperator(ticket, from, text) {
   }
 }
 
-// ─── User handlers ───────────────────────────────────────────
+// ── User handlers ──
 
 async function onStart(chatId, from) {
   const lang = langOf(from)
@@ -321,7 +423,7 @@ async function onUserPhoto(chatId, from, photo, caption) {
   await notifyOperator(ticket.id, lang, nameOf(from), text, from.username, history)
 }
 
-// ─── Operator handlers ──────────────────────────────────────
+// ── Operator handlers ──
 
 async function onOperatorText(msg) {
   const chatId = msg.chat.id
@@ -462,7 +564,7 @@ async function onOperatorClose(chatId) {
   }
 }
 
-// ─── Callbacks ──────────────────────────────────────────────
+// ── Callbacks ──
 
 async function onCallback(cb) {
   const data = cb.data
@@ -600,14 +702,12 @@ async function onCallback(cb) {
   return answer(cb.id)
 }
 
-// ─── Main ───────────────────────────────────────────────────
-
-export default async function handler(req, res) {
+async function handleTelegramWebhook(req, res) {
   if (req.method === 'GET') {
-    return res.status(200).json({
+    return json(res, 200, {
       status: 'ok',
       env: {
-        token: !!TOKEN,
+        token: !!SUPPORT_BOT_TOKEN,
         operator: !!OPERATOR,
         openai: !!process.env.OPENAI_API_KEY,
         webhookSecret: !!WEBHOOK_SECRET,
@@ -616,7 +716,7 @@ export default async function handler(req, res) {
     })
   }
 
-  if (req.method !== 'POST' || !TOKEN) return res.status(405).end()
+  if (req.method !== 'POST' || !SUPPORT_BOT_TOKEN) return res.status(405).end()
 
   const { valid, reason } = verifyWebhookSecret(
     req.headers['x-telegram-bot-api-secret-token'],
@@ -624,11 +724,11 @@ export default async function handler(req, res) {
   )
   if (!valid) {
     if (reason === 'not_configured') {
-      console.error('[webhook] TELEGRAM_WEBHOOK_SECRET is not set — rejecting all requests')
-      return res.status(500).json({ error: 'Webhook not configured' })
+      console.error('[webhooks:tg] TELEGRAM_WEBHOOK_SECRET is not set — rejecting all requests')
+      return json(res, 500, { error: 'Webhook not configured' })
     }
-    console.warn('[webhook] Rejected unauthorized request from %s (reason: %s)', req.headers['x-forwarded-for'] || 'unknown', reason)
-    return res.status(401).json({ error: 'Unauthorized' })
+    console.warn('[webhooks:tg] Rejected unauthorized request from %s (reason: %s)', req.headers['x-forwarded-for'] || 'unknown', reason)
+    return json(res, 401, { error: 'Unauthorized' })
   }
 
   const body = req.body
@@ -686,8 +786,25 @@ export default async function handler(req, res) {
       return res.status(200).end()
     }
   } catch (err) {
-    console.error('[webhook] Fatal:', err?.message || err)
+    console.error('[webhooks:tg] Fatal:', err?.message || err)
   }
 
   res.status(200).end()
+}
+
+// ══════════════════════════════════════════════════════════════
+//  ROUTER
+// ══════════════════════════════════════════════════════════════
+
+export default async function handler(req, res) {
+  Object.entries(corsHeaders).forEach(([k, v]) => res.setHeader(k, v))
+
+  if (req.method === 'OPTIONS') return res.status(204).end()
+
+  const url = req.url || ''
+  if (url.includes('/api/webhooks/sentry') || url.includes('/api/sentry')) {
+    return handleSentryWebhook(req, res)
+  }
+
+  return handleTelegramWebhook(req, res)
 }

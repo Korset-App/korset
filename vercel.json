@@ -14,6 +14,8 @@
     { "source": "/api/push/(.*)", "destination": "/api/push?route=$1" },
     { "source": "/api/ai-transcribe", "destination": "/api/ai" },
     { "source": "/api/ai-image", "destination": "/api/ai" },
+    { "source": "/api/telegram-webhook", "destination": "/api/webhooks" },
+    { "source": "/api/sentry-webhook", "destination": "/api/webhooks" },
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/s/:storeSlug/product/:ean", "destination": "/api/product-seo?storeSlug=$1&ean=$2" },

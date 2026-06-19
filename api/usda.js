@@ -5,7 +5,7 @@ import {
   sanitizeString,
   fetchWithTimeout,
   captureApiError,
-} from './_monitoring.js'
+} from '../src/lib/monitoring.js'
 
 const CORS_ORIGINS = [
   'https://korset.app',
