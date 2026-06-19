@@ -696,7 +696,7 @@ export default function HomeScreen() {
                     type="button"
                     onClick={() => navigateProfileTab('favorites')}
                   >
-                    <HomeIcon name="favorite" />
+                    <HomeIcon name="checklist" />
                     <span>{t('home.menuFavorites')}</span>
                     <HomeIcon name="chevron_right" />
                   </button>
