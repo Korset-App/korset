@@ -14,6 +14,7 @@ export default function ProfileAvatar({ avatarId, name = '', rounded = 'circle' 
           objectFit: 'cover',
           borderRadius: radius,
           display: 'block',
+          overflow: 'hidden',
         }}
       />
     )
@@ -32,6 +33,7 @@ export default function ProfileAvatar({ avatarId, name = '', rounded = 'circle' 
           objectFit: 'cover',
           borderRadius: radius,
           display: 'block',
+          overflow: 'hidden',
         }}
       />
     )
@@ -50,8 +52,9 @@ export default function ProfileAvatar({ avatarId, name = '', rounded = 'circle' 
         justifyContent: 'center',
         color: 'var(--text-inverse)',
         fontWeight: 800,
-        fontSize: '38%',
+        fontSize: '46%',
         letterSpacing: '0.04em',
+        overflow: 'hidden',
       }}
     >
       {initial}

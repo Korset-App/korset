@@ -47,7 +47,14 @@ function StoreLogo({ store, className = '' }) {
   const initial = store.name?.[0]?.toUpperCase() || 'K'
 
   if (logo) {
-    return <img className={`home-store-logo ${className}`.trim()} src={logo} alt={store.name} />
+    return (
+      <img
+        className={`home-store-logo ${className}`.trim()}
+        src={logo}
+        alt={store.name}
+        style={{ objectFit: 'contain' }}
+      />
+    )
   }
 
   return (
@@ -628,8 +635,6 @@ export default function HomeScreen() {
               <p>
                 <HomeIcon name="schedule" />
                 <span>{storeHours}</span>
-                <span className="home-store-more-dot">·</span>
-                <span className="home-store-more-text">{t('home.storeAbout')}</span>
               </p>
             </div>
           </div>
@@ -846,6 +851,8 @@ export default function HomeScreen() {
             />
           </div>
         )}
+
+        <div className="home-header-divider" />
 
         <section className="home-stories" aria-label={t('home.storiesLabel')}>
           {HOME_STORY_KEYS.map((story, index) => (

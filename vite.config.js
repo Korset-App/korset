@@ -22,7 +22,7 @@ export default defineConfig({
         swSrc: 'src/sw.js',
         swDest: 'dist/sw.js',
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,webp,jpg,jpeg}'],
-        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3MB for banner images
+        maximumFileSizeToCacheInBytes: 8 * 1024 * 1024, // 8MB for large story covers
       },
       manifest: {
         name: 'Körset',
