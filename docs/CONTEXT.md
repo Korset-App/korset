@@ -87,7 +87,7 @@ Super Admin:
 Consumer:
 - **HomeScreen** — store entry: header + logo (с бейджем Черновик для владельца, если `is_published = false`), stories, карусель фотографий магазина (с Lightbox), разметка Schema.org с геокоординатами, scan CTA, Fit-Check setup. `src/screens/HomeScreen.jsx`
 - **Scanner** — barcode + ручной ввод EAN.
-- **ProductScreen** — Fit-Check, факты, цена, интерактивный состав с цветовыми маркерами.
+- **ProductScreen** — Fit-Check, факты, цена, интерактивный состав с цветовыми маркерами. Кнопки «Поделиться» (Web Share API) и «Копировать ссылку» в углу карусели изображения. `src/screens/ProductScreen.jsx`
 - **CompareScreen** — сравнение товаров с human-readable вердиктами.
 - **AI Assistant** — store-scoped chat: text + voice (MediaRecorder, 30s) + photo (одно изображение, без сохранения). Локальная история IndexedDB. `/api/ai.js`, `/api/ai-image`, `/api/ai-transcribe`.
 - **CatalogScreen** — 18 категорий, bento, RPC v2 поиск, фильтры/сортировка. ProductCard: `src/components/catalog/CatalogProductCard.jsx`
@@ -112,6 +112,8 @@ Infrastructure: RLS + JWT. Sentry + Telegram alerts. Offline (SW + IndexedDB). R
 ## 5. Ключевые Системы
 
 **Alternatives:** RPC-first (`fn_get_product_alternatives`). Сценарии: similar, fits_me, cheaper, better_composition. Analytics: `alternative_events`. Retail Dashboard: агрегированные сигналы. План: `docs/vault/plans/2026-05-22-alternatives-professional-upgrade-plan.md`.
+
+**SEO / Share:** `api/store-seo.js` (og-метатеги для `/s/:storeSlug`) и `api/product-seo.js` (og-метатеги для `/s/:storeSlug/product/:ean`). product-seo: join `store_products → global_products`, инжектирует og:title/image/description/Schema.org Product. Таблица: `global_products` (поле `image_url`, не `image`). Реврайты в `vercel.json` — порядок критичен: product-route выше store-route.
 
 **Store-Aware AI:** привязан к магазину. Catalog-grounded рекомендации, product cards в чате, store AI notes, retail insights. Phases 1-7 + premium + peak (18 stages) завершены. Launch readiness: `docs/vault/plans/2026-05-18-ai-peak-pilot-launch-readiness-report.md`.
 

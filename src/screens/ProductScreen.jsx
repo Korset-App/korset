@@ -172,9 +172,35 @@ export default function ProductScreen() {
     }
   }
 
+  const buildShareUrl = () =>
+    product && activeStoreSlug
+      ? `https://korset.app/s/${activeStoreSlug}/product/${product.ean}`
+      : null
+
+  const handleCopyLink = async () => {
+    const url = buildShareUrl()
+    if (!url) return
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch (_e) {
+      try {
+        const el = document.createElement('input')
+        el.value = url
+        document.body.appendChild(el)
+        el.select()
+        document.execCommand('copy')
+        document.body.removeChild(el)
+      } catch (_e2) {
+        return
+      }
+    }
+    setShareCopied(true)
+    setTimeout(() => setShareCopied(false), 2500)
+  }
+
   const handleShare = async () => {
-    if (!product || !activeStoreSlug) return
-    const url = `https://korset.app/s/${activeStoreSlug}/product/${product.ean}`
+    const url = buildShareUrl()
+    if (!url) return
     const name = localName || product.name || ''
     const storeName = currentStore?.name || ''
     const priceText = product.priceKzt ? ` · ${Math.round(product.priceKzt)} ₸` : ''
@@ -184,16 +210,11 @@ export default function ProductScreen() {
       try {
         await navigator.share({ title: name, text, url })
       } catch (_e) {
-        // User cancelled or API unavailable — silent
+        // User cancelled — fall through to copy
+        handleCopyLink()
       }
     } else {
-      try {
-        await navigator.clipboard.writeText(url)
-        setShareCopied(true)
-        setTimeout(() => setShareCopied(false), 2000)
-      } catch (_e) {
-        // Clipboard unavailable — silent
-      }
+      handleCopyLink()
     }
   }
 
@@ -487,7 +508,9 @@ export default function ProductScreen() {
           fallbackEan={product.ean}
           singleImage={product.image}
           onShare={handleShare}
+          onCopyLink={handleCopyLink}
           shareLabel={t('product.share')}
+          copyLabel={t('product.copyLink')}
         />
 
         {/* 2. Title + Price РІ РѕРґРЅСѓ СЃС‚СЂРѕРєСѓ */}

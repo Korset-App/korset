@@ -21,7 +21,7 @@ export const HOME_STORY_KEYS = [
     key: 'catalog',
     icon: 'auto_stories',
     tone: 'moon',
-    image: '/Сторис/Designer.png',
+    image: '/Сторис/2026-06-22 135226-gpt-image-2.png',
     cta: 'catalog',
     slides: ['catalog.0', 'catalog.1', 'catalog.2'],
   },

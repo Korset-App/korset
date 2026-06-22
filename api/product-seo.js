@@ -24,6 +24,18 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
 }
 
+function parseImages(raw) {
+  if (!raw) return []
+  if (Array.isArray(raw)) return raw.filter(Boolean)
+  try { return JSON.parse(raw).filter(Boolean) } catch { return [] }
+}
+
+function ensureAbsolute(url) {
+  if (!url) return null
+  if (url.startsWith('http')) return url
+  return `https://korset.app${url}`
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET')
@@ -32,18 +44,17 @@ export default async function handler(req, res) {
   }
 
   const { storeSlug, ean } = req.query
-  if (!storeSlug || !ean) {
-    return serveDefaultHtml(res)
-  }
+  if (!storeSlug || !ean) return serveDefaultHtml(res)
 
   const supabase = getSupabaseClient()
   if (!supabase) {
-    console.error('[product-seo] Supabase environment variables missing')
+    console.error('[product-seo] Supabase env vars missing')
     return serveDefaultHtml(res)
   }
 
   try {
-    // Fetch store and product in parallel
+    // Fetch store and product in parallel.
+    // Products live in global_products; price comes from store_products join.
     const [storeResult, productResult] = await Promise.all([
       supabase
         .from('stores')
@@ -52,117 +63,124 @@ export default async function handler(req, res) {
         .eq('is_active', true)
         .single(),
       supabase
-        .from('products')
-        .select('ean, name, name_kz, brand, category, image, images, price_kzt, short_description')
-        .eq('ean', ean)
-        .single(),
+        .from('store_products')
+        .select(
+          'price_kzt, local_name, global_products!inner(ean, name, name_kz, brand, category, image_url, images, short_description)'
+        )
+        .eq('is_active', true)
+        .eq('global_products.ean', String(ean))
+        .eq('global_products.is_active', true)
+        .limit(1)
+        .maybeSingle(),
     ])
 
     const store = storeResult.data
-    const product = productResult.data
+    const spRow = productResult.data
+    const gp = spRow?.global_products
 
-    if (!store || !product) {
-      console.log(`[product-seo] Not found: store=${storeSlug}, ean=${ean}`)
-      return serveDefaultHtml(res)
+    if (!store || !gp) {
+      // Fallback: try fetching product directly from global_products (store-agnostic)
+      const { data: gpFallback } = await supabase
+        .from('global_products')
+        .select('ean, name, name_kz, brand, category, image_url, images, short_description')
+        .eq('ean', String(ean))
+        .eq('is_active', true)
+        .maybeSingle()
+
+      if (!store || !gpFallback) {
+        console.log(`[product-seo] Not found: store=${storeSlug}, ean=${ean}`)
+        return serveDefaultHtml(res)
+      }
+
+      return buildAndSendHtml(res, store, gpFallback, null)
     }
 
-    let html = getTemplateHtml()
-    if (!html) {
-      console.error('[product-seo] Failed to load index.html template')
-      res.status(500).end('Server Error')
-      return
-    }
-
-    const productName = escapeHtml(product.name || 'Товар')
-    const storeName = escapeHtml(store.name || 'Магазин')
-    const brand = product.brand ? ` · ${escapeHtml(product.brand)}` : ''
-    const price = product.price_kzt ? ` · ${Math.round(product.price_kzt)} ₸` : ''
-
-    const title = `${productName}${price} | ${storeName}`
-    const description = product.short_description
-      ? escapeHtml(product.short_description)
-      : `${productName}${brand} в магазине ${storeName}. Проверьте халал-статус, аллергены и КБЖУ в Körset.`
-
-    // Pick best available image: product images array → single product image → store logo → default
-    const rawImage =
-      (product.images && product.images.length > 0 ? product.images[0] : null) ||
-      product.image ||
-      store.logo_url ||
-      'https://korset.app/brand/korset-app-icon.png'
-
-    // Ensure absolute URL for og:image (Supabase Storage URLs are already absolute)
-    const imageUrl = rawImage.startsWith('http') ? rawImage : `https://korset.app${rawImage}`
-    const productUrl = `https://korset.app/s/${store.code}/product/${ean}`
-
-    // Schema.org Product markup
-    const schemaJson = {
-      '@context': 'https://schema.org',
-      '@type': 'Product',
-      name: product.name,
-      image: imageUrl,
-      '@id': productUrl,
-      url: productUrl,
-      brand: product.brand ? { '@type': 'Brand', name: product.brand } : undefined,
-      offers: product.price_kzt
-        ? {
-            '@type': 'Offer',
-            priceCurrency: 'KZT',
-            price: Math.round(product.price_kzt),
-            availability: 'https://schema.org/InStock',
-            seller: { '@type': 'Organization', name: store.name },
-          }
-        : undefined,
-    }
-
-    const schemaScript = `<script type="application/ld+json">${JSON.stringify(schemaJson)}</script>`
-
-    html = html.replace(/<title>[^<]*<\/title>/g, `<title>${title}</title>`)
-    html = html.replace(
-      /(<meta name="description" content=")[^"]*(")/g,
-      `$1${description}$2`
-    )
-    html = html.replace(
-      /(<meta property="og:title" content=")[^"]*(")/g,
-      `$1${title}$2`
-    )
-    html = html.replace(
-      /(<meta property="og:description" content=")[^"]*(")/g,
-      `$1${description}$2`
-    )
-    html = html.replace(
-      /(<meta property="og:image" content=")[^"]*(")/g,
-      `$1${imageUrl}$2`
-    )
-    html = html.replace(
-      /(<meta property="og:url" content=")[^"]*(")/g,
-      `$1${productUrl}$2`
-    )
-    html = html.replace(
-      /(<meta name="twitter:title" content=")[^"]*(")/g,
-      `$1${title}$2`
-    )
-    html = html.replace(
-      /(<meta name="twitter:description" content=")[^"]*(")/g,
-      `$1${description}$2`
-    )
-    html = html.replace(
-      /(<meta name="twitter:image" content=")[^"]*(")/g,
-      `$1${imageUrl}$2`
-    )
-    html = html.replace(
-      /(<link rel="canonical" href=")[^"]*(")/g,
-      `$1${productUrl}$2`
-    )
-    html = html.replace('</head>', `${schemaScript}\n</head>`)
-
-    res.setHeader('Content-Type', 'text/html; charset=utf-8')
-    // 30 min cache — product prices can change, but not every second
-    res.setHeader('Cache-Control', 'public, s-maxage=1800, stale-while-revalidate=3600')
-    res.status(200).send(html)
+    return buildAndSendHtml(res, store, gp, spRow.price_kzt ?? null, spRow.local_name ?? null)
   } catch (err) {
-    console.error('[product-seo] handler exception', err)
+    console.error('[product-seo] exception', err)
     return serveDefaultHtml(res)
   }
+}
+
+function buildAndSendHtml(res, store, gp, priceKzt, localName) {
+  let html = getTemplateHtml()
+  if (!html) {
+    res.status(500).end('Server Error')
+    return
+  }
+
+  const productName = escapeHtml(localName || gp.name || 'Товар')
+  const storeName = escapeHtml(store.name || 'Магазин')
+  const brand = gp.brand ? ` · ${escapeHtml(gp.brand)}` : ''
+  const price = priceKzt ? ` · ${Math.round(priceKzt)} ₸` : ''
+
+  const title = `${productName}${price} | ${storeName}`
+  const description = gp.short_description
+    ? escapeHtml(gp.short_description)
+    : `${productName}${brand} в магазине ${storeName}. Проверьте халал-статус, аллергены и КБЖУ в Körset.`
+
+  // Pick the best available image.
+  // Priority: product images[] → single image_url → store logo → Körset default.
+  const images = parseImages(gp.images)
+  const rawImage =
+    (images.length > 0 ? images[0] : null) ||
+    gp.image_url ||
+    store.logo_url ||
+    null
+
+  // og:image must be an absolute HTTPS URL that bots can fetch without auth.
+  const imageUrl = ensureAbsolute(rawImage) || 'https://korset.app/brand/og-default.png'
+  const productUrl = `https://korset.app/s/${store.code}/product/${gp.ean}`
+
+  // Schema.org Product markup
+  const schemaJson = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: gp.name || productName,
+    image: imageUrl,
+    '@id': productUrl,
+    url: productUrl,
+    brand: gp.brand ? { '@type': 'Brand', name: gp.brand } : undefined,
+    offers: priceKzt
+      ? {
+          '@type': 'Offer',
+          priceCurrency: 'KZT',
+          price: Math.round(priceKzt),
+          availability: 'https://schema.org/InStock',
+          seller: { '@type': 'Organization', name: store.name },
+        }
+      : undefined,
+  }
+
+  const extraMeta = [
+    // Explicit image dimensions help WhatsApp and Instagram render correctly.
+    // We can't know actual pixel size at runtime; 1200×630 is the recommended OG size.
+    '<meta property="og:image:width" content="1200" />',
+    '<meta property="og:image:height" content="630" />',
+    '<meta property="og:image:alt" content="' + escapeHtml(productName) + '" />',
+    '<meta property="og:type" content="product" />',
+    '<meta name="twitter:card" content="summary_large_image" />',
+    `<script type="application/ld+json">${JSON.stringify(schemaJson)}</script>`,
+  ].join('\n')
+
+  html = html.replace(/<title>[^<]*<\/title>/g, `<title>${title}</title>`)
+  html = html.replace(/(<meta name="description" content=")[^"]*(")/g, `$1${description}$2`)
+  html = html.replace(/(<meta property="og:title" content=")[^"]*(")/g, `$1${title}$2`)
+  html = html.replace(/(<meta property="og:description" content=")[^"]*(")/g, `$1${description}$2`)
+  html = html.replace(/(<meta property="og:image" content=")[^"]*(")/g, `$1${imageUrl}$2`)
+  html = html.replace(/(<meta property="og:url" content=")[^"]*(")/g, `$1${productUrl}$2`)
+  html = html.replace(/(<meta property="og:type" content=")[^"]*(")/g, '')
+  html = html.replace(/(<meta name="twitter:title" content=")[^"]*(")/g, `$1${title}$2`)
+  html = html.replace(/(<meta name="twitter:description" content=")[^"]*(")/g, `$1${description}$2`)
+  html = html.replace(/(<meta name="twitter:image" content=")[^"]*(")/g, `$1${imageUrl}$2`)
+  html = html.replace(/(<meta name="twitter:card" content=")[^"]*(")/g, '')
+  html = html.replace(/(<link rel="canonical" href=")[^"]*(")/g, `$1${productUrl}$2`)
+  html = html.replace('</head>', `${extraMeta}\n</head>`)
+
+  res.setHeader('Content-Type', 'text/html; charset=utf-8')
+  // Short cache: 10 min, allow stale for 30 min. Prices may change.
+  res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=1800')
+  res.status(200).send(html)
 }
 
 function getTemplateHtml() {
@@ -174,11 +192,9 @@ function getTemplateHtml() {
   ]
   for (const htmlPath of pathsToTry) {
     try {
-      if (fs.existsSync(htmlPath)) {
-        return fs.readFileSync(htmlPath, 'utf8')
-      }
+      if (fs.existsSync(htmlPath)) return fs.readFileSync(htmlPath, 'utf8')
     } catch (e) {
-      console.warn(`[product-seo] Failed to read html at ${htmlPath}:`, e)
+      console.warn(`[product-seo] Failed to read ${htmlPath}:`, e)
     }
   }
   return null
