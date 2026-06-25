@@ -13,6 +13,9 @@ import {
   buildFitCheckSetupState,
   buildHomeQuickActions,
   buildHomeStoreFacts,
+  loadSeenStories,
+  markStorySeen,
+  sortStoriesBySeen,
 } from '../domain/home/homeScreenModel.js'
 import { setLang, useI18n } from '../i18n/index.js'
 import { useTheme } from '../utils/theme.js'
@@ -225,6 +228,10 @@ export default function HomeScreen() {
   const installSectionRef = useRef(null)
   const [activeStoryIndex, setActiveStoryIndex] = useState(null)
   const [activeSlideIndex, setActiveSlideIndex] = useState(0)
+  const [seenStories, setSeenStories] = useState(() =>
+    isStoreApp && currentStore?.slug ? loadSeenStories(currentStore.slug) : new Set()
+  )
+  const seenStoreRef = useRef(null)
   const [activePhotoIndex, setActivePhotoIndex] = useState(null)
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false)
   const [fitSetupDismissed, setFitSetupDismissed] = useState(false)
@@ -304,6 +311,28 @@ export default function HomeScreen() {
     return () => document.body.classList.remove('home-story-viewer-open')
   }, [activeStoryIndex])
 
+  useEffect(() => {
+    if (!isStoreApp || !currentStore?.slug) return
+    const slug = currentStore.slug
+    if (seenStoreRef.current === slug) return
+    seenStoreRef.current = slug
+    const fresh = loadSeenStories(slug)
+    setSeenStories(fresh)
+  }, [isStoreApp, currentStore?.slug])
+
+  useEffect(() => {
+    if (activeStoryIndex === null) return
+    const story = HOME_STORY_KEYS[activeStoryIndex]
+    if (!story || !currentStore?.slug) return
+    setSeenStories((prev) => {
+      if (prev.has(story.key)) return prev
+      const next = new Set(prev)
+      next.add(story.key)
+      markStorySeen(currentStore.slug, story.key)
+      return next
+    })
+  }, [activeStoryIndex, currentStore?.slug])
+
   const primaryAllergens = useMemo(
     () => ALLERGENS.filter((item) => item.frequency >= 2).slice(0, 6),
     []
@@ -311,6 +340,11 @@ export default function HomeScreen() {
   const visibleAllergens = showAllAllergens ? ALLERGENS : primaryAllergens
   const hasHiddenAllergens = primaryAllergens.length < ALLERGENS.length
   const visibleDietPreferences = DIET_PREFERENCES
+
+  const sortedStories = useMemo(
+    () => sortStoriesBySeen(HOME_STORY_KEYS, seenStories),
+    [seenStories]
+  )
 
   if (!isStoreApp) {
     return <LandingScreen />
@@ -855,29 +889,33 @@ export default function HomeScreen() {
         <div className="home-header-divider" />
 
         <section className="home-stories" aria-label={t('home.storiesLabel')}>
-          {HOME_STORY_KEYS.map((story, index) => (
-            <button
-              className={`home-story-card home-story-tone--${story.tone}`}
-              key={story.key}
-              type="button"
-              onClick={() => {
-                setActiveStoryIndex(index)
-                setActiveSlideIndex(0)
-              }}
-            >
-              <img src={story.image} alt="" aria-hidden="true" />
-              <span className="home-story-card__shade" />
-              <span className="home-story-card__badge" aria-hidden="true">
-                <HomeIcon name={story.icon} />
-              </span>
-              <strong>
-                {t(
-                  `home.stories.${story.key}.title`,
-                  buildStoryVars(currentStore, catalogProducts)
-                )}
-              </strong>
-            </button>
-          ))}
+          {sortedStories.map((story) => {
+            const originalIndex = HOME_STORY_KEYS.indexOf(story)
+            const isSeen = seenStories.has(story.key)
+            return (
+              <button
+                className={`home-story-card home-story-tone--${story.tone}${isSeen ? ' home-story-card--seen' : ' home-story-card--unseen'}`}
+                key={story.key}
+                type="button"
+                onClick={() => {
+                  setActiveStoryIndex(originalIndex)
+                  setActiveSlideIndex(0)
+                }}
+              >
+                <img src={story.image} alt="" aria-hidden="true" />
+                <span className="home-story-card__shade" />
+                <span className="home-story-card__badge" aria-hidden="true">
+                  <HomeIcon name={story.icon} />
+                </span>
+                <strong>
+                  {t(
+                    `home.stories.${story.key}.title`,
+                    buildStoryVars(currentStore, catalogProducts)
+                  )}
+                </strong>
+              </button>
+            )
+          })}
         </section>
       </header>
 

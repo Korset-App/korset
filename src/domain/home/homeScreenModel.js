@@ -13,7 +13,7 @@ export const HOME_STORY_KEYS = [
     key: 'store',
     icon: 'storefront',
     tone: 'green',
-    image: '/Сторис/о магазине.png',
+    image: '/stories/store.png',
     cta: 'store',
     slides: ['store.0', 'store.1', 'store.2'],
   },
@@ -21,7 +21,7 @@ export const HOME_STORY_KEYS = [
     key: 'catalog',
     icon: 'auto_stories',
     tone: 'moon',
-    image: '/Сторис/2026-06-22 154952-gpt-image-2.png',
+    image: '/stories/catalog.png',
     cta: 'catalog',
     slides: ['catalog.0', 'catalog.1', 'catalog.2'],
   },
@@ -29,27 +29,69 @@ export const HOME_STORY_KEYS = [
     key: 'scan',
     icon: 'barcode_scanner',
     tone: 'ember',
-    image: '/Сторис/2026-06-23 164719-gpt-image-2.png',
+    image: '/stories/scan.png',
     cta: 'scan',
     slides: ['scan.0', 'scan.1', 'scan.2'],
-  },
-  {
-    key: 'fit',
-    icon: 'tune',
-    tone: 'blue',
-    image: '/Сторис/2026-06-24 132047-gpt-image-2.png',
-    cta: 'fit',
-    slides: ['fit.0', 'fit.1', 'fit.2'],
   },
   {
     key: 'ai',
     icon: 'auto_awesome',
     tone: 'violet',
-    image: '/Сторис/2026-06-25 120220-gpt-image-2.png',
+    image: '/stories/ai.png',
     cta: 'ai',
     slides: ['ai.0', 'ai.1', 'ai.2'],
   },
+  {
+    key: 'fit',
+    icon: 'tune',
+    tone: 'blue',
+    image: '/stories/fit.png',
+    cta: 'fit',
+    slides: ['fit.0', 'fit.1', 'fit.2'],
+  },
 ]
+
+const STORY_SEEN_PREFIX = 'korset_story_seen_'
+
+export function loadSeenStories(slug) {
+  if (typeof window === 'undefined') return new Set()
+  try {
+    const raw = window.localStorage.getItem(STORY_SEEN_PREFIX + slug)
+    return raw ? new Set(JSON.parse(raw)) : new Set()
+  } catch {
+    return new Set()
+  }
+}
+
+export function saveSeenStories(slug, seenSet) {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(STORY_SEEN_PREFIX + slug, JSON.stringify([...seenSet]))
+  } catch {
+    /* quota exceeded — silently ignore */
+  }
+}
+
+export function markStorySeen(slug, storyKey) {
+  const seen = loadSeenStories(slug)
+  if (seen.has(storyKey)) return seen
+  seen.add(storyKey)
+  saveSeenStories(slug, seen)
+  return seen
+}
+
+export function sortStoriesBySeen(stories, seenSet) {
+  const unseen = []
+  const seen = []
+  for (const story of stories) {
+    if (seenSet.has(story.key)) {
+      seen.push(story)
+    } else {
+      unseen.push(story)
+    }
+  }
+  return [...unseen, ...seen]
+}
 
 export function buildHomeQuickActions({ routes = {} } = {}) {
   return [
