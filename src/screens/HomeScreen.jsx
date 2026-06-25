@@ -133,7 +133,7 @@ function StoryViewer({
         </div>
         <header className="home-story-viewer__top">
           <div>
-            <p>{t(`home.stories.${storyIndex}.kicker`, vars)}</p>
+            <p>{t(`home.stories.${story.key}.kicker`, vars)}</p>
             <h2>{t(`home.storySlides.${slideKey}.title`, vars)}</h2>
           </div>
           <button type="button" aria-label={t('common.close')} onClick={onClose}>
@@ -148,7 +148,7 @@ function StoryViewer({
           <button type="button" aria-label={t('home.storyNext')} onClick={() => onSlide(1)} />
         </div>
         <button className="home-story-viewer__cta" type="button" onClick={onCta}>
-          <span>{t(`home.stories.${storyIndex}.cta`, vars)}</span>
+          <span>{t(`home.stories.${story.key}.cta`, vars)}</span>
           <HomeIcon name="arrow_forward" />
         </button>
       </article>
@@ -871,7 +871,10 @@ export default function HomeScreen() {
                 <HomeIcon name={story.icon} />
               </span>
               <strong>
-                {t(`home.stories.${index}.title`, buildStoryVars(currentStore, catalogProducts))}
+                {t(
+                  `home.stories.${story.key}.title`,
+                  buildStoryVars(currentStore, catalogProducts)
+                )}
               </strong>
             </button>
           ))}

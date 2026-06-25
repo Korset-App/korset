@@ -1,15 +1,7 @@
 import { useState, useRef } from 'react'
 import { useI18n } from '../../i18n/index.js'
 
-export default function ImageCarousel({
-  images,
-  fallbackEan,
-  singleImage,
-  onShare,
-  onCopyLink,
-  shareLabel,
-  copyLabel,
-}) {
+export default function ImageCarousel({ images, fallbackEan, singleImage, onShare, shareLabel }) {
   const { t } = useI18n()
   const [currentIndex, setCurrentIndex] = useState(0)
   const scrollRef = useRef(null)
@@ -39,14 +31,7 @@ export default function ImageCarousel({
         }}
       >
         {t('product.noPhoto')}
-        {(onShare || onCopyLink) && (
-          <ShareActions
-            onShare={onShare}
-            onCopyLink={onCopyLink}
-            shareLabel={shareLabel}
-            copyLabel={copyLabel}
-          />
-        )}
+        {onShare && <ShareActions onShare={onShare} shareLabel={shareLabel} />}
       </div>
     )
   }
@@ -129,22 +114,13 @@ export default function ImageCarousel({
           ))}
         </div>
       )}
-      {(onShare || onCopyLink) && (
-        <ShareActions
-          onShare={onShare}
-          onCopyLink={onCopyLink}
-          shareLabel={shareLabel}
-          copyLabel={copyLabel}
-        />
-      )}
+      {onShare && <ShareActions onShare={onShare} shareLabel={shareLabel} />}
     </div>
   )
 }
 
-// Two-button overlay: share icon (primary) + copy-link icon (secondary).
-// Copy is always visible so users who don't get a "copy" option in the
-// native share sheet still have a reliable way to grab the link.
-function ShareActions({ onShare, onCopyLink, shareLabel, copyLabel }) {
+// Single-button overlay: share icon (ios_share).
+function ShareActions({ onShare, shareLabel }) {
   const btnBase = {
     width: 34,
     height: 34,
@@ -163,21 +139,6 @@ function ShareActions({ onShare, onCopyLink, shareLabel, copyLabel }) {
     zIndex: 5,
   }
 
-  const hoverHandlers = (el) => ({
-    onMouseEnter: () => {
-      if (el) el.style.opacity = '0.75'
-    },
-    onMouseLeave: () => {
-      if (el) el.style.opacity = '1'
-    },
-    onMouseDown: () => {
-      if (el) el.style.transform = 'scale(0.88)'
-    },
-    onMouseUp: () => {
-      if (el) el.style.transform = 'scale(1)'
-    },
-  })
-
   return (
     <div
       style={{
@@ -190,66 +151,34 @@ function ShareActions({ onShare, onCopyLink, shareLabel, copyLabel }) {
         zIndex: 5,
       }}
     >
-      {onCopyLink && (
-        <button
-          type="button"
-          aria-label={copyLabel || 'Copy link'}
-          onClick={(e) => {
-            e.stopPropagation()
-            onCopyLink()
-          }}
-          style={btnBase}
-          ref={(el) => {
-            if (!el) return
-            el.onmouseenter = () => {
-              el.style.opacity = '0.75'
-            }
-            el.onmouseleave = () => {
-              el.style.opacity = '1'
-            }
-            el.onmousedown = () => {
-              el.style.transform = 'scale(0.88)'
-            }
-            el.onmouseup = () => {
-              el.style.transform = 'scale(1)'
-            }
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: 17 }}>
-            link
-          </span>
-        </button>
-      )}
-      {onShare && (
-        <button
-          type="button"
-          aria-label={shareLabel || 'Share'}
-          onClick={(e) => {
-            e.stopPropagation()
-            onShare()
-          }}
-          style={btnBase}
-          ref={(el) => {
-            if (!el) return
-            el.onmouseenter = () => {
-              el.style.opacity = '0.75'
-            }
-            el.onmouseleave = () => {
-              el.style.opacity = '1'
-            }
-            el.onmousedown = () => {
-              el.style.transform = 'scale(0.88)'
-            }
-            el.onmouseup = () => {
-              el.style.transform = 'scale(1)'
-            }
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: 17 }}>
-            ios_share
-          </span>
-        </button>
-      )}
+      <button
+        type="button"
+        aria-label={shareLabel || 'Share'}
+        onClick={(e) => {
+          e.stopPropagation()
+          onShare()
+        }}
+        style={btnBase}
+        ref={(el) => {
+          if (!el) return
+          el.onmouseenter = () => {
+            el.style.opacity = '0.75'
+          }
+          el.onmouseleave = () => {
+            el.style.opacity = '1'
+          }
+          el.onmousedown = () => {
+            el.style.transform = 'scale(0.88)'
+          }
+          el.onmouseup = () => {
+            el.style.transform = 'scale(1)'
+          }
+        }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: 17 }}>
+          ios_share
+        </span>
+      </button>
     </div>
   )
 }

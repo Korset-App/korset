@@ -36,6 +36,12 @@ function ensureAbsolute(url) {
   return `https://korset.app${url}`
 }
 
+function truncateText(str, max) {
+  if (!str) return ''
+  if (str.length <= max) return str
+  return str.slice(0, max - 3) + '...'
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET')
@@ -65,7 +71,7 @@ export default async function handler(req, res) {
       supabase
         .from('store_products')
         .select(
-          'price_kzt, local_name, global_products!inner(ean, name, name_kz, brand, category, image_url, images, short_description)'
+          'price_kzt, local_name, global_products!inner(ean, name, name_kz, brand, category, image_url, images, description)'
         )
         .eq('is_active', true)
         .eq('global_products.ean', String(ean))
@@ -82,7 +88,7 @@ export default async function handler(req, res) {
       // Fallback: try fetching product directly from global_products (store-agnostic)
       const { data: gpFallback } = await supabase
         .from('global_products')
-        .select('ean, name, name_kz, brand, category, image_url, images, short_description')
+        .select('ean, name, name_kz, brand, category, image_url, images, description')
         .eq('ean', String(ean))
         .eq('is_active', true)
         .maybeSingle()
@@ -115,8 +121,9 @@ function buildAndSendHtml(res, store, gp, priceKzt, localName) {
   const price = priceKzt ? ` · ${Math.round(priceKzt)} ₸` : ''
 
   const title = `${productName}${price} | ${storeName}`
-  const description = gp.short_description
-    ? escapeHtml(gp.short_description)
+  const cleanDesc = gp.description ? gp.description.replace(/\s+/g, ' ').trim() : ''
+  const description = cleanDesc
+    ? escapeHtml(truncateText(cleanDesc, 160))
     : `${productName}${brand} в магазине ${storeName}. Проверьте халал-статус, аллергены и КБЖУ в Körset.`
 
   // Pick the best available image.

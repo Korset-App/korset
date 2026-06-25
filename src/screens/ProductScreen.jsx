@@ -502,15 +502,13 @@ export default function ProductScreen() {
 
       {/* CONTENT */}
       <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {/* 1. Р¤РѕС‚Рѕ-РєР°СЂСѓСЃРµР»СЊ (РѕСЃС‚Р°РІР»СЏРµРј РєР°Рє Р±С‹Р»Р° вЂ” swipe animation) */}
+        {/* 1. Фото-карусель (оставляем как была — swipe animation) */}
         <ImageCarousel
           images={product.images}
           fallbackEan={product.ean}
           singleImage={product.image}
           onShare={handleShare}
-          onCopyLink={handleCopyLink}
           shareLabel={t('product.share')}
-          copyLabel={t('product.copyLink')}
         />
 
         {/* 2. Title + Price РІ РѕРґРЅСѓ СЃС‚СЂРѕРєСѓ */}
