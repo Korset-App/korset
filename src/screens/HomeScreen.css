@@ -452,8 +452,8 @@
   grid-auto-columns: clamp(92px, 26.5vw, 116px);
   grid-auto-flow: column;
   gap: 12px;
-  margin: 14px calc(clamp(14px, 4.8vw, 22px) * -1) 0;
-  padding: 0 clamp(14px, 4.8vw, 22px) 10px;
+  margin: 9px calc(clamp(14px, 4.8vw, 22px) * -1) 0;
+  padding: 5px clamp(14px, 4.8vw, 22px) 10px;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scroll-padding-left: clamp(14px, 4.8vw, 22px);
@@ -481,7 +481,7 @@
   scroll-snap-align: start;
   box-shadow: 0 12px 28px color-mix(in srgb, #000 18%, transparent);
   cursor: pointer;
-  overflow: hidden;
+  isolation: isolate;
   transition:
     transform 180ms ease,
     border-color 180ms ease,
@@ -533,6 +533,14 @@
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, #fff 18%, transparent),
     0 10px 24px color-mix(in srgb, #000 30%, transparent);
+}
+
+.home-story-card__media {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  z-index: 1;
 }
 
 .home-story-card img {
@@ -1498,6 +1506,34 @@
 .home-action-card--catalog small {
   font-size: 13px;
   opacity: 0.9;
+}
+
+.home-action-card--catalog .home-action-card__art {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 60%;
+  height: 100%;
+  object-fit: contain;
+  object-position: right center;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 20%);
+          mask-image: linear-gradient(to right, transparent 0%, #000 20%);
+}
+
+.home-action-card--catalog .home-action-card__icon,
+.home-action-card--catalog .home-action-card__copy {
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 360px) {
+  .home-action-card--catalog .home-action-card__art {
+    width: 52%;
+  }
 }
 
 .home-action-card--scan,

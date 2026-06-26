@@ -902,8 +902,10 @@ export default function HomeScreen() {
                   setActiveSlideIndex(0)
                 }}
               >
-                <img src={story.image} alt="" aria-hidden="true" />
-                <span className="home-story-card__shade" />
+                <span className="home-story-card__media">
+                  <img src={story.image} alt="" aria-hidden="true" />
+                  <span className="home-story-card__shade" />
+                </span>
                 <span className="home-story-card__badge" aria-hidden="true">
                   <HomeIcon name={story.icon} />
                 </span>
@@ -1125,6 +1127,19 @@ export default function HomeScreen() {
               navigate(action.path, action.navState ? { state: action.navState } : undefined)
             }
           >
+            {action.key === 'catalog' && (
+              <img
+                className="home-action-card__art"
+                src="/home/catalog-action.png"
+                alt=""
+                aria-hidden="true"
+                loading="lazy"
+                decoding="async"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none'
+                }}
+              />
+            )}
             <span className="home-action-card__icon">
               <HomeIcon name={action.icon} />
             </span>
