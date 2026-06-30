@@ -1130,7 +1130,7 @@ export default function HomeScreen() {
             {action.key === 'catalog' && (
               <img
                 className="home-action-card__art"
-                src="/home/catalog-action.png"
+                src="/2026-06-25_021532-gpt-image-2-removebg-preview.png"
                 alt=""
                 aria-hidden="true"
                 loading="lazy"
