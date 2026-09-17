@@ -87,7 +87,7 @@ function StoreCard({ store, index, onSelect, t }) {
             <span className="material-symbols-outlined" aria-hidden="true">
               schedule
             </span>
-            {t('stores.hoursUnknown')}
+            {store.opening_hours || t('stores.hoursUnknown')}
           </span>
           <span className="stores-card__cta">{t('stores.open')}</span>
         </span>
@@ -111,7 +111,7 @@ export default function StoresScreen() {
     supabase
       .from('stores')
       .select(
-        'id, code, name, city, address, logo_url, type, plan, short_description, description, is_active'
+        'id, code, name, city, address, logo_url, type, plan, short_description, description, opening_hours, is_active'
       )
       .eq('is_active', true)
       .order('name')

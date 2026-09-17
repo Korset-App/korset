@@ -432,5 +432,18 @@
   "home.preferenceHalal": "Халал",
   "home.fitProfileHint": "Бір рет толтырыңыз, сосын тексеру автоматты болады.",
   "home.fitSaved": "Сақталды. Блок жасырылды.",
-  "home.fitSave": "Сақтап жасыру"
+  "home.fitSave": "Сақтап жасыру",
+  "home.storeOpenNow": "Ашық",
+  "home.storeClosedNow": "Жабық",
+  "home.storeOpensAt": "{time} ашылады",
+  "home.storeClosesAt": "{time} дейін жұмыс істейді",
+  "home.storeAlwaysOpen": "Тәулік бойы",
+  "home.storeRoute2Gis": "2GIS-те бағыт",
+  "home.storeCall": "Қоңырау шалу",
+  "home.storeWhatsApp": "WhatsApp",
+  "home.storeInstagram": "Instagram",
+  "home.storeViewShowcase": "Витрина мен бағаларды көру",
+  "home.storeScanInStore": "Сөреде сканерлеу",
+  "home.storeDirections": "Қалай жетуге болады",
+  "home.storePhotos": "Дүкен фотосуреттері"
 }

@@ -432,5 +432,18 @@
   "home.preferenceHalal": "Халал",
   "home.fitProfileHint": "Заполните один раз. Потом проверка будет работать автоматически.",
   "home.fitSaved": "Сохранено. Блок скрыт.",
-  "home.fitSave": "Сохранить и скрыть"
+  "home.fitSave": "Сохранить и скрыть",
+  "home.storeOpenNow": "Открыто",
+  "home.storeClosedNow": "Закрыто",
+  "home.storeOpensAt": "Откроется в {time}",
+  "home.storeClosesAt": "Работает до {time}",
+  "home.storeAlwaysOpen": "Круглосуточно",
+  "home.storeRoute2Gis": "Маршрут в 2GIS",
+  "home.storeCall": "Позвонить",
+  "home.storeWhatsApp": "WhatsApp",
+  "home.storeInstagram": "Instagram",
+  "home.storeViewShowcase": "Смотреть витрину и цены",
+  "home.storeScanInStore": "Сканировать у полки",
+  "home.storeDirections": "Как добраться",
+  "home.storePhotos": "Фотографии магазина"
 }

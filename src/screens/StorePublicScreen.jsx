@@ -1,34 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { useI18n } from '../i18n/index.js'
-
-const CONTACT_LABELS = { phone: 'home.storePhone' }
-
-const CONTACTS = [
-  {
-    key: 'phone',
-    icon: 'call',
-    color: '#4ADE80',
-    label: 'Телефон',
-    href: (v) => `tel:${v.replace(/[^\d+]/g, '')}`,
-  },
-  {
-    key: 'whatsapp_number',
-    icon: 'chat',
-    color: '#25D366',
-    label: 'WhatsApp',
-    href: (v) => `https://wa.me/${v.replace(/\D/g, '')}`,
-  },
-  {
-    key: 'instagram_url',
-    icon: 'photo_camera',
-    color: '#E1306C',
-    label: 'Instagram',
-    href: (v) => v,
-  },
-  { key: 'twogis_url', icon: 'location_on', color: '#2A6EDD', label: '2GIS', href: (v) => v },
-]
+import { parseStoreSchedule } from '../domain/stores/schedule.js'
+import './StorePublicScreen.css'
 
 export default function StorePublicScreen() {
   const navigate = useNavigate()
@@ -51,6 +26,12 @@ export default function StorePublicScreen() {
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
+
+  const openingHours = store?.opening_hours
+  const schedule = useMemo(() => {
+    if (!openingHours) return null
+    return parseStoreSchedule(openingHours)
+  }, [openingHours])
 
   if (isStoreLoading) {
     return (
@@ -75,243 +56,214 @@ export default function StorePublicScreen() {
 
   if (!store) return <Navigate to="/stores" replace />
 
-  const hasContacts = CONTACTS.some((c) => store[c.key])
-  const hasDescription = store.description || store.short_description
+  const storeType = store.type ? t(`stores.type.${store.type}`) : null
+  const hasDescription = Boolean(store.description || store.short_description)
+  const fullAddress = [store.city, store.address].filter(Boolean).join(', ')
+
+  // TwoGIS link fallback to search query by address if explicit link is missing
+  const twoGisUrl =
+    store.twogis_url ||
+    (store.city && store.address
+      ? `https://2gis.kz/search/${encodeURIComponent(`${store.city} ${store.address}`)}`
+      : null)
+
+  const handleOpenStore = () => {
+    rememberStore(store.slug)
+    navigate(`/s/${store.slug}`)
+  }
+
+  const handleOpenScan = () => {
+    rememberStore(store.slug)
+    navigate(`/s/${store.slug}/scan`)
+  }
 
   return (
-    <div className="screen" style={{ paddingBottom: 40 }}>
-      <div style={{ padding: '28px 20px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {/* Back */}
-        <button
-          onClick={() => navigate(-1)}
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 12,
-            background: 'var(--glass-bg)',
-            border: '1px solid var(--glass-soft-border)',
-            color: 'var(--text)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            alignSelf: 'flex-start',
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-            arrow_back
-          </span>
-        </button>
+    <div className="screen store-public-screen">
+      <div className="store-public-container">
+        {/* Top bar */}
+        <header className="store-public-topbar">
+          <button
+            type="button"
+            className="store-public-back-btn"
+            onClick={() => navigate(-1)}
+            aria-label={t('common.back')}
+          >
+            <span className="material-symbols-outlined">arrow_back</span>
+          </button>
+          <div className="store-public-badge-korset">
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+              storefront
+            </span>
+            <span>Körset Store</span>
+          </div>
+        </header>
 
-        {/* Store header */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+        {/* Store header presentation */}
+        <article className="store-public-header">
           {store.logo_url || store.logo ? (
             <img
               src={store.logo_url || store.logo}
               alt={store.name}
-              style={{
-                width: 80,
-                height: 80,
-                borderRadius: 22,
-                objectFit: 'cover',
-                flexShrink: 0,
-                boxShadow: 'var(--shadow-card)',
-              }}
+              className="store-public-logo"
             />
           ) : (
-            <div
-              style={{
-                width: 80,
-                height: 80,
-                borderRadius: 22,
-                background: 'linear-gradient(135deg, rgba(56,189,248,0.25), rgba(124,58,237,0.25))',
-                border: '1px solid var(--accent-sky-border)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 30,
-                fontWeight: 800,
-                color: 'var(--text-inverse)',
-                fontFamily: 'var(--font-display)',
-                flexShrink: 0,
-              }}
-            >
+            <div className="store-public-logo-fallback">
               {store.name?.[0]?.toUpperCase() || 'K'}
             </div>
           )}
-          <div style={{ flex: 1 }}>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: 'var(--primary-bright)',
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-                marginBottom: 4,
-              }}
-            >
-              {t('home.storePage')}
-            </div>
-            <h1
-              style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: 26,
-                fontWeight: 900,
-                color: 'var(--text)',
-                lineHeight: 1.15,
-                margin: '0 0 6px',
-              }}
-            >
-              {store.name}
-            </h1>
-            {(store.city || store.address) && (
-              <div
-                style={{
-                  fontSize: 13,
-                  color: 'var(--text-dim)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
-                  location_on
+
+          <div className="store-public-info">
+            <div className="store-public-status-row">
+              {schedule?.isConfigured && (
+                <span
+                  className={`store-public-status-tag ${
+                    schedule.isOpen
+                      ? 'store-public-status-tag--open'
+                      : 'store-public-status-tag--closed'
+                  }`}
+                >
+                  <span className="store-public-status-tag__dot" />
+                  <span>
+                    {schedule.isAlwaysOpen
+                      ? t('home.storeAlwaysOpen')
+                      : schedule.isOpen
+                        ? schedule.closes
+                          ? t('home.storeClosesAt', { time: schedule.closes })
+                          : t('home.storeOpenNow')
+                        : schedule.opens
+                          ? t('home.storeOpensAt', { time: schedule.opens })
+                          : t('home.storeClosedNow')}
+                  </span>
                 </span>
-                {[store.city, store.address].filter(Boolean).join(' · ')}
+              )}
+              {storeType && <span className="store-public-type-tag">{storeType}</span>}
+            </div>
+
+            <h1 className="store-public-name">{store.name}</h1>
+
+            {fullAddress && (
+              <div className="store-public-address">
+                <span className="material-symbols-outlined">location_on</span>
+                <span>{fullAddress}</span>
               </div>
             )}
+
             {store.short_description && (
-              <div
-                style={{
-                  fontSize: 13,
-                  color: 'var(--text-soft)',
-                  marginTop: 6,
-                  lineHeight: 1.5,
-                }}
-              >
-                {store.short_description}
-              </div>
+              <p className="store-public-short-desc">{store.short_description}</p>
             )}
           </div>
+        </article>
+
+        {/* Primary CTAs: Digital Storefront first, shelf scanner second */}
+        <div className="store-public-cta-group">
+          <button type="button" className="store-public-cta-primary" onClick={handleOpenStore}>
+            <span>{t('home.storeViewShowcase')}</span>
+            <span className="material-symbols-outlined">arrow_forward</span>
+          </button>
+
+          <button type="button" className="store-public-cta-secondary" onClick={handleOpenScan}>
+            <span className="material-symbols-outlined">barcode_scanner</span>
+            <span>{t('home.storeScanInStore')}</span>
+          </button>
         </div>
 
-        {/* Full description */}
-        {hasDescription && (
-          <div
-            style={{
-              background: 'var(--glass-subtle)',
-              border: '1px solid var(--glass-soft-border)',
-              borderRadius: 16,
-              overflow: 'hidden',
-            }}
-          >
-            <button
-              onClick={() => {
-                if (!showFullDesc) window.history.pushState(null, '')
-                setShowFullDesc((v) => !v)
-              }}
-              style={{
-                width: '100%',
-                padding: '14px 16px',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                color: 'var(--text)',
-              }}
+        {/* Quick Contacts Grid */}
+        <section className="store-public-actions-grid" aria-label={t('home.storeContacts')}>
+          {store.phone && (
+            <a
+              href={`tel:${store.phone.replace(/[^\d+]/g, '')}`}
+              className="store-public-action-btn"
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span
-                  className="material-symbols-outlined"
-                  style={{ fontSize: 18, color: 'var(--primary-bright)' }}
-                >
-                  description
-                </span>
-                <span style={{ fontSize: 14, fontWeight: 600 }}>{t('home.storeAbout')}</span>
-              </div>
-              <span
-                className="material-symbols-outlined"
-                style={{
-                  fontSize: 18,
-                  color: 'var(--text-dim)',
-                  transition: 'transform 0.2s',
-                  transform: showFullDesc ? 'rotate(180deg)' : 'rotate(0deg)',
-                }}
-              >
-                expand_more
-              </span>
-            </button>
-            {showFullDesc && (
               <div
+                className="store-public-action-btn__icon"
                 style={{
-                  padding: '0 16px 16px',
-                  fontSize: 14,
-                  color: 'var(--text-soft)',
-                  lineHeight: 1.65,
-                  borderTop: '1px solid var(--line-soft)',
+                  background: 'rgba(74, 222, 128, 0.12)',
+                  color: '#4ade80',
                 }}
               >
-                <div style={{ paddingTop: 12 }}>{store.description || store.short_description}</div>
+                <span className="material-symbols-outlined">call</span>
               </div>
-            )}
-          </div>
-        )}
+              <span>{t('home.storeCall')}</span>
+            </a>
+          )}
 
-        {/* Store Photos Grid */}
+          {store.whatsapp_number && (
+            <a
+              href={`https://wa.me/${store.whatsapp_number.replace(/\D/g, '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="store-public-action-btn"
+            >
+              <div
+                className="store-public-action-btn__icon"
+                style={{
+                  background: 'rgba(37, 211, 102, 0.12)',
+                  color: '#25d366',
+                }}
+              >
+                <span className="material-symbols-outlined">chat</span>
+              </div>
+              <span>{t('home.storeWhatsApp')}</span>
+            </a>
+          )}
+
+          {twoGisUrl && (
+            <a
+              href={twoGisUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="store-public-action-btn"
+            >
+              <div
+                className="store-public-action-btn__icon"
+                style={{
+                  background: 'rgba(42, 110, 221, 0.12)',
+                  color: '#38bdf8',
+                }}
+              >
+                <span className="material-symbols-outlined">map</span>
+              </div>
+              <span>{t('home.storeRoute2Gis')}</span>
+            </a>
+          )}
+
+          {store.instagram_url && (
+            <a
+              href={store.instagram_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="store-public-action-btn"
+            >
+              <div
+                className="store-public-action-btn__icon"
+                style={{
+                  background: 'rgba(225, 48, 108, 0.12)',
+                  color: '#f43f5e',
+                }}
+              >
+                <span className="material-symbols-outlined">photo_camera</span>
+              </div>
+              <span>{t('home.storeInstagram')}</span>
+            </a>
+          )}
+        </section>
+
+        {/* Store Photos Gallery */}
         {store.images && store.images.length > 0 && (
-          <div
-            style={{
-              background: 'var(--glass-subtle)',
-              border: '1px solid var(--glass-soft-border)',
-              borderRadius: 16,
-              overflow: 'hidden',
-              padding: 16,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: 'var(--text-dim)',
-                textTransform: 'uppercase',
-                letterSpacing: 1,
-                marginBottom: 12,
-              }}
-            >
-              {t('home.storePhotos') || 'Фотографии магазина'}
-            </div>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
-                gap: 10,
-              }}
-            >
+          <section className="store-public-card">
+            <h2 className="store-public-card__title">{t('home.storePhotos')}</h2>
+            <div className="store-public-photos-grid">
               {store.images.map((url, idx) => (
                 <div
                   key={url}
-                  style={{
-                    aspectRatio: '4/3',
-                    borderRadius: 12,
-                    overflow: 'hidden',
-                    border: '1px solid var(--glass-soft-border)',
-                    background: 'var(--input-bg)',
-                    cursor: 'pointer',
-                    boxShadow: 'var(--shadow-card)',
-                  }}
+                  className="store-public-photo-item"
                   onClick={() => setActivePhotoIndex(idx)}
                 >
-                  <img
-                    src={url}
-                    alt={`${store.name} photo ${idx + 1}`}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
+                  <img src={url} alt={`${store.name} photo ${idx + 1}`} loading="lazy" />
                 </div>
               ))}
             </div>
-          </div>
+          </section>
         )}
 
         {/* Lightbox for Store Photos */}
@@ -319,12 +271,9 @@ export default function StorePublicScreen() {
           <div
             style={{
               position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
+              inset: 0,
               zIndex: 2000,
-              background: 'rgba(0,0,0,0.92)',
+              background: 'rgba(0,0,0,0.94)',
               backdropFilter: 'blur(12px)',
               display: 'flex',
               alignItems: 'center',
@@ -338,11 +287,11 @@ export default function StorePublicScreen() {
                 position: 'absolute',
                 top: 'max(16px, env(safe-area-inset-top))',
                 right: 16,
-                background: 'rgba(255,255,255,0.1)',
+                background: 'rgba(255,255,255,0.14)',
                 border: 'none',
                 borderRadius: '50%',
-                width: 40,
-                height: 40,
+                width: 42,
+                height: 42,
                 color: '#fff',
                 display: 'flex',
                 alignItems: 'center',
@@ -356,168 +305,55 @@ export default function StorePublicScreen() {
             <img
               src={store.images[activePhotoIndex]}
               alt="Store full view"
-              style={{ maxWidth: '90%', maxHeight: '85%', objectFit: 'contain', borderRadius: 12 }}
+              style={{ maxWidth: '92%', maxHeight: '86%', objectFit: 'contain', borderRadius: 14 }}
             />
           </div>
         )}
 
-        {/* Contacts */}
-        {hasContacts && (
-          <div
-            style={{
-              background: 'var(--glass-subtle)',
-              border: '1px solid var(--glass-soft-border)',
-              borderRadius: 16,
-              overflow: 'hidden',
-            }}
-          >
-            <div
-              style={{
-                padding: '14px 16px',
-                fontSize: 12,
-                fontWeight: 700,
-                color: 'var(--text-dim)',
-                textTransform: 'uppercase',
-                letterSpacing: 1,
-                borderBottom: '1px solid var(--line-soft)',
+        {/* About store accordion */}
+        {hasDescription && (
+          <section className="store-public-card">
+            <button
+              type="button"
+              className={`store-public-desc-toggle ${showFullDesc ? 'is-open' : ''}`}
+              onClick={() => {
+                if (!showFullDesc) window.history.pushState(null, '')
+                setShowFullDesc((v) => !v)
               }}
             >
-              {t('home.storeContacts')}
-            </div>
-            {CONTACTS.filter((c) => store[c.key]).map((c, i, arr) => (
-              <div key={c.key}>
-                <a
-                  href={c.href(store[c.key])}
-                  target={c.key !== 'phone' ? '_blank' : undefined}
-                  rel="noopener noreferrer"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    padding: '12px 16px',
-                    textDecoration: 'none',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 10,
-                      background: `${c.color}18`,
-                      border: `1px solid ${c.color}35`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <span
-                      className="material-symbols-outlined"
-                      style={{ fontSize: 18, color: c.color }}
-                    >
-                      {c.icon}
-                    </span>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 2 }}>
-                      {CONTACT_LABELS[c.key] ? t(CONTACT_LABELS[c.key]) : c.label}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 13,
-                        color: 'var(--text)',
-                        fontWeight: 500,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {store[c.key]}
-                    </div>
-                  </div>
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ fontSize: 16, color: 'var(--text-dim)' }}
-                  >
-                    open_in_new
-                  </span>
-                </a>
-                {i < arr.length - 1 && (
-                  <div style={{ height: 1, background: 'var(--line-soft)', margin: '0 16px' }} />
-                )}
+              <span style={{ fontSize: 13, fontWeight: 700 }}>{t('home.storeAbout')}</span>
+              <span className="material-symbols-outlined">expand_more</span>
+            </button>
+            {showFullDesc && (
+              <div className="store-public-desc-body">
+                {store.description || store.short_description}
               </div>
-            ))}
-          </div>
+            )}
+          </section>
         )}
 
-        {/* Körset features */}
-        <div
-          style={{
-            padding: '16px 18px',
-            borderRadius: 18,
-            background: 'var(--glass-subtle)',
-            border: '1px solid var(--glass-soft-border)',
-          }}
-        >
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>
-            {t('home.storeFeatures')}
-          </div>
-          <ul
-            style={{
-              margin: 0,
-              paddingLeft: 18,
-              color: 'var(--text-soft)',
-              fontSize: 13,
-              lineHeight: 1.7,
-            }}
-          >
-            <li>{t('home.storeFeature1')}</li>
-            <li>{t('home.storeFeature2')}</li>
-            <li>{t('home.storeFeature3')}</li>
-            <li>{t('home.storeFeature4')}</li>
+        {/* Store features with Körset */}
+        <section className="store-public-card">
+          <h2 className="store-public-card__title">{t('home.storeFeatures')}</h2>
+          <ul className="store-public-features-list">
+            <li className="store-public-feature-item">
+              <span className="material-symbols-outlined">storefront</span>
+              <span>{t('home.storeFeature3')}</span>
+            </li>
+            <li className="store-public-feature-item">
+              <span className="material-symbols-outlined">fact_check</span>
+              <span>{t('home.storeFeature2')}</span>
+            </li>
+            <li className="store-public-feature-item">
+              <span className="material-symbols-outlined">barcode_scanner</span>
+              <span>{t('home.storeFeature1')}</span>
+            </li>
+            <li className="store-public-feature-item">
+              <span className="material-symbols-outlined">auto_awesome</span>
+              <span>{t('home.storeFeature4')}</span>
+            </li>
           </ul>
-        </div>
-
-        {/* CTA buttons */}
-        <button
-          onClick={() => {
-            rememberStore(store.slug)
-            navigate(`/s/${store.slug}`)
-          }}
-          style={{
-            width: '100%',
-            padding: '18px',
-            borderRadius: 18,
-            cursor: 'pointer',
-            background: 'linear-gradient(135deg, rgba(124,58,237,0.22), rgba(109,40,217,0.1))',
-            border: '1.5px solid rgba(124,58,237,0.4)',
-            color: 'var(--text)',
-            fontSize: 16,
-            fontWeight: 700,
-          }}
-        >
-          {t('home.storeOpen')}
-        </button>
-
-        <button
-          onClick={() => {
-            rememberStore(store.slug)
-            navigate(`/s/${store.slug}/scan`)
-          }}
-          style={{
-            width: '100%',
-            padding: '16px',
-            borderRadius: 18,
-            cursor: 'pointer',
-            background: 'var(--glass-muted)',
-            border: '1px solid var(--glass-border)',
-            color: 'var(--primary-bright)',
-            fontSize: 14,
-            fontWeight: 600,
-          }}
-        >
-          {t('home.storeScan')}
-        </button>
+        </section>
       </div>
     </div>
   )
