@@ -7,6 +7,7 @@ import { DIET_PREFERENCES } from '../constants/dietGoals.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useProfile } from '../contexts/ProfileContext.jsx'
 import { useStore } from '../contexts/StoreContext.jsx'
+import { useUserData } from '../contexts/UserDataContext.jsx'
 import SegmentedToggle from '../components/SegmentedToggle.jsx'
 import {
   HOME_STORY_KEYS,
@@ -273,6 +274,7 @@ export default function HomeScreen() {
   const { profile, updateProfile } = useProfile()
   const { currentStore, isStoreApp, isStoreLoading, routes, isStoreOwnerOrAdmin, catalogProducts } =
     useStore()
+  const { favoritesCount = 0 } = useUserData() || {}
   const avatarButtonRef = useRef(null)
   const fitSectionRef = useRef(null)
   const installSectionRef = useRef(null)
@@ -1167,38 +1169,140 @@ export default function HomeScreen() {
         </section>
       )}
 
-      <section className="home-actions" aria-label={t('home.quickActions')}>
-        {actions.map((action) => (
+      {/* 1. Quick Store Search & Scanner Bar */}
+      <div className="home-search-pill">
+        <button
+          type="button"
+          className="home-search-pill__input"
+          onClick={() => navigate(routes.catalog)}
+        >
+          <HomeIcon name="search" />
+          <span>
+            {t('home.searchPlaceholder', {
+              count: catalogProducts?.length || 10240,
+            })}
+          </span>
+        </button>
+        <button
+          type="button"
+          className="home-search-pill__scanner"
+          onClick={() => navigate(routes.scan)}
+          aria-label={t('home.scanBtn')}
+        >
+          <HomeIcon name="barcode_scanner" />
+        </button>
+      </div>
+
+      {/* 2. Digital Storefront Showcase Bento */}
+      <section className="home-showcase-grid" aria-label={t('home.catalog')}>
+        {/* Hero Catalog Card */}
+        <button
+          type="button"
+          className="home-showcase-card home-showcase-card--hero"
+          onClick={() => navigate(routes.catalog)}
+        >
+          <img
+            className="home-showcase-card__art"
+            src="/2026-06-30 175557-gpt-image-2.png"
+            alt=""
+            aria-hidden="true"
+            loading="lazy"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none'
+            }}
+          />
+          <div className="home-showcase-card__badge">
+            <HomeIcon name="storefront" />
+            <span>
+              {t('home.catalogLiveBadge', {
+                count: catalogProducts?.length || 10240,
+              })}
+            </span>
+          </div>
+          <div className="home-showcase-card__content">
+            <h3>{t('home.catalog')}</h3>
+            <p>{t('home.quickActionCatalogSub')}</p>
+          </div>
+          <div className="home-showcase-card__action">
+            <span>{t('home.viewAllCatalog')}</span>
+            <HomeIcon name="arrow_forward" />
+          </div>
+        </button>
+
+        {/* 2nd Tier Bento Duo */}
+        <div className="home-showcase-grid__duo">
+          {/* AI Assistant */}
           <button
-            className={`home-action-card home-action-card--${action.key}`}
-            key={action.key}
             type="button"
-            onClick={() =>
-              navigate(action.path, action.navState ? { state: action.navState } : undefined)
-            }
+            className="home-showcase-card home-showcase-card--ai"
+            onClick={() => navigate(routes.ai)}
           >
-            {action.key === 'catalog' && (
-              <img
-                className="home-action-card__art"
-                src="/2026-06-30 175557-gpt-image-2.png"
-                alt=""
-                aria-hidden="true"
-                loading="lazy"
-                decoding="async"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none'
-                }}
-              />
-            )}
-            <span className="home-action-card__icon">
-              <HomeIcon name={action.icon} />
-            </span>
-            <span className="home-action-card__copy">
-              <strong>{t(action.titleKey)}</strong>
-              <small>{t(action.textKey)}</small>
-            </span>
+            <div className="home-showcase-card__icon home-showcase-card__icon--ai">
+              <HomeIcon name="auto_awesome" />
+            </div>
+            <div className="home-showcase-card__info">
+              <h4>{t('home.quickActionAi')}</h4>
+              <p>{t('home.quickActionAiSub')}</p>
+            </div>
           </button>
-        ))}
+
+          {/* Shopping List */}
+          <button
+            type="button"
+            className="home-showcase-card home-showcase-card--fav"
+            onClick={() => navigateProfileTab('favorites')}
+          >
+            <div className="home-showcase-card__icon home-showcase-card__icon--fav">
+              <HomeIcon name="checklist" />
+            </div>
+            <div className="home-showcase-card__info">
+              <h4>{t('home.quickActionFavorites')}</h4>
+              <p>
+                {favoritesCount > 0
+                  ? t('home.shoppingItemsCount', { count: favoritesCount })
+                  : t('home.shoppingEmpty')}
+              </p>
+            </div>
+          </button>
+        </div>
+      </section>
+
+      {/* 3. Popular Store Departments */}
+      <section className="home-departments-section" aria-label={t('home.departmentsTitle')}>
+        <div className="home-departments-section__header">
+          <h2>{t('home.departmentsTitle')}</h2>
+          <button
+            type="button"
+            className="home-departments-section__all-link"
+            onClick={() => navigate(routes.catalog)}
+          >
+            <span>{t('home.viewAllCatalog')}</span>
+            <HomeIcon name="chevron_right" />
+          </button>
+        </div>
+
+        <div className="home-departments-carousel">
+          {[
+            { key: 'dairy_eggs', label: t('home.deptDairy'), icon: 'egg' },
+            { key: 'bakery', label: t('home.deptBakery'), icon: 'bakery_dining' },
+            { key: 'meat', label: t('home.deptMeat'), icon: 'kebab_dining' },
+            { key: 'drinks', label: t('home.deptDrinks'), icon: 'local_cafe' },
+            { key: 'fruits_veg', label: t('home.deptFruitsVeg'), icon: 'nutrition' },
+            { key: 'sweets', label: t('home.deptSweets'), icon: 'cookie' },
+          ].map((dept) => (
+            <button
+              key={dept.key}
+              type="button"
+              className="home-department-chip"
+              onClick={() => navigate(routes.catalog, { state: { category: dept.key } })}
+            >
+              <span className="home-department-chip__icon">
+                <HomeIcon name={dept.icon} />
+              </span>
+              <span className="home-department-chip__label">{dept.label}</span>
+            </button>
+          ))}
+        </div>
       </section>
 
       {installHelpVisible && (

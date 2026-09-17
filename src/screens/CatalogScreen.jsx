@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef, forwardRef } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { Virtuoso, VirtuosoGrid } from 'react-virtuoso'
 import {
   checkProductFit,
@@ -445,9 +445,17 @@ export default function CatalogScreen() {
   const [recentSearchesVersion, setRecentSearchesVersion] = useState(0)
   const [isSearchFocused, setIsSearchFocused] = useState(false)
 
+  const location = useLocation()
   const [selectedCategory, setSelectedCategory] = useState(
-    () => sessionStorage.getItem('korset_catalog_category') || null
+    () => location.state?.category || sessionStorage.getItem('korset_catalog_category') || null
   )
+
+  useEffect(() => {
+    if (location.state?.category) {
+      setSelectedCategory(location.state.category)
+      sessionStorage.setItem('korset_catalog_category', location.state.category)
+    }
+  }, [location.state?.category])
   const [selectedSubcategories, setSelectedSubcategories] = useState(() => {
     try {
       const val = sessionStorage.getItem('korset_catalog_subcategories')
