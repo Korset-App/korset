@@ -120,19 +120,58 @@ function StoryViewer({
 }) {
   const slideKey = story.slides[slideIndex] || story.slides[0]
   const vars = buildStoryVars(store, catalogProducts)
+  const [progress, setProgress] = useState(0)
+  const isPausedRef = useRef(false)
+
+  useEffect(() => {
+    setProgress(0)
+    const startTime = Date.now()
+    const DURATION = 4500
+
+    const interval = setInterval(() => {
+      if (isPausedRef.current) return
+      const elapsed = Date.now() - startTime
+      const p = Math.min(elapsed / DURATION, 1)
+      setProgress(p)
+      if (p >= 1) {
+        clearInterval(interval)
+        onSlide(1)
+      }
+    }, 40)
+
+    return () => clearInterval(interval)
+  }, [slideIndex, story.key, onSlide])
 
   return (
-    <div className="home-story-viewer" role="dialog" aria-modal="true">
+    <div
+      className="home-story-viewer"
+      role="dialog"
+      aria-modal="true"
+      onPointerDown={() => {
+        isPausedRef.current = true
+      }}
+      onPointerUp={() => {
+        isPausedRef.current = false
+      }}
+      onPointerLeave={() => {
+        isPausedRef.current = false
+      }}
+    >
       <button className="home-story-viewer__backdrop" type="button" onClick={onClose} />
       <article className={`home-story-viewer__frame home-story-tone--${story.tone}`}>
         <img className="home-story-viewer__image" src={story.image} alt="" aria-hidden="true" />
         <div className="home-story-viewer__shade" />
         <div className="home-story-viewer__progress" aria-hidden="true">
-          {story.slides.map((slide, index) => (
-            <span key={slide}>
-              <i style={{ transform: index <= slideIndex ? 'scaleX(1)' : 'scaleX(0)' }} />
-            </span>
-          ))}
+          {story.slides.map((slide, index) => {
+            let scale = 0
+            if (index < slideIndex) scale = 1
+            else if (index === slideIndex) scale = progress
+            return (
+              <span key={slide}>
+                <i style={{ transform: `scaleX(${scale})` }} />
+              </span>
+            )
+          })}
         </div>
         <header className="home-story-viewer__top">
           <div>
@@ -143,7 +182,18 @@ function StoryViewer({
             <HomeIcon name="close" />
           </button>
         </header>
-        <p className="home-story-viewer__text">{t(`home.storySlides.${slideKey}.text`, vars)}</p>
+
+        <div className="home-story-viewer__body">
+          <div className="home-story-viewer__card">
+            <div className="home-story-viewer__card-icon">
+              <HomeIcon name={story.icon} />
+            </div>
+            <p className="home-story-viewer__text">
+              {t(`home.storySlides.${slideKey}.text`, vars)}
+            </p>
+          </div>
+        </div>
+
         <div className="home-story-viewer__hit home-story-viewer__hit--prev">
           <button type="button" aria-label={t('home.storyPrev')} onClick={() => onSlide(-1)} />
         </div>
