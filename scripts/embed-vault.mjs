@@ -31,7 +31,9 @@ const OVERLAP_TOKENS = 50
 const BATCH_SIZE = 100
 const MAX_RETRIES = 3
 const RETRY_BASE_MS = 1000
-const IGNORED_DIRS = new Set(['.obsidian'])
+// changelog = session logs, archive = completed work. Both dilute retrieval precision
+// without adding durable knowledge. Files stay on disk for Obsidian, just not in RAG.
+const IGNORED_DIRS = new Set(['.obsidian', 'changelog', 'archive'])
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY

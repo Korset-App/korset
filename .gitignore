@@ -21,3 +21,4 @@ vite.config.js.timestamp-*
 # Banner source files & generated thumbs (optimized WebP stays tracked)
 public/profile-bgs/raw/
 public/profile-bgs/thumbs/
+scratch/

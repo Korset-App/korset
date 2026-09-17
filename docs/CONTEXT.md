@@ -148,7 +148,9 @@ Infrastructure: RLS + JWT. Sentry + Telegram alerts. Offline (SW + IndexedDB). R
 Слои:
 - `AGENTS.md` — правила поведения. `docs/CONTEXT.md` — быстрый вход.
 - `docs/ARCHITECTURE.md` — карта архитектуры. `docs/ROADMAP_PILOT_V1.md` — приоритеты.
-- `docs/AI_TASK_MODES.md` — режимы задач. `docs/AI_TOOLS_MATRIX.md` — матрица инструментов.
+- `docs/vault/knowledge/agent-operating-rules-full.md` — полные правила агента.
+- `docs/vault/knowledge/model-routing-and-cost-control.md` — роутинг моделей и бюджет.
+- `.agent/skills/` — project skills (cleanup, korset-check).
 - `docs/vault/architecture/` — system docs. `docs/vault/knowledge/` — исследования.
 - `docs/vault/decisions/` — важные решения. `docs/vault/plans/` — планы/аудиты.
 - `docs/vault/changelog/` — датированные session notes.
@@ -180,7 +182,8 @@ UI: browser/Playwright smoke. Data scripts: dry-run перед боевым за
 
 Главные указатели:
 - `AGENTS.md` — правила. `docs/ARCHITECTURE.md` — архитектура. `docs/ROADMAP_PILOT_V1.md` — roadmap.
-- `docs/AI_TASK_MODES.md` — режимы. `docs/AI_TOOLS_MATRIX.md` — инструменты.
+- `docs/vault/knowledge/agent-operating-rules-full.md` — полные правила и гайдлайны.
+- `docs/vault/knowledge/model-routing-and-cost-control.md` — распределение моделей и экономия квоты.
 - `docs/vault/architecture/` — auth, offline, fit-check, category, EAN recovery.
 - `docs/vault/knowledge/data-moat-pipeline-strategy.md` — стратегия данных.
 - `docs/vault/changelog/` — последние session notes.

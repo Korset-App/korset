@@ -99,7 +99,7 @@
 
 - Fast context: `docs/CONTEXT.md`
 - Architecture map: `docs/ARCHITECTURE.md`
-- AI collaboration protocol: `docs/AI_COLLAB_PROTOCOL.md`
+- Agent rules & cost control: `docs/vault/knowledge/model-routing-and-cost-control.md`
 - Full legacy audit: `docs/vault/plans/audit-full.md`
 - Data Moat: `docs/vault/knowledge/data-moat-pipeline-strategy.md`
 - Offline resilience: `docs/vault/architecture/offline-resilience.md`
