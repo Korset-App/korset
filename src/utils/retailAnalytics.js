@@ -235,3 +235,25 @@ export async function clearStoreCatalog(storeId) {
   if (error) throw new Error(error.message ?? error)
   return data
 }
+
+export async function findGlobalProductByEan(ean) {
+  const cleanEan = String(ean || '').replace(/\D/g, '')
+  if (!cleanEan) return null
+  const { data, error } = await supabase
+    .from('global_products')
+    .select('id, ean, name, brand, category, image_url, quantity, fat_percent')
+    .eq('ean', cleanEan)
+    .eq('is_active', true)
+    .maybeSingle()
+  if (error) return null
+  return data
+}
+
+export async function addStoreProduct(payload) {
+  const { data, error } = await supabase
+    .from('store_products')
+    .upsert(payload, { onConflict: 'store_id,ean' })
+    .select('id, ean, price_kzt, stock_status')
+  if (error) throw new Error(error.message ?? error)
+  return data?.[0]
+}

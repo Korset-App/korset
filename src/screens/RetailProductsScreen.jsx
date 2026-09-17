@@ -13,6 +13,7 @@ import {
   deleteStoreProduct,
 } from '../utils/retailAnalytics.js'
 import RetailScannerModal from '../components/RetailScannerModal.jsx'
+import AddScannedProductModal from '../components/retail/AddScannedProductModal.jsx'
 import { buildProductPath } from '../utils/routes.js'
 import { useNavigate } from 'react-router-dom'
 
@@ -1104,12 +1105,14 @@ export default function RetailProductsScreen() {
   const [gridSelectedId, setGridSelectedId] = useState(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
   const [scannerOpen, setScannerOpen] = useState(false)
+  const [unrecognizedEan, setUnrecognizedEan] = useState(null)
 
   const scannerOpenRef = useRef(scannerOpen)
   const confirmDeleteIdRef = useRef(confirmDeleteId)
   const gridSelectedIdRef = useRef(gridSelectedId)
   const expandedIdRef = useRef(expandedId)
   const viewModeRef = useRef(viewMode)
+  const unrecognizedEanRef = useRef(unrecognizedEan)
 
   useEffect(() => {
     scannerOpenRef.current = scannerOpen
@@ -1117,12 +1120,15 @@ export default function RetailProductsScreen() {
     gridSelectedIdRef.current = gridSelectedId
     expandedIdRef.current = expandedId
     viewModeRef.current = viewMode
+    unrecognizedEanRef.current = unrecognizedEan
   })
 
   useEffect(() => {
     const handlePopState = () => {
       if (scannerOpenRef.current) {
         setScannerOpen(false)
+      } else if (unrecognizedEanRef.current) {
+        setUnrecognizedEan(null)
       } else if (confirmDeleteIdRef.current) {
         setConfirmDeleteId(null)
       } else if (gridSelectedIdRef.current) {
@@ -1274,10 +1280,19 @@ export default function RetailProductsScreen() {
           type: 'found',
           label: found.local_name || found.global_products?.name || ean,
         })
+        toastTimer.current = setTimeout(() => setScanToast(null), 3000)
       } else {
-        setScanToast({ type: 'not_found', label: ean })
+        try {
+          window.history.pushState(
+            { _retailInternal: true },
+            '',
+            window.location.pathname + window.location.search
+          )
+        } catch (e) {
+          /* noop */
+        }
+        setUnrecognizedEan(ean)
       }
-      toastTimer.current = setTimeout(() => setScanToast(null), 3000)
     },
     [products]
   )
@@ -1837,6 +1852,23 @@ export default function RetailProductsScreen() {
       {/* ── Scanner modal ── */}
       {scannerOpen && (
         <RetailScannerModal onScan={handleScan} onClose={() => setScannerOpen(false)} />
+      )}
+
+      {/* ── Add Scanned Product Modal ── */}
+      {unrecognizedEan && (
+        <AddScannedProductModal
+          ean={unrecognizedEan}
+          storeId={storeId}
+          onClose={() => setUnrecognizedEan(null)}
+          onAdded={() => {
+            queryClient.invalidateQueries({ queryKey: ['retail-products', storeId] })
+            setScanToast({
+              type: 'found',
+              label: t('retail.products.productAdded'),
+            })
+            toastTimer.current = setTimeout(() => setScanToast(null), 3000)
+          }}
+        />
       )}
     </div>
   )
