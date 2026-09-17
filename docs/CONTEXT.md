@@ -1,7 +1,7 @@
 # KÖRSET — БЫСТРЫЙ КОНТЕКСТ ПРОЕКТА
 
-> Быстрый вход после `AGENTS.md`. Карта проекта, не changelog.
-> Архитектура: `docs/ARCHITECTURE.md`. Roadmap: `docs/ROADMAP_PILOT_V1.md`. Детали: `docs/vault/`.
+> Архитектура: `docs/ARCHITECTURE.md`. Roadmap: `docs/ROADMAP_PILOT_V1.md`.
+> Актуальный мастер-план: `docs/vault/plans/2026-09-18-pilot-revival-master-plan.md`. Детали: `docs/vault/`.
 
 ---
 
