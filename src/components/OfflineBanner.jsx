@@ -5,9 +5,9 @@ export default function OfflineBanner() {
   const { isOnline, cacheStale, formatCacheAge } = useOffline()
   const { t } = useI18n()
 
-  if (isOnline && !cacheStale) return null
+  if (isOnline) return null
 
-  const label = isOnline
+  const label = cacheStale
     ? `${t('scan.offlineBannerStale')} ${formatCacheAge() || t('scan.longAgo')}.`
     : `${t('scan.offlineBanner')}${formatCacheAge() ? ` (${formatCacheAge()})` : ''}.`
 
