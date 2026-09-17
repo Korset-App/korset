@@ -547,3 +547,45 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ==========================================================================
+ * Light Theme Contrast Optimizations
+ * ==========================================================================*/
+
+:root[data-theme='light'] .stat-card {
+  background: color-mix(in srgb, var(--bg-card) 98%, var(--bg-app));
+  border-color: rgba(78, 99, 132, 0.2);
+  box-shadow:
+    0 8px 22px rgba(61, 87, 128, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+:root[data-theme='light'] .stat-card.is-active {
+  border-color: var(--tone-color-strong);
+  background:
+    linear-gradient(180deg, var(--tone-tint) 0%, transparent 80%),
+    color-mix(in srgb, var(--bg-card) 98%, var(--bg-app));
+  box-shadow:
+    0 10px 26px rgba(61, 87, 128, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+:root[data-theme='light'] .stat-card__icon-wrap {
+  background: color-mix(in srgb, var(--bg-card) 98%, var(--bg-app));
+  box-shadow: 0 4px 14px rgba(61, 87, 128, 0.12);
+}
+
+:root[data-theme='light'] .stats-tabs__panel {
+  background: color-mix(in srgb, var(--bg-card) 98%, var(--bg-app));
+  border-color: rgba(78, 99, 132, 0.2);
+  box-shadow:
+    0 12px 32px rgba(61, 87, 128, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+:root[data-theme='light'] .product-mini-card {
+  background: color-mix(in srgb, var(--bg-card) 96%, var(--bg-app));
+  border-color: rgba(78, 99, 132, 0.16);
+  box-shadow: 0 2px 8px rgba(61, 87, 128, 0.04);
+}
+
