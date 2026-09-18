@@ -1,6 +1,6 @@
 /* global MediaRecorder, Blob, ResizeObserver */
 import { useState, useRef, useEffect } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useI18n } from '../i18n/index.js'
 import KorsetAvatar from '../components/KorsetAvatar.jsx'
@@ -157,6 +157,7 @@ function MessageProductGroups({ groups, storeSlug, t }) {
 
 export default function AIAssistantScreen() {
   const { lang, t } = useI18n()
+  const location = useLocation()
   const { storeSlug: routeStoreSlug } = useParams()
   const { currentStore, storeSlug, catalogProducts = [] } = useStore()
   const { profile } = useProfile()
@@ -175,6 +176,15 @@ export default function AIAssistantScreen() {
   )
   const [messagesStoreSlug, setMessagesStoreSlug] = useState(activeStoreSlug)
   const [input, setInput] = useState('')
+  const initialPromptProcessed = useRef(false)
+
+  useEffect(() => {
+    const initialPrompt = location.state?.initialPrompt
+    if (initialPrompt && !initialPromptProcessed.current) {
+      initialPromptProcessed.current = true
+      setInput(initialPrompt)
+    }
+  }, [location.state])
   const [loading, setLoading] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [historyItems, setHistoryItems] = useState([])

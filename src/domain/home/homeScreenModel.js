@@ -12,44 +12,85 @@ export const HOME_STORY_KEYS = [
   {
     key: 'store',
     icon: 'storefront',
-    tone: 'green',
-    image: '/stories/store.png',
-    cta: 'store',
-    slides: ['store.0', 'store.1', 'store.2'],
-  },
-  {
-    key: 'catalog',
-    icon: 'auto_stories',
-    tone: 'moon',
-    image: '/stories/catalog.png',
+    tone: 'emerald',
     cta: 'catalog',
-    slides: ['catalog.0', 'catalog.1', 'catalog.2'],
+    slides: ['store.0', 'store.1', 'store.2'],
   },
   {
     key: 'scan',
     icon: 'barcode_scanner',
-    tone: 'ember',
-    image: '/stories/scan.png',
+    tone: 'amber',
     cta: 'scan',
     slides: ['scan.0', 'scan.1', 'scan.2'],
+  },
+  {
+    key: 'halal',
+    icon: 'verified',
+    tone: 'teal',
+    cta: 'fit',
+    slides: ['halal.0', 'halal.1', 'halal.2'],
+  },
+  {
+    key: 'safety',
+    icon: 'shield_with_heart',
+    tone: 'rose',
+    cta: 'fit',
+    slides: ['safety.0', 'safety.1', 'safety.2'],
   },
   {
     key: 'ai',
     icon: 'auto_awesome',
     tone: 'violet',
-    image: '/stories/ai.png',
     cta: 'ai',
     slides: ['ai.0', 'ai.1', 'ai.2'],
   },
-  {
-    key: 'fit',
-    icon: 'tune',
-    tone: 'blue',
-    image: '/stories/fit.png',
-    cta: 'fit',
-    slides: ['fit.0', 'fit.1', 'fit.2'],
-  },
 ]
+
+export const HOME_DEPARTMENTS = [
+  { key: 'dairy_eggs', labelKey: 'home.deptDairy', icon: 'egg', tone: 'amber' },
+  { key: 'bakery', labelKey: 'home.deptBakery', icon: 'bakery_dining', tone: 'orange' },
+  { key: 'meat', labelKey: 'home.deptMeat', icon: 'kebab_dining', tone: 'red' },
+  { key: 'drinks', labelKey: 'home.deptDrinks', icon: 'local_cafe', tone: 'cyan' },
+  { key: 'fruits_veg', labelKey: 'home.deptFruitsVeg', icon: 'nutrition', tone: 'green' },
+  { key: 'sweets', labelKey: 'home.deptSweets', icon: 'cookie', tone: 'pink' },
+  { key: 'grocery', labelKey: 'home.deptGrocery', icon: 'shopping_bag', tone: 'yellow' },
+  { key: 'frozen', labelKey: 'home.deptFrozen', icon: 'ac_unit', tone: 'blue' },
+]
+
+export const AI_PROMPT_CHIPS = [
+  { key: 'plov', promptKey: 'home.aiPromptPlov', icon: 'restaurant' },
+  { key: 'dinner', promptKey: 'home.aiPromptDinner', icon: 'schedule' },
+  { key: 'snack', promptKey: 'home.aiPromptSnack', icon: 'cookie' },
+]
+
+export function getShowcaseProducts(catalogProducts = [], limit = 8) {
+  if (!Array.isArray(catalogProducts) || catalogProducts.length === 0) return []
+  const withImages = catalogProducts.filter(
+    (p) => p && p.image && typeof p.priceKzt === 'number' && p.priceKzt > 0
+  )
+  if (withImages.length === 0) {
+    return catalogProducts.filter((p) => p && p.priceKzt > 0).slice(0, limit)
+  }
+  const categoriesSeen = new Set()
+  const diverse = []
+  for (const item of withImages) {
+    const cat = item.category || 'other'
+    if (!categoriesSeen.has(cat)) {
+      categoriesSeen.add(cat)
+      diverse.push(item)
+    }
+    if (diverse.length >= limit) break
+  }
+  if (diverse.length < limit) {
+    for (const item of withImages) {
+      if (!diverse.some((d) => d.ean === item.ean)) {
+        diverse.push(item)
+      }
+      if (diverse.length >= limit) break
+    }
+  }
+  return diverse
+}
 
 const STORY_SEEN_PREFIX = 'korset_story_seen_'
 

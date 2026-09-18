@@ -1,0 +1,196 @@
+.fitcheck-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(4, 6, 14, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.fitcheck-drawer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 301;
+  max-width: 520px;
+  margin: 0 auto;
+  background: var(--bg-card);
+  border-top: 1px solid var(--glass-border);
+  border-radius: 26px 26px 0 0;
+  padding: 10px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.35);
+  max-height: 85dvh;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+
+.fitcheck-drawer__handle {
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--glass-soft-border);
+  margin: 6px auto 18px;
+}
+
+.fitcheck-drawer__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.fitcheck-drawer__title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fitcheck-drawer__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
+  color: var(--primary-bright);
+}
+
+.fitcheck-drawer__title {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 3px;
+  line-height: 1.2;
+}
+
+.fitcheck-drawer__subtitle {
+  font-size: 12.5px;
+  color: var(--text-dim);
+  margin: 0;
+  line-height: 1.35;
+}
+
+.fitcheck-drawer__close {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-soft-border);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  color: var(--text-dim);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 160ms, color 160ms;
+}
+
+.fitcheck-drawer__close:hover {
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+  color: var(--text);
+}
+
+.fitcheck-drawer__section-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  margin: 0 0 10px;
+}
+
+.fitcheck-drawer__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.fitcheck-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-soft-border);
+  background: color-mix(in srgb, var(--bg-card) 92%, var(--text) 4%);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 160ms ease;
+  user-select: none;
+}
+
+.fitcheck-chip:hover {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--glass-soft-border));
+}
+
+.fitcheck-chip.is-active {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 18%, var(--bg-card));
+  color: var(--primary-bright);
+  box-shadow: 0 0 0 1px var(--primary-dim);
+}
+
+.fitcheck-chip--reset {
+  color: var(--text-dim);
+}
+
+.fitcheck-chip--reset.is-active {
+  border-color: var(--text-dim);
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+  color: var(--text);
+}
+
+.fitcheck-drawer__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.fitcheck-drawer__submit {
+  flex: 1;
+  min-height: 48px;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg, var(--primary-mid), var(--primary));
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 18px var(--primary-glow);
+  transition: transform 160ms ease, opacity 160ms ease;
+}
+
+.fitcheck-drawer__submit:active {
+  transform: scale(0.98);
+  opacity: 0.92;
+}
+
+.fitcheck-drawer__more-link {
+  min-height: 48px;
+  padding: 0 16px;
+  border-radius: 14px;
+  border: 1px solid var(--glass-soft-border);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 160ms, border-color 160ms;
+}
+
+.fitcheck-drawer__more-link:hover {
+  color: var(--text);
+  border-color: var(--text-dim);
+}

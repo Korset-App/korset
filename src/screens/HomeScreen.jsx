@@ -1,27 +1,28 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import ProfileAvatar from '../components/ProfileAvatar.jsx'
-import { DietIcon } from './ProfileScreen.jsx'
-import { ALLERGENS } from '../constants/allergens.js'
-import { DIET_PREFERENCES } from '../constants/dietGoals.js'
+import SegmentedToggle from '../components/SegmentedToggle.jsx'
+import StoryViewer from '../components/home/StoryViewer.jsx'
+import FitCheckDrawer from '../components/home/FitCheckDrawer.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useProfile } from '../contexts/ProfileContext.jsx'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { useUserData } from '../contexts/UserDataContext.jsx'
-import SegmentedToggle from '../components/SegmentedToggle.jsx'
 import {
   HOME_STORY_KEYS,
-  buildFitCheckSetupState,
-  buildHomeQuickActions,
-  buildHomeStoreFacts,
+  HOME_DEPARTMENTS,
+  AI_PROMPT_CHIPS,
+  getShowcaseProducts,
   loadSeenStories,
   markStorySeen,
   sortStoriesBySeen,
 } from '../domain/home/homeScreenModel.js'
+import { parseStoreSchedule } from '../domain/stores/schedule.js'
 import { setLang, useI18n } from '../i18n/index.js'
 import { useTheme } from '../utils/theme.js'
+import { buildProductPath } from '../utils/routes.js'
 import LandingScreen from './LandingScreen.jsx'
-import { Helmet } from 'react-helmet-async'
 import './HomeScreen.css'
 
 const STORE_LOGO_FALLBACKS = {
@@ -48,14 +49,14 @@ function getStoreLogoUrl(store = {}) {
 
 function StoreLogo({ store, className = '' }) {
   const logo = getStoreLogoUrl(store)
-  const initial = store.name?.[0]?.toUpperCase() || 'K'
+  const initial = store?.name?.[0]?.toUpperCase() || 'K'
 
   if (logo) {
     return (
       <img
         className={`home-store-logo ${className}`.trim()}
         src={logo}
-        alt={store.name}
+        alt={store?.name || 'Store logo'}
         style={{ objectFit: 'contain' }}
       />
     )
@@ -66,158 +67,21 @@ function StoreLogo({ store, className = '' }) {
   )
 }
 
-function AboutChevronIcon() {
-  return (
-    <svg className="home-chevron-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-      <path d="M7.25 4.75L12.5 10l-5.25 5.25" />
-    </svg>
-  )
-}
-
-function isIosDevice() {
-  if (typeof window === 'undefined') return false
-  return /iphone|ipad|ipod/i.test(window.navigator.userAgent || '')
-}
-
 function isStandalonePwa() {
   if (typeof window === 'undefined') return false
   return window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone
 }
 
 function getStoreName(store) {
-  return store?.name || 'Korset'
+  return store?.name || 'Körset'
 }
 
 function getStoreHours(store, t) {
   return (
-    store.opening_hours ||
-    STORE_HOURS_FALLBACKS[store.slug || store.code] ||
+    store?.opening_hours ||
+    STORE_HOURS_FALLBACKS[store?.slug || store?.code] ||
     t('home.openingHoursFallback')
   )
-}
-
-function getLocalizedLabel(item, lang) {
-  return item?.label?.[lang] || item?.label?.ru || item?.id || ''
-}
-
-function buildStoryVars(store, catalogProducts = []) {
-  return {
-    storeName: getStoreName(store),
-    catalogCount: catalogProducts?.length || 0,
-    address: [store?.city, store?.address].filter(Boolean).join(', ') || '',
-  }
-}
-
-function StoryViewer({
-  story,
-  storyIndex,
-  slideIndex,
-  store,
-  catalogProducts,
-  t,
-  onClose,
-  onSlide,
-  onCta,
-}) {
-  const slideKey = story.slides[slideIndex] || story.slides[0]
-  const vars = buildStoryVars(store, catalogProducts)
-  const [progress, setProgress] = useState(0)
-  const isPausedRef = useRef(false)
-
-  useEffect(() => {
-    setProgress(0)
-    const startTime = Date.now()
-    const DURATION = 4500
-
-    const interval = setInterval(() => {
-      if (isPausedRef.current) return
-      const elapsed = Date.now() - startTime
-      const p = Math.min(elapsed / DURATION, 1)
-      setProgress(p)
-      if (p >= 1) {
-        clearInterval(interval)
-        onSlide(1)
-      }
-    }, 40)
-
-    return () => clearInterval(interval)
-  }, [slideIndex, story.key, onSlide])
-
-  return (
-    <div
-      className="home-story-viewer"
-      role="dialog"
-      aria-modal="true"
-      onPointerDown={() => {
-        isPausedRef.current = true
-      }}
-      onPointerUp={() => {
-        isPausedRef.current = false
-      }}
-      onPointerLeave={() => {
-        isPausedRef.current = false
-      }}
-    >
-      <button className="home-story-viewer__backdrop" type="button" onClick={onClose} />
-      <article className={`home-story-viewer__frame home-story-tone--${story.tone}`}>
-        <img className="home-story-viewer__image" src={story.image} alt="" aria-hidden="true" />
-        <div className="home-story-viewer__shade" />
-        <div className="home-story-viewer__progress" aria-hidden="true">
-          {story.slides.map((slide, index) => {
-            let scale = 0
-            if (index < slideIndex) scale = 1
-            else if (index === slideIndex) scale = progress
-            return (
-              <span key={slide}>
-                <i style={{ transform: `scaleX(${scale})` }} />
-              </span>
-            )
-          })}
-        </div>
-        <header className="home-story-viewer__top">
-          <div>
-            <p>{t(`home.stories.${story.key}.kicker`, vars)}</p>
-            <h2>{t(`home.storySlides.${slideKey}.title`, vars)}</h2>
-          </div>
-          <button type="button" aria-label={t('common.close')} onClick={onClose}>
-            <HomeIcon name="close" />
-          </button>
-        </header>
-
-        <div className="home-story-viewer__body">
-          <div className="home-story-viewer__card">
-            <div className="home-story-viewer__card-icon">
-              <HomeIcon name={story.icon} />
-            </div>
-            <p className="home-story-viewer__text">
-              {t(`home.storySlides.${slideKey}.text`, vars)}
-            </p>
-          </div>
-        </div>
-
-        <div className="home-story-viewer__hit home-story-viewer__hit--prev">
-          <button type="button" aria-label={t('home.storyPrev')} onClick={() => onSlide(-1)} />
-        </div>
-        <div className="home-story-viewer__hit home-story-viewer__hit--next">
-          <button type="button" aria-label={t('home.storyNext')} onClick={() => onSlide(1)} />
-        </div>
-        <button className="home-story-viewer__cta" type="button" onClick={onCta}>
-          <span>{t(`home.stories.${story.key}.cta`, vars)}</span>
-          <HomeIcon name="arrow_forward" />
-        </button>
-      </article>
-    </div>
-  )
-}
-
-function BrandContactIcon({ type }) {
-  if (type === 'whatsapp')
-    return <span className="home-brand-contact home-brand-contact--wa">WA</span>
-  if (type === 'instagram')
-    return <span className="home-brand-contact home-brand-contact--ig">IG</span>
-  if (type === 'twogis')
-    return <span className="home-brand-contact home-brand-contact--gis">2G</span>
-  return <HomeIcon name="call" />
 }
 
 function SunGlyph({ filled }) {
@@ -272,69 +136,42 @@ export default function HomeScreen() {
   const { theme, setTheme } = useTheme()
   const { avatarId, displayName, user } = useAuth()
   const { profile, updateProfile } = useProfile()
-  const { currentStore, isStoreApp, isStoreLoading, routes, isStoreOwnerOrAdmin, catalogProducts } =
-    useStore()
-  const { favoritesCount = 0 } = useUserData() || {}
+  const {
+    currentStore,
+    isStoreApp,
+    isStoreLoading,
+    routes,
+    isStoreOwnerOrAdmin,
+    catalogProducts = [],
+  } = useStore()
+  const { favoritesCount = 0, toggleFavorite, checkIsFavorite } = useUserData() || {}
+
   const avatarButtonRef = useRef(null)
-  const fitSectionRef = useRef(null)
-  const installSectionRef = useRef(null)
+  const storeInfoRef = useRef(null)
+
   const [activeStoryIndex, setActiveStoryIndex] = useState(null)
   const [activeSlideIndex, setActiveSlideIndex] = useState(0)
   const [seenStories, setSeenStories] = useState(() =>
     isStoreApp && currentStore?.slug ? loadSeenStories(currentStore.slug) : new Set()
   )
   const seenStoreRef = useRef(null)
+
   const [activePhotoIndex, setActivePhotoIndex] = useState(null)
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false)
-  const [fitSetupDismissed, setFitSetupDismissed] = useState(false)
-  const [fitSetupStep, setFitSetupStep] = useState(1)
-  const [draftDietGoals, setDraftDietGoals] = useState(profile?.dietGoals || [])
-  const [draftHalal, setDraftHalal] = useState(Boolean(profile?.halal))
-  const [draftNoPreferences, setDraftNoPreferences] = useState(Boolean(profile?.noDietPreferences))
-  const [draftAllergens, setDraftAllergens] = useState(profile?.allergens || [])
-  const [draftCustomAllergens, setDraftCustomAllergens] = useState(profile?.customAllergens || [])
-  const [draftNoAllergies, setDraftNoAllergies] = useState(Boolean(profile?.noAllergies))
-  const [customAllergenInput, setCustomAllergenInput] = useState('')
-  const [showAllAllergens, setShowAllAllergens] = useState(false)
+  const [fitDrawerOpen, setFitDrawerOpen] = useState(false)
   const [installPrompt, setInstallPrompt] = useState(null)
-  const [installDismissed, setInstallDismissed] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return sessionStorage.getItem('korset_home_install_dismissed') === '1'
-  })
   const [isInstalled, setIsInstalled] = useState(isStandalonePwa)
 
+  // PWA install prompt handler
   useEffect(() => {
-    import('html5-qrcode').catch(() => {})
-  }, [])
-
-  function openFitSetup() {
-    setDraftDietGoals(profile?.dietGoals || [])
-    setDraftHalal(Boolean(profile?.halal))
-    setDraftNoPreferences(Boolean(profile?.noDietPreferences))
-    setDraftAllergens(profile?.allergens || [])
-    setDraftCustomAllergens(profile?.customAllergens || [])
-    setDraftNoAllergies(Boolean(profile?.noAllergies))
-    setCustomAllergenInput('')
-    setShowAllAllergens(false)
-    setFitSetupStep(1)
-    setFitSetupDismissed(false)
-    window.setTimeout(() => {
-      fitSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 50)
-  }
-
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (event) => {
-      event.preventDefault()
-      setInstallPrompt(event)
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault()
+      setInstallPrompt(e)
     }
     const handleInstalled = () => {
       setIsInstalled(true)
       setInstallPrompt(null)
-      setInstallDismissed(true)
-      sessionStorage.setItem('korset_home_install_dismissed', '1')
     }
-
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
     window.addEventListener('appinstalled', handleInstalled)
     return () => {
@@ -343,26 +180,7 @@ export default function HomeScreen() {
     }
   }, [])
 
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        setActiveStoryIndex(null)
-        setAvatarMenuOpen(false)
-        setFitSetupDismissed(true)
-      }
-      if (activeStoryIndex !== null && event.key === 'ArrowRight') moveStorySlide(1)
-      if (activeStoryIndex !== null && event.key === 'ArrowLeft') moveStorySlide(-1)
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  })
-
-  useEffect(() => {
-    if (typeof document === 'undefined' || activeStoryIndex === null) return undefined
-    document.body.classList.add('home-story-viewer-open')
-    return () => document.body.classList.remove('home-story-viewer-open')
-  }, [activeStoryIndex])
-
+  // Sync seen stories with active store slug
   useEffect(() => {
     if (!isStoreApp || !currentStore?.slug) return
     const slug = currentStore.slug
@@ -372,6 +190,7 @@ export default function HomeScreen() {
     setSeenStories(fresh)
   }, [isStoreApp, currentStore?.slug])
 
+  // Mark story seen upon viewing
   useEffect(() => {
     if (activeStoryIndex === null) return
     const story = HOME_STORY_KEYS[activeStoryIndex]
@@ -385,18 +204,24 @@ export default function HomeScreen() {
     })
   }, [activeStoryIndex, currentStore?.slug])
 
-  const primaryAllergens = useMemo(
-    () => ALLERGENS.filter((item) => item.frequency >= 2).slice(0, 6),
-    []
-  )
-  const visibleAllergens = showAllAllergens ? ALLERGENS : primaryAllergens
-  const hasHiddenAllergens = primaryAllergens.length < ALLERGENS.length
-  const visibleDietPreferences = DIET_PREFERENCES
-
   const sortedStories = useMemo(
     () => sortStoriesBySeen(HOME_STORY_KEYS, seenStories),
     [seenStories]
   )
+
+  const showcaseProducts = useMemo(() => getShowcaseProducts(catalogProducts, 8), [catalogProducts])
+
+  const storeHours = getStoreHours(currentStore, t)
+  const schedule = useMemo(() => parseStoreSchedule(storeHours), [storeHours])
+
+  // Fit-Check configuration status
+  const isFitConfigured = useMemo(() => {
+    if (!profile) return false
+    const hasDiet = Boolean(profile.halal || profile.halalOnly || profile.dietGoals?.length)
+    const hasAllergen = Boolean(profile.allergens?.length || profile.customAllergens?.length)
+    const hasExplicitNo = Boolean(profile.noDietPreferences && profile.noAllergies)
+    return hasDiet || hasAllergen || hasExplicitNo
+  }, [profile])
 
   if (!isStoreApp) {
     return <LandingScreen />
@@ -422,52 +247,61 @@ export default function HomeScreen() {
     )
   }
 
+  const storeName = getStoreName(currentStore)
+  const storeCity = currentStore?.city || 'Астана'
+  const storeAddress = currentStore?.address || ''
+  const storeUrl =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}/s/${currentStore?.slug || currentStore?.code}`
+      : ''
+  const storeLogo = getStoreLogoUrl(currentStore)
+  const fullLogoUrl = storeLogo
+    ? storeLogo.startsWith('http')
+      ? storeLogo
+      : typeof window !== 'undefined'
+        ? window.location.origin + storeLogo
+        : ''
+    : ''
+
   const profileName = displayName || user?.email || t('profile.title')
-  const isIos = isIosDevice()
   const hasContacts = Boolean(
     currentStore.phone ||
     currentStore.whatsapp_number ||
     currentStore.instagram_url ||
     currentStore.twogis_url
   )
-  const storeHours = getStoreHours(currentStore, t)
-  const storeFacts = buildHomeStoreFacts(currentStore, storeHours)
-  const actions = buildHomeQuickActions({ routes })
-  const fitSetup = buildFitCheckSetupState(profile)
-  const fitSetupVisible = !fitSetup.isComplete && !fitSetupDismissed
+
   const activeStory = activeStoryIndex === null ? null : HOME_STORY_KEYS[activeStoryIndex]
-  const installHelpVisible = !isInstalled && !installDismissed
-  const korsetWordmarkSrc =
-    theme === 'light' ? '/brand/korset-wordmark-dark.png' : '/brand/korset-wordmark-white.png'
 
-  function dismissInstall() {
-    setInstallDismissed(true)
-    sessionStorage.setItem('korset_home_install_dismissed', '1')
-  }
-
-  async function handleInstallClick() {
-    if (installPrompt) {
-      installPrompt.prompt()
-      await installPrompt.userChoice.catch(() => null)
-      setInstallPrompt(null)
-      dismissInstall()
+  function moveStorySlide(direction) {
+    if (activeStoryIndex === null) return
+    const story = HOME_STORY_KEYS[activeStoryIndex]
+    const next = activeSlideIndex + direction
+    if (next >= 0 && next < story.slides.length) {
+      setActiveSlideIndex(next)
+      return
     }
+    const nextStory = activeStoryIndex + direction
+    if (nextStory >= 0 && nextStory < HOME_STORY_KEYS.length) {
+      setActiveStoryIndex(nextStory)
+      setActiveSlideIndex(direction > 0 ? 0 : HOME_STORY_KEYS[nextStory].slides.length - 1)
+      return
+    }
+    setActiveStoryIndex(null)
+    setActiveSlideIndex(0)
   }
 
-  function scrollToInstall() {
-    installSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }
-
-  function navigateProfileTab(tab) {
-    setAvatarMenuOpen(false)
-    navigate(`${routes.profile}?tab=${tab}`)
-  }
-
-  function handleMenuInstallClick() {
-    setAvatarMenuOpen(false)
-    setInstallDismissed(false)
-    sessionStorage.removeItem('korset_home_install_dismissed')
-    window.setTimeout(scrollToInstall, 50)
+  function handleStoryCta() {
+    if (!activeStory) return
+    if (activeStory.cta === 'scan') navigate(routes.scan)
+    if (activeStory.cta === 'fit') setFitDrawerOpen(true)
+    if (activeStory.cta === 'catalog') navigate(routes.catalog)
+    if (activeStory.cta === 'ai') navigate(routes.ai)
+    if (activeStory.cta === 'store') {
+      storeInfoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+    setActiveStoryIndex(null)
+    setActiveSlideIndex(0)
   }
 
   function handleThemeChange(nextTheme) {
@@ -492,143 +326,34 @@ export default function HomeScreen() {
     setTheme(nextTheme)
   }
 
-  function moveStorySlide(direction) {
-    if (activeStoryIndex === null) return
-    const story = HOME_STORY_KEYS[activeStoryIndex]
-    const next = activeSlideIndex + direction
-    if (next >= 0 && next < story.slides.length) {
-      setActiveSlideIndex(next)
-      return
+  async function handleInstallApp() {
+    setAvatarMenuOpen(false)
+    if (installPrompt) {
+      installPrompt.prompt()
+      await installPrompt.userChoice.catch(() => null)
+      setInstallPrompt(null)
     }
-    const nextStory = activeStoryIndex + direction
-    if (nextStory >= 0 && nextStory < HOME_STORY_KEYS.length) {
-      setActiveStoryIndex(nextStory)
-      setActiveSlideIndex(direction > 0 ? 0 : HOME_STORY_KEYS[nextStory].slides.length - 1)
-      return
+  }
+
+  function handleProductFavoriteClick(e, product) {
+    e.stopPropagation()
+    if (toggleFavorite) {
+      toggleFavorite(product)
     }
-    setActiveStoryIndex(null)
-    setActiveSlideIndex(0)
   }
-
-  function handleStoryCta() {
-    if (!activeStory) return
-    if (activeStory.cta === 'scan') navigate(routes.scan)
-    if (activeStory.cta === 'fit') openFitSetup()
-    if (activeStory.cta === 'install') scrollToInstall()
-    if (activeStory.cta === 'learn' || activeStory.cta === 'store') navigate(routes.publicPage)
-    if (activeStory.cta === 'catalog') navigate(routes.catalog)
-    if (activeStory.cta === 'ai') navigate(routes.ai)
-    setActiveStoryIndex(null)
-    setActiveSlideIndex(0)
-  }
-
-  function toggleDietGoal(id) {
-    setDraftNoPreferences(false)
-    setDraftDietGoals((value) =>
-      value.includes(id) ? value.filter((item) => item !== id) : [...value, id]
-    )
-  }
-
-  function toggleNoPreferences() {
-    setDraftNoPreferences(true)
-    setDraftHalal(false)
-    setDraftDietGoals([])
-  }
-
-  function toggleAllergen(id) {
-    setDraftNoAllergies(false)
-    setDraftAllergens((value) =>
-      value.includes(id) ? value.filter((item) => item !== id) : [...value, id]
-    )
-  }
-
-  function toggleNoAllergies() {
-    setDraftNoAllergies(true)
-    setDraftAllergens([])
-    setDraftCustomAllergens([])
-    setCustomAllergenInput('')
-  }
-
-  function addCustomAllergen() {
-    const value = customAllergenInput.trim()
-    if (!value) return
-    const normalized = value.toLowerCase()
-    const alreadyExists = draftCustomAllergens.some((item) => item.toLowerCase() === normalized)
-    if (alreadyExists) {
-      setCustomAllergenInput('')
-      return
-    }
-    setDraftNoAllergies(false)
-    setDraftCustomAllergens((items) => [...items, value])
-    setCustomAllergenInput('')
-  }
-
-  function removeCustomAllergen(value) {
-    setDraftCustomAllergens((items) => items.filter((item) => item !== value))
-  }
-
-  async function saveFitSetup() {
-    await updateProfile({
-      halal: draftNoPreferences ? false : draftHalal,
-      dietGoals: draftNoPreferences ? [] : draftDietGoals,
-      noDietPreferences: draftNoPreferences,
-      allergens: draftNoAllergies ? [] : draftAllergens,
-      customAllergens: draftNoAllergies ? [] : draftCustomAllergens,
-      noAllergies: draftNoAllergies,
-    })
-    window.setTimeout(() => {
-      setFitSetupDismissed(true)
-      setFitSetupStep(1)
-    }, 900)
-  }
-
-  const storeName = getStoreName(currentStore)
-  const storeCity = currentStore?.city || 'Астана'
-  const storeAddress = currentStore?.address || ''
-  const storeUrl = window.location.origin + `/s/${currentStore?.slug || currentStore?.code}`
-  const storeLogo = getStoreLogoUrl(currentStore)
-  const fullLogoUrl = storeLogo
-    ? storeLogo.startsWith('http')
-      ? storeLogo
-      : window.location.origin + storeLogo
-    : ''
 
   const schemaOrg = {
     '@context': 'https://schema.org',
     '@type': 'GroceryStore',
     name: storeName,
-    image: fullLogoUrl || `${window.location.origin}/favicon.png`,
-    url: storeUrl,
-    telephone: currentStore?.phone || '',
+    image:
+      fullLogoUrl || `${typeof window !== 'undefined' ? window.location.origin : ''}/favicon.png`,
     address: {
       '@type': 'PostalAddress',
-      addressLocality: storeCity,
       streetAddress: storeAddress,
+      addressLocality: storeCity,
       addressCountry: 'KZ',
     },
-    priceRange: '$$',
-  }
-
-  if (currentStore?.latitude && currentStore?.longitude) {
-    schemaOrg.geo = {
-      '@type': 'GeoCoordinates',
-      latitude: Number(currentStore.latitude),
-      longitude: Number(currentStore.longitude),
-    }
-  }
-
-  if (currentStore?.opening_hours) {
-    const hoursParts = currentStore.opening_hours.split('-')
-    const opens = (hoursParts[0] || '').trim()
-    const closes = (hoursParts[1] || '').trim()
-    if (opens && closes) {
-      schemaOrg.openingHoursSpecification = {
-        '@type': 'OpeningHoursSpecification',
-        dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-        opens,
-        closes,
-      }
-    }
   }
 
   return (
@@ -639,8 +364,6 @@ export default function HomeScreen() {
           name="description"
           content={`Смотрите каталог товаров магазина ${storeName} в городе ${storeCity}. Цены, состав продуктов, Fit-Check на аллергены и халал.`}
         />
-
-        {/* Open Graph / Facebook */}
         <meta property="og:type" content="website" />
         <meta
           property="og:title"
@@ -651,782 +374,564 @@ export default function HomeScreen() {
           content={`Смотрите каталог товаров магазина ${storeName} в городе ${storeCity}. Цены, состав продуктов, Fit-Check на аллергены и халал.`}
         />
         {fullLogoUrl && <meta property="og:image" content={fullLogoUrl} />}
-        <meta property="og:url" content={storeUrl} />
-
-        {/* Twitter Card */}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta
-          name="twitter:title"
-          content={`${storeName} — онлайн-каталог товаров, цены | Körset`}
-        />
-        <meta
-          name="twitter:description"
-          content={`Смотрите каталог товаров магазина ${storeName} в городе ${storeCity}. Цены, состав продуктов, Fit-Check на аллергены и халал.`}
-        />
-        {fullLogoUrl && <meta name="twitter:image" content={fullLogoUrl} />}
-
-        {/* Canonical */}
-        <link rel="canonical" href={storeUrl} />
-
-        {/* Structured Data */}
+        {storeUrl && <meta property="og:url" content={storeUrl} />}
+        {storeUrl && <link rel="canonical" href={storeUrl} />}
         <script type="application/ld+json">{JSON.stringify(schemaOrg)}</script>
       </Helmet>
-      <header className="home-hero">
-        <div className="home-brand-row">
-          <div
-            className="home-store-header"
-            onClick={() => navigate(routes.publicPage)}
-            role="button"
-            tabIndex={0}
-            aria-label={t('home.storeAbout')}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                navigate(routes.publicPage)
-              }
-            }}
-          >
-            <StoreLogo store={currentStore} className="home-store-logo--header" />
-            <div className="home-store-header__copy">
-              <div className="home-store-title-line">
-                <h1>{getStoreName(currentStore)}</h1>
-                <HomeIcon name="chevron_right" className="home-store-chevron" />
-                {isStoreOwnerOrAdmin && currentStore?.isPublished === false && (
-                  <span
-                    className="home-draft-badge"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      background: 'rgba(245, 158, 11, 0.15)',
-                      border: '1px solid rgba(245, 158, 11, 0.3)',
-                      color: '#F59E0B',
-                      padding: '2px 8px',
-                      borderRadius: 6,
-                      fontSize: 10,
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                      marginLeft: 8,
-                      verticalAlign: 'middle',
-                      height: 'fit-content',
-                    }}
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: 10 }}>
-                      visibility_off
-                    </span>
-                    {t('home.draftBadge') || 'Черновик'}
-                  </span>
-                )}
-              </div>
-              <p>
-                <HomeIcon name="schedule" />
-                <span>{storeHours}</span>
-              </p>
+
+      {/* 1. STORE HEADER */}
+      <header className="home-top-bar">
+        <div
+          className="home-store-badge"
+          role="button"
+          tabIndex={0}
+          onClick={() => {
+            storeInfoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              storeInfoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            }
+          }}
+          aria-label={t('home.storeAbout')}
+        >
+          <StoreLogo store={currentStore} className="home-store-logo--top" />
+          <div className="home-store-badge__info">
+            <div className="home-store-badge__title-row">
+              <h1 className="home-store-badge__name">{storeName}</h1>
+              <HomeIcon name="expand_more" className="home-store-badge__arrow" />
+              {isStoreOwnerOrAdmin && currentStore?.isPublished === false && (
+                <span className="home-draft-badge">{t('home.draftBadge') || 'Черновик'}</span>
+              )}
             </div>
-          </div>
 
-          <div className="home-avatar-wrap">
-            <button
-              ref={avatarButtonRef}
-              className={`home-avatar-button${avatarMenuOpen ? ' is-open' : ''}`}
-              type="button"
-              aria-label={t('profile.title')}
-              aria-expanded={avatarMenuOpen}
-              onClick={() => setAvatarMenuOpen((value) => !value)}
-            >
-              <ProfileAvatar avatarId={avatarId} name={profileName} rounded="circle" />
-            </button>
-
-            {avatarMenuOpen && (
-              <>
-                <button
-                  className="home-avatar-menu__backdrop"
-                  type="button"
-                  aria-label={t('common.close')}
-                  onClick={() => setAvatarMenuOpen(false)}
-                />
-                <div className="home-avatar-menu" role="menu">
-                  <div className="home-avatar-menu__identity">
-                    <div>
-                      <strong>{profileName}</strong>
-                      <span>{t('home.menuAccountHint')}</span>
-                    </div>
-                    <div className="home-avatar-menu__portrait">
-                      <button
-                        className="home-avatar-menu__portrait-button"
-                        type="button"
-                        aria-label={t('common.close')}
-                        onClick={() => setAvatarMenuOpen(false)}
-                      >
-                        <ProfileAvatar avatarId={avatarId} name={profileName} rounded="circle" />
-                      </button>
-                      <button
-                        className="home-avatar-menu__edit"
-                        type="button"
-                        aria-label={t('home.menuEditProfile')}
-                        onClick={() => {
-                          setAvatarMenuOpen(false)
-                          navigate(`${routes.profile}/edit`)
-                        }}
-                      >
-                        <HomeIcon name="edit" />
-                      </button>
-                    </div>
-                  </div>
-                  <button
-                    className="home-avatar-menu__item"
-                    type="button"
-                    onClick={() => navigateProfileTab('preferences')}
-                  >
-                    <HomeIcon name="tune" />
-                    <span>{t('home.menuPreferences')}</span>
-                    <HomeIcon name="chevron_right" />
-                  </button>
-                  <button
-                    className="home-avatar-menu__item"
-                    type="button"
-                    onClick={() => navigateProfileTab('favorites')}
-                  >
-                    <HomeIcon name="checklist" />
-                    <span>{t('home.menuFavorites')}</span>
-                    <HomeIcon name="chevron_right" />
-                  </button>
-                  <button
-                    className="home-avatar-menu__item"
-                    type="button"
-                    onClick={() => navigateProfileTab('history')}
-                  >
-                    <HomeIcon name="history" />
-                    <span>{t('home.menuChecks')}</span>
-                    <HomeIcon name="chevron_right" />
-                  </button>
-                  <div className="home-avatar-menu__switches">
-                    <div>
-                      <span>{t('home.menuLanguage')}</span>
-                      <SegmentedToggle
-                        ariaLabel={t('home.menuLanguage')}
-                        activeKey={lang}
-                        onChange={(item) => setLang(item)}
-                        options={[
-                          { key: 'ru', label: 'RU', ariaLabel: t('common.langRu') },
-                          { key: 'kz', label: 'KZ', ariaLabel: t('common.langKzAria') },
-                        ]}
-                      />
-                    </div>
-                    <div>
-                      <span>{t('home.menuTheme')}</span>
-                      <SegmentedToggle
-                        ariaLabel={t('home.menuTheme')}
-                        activeKey={theme === 'light' ? 'light' : 'dark'}
-                        onChange={handleThemeChange}
-                        options={[
-                          {
-                            key: 'light',
-                            ariaLabel: t('home.theme.light'),
-                            render: (active) => <SunGlyph filled={active} />,
-                          },
-                          {
-                            key: 'dark',
-                            ariaLabel: t('home.theme.dark'),
-                            render: (active) => <MoonGlyph filled={active} />,
-                          },
-                        ]}
-                      />
-                    </div>
-                  </div>
-                  {!isInstalled && (
-                    <button
-                      className="home-avatar-menu__install"
-                      type="button"
-                      onClick={handleMenuInstallClick}
-                    >
-                      <HomeIcon name="install_mobile" />
-                      <span>{t('home.menuInstall')}</span>
-                    </button>
-                  )}
-                </div>
-              </>
-            )}
+            <div className="home-store-badge__sub">
+              {schedule.isConfigured && (
+                <span className={`home-status-dot${schedule.isOpen ? ' is-open' : ' is-closed'}`} />
+              )}
+              <span className="home-store-badge__status-text">
+                {schedule.isOpen
+                  ? t('home.storeClosesAt', { time: schedule.closes }) ||
+                    `Открыто до ${schedule.closes}`
+                  : schedule.isConfigured
+                    ? t('home.storeOpensAt', { time: schedule.opens }) ||
+                      `Закрыто до ${schedule.opens}`
+                    : storeHours}
+              </span>
+              {storeAddress && (
+                <>
+                  <span className="home-store-badge__sep">·</span>
+                  <span className="home-store-badge__address">{storeAddress}</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Store Photos Carousel */}
-        {currentStore?.images && currentStore.images.length > 0 && (
-          <div
-            className="home-photos-carousel"
-            style={{
-              display: 'flex',
-              gap: 12,
-              overflowX: 'auto',
-              padding: '0 20px 16px',
-              margin: '12px -20px 0',
-              scrollSnapType: 'x mandatory',
-              scrollbarWidth: 'none',
-              WebkitOverflowScrolling: 'touch',
+        {/* Profile Avatar Button & Menu */}
+        <div className="home-avatar-wrap">
+          <button
+            ref={avatarButtonRef}
+            className={`home-avatar-button${avatarMenuOpen ? ' is-open' : ''}`}
+            type="button"
+            aria-label={t('profile.title')}
+            aria-expanded={avatarMenuOpen}
+            onClick={() => setAvatarMenuOpen((val) => !val)}
+          >
+            <ProfileAvatar avatarId={avatarId} name={profileName} rounded="circle" />
+          </button>
+
+          {avatarMenuOpen && (
+            <>
+              <button
+                className="home-avatar-menu__backdrop"
+                type="button"
+                aria-label={t('common.close')}
+                onClick={() => setAvatarMenuOpen(false)}
+              />
+              <div className="home-avatar-menu" role="menu">
+                <div className="home-avatar-menu__identity">
+                  <div>
+                    <strong>{profileName}</strong>
+                    <span>{t('home.menuAccountHint')}</span>
+                  </div>
+                  <button
+                    className="home-avatar-menu__edit"
+                    type="button"
+                    aria-label={t('home.menuEditProfile')}
+                    onClick={() => {
+                      setAvatarMenuOpen(false)
+                      navigate(`${routes.profile}/edit`)
+                    }}
+                  >
+                    <HomeIcon name="edit" />
+                  </button>
+                </div>
+
+                <button
+                  className="home-avatar-menu__item"
+                  type="button"
+                  onClick={() => {
+                    setAvatarMenuOpen(false)
+                    navigate(`${routes.profile}?tab=preferences`)
+                  }}
+                >
+                  <HomeIcon name="tune" />
+                  <span>{t('home.menuPreferences')}</span>
+                  <HomeIcon name="chevron_right" />
+                </button>
+
+                <button
+                  className="home-avatar-menu__item"
+                  type="button"
+                  onClick={() => {
+                    setAvatarMenuOpen(false)
+                    navigate(`${routes.profile}?tab=favorites`)
+                  }}
+                >
+                  <HomeIcon name="checklist" />
+                  <span>{t('home.menuFavorites')}</span>
+                  <HomeIcon name="chevron_right" />
+                </button>
+
+                <button
+                  className="home-avatar-menu__item"
+                  type="button"
+                  onClick={() => {
+                    setAvatarMenuOpen(false)
+                    navigate(`${routes.profile}?tab=history`)
+                  }}
+                >
+                  <HomeIcon name="history" />
+                  <span>{t('home.menuChecks')}</span>
+                  <HomeIcon name="chevron_right" />
+                </button>
+
+                <div className="home-avatar-menu__switches">
+                  <div>
+                    <span>{t('home.menuLanguage')}</span>
+                    <SegmentedToggle
+                      ariaLabel={t('home.menuLanguage')}
+                      activeKey={lang}
+                      onChange={(item) => setLang(item)}
+                      options={[
+                        { key: 'ru', label: 'RU', ariaLabel: t('common.langRu') },
+                        { key: 'kz', label: 'KZ', ariaLabel: t('common.langKzAria') },
+                      ]}
+                    />
+                  </div>
+                  <div>
+                    <span>{t('home.menuTheme')}</span>
+                    <SegmentedToggle
+                      ariaLabel={t('home.menuTheme')}
+                      activeKey={theme === 'light' ? 'light' : 'dark'}
+                      onChange={handleThemeChange}
+                      options={[
+                        {
+                          key: 'light',
+                          ariaLabel: t('home.theme.light'),
+                          render: (active) => <SunGlyph filled={active} />,
+                        },
+                        {
+                          key: 'dark',
+                          ariaLabel: t('home.theme.dark'),
+                          render: (active) => <MoonGlyph filled={active} />,
+                        },
+                      ]}
+                    />
+                  </div>
+                </div>
+
+                {!isInstalled && (
+                  <button
+                    className="home-avatar-menu__install"
+                    type="button"
+                    onClick={handleInstallApp}
+                  >
+                    <HomeIcon name="install_mobile" />
+                    <span>{t('home.menuInstall')}</span>
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </header>
+
+      {/* 2. SMART SEARCH & SCAN BAR */}
+      <div className="home-search-container">
+        <button
+          type="button"
+          className="home-search-bar"
+          onClick={() => navigate(routes.catalog)}
+          aria-label={t('catalog.searchPlaceholder')}
+        >
+          <HomeIcon name="search" className="home-search-bar__icon" />
+          <span className="home-search-bar__placeholder">
+            {t('home.searchPlaceholder', { count: catalogProducts?.length || 10240 })}
+          </span>
+          <span
+            className="home-search-bar__scan-btn"
+            role="button"
+            tabIndex={0}
+            aria-label={t('home.scanBtn')}
+            onClick={(e) => {
+              e.stopPropagation()
+              navigate(routes.scan)
             }}
           >
+            <HomeIcon name="barcode_scanner" />
+          </span>
+        </button>
+      </div>
+
+      {/* 3. STORIES SECTION (ROUND AVATARS / VARIANT A) */}
+      <section className="home-stories-bar" aria-label={t('home.storiesLabel')}>
+        {sortedStories.map((story) => {
+          const originalIndex = HOME_STORY_KEYS.indexOf(story)
+          const isSeen = seenStories.has(story.key)
+          return (
+            <button
+              key={story.key}
+              type="button"
+              className={`home-story-avatar-btn story-tone--${story.tone}${isSeen ? ' is-seen' : ' is-unseen'}`}
+              onClick={() => {
+                setActiveStoryIndex(originalIndex)
+                setActiveSlideIndex(0)
+              }}
+            >
+              <div className="home-story-avatar-ring">
+                <div className="home-story-avatar-inner">
+                  <HomeIcon name={story.icon} />
+                </div>
+              </div>
+              <span className="home-story-avatar-label">
+                {t(`home.stories.${story.key}.title`, { storeName })}
+              </span>
+            </button>
+          )
+        })}
+      </section>
+
+      {/* 4. COMPACT FIT-CHECK SHIELD WIDGET */}
+      <section className="home-shield-widget">
+        <button
+          type="button"
+          className={`home-shield-card${isFitConfigured ? ' is-active' : ' is-pending'}`}
+          onClick={() => setFitDrawerOpen(true)}
+        >
+          <div className="home-shield-card__icon-wrap">
+            <span className="material-symbols-outlined home-shield-card__icon">
+              shield_with_heart
+            </span>
+          </div>
+          <div className="home-shield-card__content">
+            <div className="home-shield-card__title-row">
+              <span className="home-shield-card__title">
+                {t('home.shieldTitle') || 'Защитный Fit-Check'}
+              </span>
+              <span className="home-shield-card__badge">
+                {isFitConfigured
+                  ? t('home.shieldActive') || 'Активен'
+                  : t('home.shieldSetupCta') || 'Настроить за 10 сек'}
+              </span>
+            </div>
+            <p className="home-shield-card__desc">
+              {isFitConfigured
+                ? t('home.shieldConfigured') || 'Халал и персональные фильтры включены'
+                : t('home.shieldNotConfigured') || 'Включите фильтр Халал и аллергенов у полки'}
+            </p>
+          </div>
+          <HomeIcon name="chevron_right" className="home-shield-card__chevron" />
+        </button>
+      </section>
+
+      {/* 5. POPULAR DEPARTMENTS (8 CATEGORIES) */}
+      <section className="home-departments-section" aria-label={t('home.departmentsTitle')}>
+        <div className="home-section-header">
+          <h2>{t('home.departmentsTitle') || 'Отделы магазина'}</h2>
+          <button
+            type="button"
+            className="home-section-header__link"
+            onClick={() => navigate(routes.catalog)}
+          >
+            <span>{t('home.viewAllCatalog') || 'Каталог'}</span>
+            <HomeIcon name="chevron_right" />
+          </button>
+        </div>
+
+        <div className="home-departments-scroll">
+          {HOME_DEPARTMENTS.map((dept) => (
+            <button
+              key={dept.key}
+              type="button"
+              className="home-dept-pill"
+              onClick={() => navigate(routes.catalog, { state: { category: dept.key } })}
+            >
+              <span className={`home-dept-pill__icon dept-tone--${dept.tone}`}>
+                <HomeIcon name={dept.icon} />
+              </span>
+              <span className="home-dept-pill__label">{t(dept.labelKey) || dept.key}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* 6. LIVE SHOWCASE SHELF: «ХИТЫ МАГАЗИНА» */}
+      {showcaseProducts.length > 0 && (
+        <section className="home-showcase-section" aria-label={t('home.popularTitle')}>
+          <div className="home-section-header">
+            <div>
+              <h2>{t('home.popularTitle') || 'Хиты магазина'}</h2>
+              <span className="home-section-header__sub">
+                {t('home.popularSubtitle', { storeName }) || `Популярно в ${storeName}`}
+              </span>
+            </div>
+            <button
+              type="button"
+              className="home-section-header__link"
+              onClick={() => navigate(routes.catalog)}
+            >
+              <span>{t('home.viewAll', { count: catalogProducts.length }) || 'Все товары'}</span>
+              <HomeIcon name="chevron_right" />
+            </button>
+          </div>
+
+          <div className="home-products-scroll">
+            {showcaseProducts.map((product) => {
+              const isFav = checkIsFavorite ? checkIsFavorite(product.ean) : false
+              const isHalal =
+                product.halalStatus === 'certified' ||
+                product.halalStatus === 'halal' ||
+                product.halalStatus === 'yes'
+
+              return (
+                <div
+                  key={product.ean}
+                  className="home-product-card"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => navigate(buildProductPath(currentStore.slug, product.ean))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      navigate(buildProductPath(currentStore.slug, product.ean))
+                    }
+                  }}
+                >
+                  <div className="home-product-card__image-wrap">
+                    {product.image ? (
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        loading="lazy"
+                        className="home-product-card__image"
+                      />
+                    ) : (
+                      <div className="home-product-card__placeholder">
+                        <HomeIcon name="grocery" />
+                      </div>
+                    )}
+
+                    {isHalal && (
+                      <span className="home-product-card__badge home-product-card__badge--halal">
+                        Халал
+                      </span>
+                    )}
+
+                    <button
+                      type="button"
+                      className={`home-product-card__fav-btn${isFav ? ' is-active' : ''}`}
+                      onClick={(e) => handleProductFavoriteClick(e, product)}
+                      aria-label={isFav ? t('home.addedToCart') : t('home.addToCart')}
+                    >
+                      <HomeIcon name={isFav ? 'check' : 'add'} />
+                    </button>
+                  </div>
+
+                  <div className="home-product-card__info">
+                    <div className="home-product-card__price">
+                      {product.priceKzt ? `${product.priceKzt.toLocaleString('ru-RU')} ₸` : ''}
+                    </div>
+                    <h3 className="home-product-card__name">{product.name}</h3>
+                    {product.quantity && (
+                      <span className="home-product-card__qty">{product.quantity}</span>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* 7. AI CHEF / ASSISTANT BAR */}
+      <section className="home-ai-chef-card">
+        <div className="home-ai-chef-card__header">
+          <div className="home-ai-chef-card__icon">
+            <HomeIcon name="auto_awesome" />
+          </div>
+          <div>
+            <h3 className="home-ai-chef-card__title">
+              {t('home.aiChefTitle') || 'ИИ-Шеф магазина'}
+            </h3>
+            <p className="home-ai-chef-card__subtitle">
+              {t('home.aiChefSubtitle') || 'Подберет рецепт или товары из наличия'}
+            </p>
+          </div>
+        </div>
+
+        <div className="home-ai-chips">
+          {AI_PROMPT_CHIPS.map((chip) => {
+            const promptText = t(chip.promptKey)
+            return (
+              <button
+                key={chip.key}
+                type="button"
+                className="home-ai-chip"
+                onClick={() => navigate(routes.ai, { state: { initialPrompt: promptText } })}
+              >
+                <HomeIcon name={chip.icon} />
+                <span>{promptText}</span>
+              </button>
+            )
+          })}
+        </div>
+      </section>
+
+      {/* 8. SHOPPING LIST SUMMARY (WHEN ITEMS EXIST) */}
+      {favoritesCount > 0 && (
+        <section className="home-shopping-summary">
+          <button
+            type="button"
+            className="home-shopping-card"
+            onClick={() => navigate(`${routes.profile}?tab=favorites`)}
+          >
+            <div className="home-shopping-card__icon">
+              <HomeIcon name="checklist" />
+            </div>
+            <div className="home-shopping-card__info">
+              <h4>{t('home.shoppingListTitle') || 'Ваш список покупок'}</h4>
+              <p>
+                {t('home.shoppingItemsCount', { count: favoritesCount }) ||
+                  `${favoritesCount} товаров в списке`}
+              </p>
+            </div>
+            <HomeIcon name="chevron_right" className="home-shopping-card__arrow" />
+          </button>
+        </section>
+      )}
+
+      {/* 9. STORE LOCATION, PHOTOS & CONTACTS */}
+      <section ref={storeInfoRef} className="home-store-details-section">
+        <div className="home-section-header">
+          <h2>{t('home.storeAboutTitle', { storeName }) || `О магазине ${storeName}`}</h2>
+        </div>
+
+        {/* Store Interior Photos Carousel with Lightbox */}
+        {currentStore?.images && currentStore.images.length > 0 && (
+          <div className="home-store-photos-carousel">
             {currentStore.images.map((url, idx) => (
               <div
                 key={url}
-                style={{
-                  flex: '0 0 140px',
-                  height: 94,
-                  borderRadius: 16,
-                  overflow: 'hidden',
-                  border: '1.5px solid var(--glass-soft-border)',
-                  background: 'var(--input-bg)',
-                  scrollSnapAlign: 'start',
-                  cursor: 'pointer',
-                  boxShadow: 'var(--shadow-card)',
-                }}
+                className="home-store-photo-thumb"
                 onClick={() => setActivePhotoIndex(idx)}
+                role="button"
+                tabIndex={0}
+                aria-label={`Photo ${idx + 1}`}
               >
-                <img
-                  src={url}
-                  alt={`${storeName} photo ${idx + 1}`}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
+                <img src={url} alt={`${storeName} ${idx + 1}`} loading="lazy" />
               </div>
             ))}
           </div>
         )}
 
-        {/* Lightbox for Store Photos */}
-        {activePhotoIndex !== null && currentStore?.images && (
-          <div
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              zIndex: 2000,
-              background: 'rgba(0,0,0,0.92)',
-              backdropFilter: 'blur(12px)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-            onClick={() => setActivePhotoIndex(null)}
-          >
-            <button
-              type="button"
-              style={{
-                position: 'absolute',
-                top: 'max(16px, env(safe-area-inset-top))',
-                right: 16,
-                background: 'rgba(255,255,255,0.1)',
-                border: 'none',
-                borderRadius: '50%',
-                width: 40,
-                height: 40,
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-              }}
-              onClick={() => setActivePhotoIndex(null)}
-            >
-              <span className="material-symbols-outlined">close</span>
-            </button>
-            <img
-              src={currentStore.images[activePhotoIndex]}
-              alt="Store full view"
-              style={{ maxWidth: '90%', maxHeight: '85%', objectFit: 'contain', borderRadius: 12 }}
-            />
-          </div>
-        )}
-
-        <div className="home-header-divider" />
-
-        <section className="home-stories" aria-label={t('home.storiesLabel')}>
-          {sortedStories.map((story) => {
-            const originalIndex = HOME_STORY_KEYS.indexOf(story)
-            const isSeen = seenStories.has(story.key)
-            return (
-              <button
-                className={`home-story-card home-story-tone--${story.tone}${isSeen ? ' home-story-card--seen' : ' home-story-card--unseen'}`}
-                key={story.key}
-                type="button"
-                onClick={() => {
-                  setActiveStoryIndex(originalIndex)
-                  setActiveSlideIndex(0)
-                }}
-              >
-                <span className="home-story-card__media">
-                  <img src={story.image} alt="" aria-hidden="true" />
-                  <span className="home-story-card__shade" />
-                </span>
-                <span className="home-story-card__badge" aria-hidden="true">
-                  <HomeIcon name={story.icon} />
-                </span>
-                <strong>
-                  {t(
-                    `home.stories.${story.key}.title`,
-                    buildStoryVars(currentStore, catalogProducts)
-                  )}
-                </strong>
-              </button>
-            )
-          })}
-        </section>
-      </header>
-
-      {fitSetupVisible && (
-        <section ref={fitSectionRef} className="home-fit-card home-fit-card--setup">
-          <div className="home-fit-card__top">
-            <div className="home-fit-card__headline">
-              <div className="home-fit-card__meta">
-                <span className="home-fit-card__status">
-                  {fitSetupStep === 1
-                    ? t('home.fitSetupStage1Badge')
-                    : t('home.fitSetupStage2Badge')}
-                </span>
-              </div>
-              <h2 className={fitSetupStep === 1 ? 'home-fit-card__title-single' : ''}>
-                {fitSetupStep === 1 ? t('home.fitSetupStage1Title') : t('home.fitSetupStage2Title')}
-              </h2>
-              <p className="home-fit-card__lede">
-                {fitSetupStep === 1 ? t('home.fitSetupStage1Text') : t('home.fitSetupStage2Text')}
-              </p>
-            </div>
-            <button
-              className="home-fit-card__dismiss"
-              type="button"
-              aria-label={t('home.fitSetupLater')}
-              onClick={() => setFitSetupDismissed(true)}
-            >
-              <span>{t('home.fitSetupLater')}</span>
-            </button>
-          </div>
-
-          <div className="home-fit-card__grid">
-            {fitSetupStep === 1 ? (
-              <>
-                <div className="home-chip-grid home-chip-grid--icon home-chip-grid--icon-wide">
-                  <button
-                    className={`home-choice-chip home-choice-chip--icon${draftHalal && !draftNoPreferences ? ' is-active' : ''}`}
-                    type="button"
-                    onClick={() => {
-                      setDraftNoPreferences(false)
-                      setDraftHalal((value) => !value)
-                    }}
-                  >
-                    <span className="home-choice-chip__icon" aria-hidden="true">
-                      <DietIcon name="halal" size={18} />
-                    </span>
-                    <span>{t('home.preferenceHalal')}</span>
-                  </button>
-                  {visibleDietPreferences
-                    .filter((item) => item.id !== 'halal')
-                    .map((item) => (
-                      <button
-                        className={`home-choice-chip home-choice-chip--icon${
-                          draftDietGoals.includes(item.id) && !draftNoPreferences
-                            ? ' is-active'
-                            : ''
-                        }`}
-                        key={item.id}
-                        type="button"
-                        onClick={() => toggleDietGoal(item.id)}
-                      >
-                        <span className="home-choice-chip__icon" aria-hidden="true">
-                          <DietIcon name={item.icon} size={18} />
-                        </span>
-                        <span>{getLocalizedLabel(item, lang)}</span>
-                      </button>
-                    ))}
-                  <button
-                    className={`home-choice-chip home-choice-chip--icon home-choice-chip--summary${
-                      draftNoPreferences ? ' is-active' : ''
-                    }`}
-                    type="button"
-                    onClick={toggleNoPreferences}
-                  >
-                    <span className="home-choice-chip__icon" aria-hidden="true">
-                      <HomeIcon name="verified" />
-                    </span>
-                    <span>{t('home.noPreferences')}</span>
-                  </button>
-                </div>
-                <div className="home-fit-card__actions home-fit-card__actions--solo">
-                  <button
-                    type="button"
-                    className="home-fit-card__primary"
-                    onClick={() => setFitSetupStep(2)}
-                  >
-                    <span>{t('home.fitNext')}</span>
-                    <HomeIcon name="east" />
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="home-chip-grid home-chip-grid--icon">
-                  {visibleAllergens.map((item) => (
-                    <button
-                      className={`home-choice-chip home-choice-chip--icon${
-                        draftAllergens.includes(item.id) && !draftNoAllergies ? ' is-active' : ''
-                      }`}
-                      key={item.id}
-                      type="button"
-                      onClick={() => toggleAllergen(item.id)}
-                    >
-                      <span className="home-choice-chip__icon" aria-hidden="true">
-                        <DietIcon name={item.icon} size={18} />
-                      </span>
-                      <span>{getLocalizedLabel(item, lang)}</span>
-                    </button>
-                  ))}
-                </div>
-                {hasHiddenAllergens && (
-                  <button
-                    className="home-fit-step__toggle"
-                    type="button"
-                    onClick={() => setShowAllAllergens((value) => !value)}
-                  >
-                    <span>
-                      {showAllAllergens
-                        ? t('home.fitShowLessAllergens')
-                        : t('home.fitShowAllAllergens')}
-                    </span>
-                    <HomeIcon name={showAllAllergens ? 'expand_less' : 'expand_more'} />
-                  </button>
-                )}
-                <div className="home-fit-custom">
-                  <label className="home-fit-custom__label" htmlFor="home-custom-allergen">
-                    {t('home.fitCustomAllergenLabel')}
-                  </label>
-                  <div className="home-fit-custom__input-row">
-                    <input
-                      id="home-custom-allergen"
-                      className="home-fit-custom__input"
-                      type="text"
-                      value={customAllergenInput}
-                      onChange={(event) => setCustomAllergenInput(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter') {
-                          event.preventDefault()
-                          addCustomAllergen()
-                        }
-                      }}
-                      placeholder={t('profile.customPlaceholder')}
-                    />
-                    <button
-                      type="button"
-                      className="home-fit-card__primary home-fit-card__primary--compact"
-                      onClick={addCustomAllergen}
-                    >
-                      {t('profile.add')}
-                    </button>
-                  </div>
-                  {draftCustomAllergens.length > 0 && (
-                    <div className="home-fit-custom__list">
-                      {draftCustomAllergens.map((item) => (
-                        <button
-                          className="home-fit-custom__pill"
-                          key={item}
-                          type="button"
-                          onClick={() => removeCustomAllergen(item)}
-                        >
-                          <span>{item}</span>
-                          <HomeIcon name="close" />
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <button
-                  className={`home-choice-chip home-choice-chip--icon home-choice-chip--summary home-choice-chip--summary-soft${
-                    draftNoAllergies ? ' is-active' : ''
-                  }`}
-                  type="button"
-                  onClick={toggleNoAllergies}
-                >
-                  <span className="home-choice-chip__icon" aria-hidden="true">
-                    <HomeIcon name="verified" />
-                  </span>
-                  <span>{t('home.noAllergies')}</span>
-                </button>
-                <div className="home-fit-card__actions">
-                  <button
-                    type="button"
-                    className="home-fit-card__back"
-                    onClick={() => setFitSetupStep(1)}
-                  >
-                    <HomeIcon name="west" />
-                    <span>{t('home.fitBack')}</span>
-                  </button>
-                  <button type="button" className="home-fit-card__primary" onClick={saveFitSetup}>
-                    <span>{t('home.fitSetupCta')}</span>
-                    <HomeIcon name="check_circle" />
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* 1. Quick Store Search & Scanner Bar */}
-      <div className="home-search-pill">
-        <button
-          type="button"
-          className="home-search-pill__input"
-          onClick={() => navigate(routes.catalog)}
-        >
-          <HomeIcon name="search" />
-          <span>
-            {t('home.searchPlaceholder', {
-              count: catalogProducts?.length || 10240,
-            })}
-          </span>
-        </button>
-        <button
-          type="button"
-          className="home-search-pill__scanner"
-          onClick={() => navigate(routes.scan)}
-          aria-label={t('home.scanBtn')}
-        >
-          <HomeIcon name="barcode_scanner" />
-        </button>
-      </div>
-
-      {/* 2. Digital Storefront Showcase Bento */}
-      <section className="home-showcase-grid" aria-label={t('home.catalog')}>
-        {/* Hero Catalog Card */}
-        <button
-          type="button"
-          className="home-showcase-card home-showcase-card--hero"
-          onClick={() => navigate(routes.catalog)}
-        >
-          <img
-            className="home-showcase-card__art"
-            src="/2026-06-30 175557-gpt-image-2.png"
-            alt=""
-            aria-hidden="true"
-            loading="lazy"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none'
-            }}
-          />
-          <div className="home-showcase-card__badge">
-            <HomeIcon name="storefront" />
-            <span>
-              {t('home.catalogLiveBadge', {
-                count: catalogProducts?.length || 10240,
-              })}
-            </span>
-          </div>
-          <div className="home-showcase-card__content">
-            <h3>{t('home.catalog')}</h3>
-            <p>{t('home.quickActionCatalogSub')}</p>
-          </div>
-          <div className="home-showcase-card__action">
-            <span>{t('home.viewAllCatalog')}</span>
-            <HomeIcon name="arrow_forward" />
-          </div>
-        </button>
-
-        {/* 2nd Tier Bento Duo */}
-        <div className="home-showcase-grid__duo">
-          {/* AI Assistant */}
-          <button
-            type="button"
-            className="home-showcase-card home-showcase-card--ai"
-            onClick={() => navigate(routes.ai)}
-          >
-            <div className="home-showcase-card__icon home-showcase-card__icon--ai">
-              <HomeIcon name="auto_awesome" />
-            </div>
-            <div className="home-showcase-card__info">
-              <h4>{t('home.quickActionAi')}</h4>
-              <p>{t('home.quickActionAiSub')}</p>
-            </div>
-          </button>
-
-          {/* Shopping List */}
-          <button
-            type="button"
-            className="home-showcase-card home-showcase-card--fav"
-            onClick={() => navigateProfileTab('favorites')}
-          >
-            <div className="home-showcase-card__icon home-showcase-card__icon--fav">
-              <HomeIcon name="checklist" />
-            </div>
-            <div className="home-showcase-card__info">
-              <h4>{t('home.quickActionFavorites')}</h4>
-              <p>
-                {favoritesCount > 0
-                  ? t('home.shoppingItemsCount', { count: favoritesCount })
-                  : t('home.shoppingEmpty')}
-              </p>
-            </div>
-          </button>
-        </div>
-      </section>
-
-      {/* 3. Popular Store Departments */}
-      <section className="home-departments-section" aria-label={t('home.departmentsTitle')}>
-        <div className="home-departments-section__header">
-          <h2>{t('home.departmentsTitle')}</h2>
-          <button
-            type="button"
-            className="home-departments-section__all-link"
-            onClick={() => navigate(routes.catalog)}
-          >
-            <span>{t('home.viewAllCatalog')}</span>
-            <HomeIcon name="chevron_right" />
-          </button>
-        </div>
-
-        <div className="home-departments-carousel">
-          {[
-            { key: 'dairy_eggs', label: t('home.deptDairy'), icon: 'egg' },
-            { key: 'bakery', label: t('home.deptBakery'), icon: 'bakery_dining' },
-            { key: 'meat', label: t('home.deptMeat'), icon: 'kebab_dining' },
-            { key: 'drinks', label: t('home.deptDrinks'), icon: 'local_cafe' },
-            { key: 'fruits_veg', label: t('home.deptFruitsVeg'), icon: 'nutrition' },
-            { key: 'sweets', label: t('home.deptSweets'), icon: 'cookie' },
-          ].map((dept) => (
-            <button
-              key={dept.key}
-              type="button"
-              className="home-department-chip"
-              onClick={() => navigate(routes.catalog, { state: { category: dept.key } })}
-            >
-              <span className="home-department-chip__icon">
-                <HomeIcon name={dept.icon} />
+        {/* Store Contacts & Facts */}
+        <div className="home-store-facts-card">
+          {storeAddress && (
+            <div className="home-store-fact-row">
+              <HomeIcon name="location_on" />
+              <span>
+                {storeCity} · {storeAddress}
               </span>
-              <span className="home-department-chip__label">{dept.label}</span>
-            </button>
-          ))}
+            </div>
+          )}
+          <div className="home-store-fact-row">
+            <HomeIcon name="schedule" />
+            <span>{storeHours}</span>
+          </div>
+
+          {hasContacts && (
+            <div className="home-store-contact-buttons">
+              {currentStore.twogis_url && (
+                <a
+                  href={currentStore.twogis_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="home-store-contact-btn home-store-contact-btn--2gis"
+                >
+                  <span className="home-btn-glyph">2G</span>
+                  <span>{t('home.storeRoute2Gis') || '2GIS'}</span>
+                </a>
+              )}
+              {currentStore.whatsapp_number && (
+                <a
+                  href={`https://wa.me/${currentStore.whatsapp_number.replace(/\D/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="home-store-contact-btn home-store-contact-btn--wa"
+                >
+                  <span className="home-btn-glyph">WA</span>
+                  <span>WhatsApp</span>
+                </a>
+              )}
+              {currentStore.phone && (
+                <a
+                  href={`tel:${currentStore.phone.replace(/[^\d+]/g, '')}`}
+                  className="home-store-contact-btn home-store-contact-btn--call"
+                >
+                  <HomeIcon name="call" />
+                  <span>{t('home.storeCall') || 'Звонок'}</span>
+                </a>
+              )}
+            </div>
+          )}
         </div>
       </section>
 
-      {installHelpVisible && (
-        <section
-          ref={installSectionRef}
-          className="home-install-card"
-          aria-label={t('home.installTitle')}
+      {/* Lightbox for Store Photos */}
+      {activePhotoIndex !== null && currentStore?.images && (
+        <div
+          className="home-lightbox-modal"
+          onClick={() => setActivePhotoIndex(null)}
+          role="dialog"
+          aria-modal="true"
         >
-          <div className="home-install-card__visual" aria-hidden="true">
-            <div className="home-install-card__app-icon">
-              <HomeIcon name="barcode_scanner" />
-            </div>
-            <div className="home-install-card__phone">
-              <span />
-              <strong>Körset</strong>
-              <small>{t('home.installVisualText')}</small>
-            </div>
-          </div>
-          <div className="home-install-card__content">
-            <span className="home-install-card__label">{t('home.installLabel')}</span>
-            <div className="home-install-card__headline">
-              <h2>{isIos ? t('home.installIosTitle') : t('home.installTitle')}</h2>
-              <button type="button" onClick={dismissInstall} aria-label={t('common.close')}>
-                <HomeIcon name="close" />
-              </button>
-            </div>
-            <p>
-              {isIos
-                ? t('home.installIosText')
-                : installPrompt
-                  ? t('home.installText')
-                  : t('home.installBrowserText')}
-            </p>
-            <div className="home-install-benefits" aria-label={t('home.installBenefitsLabel')}>
-              {[0, 1, 2].map((item) => (
-                <span key={item}>
-                  <HomeIcon
-                    name={item === 0 ? 'bolt' : item === 1 ? 'inventory_2' : 'storefront'}
-                  />
-                  {t(`home.installBenefit${item + 1}`)}
-                </span>
-              ))}
-            </div>
-            {installPrompt ? (
-              <button className="home-install-card__cta" type="button" onClick={handleInstallClick}>
-                <span>{t('home.installCta')}</span>
-                <HomeIcon name="download" />
-              </button>
-            ) : (
-              <div className="home-install-guide">
-                <span className="home-install-guide__title">{t('home.installGuideTitle')}</span>
-                <ol className="home-install-steps">
-                  <li>{isIos ? t('home.installStepShare') : t('home.installStepMenu')}</li>
-                  <li>{isIos ? t('home.installStepHome') : t('home.installStepInstall')}</li>
-                </ol>
-              </div>
-            )}
-          </div>
-        </section>
+          <button
+            type="button"
+            className="home-lightbox-close"
+            onClick={() => setActivePhotoIndex(null)}
+            aria-label={t('common.close')}
+          >
+            <HomeIcon name="close" />
+          </button>
+          <img
+            src={currentStore.images[activePhotoIndex]}
+            alt="Store full view"
+            className="home-lightbox-img"
+          />
+        </div>
       )}
 
-      <section className="home-store-card">
-        <div className="home-store-card__top">
-          <StoreLogo store={currentStore} />
-          <div>
-            <p>{t('home.storeTools')}</p>
-            <h2>{getStoreName(currentStore)}</h2>
-          </div>
-        </div>
-        {currentStore.short_description && (
-          <p className="home-store-card__desc">{currentStore.short_description}</p>
-        )}
-        <div className="home-store-facts">
-          {storeFacts.map((fact) => (
-            <div className="home-store-fact" key={fact.key}>
-              <HomeIcon name={fact.icon} />
-              <span>{fact.text}</span>
-            </div>
-          ))}
-        </div>
+      {/* MODAL / SHEET: FitCheck Drawer */}
+      <FitCheckDrawer
+        open={fitDrawerOpen}
+        onClose={() => setFitDrawerOpen(false)}
+        profile={profile}
+        updateProfile={updateProfile}
+        onOpenFullPreferences={() => navigate(`${routes.profile}?tab=preferences`)}
+      />
 
-        {hasContacts && (
-          <div className="home-contact-list" aria-label={t('home.storeContacts')}>
-            {currentStore.phone && (
-              <a href={`tel:${currentStore.phone.replace(/[^\d+]/g, '')}`}>
-                <BrandContactIcon type="phone" />
-                <span>{t('home.storePhone')}</span>
-              </a>
-            )}
-            {currentStore.whatsapp_number && (
-              <a
-                href={`https://wa.me/${currentStore.whatsapp_number.replace(/\D/g, '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <BrandContactIcon type="whatsapp" />
-                <span>WhatsApp</span>
-              </a>
-            )}
-            {currentStore.instagram_url && (
-              <a href={currentStore.instagram_url} target="_blank" rel="noopener noreferrer">
-                <BrandContactIcon type="instagram" />
-                <span>Instagram</span>
-              </a>
-            )}
-            {currentStore.twogis_url && (
-              <a href={currentStore.twogis_url} target="_blank" rel="noopener noreferrer">
-                <BrandContactIcon type="twogis" />
-                <span>2GIS</span>
-              </a>
-            )}
-          </div>
-        )}
-
-        <button
-          className="home-store-card__link"
-          type="button"
-          onClick={() => navigate(routes.publicPage)}
-        >
-          <span>{t('home.moreInfo')}</span>
-          <HomeIcon name="arrow_forward" />
-        </button>
-      </section>
-
+      {/* MODAL: Standalone Cinematic Story Viewer */}
       {activeStory && (
         <StoryViewer
           story={activeStory}
