@@ -1,10 +1,21 @@
+body.fitcheck-drawer-open {
+  overflow: hidden !important;
+}
+
+body.fitcheck-drawer-open .bottom-nav {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateY(105%) !important;
+  transition: opacity 160ms ease, transform 220ms ease !important;
+}
+
 .fitcheck-drawer-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 300;
-  background: rgba(4, 6, 14, 0.72);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  z-index: 9990;
+  background: rgba(4, 6, 14, 0.76);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .fitcheck-drawer {
@@ -12,14 +23,14 @@
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 301;
+  z-index: 9995;
   max-width: 520px;
   margin: 0 auto;
   background: var(--bg-card);
   border-top: 1px solid var(--glass-border);
   border-radius: 26px 26px 0 0;
-  padding: 10px 20px calc(24px + env(safe-area-inset-bottom, 0px));
-  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.35);
+  padding: 10px 20px calc(28px + env(safe-area-inset-bottom, 16px));
+  box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.45);
   max-height: 85dvh;
   overflow-y: auto;
   overscroll-behavior-y: contain;

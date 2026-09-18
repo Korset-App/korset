@@ -24,15 +24,18 @@ export default function FitCheckDrawer({
 
   useEffect(() => {
     if (open) {
+      document.body.classList.add('fitcheck-drawer-open')
       document.body.style.overflow = 'hidden'
       setDraftHalal(Boolean(profile.halal || profile.halalOnly))
       setDraftDietGoals(profile.dietGoals || [])
       setDraftAllergens(profile.allergens || [])
       setDraftNoRestrictions(Boolean(profile.noDietPreferences && profile.noAllergies))
     } else {
+      document.body.classList.remove('fitcheck-drawer-open')
       document.body.style.overflow = ''
     }
     return () => {
+      document.body.classList.remove('fitcheck-drawer-open')
       document.body.style.overflow = ''
     }
   }, [open, profile])

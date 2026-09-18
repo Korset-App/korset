@@ -9,6 +9,7 @@ import { formatPrice } from '../utils/formatPrice.js'
 import {
   getStoreCatalogProducts,
   updateProductPrice,
+  updateProductPromotion,
   updateProductStock,
   deleteStoreProduct,
 } from '../utils/retailAnalytics.js'
@@ -292,6 +293,284 @@ function StockToggle({ product, label, stockMutation }) {
   )
 }
 
+// ── Promotion & Featured section ──────────────────────────────────
+function PromotionSection({ product, p, promotionMutation }) {
+  const isFeatured = Boolean(product.is_featured)
+  const currentPrice = Number(product.price_kzt) || 0
+  const [oldPriceDraft, setOldPriceDraft] = useState(product.old_price_kzt ?? '')
+  const [saveState, setSaveState] = useState('idle')
+  const timerRef = useRef(null)
+
+  useEffect(() => () => clearTimeout(timerRef.current), [])
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (saveState === 'idle') setOldPriceDraft(product.old_price_kzt ?? '')
+  }, [product.old_price_kzt])
+
+  const calculatedPct = useMemo(() => {
+    const old = Number(oldPriceDraft)
+    if (Number.isFinite(old) && old > currentPrice && currentPrice > 0) {
+      return Math.round((1 - currentPrice / old) * 100)
+    }
+    return product.discount_percent ?? null
+  }, [oldPriceDraft, currentPrice, product.discount_percent])
+
+  const handleToggleFeatured = (e) => {
+    e.stopPropagation()
+    promotionMutation?.mutate({
+      id: product.id,
+      isFeatured: !isFeatured,
+      oldPriceKzt: product.old_price_kzt,
+      discountPercent: product.discount_percent,
+    })
+  }
+
+  const handleOldPriceBlur = () => {
+    const val = oldPriceDraft === '' ? null : Number(oldPriceDraft)
+    if (val !== null && (!Number.isFinite(val) || val <= currentPrice)) {
+      setOldPriceDraft('')
+      if (product.old_price_kzt) {
+        promotionMutation?.mutate({
+          id: product.id,
+          isFeatured,
+          oldPriceKzt: null,
+          discountPercent: null,
+        })
+      }
+      return
+    }
+
+    if (val === (product.old_price_kzt ?? null)) return
+
+    const pct = val && currentPrice > 0 ? Math.round((1 - currentPrice / val) * 100) : null
+    setSaveState('saving')
+    promotionMutation?.mutate(
+      {
+        id: product.id,
+        isFeatured,
+        oldPriceKzt: val,
+        discountPercent: pct,
+      },
+      {
+        onSuccess: () => {
+          setSaveState('saved')
+          timerRef.current = setTimeout(() => setSaveState('idle'), 2000)
+        },
+        onError: () => {
+          setSaveState('error')
+          timerRef.current = setTimeout(() => setSaveState('idle'), 3000)
+        },
+      }
+    )
+  }
+
+  const handleClearDiscount = (e) => {
+    e.stopPropagation()
+    setOldPriceDraft('')
+    promotionMutation?.mutate({
+      id: product.id,
+      isFeatured,
+      oldPriceKzt: null,
+      discountPercent: null,
+    })
+  }
+
+  const stateColor = {
+    idle: 'var(--text-dim)',
+    saving: '#38BDF8',
+    saved: '#10B981',
+    error: '#F87171',
+  }
+  const stateLabel = { idle: null, saving: p.saving, saved: `✓ ${p.saved}`, error: p.saveError }
+  const borderColor = {
+    idle: 'var(--glass-border)',
+    saving: 'rgba(56,189,248,0.4)',
+    saved: 'rgba(16,185,129,0.4)',
+    error: 'rgba(248,113,113,0.4)',
+  }
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 14,
+        background: 'var(--glass-subtle)',
+        border: '1px solid var(--line-soft)',
+        borderRadius: 14,
+        padding: 14,
+      }}
+    >
+      {/* 1. Featured Toggle */}
+      <div
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+          <span
+            className="material-symbols-outlined"
+            style={{
+              fontSize: 20,
+              color: isFeatured ? '#F59E0B' : 'var(--text-dim)',
+              transition: 'color 0.2s',
+            }}
+          >
+            {isFeatured ? 'star' : 'star_outline'}
+          </span>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
+              {p.featuredLabel}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 1 }}>
+              {p.featuredHint}
+            </div>
+          </div>
+        </div>
+
+        <div
+          role="switch"
+          aria-checked={isFeatured}
+          onClick={handleToggleFeatured}
+          style={{
+            width: 52,
+            height: 30,
+            borderRadius: 15,
+            cursor: 'pointer',
+            background: isFeatured ? '#F59E0B' : 'var(--glass-border)',
+            position: 'relative',
+            transition: 'background 0.25s',
+            flexShrink: 0,
+            opacity: promotionMutation?.isPending ? 0.7 : 1,
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              top: 3,
+              left: isFeatured ? 25 : 3,
+              width: 24,
+              height: 24,
+              borderRadius: '50%',
+              background: 'var(--text-inverse)',
+              transition: 'left 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.25)',
+            }}
+          />
+        </div>
+      </div>
+
+      <div style={{ height: 1, background: 'var(--line-soft)' }} />
+
+      {/* 2. Promotion & Strikethrough Price */}
+      <div>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 8,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: 17, color: calculatedPct ? '#EF4444' : 'var(--text-dim)' }}
+            >
+              sell
+            </span>
+            <label style={{ fontSize: 12, color: 'var(--text-sub)', fontWeight: 600 }}>
+              {p.oldPriceLabel}
+            </label>
+            {calculatedPct && (
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  padding: '2px 6px',
+                  borderRadius: 6,
+                  background: 'rgba(239,68,68,0.14)',
+                  color: '#EF4444',
+                  border: '1px solid rgba(239,68,68,0.25)',
+                }}
+              >
+                -{calculatedPct}%
+              </span>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {stateLabel[saveState] && (
+              <span style={{ fontSize: 11, color: stateColor[saveState], fontWeight: 600 }}>
+                {stateLabel[saveState]}
+              </span>
+            )}
+            {product.old_price_kzt && (
+              <button
+                type="button"
+                onClick={handleClearDiscount}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  fontSize: 11,
+                  color: '#EF4444',
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                }}
+              >
+                {p.clearDiscount}
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'stretch' }}>
+          <input
+            type="number"
+            inputMode="numeric"
+            placeholder={currentPrice > 0 ? String(Math.round(currentPrice * 1.25)) : ''}
+            value={oldPriceDraft}
+            onChange={(e) => setOldPriceDraft(e.target.value)}
+            onBlur={handleOldPriceBlur}
+            style={{
+              flex: 1,
+              fontSize: 17,
+              fontWeight: 600,
+              fontFamily: 'var(--font-display)',
+              padding: '9px 14px',
+              borderRadius: '10px 0 0 10px',
+              background: 'var(--input-bg)',
+              border: `1px solid ${borderColor[saveState]}`,
+              borderRight: 'none',
+              color: 'var(--text)',
+              outline: 'none',
+              WebkitAppearance: 'none',
+              MozAppearance: 'textfield',
+              margin: 0,
+              transition: 'border-color 0.2s',
+            }}
+          />
+          <div
+            style={{
+              background: 'rgba(239,68,68,0.1)',
+              border: '1px solid rgba(239,68,68,0.25)',
+              borderRadius: '0 10px 10px 0',
+              padding: '0 14px',
+              display: 'flex',
+              alignItems: 'center',
+              color: '#EF4444',
+              fontWeight: 700,
+              fontSize: 15,
+            }}
+          >
+            ₸
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Readonly Block ─────────────────────────────────────────────────
 function ReadonlyBlock({ product, p, storeSlug }) {
   const gp = product.global_products
@@ -415,6 +694,7 @@ const ProductCard = memo(
     storeSlug,
     priceMutation,
     stockMutation,
+    promotionMutation,
     setExpandedId,
     onDeleteRequest,
   }) {
@@ -513,13 +793,67 @@ const ProductCard = memo(
             )}
             <div
               style={{
-                fontSize: 10,
-                color: 'var(--text-disabled)',
-                marginTop: 2,
-                fontFamily: 'var(--font-display)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                marginTop: 3,
+                flexWrap: 'wrap',
               }}
             >
-              <Highlight text={product.ean} q={search} />
+              {Boolean(product.is_featured) && (
+                <div
+                  title={tr.featuredLabel}
+                  style={{
+                    fontSize: 9,
+                    fontWeight: 700,
+                    padding: '1px 5px',
+                    borderRadius: 5,
+                    background: 'rgba(245,158,11,0.15)',
+                    border: '1px solid rgba(245,158,11,0.35)',
+                    color: '#F59E0B',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 2,
+                    lineHeight: '13px',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 10 }}>
+                    star
+                  </span>
+                  {tr.badgeFeatured}
+                </div>
+              )}
+              {(product.discount_percent ||
+                (product.old_price_kzt && product.old_price_kzt > product.price_kzt)) && (
+                <div
+                  style={{
+                    fontSize: 9,
+                    fontWeight: 700,
+                    padding: '1px 5px',
+                    borderRadius: 5,
+                    background: 'rgba(239,68,68,0.15)',
+                    border: '1px solid rgba(239,68,68,0.35)',
+                    color: '#EF4444',
+                    lineHeight: '13px',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  -
+                  {product.discount_percent ||
+                    Math.round((1 - product.price_kzt / product.old_price_kzt) * 100)}
+                  %
+                </div>
+              )}
+              <div
+                style={{
+                  fontSize: 10,
+                  color: 'var(--text-disabled)',
+                  fontFamily: 'var(--font-display)',
+                }}
+              >
+                <Highlight text={product.ean} q={search} />
+              </div>
             </div>
           </div>
 
@@ -538,16 +872,36 @@ const ProductCard = memo(
                 fontSize: 15,
                 fontWeight: 700,
                 fontFamily: 'var(--font-display)',
-                color: inStock ? '#38BDF8' : 'var(--text-dim)',
+                color: inStock
+                  ? product.old_price_kzt && product.old_price_kzt > product.price_kzt
+                    ? '#EF4444'
+                    : '#38BDF8'
+                  : 'var(--text-dim)',
                 textDecoration: inStock ? 'none' : 'line-through',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-end',
               }}
             >
+              {inStock && product.old_price_kzt && product.old_price_kzt > product.price_kzt && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 500,
+                    textDecoration: 'line-through',
+                    color: 'var(--text-dim)',
+                  }}
+                >
+                  {formatPrice(product.old_price_kzt)}
+                </span>
+              )}
               {product.price_kzt != null ? (
                 formatPrice(product.price_kzt)
               ) : (
                 <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>{tr.noPrice}</span>
               )}
             </div>
+
             <StockBadge status={product.stock_status} p={tr} />
           </div>
 
@@ -588,6 +942,7 @@ const ProductCard = memo(
                 priceMutation={priceMutation}
               />
               <StockToggle product={product} label={tr.stockLabel} stockMutation={stockMutation} />
+              <PromotionSection product={product} p={tr} promotionMutation={promotionMutation} />
               <ReadonlyBlock product={product} p={tr} storeSlug={storeSlug} />
 
               {/* Delete button */}
@@ -633,6 +988,13 @@ function GridCard({ product, tr, onEdit }) {
   const imgUrl = displayImage(product)
   const name = displayName(product)
   const brand = displayBrand(product)
+  const hasDiscount =
+    product.discount_percent || (product.old_price_kzt && product.old_price_kzt > product.price_kzt)
+  const discountPct =
+    product.discount_percent ||
+    (product.old_price_kzt && product.price_kzt
+      ? Math.round((1 - product.price_kzt / product.old_price_kzt) * 100)
+      : null)
 
   return (
     <div
@@ -653,6 +1015,7 @@ function GridCard({ product, tr, onEdit }) {
       <div
         className="catalog-img-box"
         style={{
+          position: 'relative',
           height: 120,
           flexShrink: 0,
           display: 'flex',
@@ -675,6 +1038,56 @@ function GridCard({ product, tr, onEdit }) {
             inventory_2
           </span>
         )}
+
+        {/* Floating badges on grid image */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 6,
+            left: 6,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 4,
+            zIndex: 1,
+          }}
+        >
+          {Boolean(product.is_featured) && (
+            <div
+              style={{
+                fontSize: 9,
+                fontWeight: 700,
+                padding: '2px 5px',
+                borderRadius: 5,
+                background: 'rgba(245,158,11,0.92)',
+                color: '#fff',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 2,
+                boxShadow: '0 2px 6px rgba(245,158,11,0.3)',
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 10 }}>
+                star
+              </span>
+              {tr.badgeFeatured}
+            </div>
+          )}
+          {hasDiscount && (
+            <div
+              style={{
+                fontSize: 9,
+                fontWeight: 700,
+                padding: '2px 5px',
+                borderRadius: 5,
+                background: '#EF4444',
+                color: '#fff',
+                boxShadow: '0 2px 6px rgba(239,68,68,0.3)',
+              }}
+            >
+              -{discountPct}%
+            </div>
+          )}
+        </div>
       </div>
 
       <div
@@ -728,10 +1141,25 @@ function GridCard({ product, tr, onEdit }) {
               fontSize: 13,
               fontWeight: 700,
               fontFamily: 'var(--font-display)',
-              color: inStock ? '#38BDF8' : 'var(--text-dim)',
+              color: inStock ? (hasDiscount ? '#EF4444' : '#38BDF8') : 'var(--text-dim)',
               textDecoration: inStock ? 'none' : 'line-through',
+              display: 'flex',
+              alignItems: 'baseline',
+              gap: 4,
             }}
           >
+            {inStock && product.old_price_kzt && product.old_price_kzt > product.price_kzt && (
+              <span
+                style={{
+                  fontSize: 10,
+                  textDecoration: 'line-through',
+                  color: 'var(--text-dim)',
+                  fontWeight: 500,
+                }}
+              >
+                {formatPrice(product.old_price_kzt)}
+              </span>
+            )}
             {product.price_kzt != null ? (
               formatPrice(product.price_kzt)
             ) : (
@@ -752,6 +1180,7 @@ function EditBottomSheet({
   storeSlug,
   priceMutation,
   stockMutation,
+  promotionMutation,
   onClose,
   onDeleteRequest,
 }) {
@@ -907,6 +1336,7 @@ function EditBottomSheet({
             priceMutation={priceMutation}
           />
           <StockToggle product={product} label={tr.stockLabel} stockMutation={stockMutation} />
+          <PromotionSection product={product} p={tr} promotionMutation={promotionMutation} />
 
           {/* Delete button */}
           <button
@@ -1092,6 +1522,13 @@ export default function RetailProductsScreen() {
       deleteHint: t('retail.products.deleteHint'),
       deleteCancel: t('retail.products.deleteCancel'),
       deleteConfirm: t('retail.products.deleteConfirm'),
+      featuredLabel: t('retail.products.featuredLabel'),
+      featuredHint: t('retail.products.featuredHint'),
+      badgeFeatured: t('retail.products.badgeFeatured'),
+      promotionSection: t('retail.products.promotionSection'),
+      oldPriceLabel: t('retail.products.oldPriceLabel'),
+      discountPercentLabel: t('retail.products.discountPercentLabel'),
+      clearDiscount: t('retail.products.clearDiscount'),
     }),
     [t]
   )
@@ -1218,6 +1655,37 @@ export default function RetailProductsScreen() {
       await queryClient.cancelQueries({ queryKey: ['retail-products', storeId] })
       const prev = queryClient.getQueriesData({ queryKey: ['retail-products', storeId] })
       patchPages((item) => (item.id === id ? { ...item, price_kzt: price } : item))
+      return { prev }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) ctx.prev.forEach(([key, val]) => queryClient.setQueryData(key, val))
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['retail-products', storeId] })
+    },
+  })
+
+  // ── Promotion mutation (optimistic + rollback + invalidate) ───────
+  const promotionMutation = useMutation({
+    mutationFn: ({ id, isFeatured, oldPriceKzt, discountPercent }) =>
+      updateProductPromotion(id, storeId, {
+        is_featured: isFeatured,
+        old_price_kzt: oldPriceKzt,
+        discount_percent: discountPercent,
+      }),
+    onMutate: async ({ id, isFeatured, oldPriceKzt, discountPercent }) => {
+      await queryClient.cancelQueries({ queryKey: ['retail-products', storeId] })
+      const prev = queryClient.getQueriesData({ queryKey: ['retail-products', storeId] })
+      patchPages((item) =>
+        item.id === id
+          ? {
+              ...item,
+              is_featured: isFeatured,
+              old_price_kzt: oldPriceKzt,
+              discount_percent: discountPercent,
+            }
+          : item
+      )
       return { prev }
     },
     onError: (_err, _vars, ctx) => {
@@ -1700,6 +2168,7 @@ export default function RetailProductsScreen() {
                 storeSlug={storeSlug}
                 priceMutation={priceMutation}
                 stockMutation={stockMutation}
+                promotionMutation={promotionMutation}
                 setExpandedId={setExpandedId}
                 onDeleteRequest={(id) => {
                   try {
@@ -1824,6 +2293,7 @@ export default function RetailProductsScreen() {
             storeSlug={storeSlug}
             priceMutation={priceMutation}
             stockMutation={stockMutation}
+            promotionMutation={promotionMutation}
             onClose={() => setGridSelectedId(null)}
             onDeleteRequest={(id) => {
               try {

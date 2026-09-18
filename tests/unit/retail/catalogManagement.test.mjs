@@ -43,3 +43,57 @@ test('buildStoreProductUpsertPayload formats payload correctly', () => {
   assert.equal(payload.stock_status, 'in_stock')
   assert.equal(payload.is_active, true)
 })
+
+test('calculateDiscountPercent and calculateDiscountedPrice handle edge cases', async () => {
+  const {
+    calculateDiscountPercent,
+    calculateDiscountedPrice,
+  } = await import('../../../src/domain/retail/catalogManagement.js')
+
+  // Normal discount calculations
+  assert.equal(calculateDiscountPercent(750, 1000), 25)
+  assert.equal(calculateDiscountedPrice(1000, 25), 750)
+
+  // Inverted or zero prices
+  assert.equal(calculateDiscountPercent(1000, 750), null)
+  assert.equal(calculateDiscountPercent(0, 500), null)
+  assert.equal(calculateDiscountPercent(500, 0), null)
+  assert.equal(calculateDiscountedPrice(0, 20), null)
+  assert.equal(calculateDiscountedPrice(500, 100), null)
+})
+
+test('validatePromotionPayload formats promotion fields and auto-calculates discount', async () => {
+  const { validatePromotionPayload } = await import('../../../src/domain/retail/catalogManagement.js')
+
+  // Featuring product with no discount
+  const res1 = validatePromotionPayload({ isFeatured: true, currentPrice: 500 })
+  assert.deepEqual(res1, {
+    is_featured: true,
+    old_price_kzt: null,
+    discount_percent: null,
+  })
+
+  // Providing old price auto-calculates percentage
+  const res2 = validatePromotionPayload({
+    isFeatured: true,
+    oldPriceKzt: 800,
+    currentPrice: 600,
+  })
+  assert.deepEqual(res2, {
+    is_featured: true,
+    old_price_kzt: 800,
+    discount_percent: 25,
+  })
+
+  // Invalid old price (lower than current price) gets cleared
+  const res3 = validatePromotionPayload({
+    isFeatured: false,
+    oldPriceKzt: 400,
+    currentPrice: 600,
+  })
+  assert.deepEqual(res3, {
+    is_featured: false,
+    old_price_kzt: null,
+    discount_percent: null,
+  })
+})

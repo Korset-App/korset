@@ -156,42 +156,57 @@ export async function getStoreCatalogProducts(storeId, { page = 0, search = '' }
   const from = page * PRODUCTS_PAGE_SIZE
   const to = from + PRODUCTS_PAGE_SIZE - 1
 
-  let query = supabase
-    .from('store_products')
-    .select(
-      `
-      id, ean, local_name, price_kzt, stock_status,
-      shelf_zone, shelf_position, is_active, updated_at,
-      global_products!store_products_global_product_id_fkey (
-        name, brand, image_url, category, ingredients_raw, ingredients_kz, quantity
+  const buildQuery = (includePromo = true) => {
+    const promoFields = includePromo ? 'old_price_kzt, discount_percent, is_featured,' : ''
+    let q = supabase
+      .from('store_products')
+      .select(
+        `
+        id, ean, local_name, price_kzt, ${promoFields} stock_status,
+        shelf_zone, shelf_position, is_active, updated_at,
+        global_products!store_products_global_product_id_fkey (
+          name, brand, image_url, category, ingredients_raw, ingredients_kz, quantity
+        )
+      `,
+        { count: 'exact' }
       )
-    `,
-      { count: 'exact' }
-    )
-    .eq('store_id', storeId)
-    .eq('is_active', true)
-    .order('created_at', { ascending: false })
+      .eq('store_id', storeId)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
 
-  if (search.trim()) {
-    const s = search.trim()
-    // Step 1: find matching global_product IDs (PostgREST can't filter
-    // foreign tables inside .or(), so we do a separate query first)
-    const { data: gpMatches } = await supabase
-      .from('global_products')
-      .select('id')
-      .or(`name.ilike.%${s}%,brand.ilike.%${s}%`)
-
-    const gpIds = (gpMatches ?? []).map((g) => g.id)
-
-    // Step 2: OR filter on store_products columns + matched IDs
-    const orParts = [`local_name.ilike.%${s}%`, `ean.ilike.%${s}%`]
-    if (gpIds.length) orParts.push(`global_product_id.in.(${gpIds.join(',')})`)
-    query = query.or(orParts.join(','))
+    if (search.trim()) {
+      const s = search.trim()
+      return { q, s }
+    }
+    return { q, s: null }
   }
 
-  const { data, error, count } = await query.range(from, to)
-  if (error) throw new Error(error.message ?? error)
-  return { products: data ?? [], total: count ?? 0, page }
+  const runQuery = async (includePromo) => {
+    let { q, s } = buildQuery(includePromo)
+    if (s) {
+      const { data: gpMatches } = await supabase
+        .from('global_products')
+        .select('id')
+        .or(`name.ilike.%${s}%,brand.ilike.%${s}%`)
+
+      const gpIds = (gpMatches ?? []).map((g) => g.id)
+      const orParts = [`local_name.ilike.%${s}%`, `ean.ilike.%${s}%`]
+      if (gpIds.length) orParts.push(`global_product_id.in.(${gpIds.join(',')})`)
+      q = q.or(orParts.join(','))
+    }
+    return q.range(from, to)
+  }
+
+  let result = await runQuery(true)
+  if (
+    result.error &&
+    (result.error.message?.includes('column') || result.error.code === 'PGRST204')
+  ) {
+    result = await runQuery(false)
+  }
+
+  if (result.error) throw new Error(result.error.message ?? result.error)
+  return { products: result.data ?? [], total: result.count ?? 0, page }
 }
 
 export async function updateProductPrice(productId, storeId, priceKzt) {
@@ -203,6 +218,23 @@ export async function updateProductPrice(productId, storeId, priceKzt) {
     .select('id')
   if (error) throw new Error(error.message ?? error)
   if (!data || data.length === 0) throw new Error('Update blocked: RLS or row not found')
+}
+
+export async function updateProductPromotion(productId, storeId, promotionPayload) {
+  const { data, error } = await supabase
+    .from('store_products')
+    .update({
+      is_featured: Boolean(promotionPayload.is_featured),
+      old_price_kzt: promotionPayload.old_price_kzt ?? null,
+      discount_percent: promotionPayload.discount_percent ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', productId)
+    .eq('store_id', storeId)
+    .select('id, is_featured, old_price_kzt, discount_percent')
+  if (error) throw new Error(error.message ?? error)
+  if (!data || data.length === 0) throw new Error('Update blocked: RLS or row not found')
+  return data[0]
 }
 
 export async function updateProductStock(productId, storeId, stockStatus) {

@@ -1,11 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import './StoryViewer.css'
 
-function StoryArt({ storyKey, store, catalogProducts, t }) {
+function StoryArt({ story, store, catalogProducts, t }) {
   const storeName = store?.name || 'Körset'
   const count = catalogProducts?.length || 10240
+  const storyKey = story?.key
 
-  if (storyKey === 'store') {
+  if (story?.image) {
+    return (
+      <div className="story-art-cover-wrap">
+        <img src={story.image} alt="" className="story-art-cover" />
+      </div>
+    )
+  }
+
+  if (story?.key === 'store') {
     return (
       <div className="story-art-store">
         <div className="story-art-store__emblem">
@@ -235,7 +244,7 @@ export default function StoryViewer({
 
         {/* Center Visual Art */}
         <div className="story-viewer__visual">
-          <StoryArt storyKey={story.key} store={store} catalogProducts={catalogProducts} t={t} />
+          <StoryArt story={story} store={store} catalogProducts={catalogProducts} t={t} />
         </div>
 
         {/* Left / Right Tap Zones for navigation */}

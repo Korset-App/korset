@@ -38,6 +38,7 @@ Supabase (Postgres, Auth, Storage, RLS) · Vercel Serverless · OpenAI
 - No gradient-filled text in core typography, titles, labels, or navigation.
 - New user-facing text goes through `useI18n` with RU **and** KZ coverage.
 - Avatars use `<ProfileAvatar />`.
+- Categories and departments across all screens MUST use the single source of truth from `categoryMap.js` (via `getCategoryLabel`). Never hardcode or invent separate names.
 - Premium, serious-brand quality. No generic or decorative filler.
 
 ## Ask before acting

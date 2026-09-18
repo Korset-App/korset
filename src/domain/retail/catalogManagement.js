@@ -55,3 +55,62 @@ export function buildStoreProductUpsertPayload({
     updated_at: new Date().toISOString(),
   }
 }
+
+export function calculateDiscountPercent(currentPrice, oldPrice) {
+  const current = Number(currentPrice)
+  const old = Number(oldPrice)
+  if (!Number.isFinite(current) || !Number.isFinite(old) || old <= current || current <= 0) {
+    return null
+  }
+  const pct = Math.round((1 - current / old) * 100)
+  return pct > 0 && pct < 100 ? pct : null
+}
+
+export function calculateDiscountedPrice(oldPrice, discountPercent) {
+  const old = Number(oldPrice)
+  const pct = Number(discountPercent)
+  if (!Number.isFinite(old) || !Number.isFinite(pct) || old <= 0 || pct <= 0 || pct >= 100) {
+    return null
+  }
+  return Math.round(old * (1 - pct / 100))
+}
+
+export function validatePromotionPayload({
+  isFeatured = false,
+  oldPriceKzt = null,
+  discountPercent = null,
+  currentPrice = 0,
+} = {}) {
+  const current = Number(currentPrice) || 0
+  let oldPrice =
+    oldPriceKzt !== null && oldPriceKzt !== undefined && oldPriceKzt !== ''
+      ? Math.round(Number(oldPriceKzt))
+      : null
+
+  let discountPct =
+    discountPercent !== null && discountPercent !== undefined && discountPercent !== ''
+      ? Math.round(Number(discountPercent))
+      : null
+
+  if (oldPrice !== null && (!Number.isFinite(oldPrice) || oldPrice <= current)) {
+    oldPrice = null
+  }
+
+  if (
+    discountPct !== null &&
+    (!Number.isFinite(discountPct) || discountPct <= 0 || discountPct >= 100)
+  ) {
+    discountPct = null
+  }
+
+  // Auto-calculate discount percentage if old price is present but discount percentage is not
+  if (oldPrice !== null && discountPct === null && current > 0) {
+    discountPct = calculateDiscountPercent(current, oldPrice)
+  }
+
+  return {
+    is_featured: Boolean(isFeatured),
+    old_price_kzt: oldPrice,
+    discount_percent: discountPct,
+  }
+}
