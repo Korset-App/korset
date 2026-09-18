@@ -1,0 +1,85 @@
+.offline-banner {
+  position: sticky;
+  top: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 14px;
+  font-family: var(--font-body, inherit);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  animation: offlineBannerSlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: background-color 0.3s ease, border-color 0.3s ease, opacity 0.3s ease;
+}
+
+@keyframes offlineBannerSlideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.offline-banner-warning {
+  background: var(--warning-dim);
+  border-bottom: 1px solid var(--warning-border);
+  color: var(--text);
+}
+
+.offline-banner-restored {
+  background: var(--success-dim);
+  border-bottom: 1px solid var(--success-border);
+  color: var(--text);
+}
+
+.offline-banner-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--warning);
+}
+
+.offline-banner-restored .offline-banner-icon {
+  color: var(--success-bright, var(--success));
+}
+
+.offline-banner-text {
+  letter-spacing: 0.01em;
+  text-align: center;
+}
+
+.offline-banner-retry {
+  flex-shrink: 0;
+  background: var(--bg-card, var(--card));
+  border: 1px solid var(--warning-border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.offline-banner-retry:hover {
+  opacity: 0.85;
+}
+
+.offline-banner-retry:active {
+  transform: scale(0.96);
+}
+
+.offline-banner-retry:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

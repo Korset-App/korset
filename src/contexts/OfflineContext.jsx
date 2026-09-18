@@ -1,8 +1,10 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { getCatalogCacheAge, getPendingScansCount, flushPendingScans } from '../utils/offlineDB.js'
 import { supabase } from '../utils/supabase.js'
-
-const CACHE_STALE_MS = 7 * 24 * 60 * 60 * 1000
+import {
+  isCacheStale as checkCacheStale,
+  formatCacheAge as formatCacheAgeDomain,
+} from '../domain/offline/offlineStatus.js'
 
 const OfflineContext = createContext(null)
 
@@ -10,9 +12,16 @@ export function OfflineProvider({ children }) {
   const [isOnline, setIsOnline] = useState(() =>
     typeof navigator !== 'undefined' ? navigator.onLine : true
   )
+  const [wasOffline, setWasOffline] = useState(() =>
+    typeof navigator !== 'undefined' ? !navigator.onLine : false
+  )
+  const [justRestored, setJustRestored] = useState(false)
+  const [isChecking, setIsChecking] = useState(false)
   const [cacheAge, setCacheAge] = useState(null)
   const [pendingCount, setPendingCount] = useState(0)
+
   const flushIntervalRef = useRef(null)
+  const restoreTimerRef = useRef(null)
 
   const refreshCacheAge = useCallback(async () => {
     const ts = await getCatalogCacheAge()
@@ -27,17 +36,76 @@ export function OfflineProvider({ children }) {
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true)
+      if (wasOffline) {
+        setJustRestored(true)
+        if (restoreTimerRef.current) clearTimeout(restoreTimerRef.current)
+        restoreTimerRef.current = setTimeout(() => {
+          setJustRestored(false)
+          setWasOffline(false)
+        }, 3000)
+      }
       flushPendingScans(supabase).then(() => refreshPendingCount())
+      refreshCacheAge()
     }
-    const handleOffline = () => setIsOnline(false)
+
+    const handleOffline = () => {
+      setIsOnline(false)
+      setWasOffline(true)
+      setJustRestored(false)
+      if (restoreTimerRef.current) clearTimeout(restoreTimerRef.current)
+    }
 
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
     return () => {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
+      if (restoreTimerRef.current) clearTimeout(restoreTimerRef.current)
     }
-  }, [refreshPendingCount])
+  }, [wasOffline, refreshPendingCount, refreshCacheAge])
+
+  const checkConnection = useCallback(async () => {
+    setIsChecking(true)
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setIsOnline(false)
+      setWasOffline(true)
+      setIsChecking(false)
+      return false
+    }
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 3500)
+      const res = await fetch('/favicon.ico?_t=' + Date.now(), {
+        method: 'HEAD',
+        cache: 'no-store',
+        signal: controller.signal,
+      })
+      clearTimeout(timeoutId)
+      const online = res.ok || res.status < 500
+      setIsOnline(online)
+      if (online) {
+        if (wasOffline) {
+          setJustRestored(true)
+          if (restoreTimerRef.current) clearTimeout(restoreTimerRef.current)
+          restoreTimerRef.current = setTimeout(() => {
+            setJustRestored(false)
+            setWasOffline(false)
+          }, 3000)
+        }
+        flushPendingScans(supabase).then(() => refreshPendingCount())
+        refreshCacheAge()
+      } else {
+        setWasOffline(true)
+      }
+      setIsChecking(false)
+      return online
+    } catch {
+      setIsOnline(false)
+      setWasOffline(true)
+      setIsChecking(false)
+      return false
+    }
+  }, [wasOffline, refreshPendingCount, refreshCacheAge])
 
   useEffect(() => {
     refreshCacheAge()
@@ -61,28 +129,17 @@ export function OfflineProvider({ children }) {
   const [cacheStale, setCacheStale] = useState(false)
 
   useEffect(() => {
-    if (!cacheAge) {
-      setCacheStale(false)
-      return
-    }
-    const stale = Date.now() - cacheAge > CACHE_STALE_MS
-    setCacheStale(stale)
+    setCacheStale(checkCacheStale(cacheAge))
   }, [cacheAge])
 
-  const formatCacheAge = useCallback(() => {
-    if (!cacheAge) return null
-    const diffMs = Date.now() - cacheAge
-    const minutes = Math.floor(diffMs / 60000)
-    if (minutes < 1) return 'только что'
-    if (minutes < 60) return `${minutes} мин назад`
-    const hours = Math.floor(minutes / 60)
-    if (hours < 24) return `${hours}ч назад`
-    const days = Math.floor(hours / 24)
-    return `${days}д назад`
-  }, [cacheAge])
+  const formatCacheAge = useCallback((t = null) => formatCacheAgeDomain(cacheAge, t), [cacheAge])
 
   const value = {
     isOnline,
+    wasOffline,
+    justRestored,
+    isChecking,
+    checkConnection,
     cacheAge,
     cacheStale,
     pendingCount,
