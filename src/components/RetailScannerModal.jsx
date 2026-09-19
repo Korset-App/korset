@@ -1,5 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { loadSoundSettings } from '../utils/soundSettings.js'
+import {
+  BarcodeScannerIcon,
+  CloseIcon,
+  AlertTriangleIcon,
+  CameraIcon,
+  SyncIcon,
+} from './icons/index.js'
 
 // ── Web Audio beep ─────────────────────────────────────────────────
 let _audioCtx = null
@@ -245,9 +252,7 @@ export default function RetailScannerModal({ onScan, onClose }) {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 22, color: '#38BDF8' }}>
-            barcode_scanner
-          </span>
+          <BarcodeScannerIcon size={22} color="#38BDF8" />
           <div>
             <div
               style={{
@@ -279,9 +284,7 @@ export default function RetailScannerModal({ onScan, onClose }) {
             justifyContent: 'center',
           }}
         >
-          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-            close
-          </span>
+          <CloseIcon size={20} color="currentColor" />
         </button>
       </div>
 
@@ -393,12 +396,7 @@ export default function RetailScannerModal({ onScan, onClose }) {
               textAlign: 'center',
             }}
           >
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: 48, color: '#F87171', opacity: 0.7 }}
-            >
-              no_photography
-            </span>
+            <AlertTriangleIcon size={48} color="#F87171" style={{ opacity: 0.7 }} />
             <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-inverse)' }}>
               Нет доступа к камере
             </div>
@@ -439,12 +437,7 @@ export default function RetailScannerModal({ onScan, onClose }) {
               textAlign: 'center',
             }}
           >
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: 48, color: '#F87171', opacity: 0.7 }}
-            >
-              error_outline
-            </span>
+            <AlertTriangleIcon size={48} color="#F87171" style={{ opacity: 0.7 }} />
             <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-inverse)' }}>
               Ошибка камеры
             </div>
@@ -496,9 +489,7 @@ export default function RetailScannerModal({ onScan, onClose }) {
               padding: 8,
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 26 }}>
-              {torchOn ? 'flashlight_on' : 'flashlight_off'}
-            </span>
+            <CameraIcon size={26} color="currentColor" />
             <span style={{ fontSize: 10, fontWeight: 600 }}>
               {torchErr ? 'Не поддерж.' : torchOn ? 'Вкл.' : 'Фонарик'}
             </span>
@@ -520,9 +511,7 @@ export default function RetailScannerModal({ onScan, onClose }) {
               padding: 8,
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 26 }}>
-              cameraswitch
-            </span>
+            <SyncIcon size={26} color="currentColor" />
             <span style={{ fontSize: 10, fontWeight: 600 }}>Камера</span>
           </button>
         </div>

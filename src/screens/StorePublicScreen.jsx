@@ -3,6 +3,17 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { useI18n } from '../i18n/index.js'
 import { parseStoreSchedule } from '../domain/stores/schedule.js'
+import {
+  ArrowBackIcon,
+  StorefrontIcon,
+  LocationPinIcon,
+  ArrowForwardIcon,
+  BarcodeScannerIcon,
+  CloseIcon,
+  ChevronDownIcon,
+  FactCheckIcon,
+  SparklesIcon,
+} from '../components/icons/index.js'
 import './StorePublicScreen.css'
 
 export default function StorePublicScreen() {
@@ -88,12 +99,10 @@ export default function StorePublicScreen() {
             onClick={() => navigate(-1)}
             aria-label={t('common.back')}
           >
-            <span className="material-symbols-outlined">arrow_back</span>
+            <ArrowBackIcon size={20} />
           </button>
           <div className="store-public-badge-korset">
-            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
-              storefront
-            </span>
+            <StorefrontIcon size={14} />
             <span>Körset Store</span>
           </div>
         </header>
@@ -143,7 +152,7 @@ export default function StorePublicScreen() {
 
             {fullAddress && (
               <div className="store-public-address">
-                <span className="material-symbols-outlined">location_on</span>
+                <LocationPinIcon size={16} />
                 <span>{fullAddress}</span>
               </div>
             )}
@@ -158,11 +167,11 @@ export default function StorePublicScreen() {
         <div className="store-public-cta-group">
           <button type="button" className="store-public-cta-primary" onClick={handleOpenStore}>
             <span>{t('home.storeViewShowcase')}</span>
-            <span className="material-symbols-outlined">arrow_forward</span>
+            <ArrowForwardIcon size={18} />
           </button>
 
           <button type="button" className="store-public-cta-secondary" onClick={handleOpenScan}>
-            <span className="material-symbols-outlined">barcode_scanner</span>
+            <BarcodeScannerIcon size={18} />
             <span>{t('home.storeScanInStore')}</span>
           </button>
         </div>
@@ -300,7 +309,7 @@ export default function StorePublicScreen() {
               }}
               onClick={() => setActivePhotoIndex(null)}
             >
-              <span className="material-symbols-outlined">close</span>
+              <CloseIcon size={22} />
             </button>
             <img
               src={store.images[activePhotoIndex]}
@@ -322,7 +331,7 @@ export default function StorePublicScreen() {
               }}
             >
               <span style={{ fontSize: 13, fontWeight: 700 }}>{t('home.storeAbout')}</span>
-              <span className="material-symbols-outlined">expand_more</span>
+              <ChevronDownIcon size={18} />
             </button>
             {showFullDesc && (
               <div className="store-public-desc-body">
@@ -337,19 +346,19 @@ export default function StorePublicScreen() {
           <h2 className="store-public-card__title">{t('home.storeFeatures')}</h2>
           <ul className="store-public-features-list">
             <li className="store-public-feature-item">
-              <span className="material-symbols-outlined">storefront</span>
+              <StorefrontIcon size={20} />
               <span>{t('home.storeFeature3')}</span>
             </li>
             <li className="store-public-feature-item">
-              <span className="material-symbols-outlined">fact_check</span>
+              <FactCheckIcon size={20} />
               <span>{t('home.storeFeature2')}</span>
             </li>
             <li className="store-public-feature-item">
-              <span className="material-symbols-outlined">barcode_scanner</span>
+              <BarcodeScannerIcon size={20} />
               <span>{t('home.storeFeature1')}</span>
             </li>
             <li className="store-public-feature-item">
-              <span className="material-symbols-outlined">auto_awesome</span>
+              <SparklesIcon size={20} />
               <span>{t('home.storeFeature4')}</span>
             </li>
           </ul>

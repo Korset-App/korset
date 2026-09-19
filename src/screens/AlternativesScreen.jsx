@@ -25,6 +25,13 @@ import { getFitBadgeMeta, resolveFitSeverityKey } from '../domain/product/fitVer
 import { buildComparePath, buildProductAIPath, buildProductPath } from '../utils/routes.js'
 import { getDisplayQuantity } from '../utils/parseQuantity.js'
 import { trackAlternativeEvent } from '../utils/alternativeAnalytics.js'
+import {
+  ArrowBackIcon,
+  SparklesIcon,
+  VerifiedBadgeIcon,
+  CompareIcon,
+  ExploreIcon,
+} from '../components/icons/index.js'
 
 const RPC_LIMIT = 24
 const DISPLAY_LIMIT = 12
@@ -160,9 +167,7 @@ export default function AlternativesScreen() {
           aria-label={t('common.back')}
           onClick={() => navigate(-1)}
         >
-          <span className="material-symbols-outlined" aria-hidden="true">
-            arrow_back
-          </span>
+          <ArrowBackIcon size={20} />
         </button>
         <div>
           <div className="screen-title alternatives-title">{t('common.alternatives')}</div>
@@ -285,9 +290,7 @@ export default function AlternativesScreen() {
             })
           }}
         >
-          <span className="material-symbols-outlined" aria-hidden="true">
-            neurology
-          </span>
+          <SparklesIcon size={18} />
           {t('alternatives.helpChoose')}
         </button>
       </div>
@@ -339,9 +342,7 @@ function AlternativeCard({ alternative, scenario, lang, t, onOpen, onCompare }) 
           <div className="alternatives-card-name">{name}</div>
           <div className="alternatives-card-meta">{meta}</div>
           <div className="alternatives-reason">
-            <span className="material-symbols-outlined" aria-hidden="true">
-              verified
-            </span>
+            <VerifiedBadgeIcon size={16} />
             {t(reasonKey, { amount: formatPrice(priceDelta) })}
           </div>
           <div className="alternatives-card-flags">
@@ -365,9 +366,7 @@ function AlternativeCard({ alternative, scenario, lang, t, onOpen, onCompare }) 
               onCompare()
             }}
           >
-            <span className="material-symbols-outlined" aria-hidden="true">
-              compare_arrows
-            </span>
+            <CompareIcon size={16} />
             {t('compare.btnLabel')}
           </button>
         </div>
@@ -395,9 +394,7 @@ function StatusNotice({ tone = 'info', title, body, actionLabel, onAction }) {
 function EmptyState({ title, body }) {
   return (
     <div className="alternatives-empty">
-      <span className="material-symbols-outlined" aria-hidden="true">
-        travel_explore
-      </span>
+      <ExploreIcon size={44} style={{ opacity: 0.5, color: 'var(--text-dim)' }} />
       <div className="alternatives-empty-title">{title}</div>
       <div className="alternatives-empty-body">{body}</div>
     </div>

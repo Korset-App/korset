@@ -32,9 +32,9 @@
 /* Per-tab tone variables — used for the active card's border / tint and for
  * the spinner colour inside the panel. */
 .stats-tabs.tone-favorites {
-  --tone-color: rgba(248, 113, 113, 0.55);
-  --tone-tint: rgba(248, 113, 113, 0.08);
-  --tone-color-strong: #f87171;
+  --tone-color: rgba(245, 158, 11, 0.55);
+  --tone-tint: rgba(245, 158, 11, 0.08);
+  --tone-color-strong: #f59e0b;
 }
 .stats-tabs.tone-preferences {
   --tone-color: rgba(167, 139, 250, 0.55);

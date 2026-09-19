@@ -51,13 +51,25 @@ export default function ProfileStatsTabs({
       tone: 'favorites',
       value: favoritesCount,
       label: t('profile.favorites'),
-      iconBg: 'var(--glass-muted)',
-      iconBorder: 'var(--glass-border)',
-      iconShadow: '0 4px 22px rgba(0,0,0,0.1)',
+      iconBg: 'rgba(245,158,11,0.18)',
+      iconBorder: 'rgba(251,191,36,0.55)',
+      iconShadow: '0 4px 22px rgba(245,158,11,0.36)',
       icon: (
-        <span className="material-symbols-outlined" style={{ fontSize: 24, color: 'var(--text)' }}>
-          checklist
-        </span>
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#F59E0B"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M9 6h11M9 12h11M9 18h11" />
+          <polyline points="4 6 5.5 7.5 7.5 4.5" />
+          <polyline points="4 12 5.5 13.5 7.5 10.5" />
+          <polyline points="4 18 5.5 19.5 7.5 16.5" />
+        </svg>
       ),
     },
     {
@@ -105,15 +117,13 @@ export default function ProfileStatsTabs({
           viewBox="0 0 24 24"
           fill="none"
           stroke="#34D399"
-          strokeWidth="2"
+          strokeWidth="1.5"
           strokeLinecap="round"
           strokeLinejoin="round"
+          aria-hidden="true"
         >
-          <path d="M4 8V6a2 2 0 012-2h2" />
-          <path d="M16 4h2a2 2 0 012 2v2" />
-          <path d="M20 16v2a2 2 0 01-2 2h-2" />
-          <path d="M8 20H6a2 2 0 01-2-2v-2" />
-          <line x1="5" y1="12" x2="19" y2="12" strokeWidth="2.5" />
+          <path d="M12 8v4l2.5 2.5" />
+          <path d="M5.6 5.6 4.34 6.87l2.54.01M4.32 4.33l.02 2.54M3 12a9 9 0 0 0 13.5 7.79M19.8 16.5A9 9 0 0 0 5.67 5.6" />
         </svg>
       ),
     },
@@ -265,13 +275,25 @@ export default function ProfileStatsTabs({
 
 const TONE_STYLES = {
   favorites: {
-    bg: 'var(--glass-muted)',
-    border: 'var(--glass-border)',
-    color: 'var(--text)',
+    bg: 'rgba(245,158,11,0.18)',
+    border: 'rgba(251,191,36,0.45)',
+    color: '#F59E0B',
     icon: (
-      <span className="material-symbols-outlined" style={{ fontSize: 26, color: 'var(--text)' }}>
-        checklist
-      </span>
+      <svg
+        width="26"
+        height="26"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="#F59E0B"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M9 6h11M9 12h11M9 18h11" />
+        <polyline points="4 6 5.5 7.5 7.5 4.5" />
+        <polyline points="4 12 5.5 13.5 7.5 10.5" />
+        <polyline points="4 18 5.5 19.5 7.5 16.5" />
+      </svg>
     ),
   },
   history: {
@@ -285,15 +307,13 @@ const TONE_STYLES = {
         viewBox="0 0 24 24"
         fill="none"
         stroke="#34D399"
-        strokeWidth="2"
+        strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
+        aria-hidden="true"
       >
-        <path d="M4 8V6a2 2 0 012-2h2" />
-        <path d="M16 4h2a2 2 0 012 2v2" />
-        <path d="M20 16v2a2 2 0 01-2 2h-2" />
-        <path d="M8 20H6a2 2 0 01-2-2v-2" />
-        <line x1="5" y1="12" x2="19" y2="12" strokeWidth="2.5" />
+        <path d="M12 8v4l2.5 2.5" />
+        <path d="M5.6 5.6 4.34 6.87l2.54.01M4.32 4.33l.02 2.54M3 12a9 9 0 0 0 13.5 7.79M19.8 16.5A9 9 0 0 0 5.67 5.6" />
       </svg>
     ),
   },

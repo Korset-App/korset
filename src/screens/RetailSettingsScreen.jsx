@@ -10,6 +10,21 @@ import {
   buildRetailStoreSettingsPayload,
   getAIStoreNotesLimit,
 } from '../domain/retail/storeSettings.js'
+import {
+  CloseIcon,
+  StorefrontIcon,
+  BarcodeScannerIcon,
+  CheckCircleIcon,
+  ExploreIcon,
+  AlertTriangleIcon,
+  FactCheckIcon,
+  LocationPinIcon,
+  SyncIcon,
+  ShareIcon,
+  EyeIcon,
+  UploadFileIcon,
+  CameraIcon,
+} from '../components/icons/index.js'
 
 // ── Phone mask utilities (defined outside component) ────────────
 // Store only 10 local digits (without country code) in state.
@@ -653,12 +668,7 @@ export default function RetailSettingsScreen() {
                     style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }}
                   />
                 ) : (
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ fontSize: 28, color: 'var(--text-dim)' }}
-                  >
-                    store
-                  </span>
+                  <StorefrontIcon size={28} color="var(--text-dim)" />
                 )}
               </div>
               <div style={{ flex: 1 }}>
@@ -695,9 +705,11 @@ export default function RetailSettingsScreen() {
                     opacity: logoUploading ? 0.6 : 1,
                   }}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                    {logoUploading ? 'progress_activity' : 'upload'}
-                  </span>
+                  {logoUploading ? (
+                    <SyncIcon size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                  ) : (
+                    <UploadFileIcon size={16} />
+                  )}
                   {logoUploading
                     ? t('retail.settings.logoUploading')
                     : t('retail.settings.logoUpload')}
@@ -767,9 +779,7 @@ export default function RetailSettingsScreen() {
                         boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
                       }}
                     >
-                      <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
-                        close
-                      </span>
+                      <CloseIcon size={14} />
                     </button>
                   </div>
                 ))}
@@ -824,9 +834,11 @@ export default function RetailSettingsScreen() {
                   flexShrink: 0,
                 }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                  {imagesUploading ? 'progress_activity' : 'add_a_photo'}
-                </span>
+                {imagesUploading ? (
+                  <SyncIcon size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                ) : (
+                  <CameraIcon size={16} />
+                )}
                 {imagesUploading
                   ? t('retail.settings.imagesUploading') || 'Загрузка...'
                   : t('retail.settings.imagesAdd') || 'Добавить'}
@@ -932,9 +944,11 @@ export default function RetailSettingsScreen() {
                     gap: 6,
                   }}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                    {geocoding ? 'progress_activity' : 'location_searching'}
-                  </span>
+                  {geocoding ? (
+                    <SyncIcon size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                  ) : (
+                    <LocationPinIcon size={16} />
+                  )}
                   {geocoding
                     ? t('retail.settings.geocoding') || 'Поиск...'
                     : t('retail.settings.geocodeBtn') || 'Определить по адресу'}
@@ -958,9 +972,7 @@ export default function RetailSettingsScreen() {
                     gap: 6,
                   }}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                    map
-                  </span>
+                  <ExploreIcon size={16} />
                   {t('retail.settings.mapBtn') || 'Выбрать на карте'}
                 </button>
               </div>
@@ -1065,7 +1077,7 @@ export default function RetailSettingsScreen() {
               {
                 key: 'instagram_url',
                 label: 'Instagram',
-                icon: 'photo_camera',
+                iconComponent: CameraIcon,
                 iconColor: '#E1306C',
                 placeholder: 'https://instagram.com/yourstore',
                 type: 'url',
@@ -1073,7 +1085,7 @@ export default function RetailSettingsScreen() {
               {
                 key: 'whatsapp_number',
                 label: 'WhatsApp',
-                icon: 'chat',
+                iconComponent: ShareIcon,
                 iconColor: '#25D366',
                 placeholder: '+7 (700) 000-00-00',
                 type: 'tel',
@@ -1082,67 +1094,65 @@ export default function RetailSettingsScreen() {
               {
                 key: 'twogis_url',
                 label: '2GIS',
-                icon: 'location_on',
+                iconComponent: LocationPinIcon,
                 iconColor: '#2A6EDD',
                 placeholder: 'https://2gis.kz/...',
                 type: 'url',
               },
-            ].map((field, idx, arr) => (
-              <div key={field.key}>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    padding: '14px 16px',
-                  }}
-                >
+            ].map((field, idx, arr) => {
+              const IconComp = field.iconComponent
+              return (
+                <div key={field.key}>
                   <div
                     style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 10,
-                      background: `${field.iconColor}18`,
-                      border: `1px solid ${field.iconColor}35`,
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
+                      gap: 12,
+                      padding: '14px 16px',
                     }}
                   >
-                    <span
-                      className="material-symbols-outlined"
-                      style={{ fontSize: 18, color: field.iconColor }}
-                    >
-                      {field.icon}
-                    </span>
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 4 }}>
-                      {field.label}
-                    </div>
-                    <input
-                      type={field.type}
-                      value={
-                        field.mask ? formatLocalPhone(settings[field.key]) : settings[field.key]
-                      }
-                      onChange={(e) => {
-                        if (field.mask) handlePhoneInput(field.key, e.target.value)
-                        else handleChange(field.key, e.target.value)
-                      }}
-                      inputMode={field.mask ? 'numeric' : undefined}
-                      placeholder={field.placeholder}
+                    <div
                       style={{
-                        ...INPUT_STYLE,
-                        padding: '8px 12px',
-                        fontSize: 13,
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
+                        background: `${field.iconColor}18`,
+                        border: `1px solid ${field.iconColor}35`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
                       }}
-                    />
+                    >
+                      <IconComp size={18} color={field.iconColor} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 4 }}>
+                        {field.label}
+                      </div>
+                      <input
+                        type={field.type}
+                        value={
+                          field.mask ? formatLocalPhone(settings[field.key]) : settings[field.key]
+                        }
+                        onChange={(e) => {
+                          if (field.mask) handlePhoneInput(field.key, e.target.value)
+                          else handleChange(field.key, e.target.value)
+                        }}
+                        inputMode={field.mask ? 'numeric' : undefined}
+                        placeholder={field.placeholder}
+                        style={{
+                          ...INPUT_STYLE,
+                          padding: '8px 12px',
+                          fontSize: 13,
+                        }}
+                      />
+                    </div>
                   </div>
+                  {idx < arr.length - 1 && <div style={{ ...DIVIDER, margin: '0 16px' }} />}
                 </div>
-                {idx < arr.length - 1 && <div style={{ ...DIVIDER, margin: '0 16px' }} />}
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
 
@@ -1170,19 +1180,12 @@ export default function RetailSettingsScreen() {
         >
           {isSaving ? (
             <>
-              <span
-                className="material-symbols-outlined"
-                style={{ fontSize: 18, animation: 'spin 1s linear infinite' }}
-              >
-                progress_activity
-              </span>
+              <SyncIcon size={18} style={{ animation: 'spin 1s linear infinite' }} />
               {t('retail.settings.saving')}
             </>
           ) : (
             <>
-              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-                save
-              </span>
+              <FactCheckIcon size={18} />
               {t('retail.settings.save')}
             </>
           )}
@@ -1200,9 +1203,7 @@ export default function RetailSettingsScreen() {
               marginTop: 8,
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-              check_circle
-            </span>
+            <CheckCircleIcon size={16} color="#4ADE80" />
             <span>
               {t('retail.settings.saved')}
               {saveWarningMessage ? ` ${saveWarningMessage}` : ''}
@@ -1220,9 +1221,7 @@ export default function RetailSettingsScreen() {
               marginTop: 8,
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-              error
-            </span>
+            <AlertTriangleIcon size={16} color="#F87171" />
             <span>
               {t('retail.settings.saveError')}
               {saveErrorMessage ? ` ${saveErrorMessage}` : ''}
@@ -1316,9 +1315,7 @@ export default function RetailSettingsScreen() {
                 marginBottom: showQR ? 16 : 0,
               }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-                {showQR ? 'visibility_off' : 'qr_code'}
-              </span>
+              {showQR ? <EyeIcon size={18} /> : <BarcodeScannerIcon size={18} />}
               {showQR ? t('retail.settings.hideQr') : t('retail.settings.showQr')}
             </button>
 
@@ -1409,9 +1406,7 @@ export default function RetailSettingsScreen() {
                       gap: 6,
                     }}
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                      content_copy
-                    </span>
+                    <ShareIcon size={16} />
                     {t('retail.settings.copy')}
                   </button>
 
@@ -1431,9 +1426,7 @@ export default function RetailSettingsScreen() {
                       gap: 6,
                     }}
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                      download
-                    </span>
+                    <UploadFileIcon size={16} />
                     {t('retail.settings.downloadPng')}
                   </button>
                 </div>
@@ -1685,7 +1678,7 @@ export default function RetailSettingsScreen() {
                   padding: 4,
                 }}
               >
-                <span className="material-symbols-outlined">close</span>
+                <CloseIcon size={20} />
               </button>
             </div>
 

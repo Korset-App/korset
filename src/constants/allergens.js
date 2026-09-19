@@ -35,12 +35,12 @@ export const ALLERGENS = [
     frequency: 2,
   },
   { id: 'sesame', label: { ru: 'Кунжут', kz: 'Күнжіт' }, icon: 'sesame', frequency: 3 },
-  { id: 'celery', label: { ru: 'Сельдерей', kz: 'Балдыркөк' }, icon: 'nutrition', frequency: 2 },
-  { id: 'mustard', label: { ru: 'Горчица', kz: 'Қыша' }, icon: 'nutrition', frequency: 2 },
+  { id: 'celery', label: { ru: 'Сельдерей', kz: 'Балдыркөк' }, icon: 'celery', frequency: 2 },
+  { id: 'mustard', label: { ru: 'Горчица', kz: 'Қыша' }, icon: 'mustard', frequency: 2 },
   {
     id: 'sulfites',
     label: { ru: 'Сульфиты (E220-E228)', kz: 'Сульфиттер' },
-    icon: 'science',
+    icon: 'sulfites',
     frequency: 2,
   },
 
@@ -51,7 +51,7 @@ export const ALLERGENS = [
     icon: 'shell',
     frequency: 1,
   },
-  { id: 'lupin', label: { ru: 'Люпин', kz: 'Люпин' }, icon: 'nutrition', frequency: 1 },
+  { id: 'lupin', label: { ru: 'Люпин', kz: 'Люпин' }, icon: 'celery', frequency: 1 },
 ]
 
 // Порог частоты для "Показать все" в UI

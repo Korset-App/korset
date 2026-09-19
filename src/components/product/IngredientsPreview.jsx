@@ -3,6 +3,7 @@ import { useI18n } from '../../i18n/index.js'
 import { analyzeProductIngredients } from '../../domain/product/ingredientAnalysis.js'
 import { INGREDIENT_DESCRIPTIONS } from '../../constants/ingredientDescriptions.js'
 import IngredientInfoSheet from './IngredientInfoSheet.jsx'
+import { ChevronDownIcon, FactCheckIcon } from '../icons/index.js'
 import './IngredientsPreview.css'
 
 function enrichHighlight(item, t, lang) {
@@ -124,9 +125,7 @@ export default function IngredientsPreview({
             className="ingredients-preview__expand-btn"
             onClick={handleExpandClick}
           >
-            <span className="material-symbols-outlined" aria-hidden="true">
-              expand_more
-            </span>
+            <ChevronDownIcon size={18} />
             {t('product.ingredients.tapToExpand')}
           </button>
         )}
@@ -137,9 +136,7 @@ export default function IngredientsPreview({
 
         {!isFull && !isClamped && onOpenFull && (
           <button type="button" className="ingredients-preview__breakdown-btn" onClick={onOpenFull}>
-            <span className="material-symbols-outlined" aria-hidden="true">
-              fact_check
-            </span>
+            <FactCheckIcon size={18} />
             {t('product.ingredients.openFull')}
           </button>
         )}

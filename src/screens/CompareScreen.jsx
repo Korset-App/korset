@@ -5,7 +5,8 @@ import { useProfile } from '../contexts/ProfileContext.jsx'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { useI18n } from '../i18n/index.js'
 import { useLocalName } from '../utils/localName.js'
-import { getAnyKnownProductByRef } from '../utils/storeCatalog.js'
+import { findProductInCatalog } from '../domain/product/alternatives.js'
+import { resolveProductByEan } from '../domain/product/resolver.js'
 import { buildProductAIPath, buildProductAlternativesPath } from '../utils/routes.js'
 import { buildProductComparison } from '../domain/product/comparison.js'
 import { buildProductComparisonViewModel } from '../domain/product/comparisonViewModel.js'
@@ -261,25 +262,49 @@ export default function CompareScreen() {
   const navigate = useNavigate()
   const location = useLocation()
   const { profile } = useProfile()
-  const { currentStore } = useStore()
+  const { currentStore, catalogProducts } = useStore()
   const { t, lang } = useI18n()
 
   const [aiText, setAiText] = useState(null)
   const [aiLoading, setAiLoading] = useState(false)
-
-  const activeSlug = storeSlug || currentStore?.slug || null
+  const [fetchedA, setFetchedA] = useState(null)
+  const [fetchedB, setFetchedB] = useState(null)
 
   const productA = useMemo(() => {
     const stateA = location.state?.productA
     if (stateA?.ean === ean) return stateA
-    return getAnyKnownProductByRef(ean, activeSlug) || stateA || null
-  }, [ean, activeSlug, location.state])
+    return findProductInCatalog(catalogProducts, ean) || fetchedA || stateA || null
+  }, [ean, catalogProducts, location.state, fetchedA])
 
   const productB = useMemo(() => {
     const stateB = location.state?.productB
     if (stateB?.ean === ean2) return stateB
-    return getAnyKnownProductByRef(ean2, activeSlug) || stateB || null
-  }, [ean2, activeSlug, location.state])
+    return findProductInCatalog(catalogProducts, ean2) || fetchedB || stateB || null
+  }, [ean2, catalogProducts, location.state, fetchedB])
+
+  useEffect(() => {
+    let active = true
+    if (!productA && ean) {
+      resolveProductByEan(ean, currentStore?.id, { logScan: false }).then((res) => {
+        if (active && res) setFetchedA(res)
+      })
+    }
+    return () => {
+      active = false
+    }
+  }, [productA, ean, currentStore?.id])
+
+  useEffect(() => {
+    let active = true
+    if (!productB && ean2) {
+      resolveProductByEan(ean2, currentStore?.id, { logScan: false }).then((res) => {
+        if (active && res) setFetchedB(res)
+      })
+    }
+    return () => {
+      active = false
+    }
+  }, [productB, ean2, currentStore?.id])
 
   const localNameA = useLocalName(productA)
   const localNameB = useLocalName(productB)

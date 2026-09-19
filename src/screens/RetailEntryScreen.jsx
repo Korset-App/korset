@@ -3,6 +3,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { supabase } from '../utils/supabase.js'
 import { buildAuthNavigateState } from '../utils/authFlow.js'
+import { StorefrontIcon, ShareIcon } from '../components/icons/index.js'
 
 const spinStyle = {
   width: 36,
@@ -71,12 +72,7 @@ function NoStoreScreen({ userEmail }) {
         textAlign: 'center',
       }}
     >
-      <span
-        className="material-symbols-outlined"
-        style={{ fontSize: 56, color: 'rgba(56,189,248,0.5)' }}
-      >
-        storefront
-      </span>
+      <StorefrontIcon size={56} color="rgba(56,189,248,0.5)" />
       <div
         style={{
           fontFamily: 'var(--font-display)',
@@ -113,9 +109,7 @@ function NoStoreScreen({ userEmail }) {
           fontFamily: 'var(--font-display)',
         }}
       >
-        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-          mail
-        </span>
+        <ShareIcon size={18} />
         Написать нам
       </a>
       <a
@@ -148,12 +142,7 @@ function StorePicker({ stores, onSelect }) {
         textAlign: 'center',
       }}
     >
-      <span
-        className="material-symbols-outlined"
-        style={{ fontSize: 48, color: 'rgba(56,189,248,0.6)' }}
-      >
-        storefront
-      </span>
+      <StorefrontIcon size={48} color="rgba(56,189,248,0.6)" />
       <div
         style={{
           fontFamily: 'var(--font-display)',
@@ -186,12 +175,7 @@ function StorePicker({ stores, onSelect }) {
               transition: 'background 0.15s',
             }}
           >
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: 22, color: 'var(--retail-accent)' }}
-            >
-              store
-            </span>
+            <StorefrontIcon size={22} color="var(--retail-accent)" />
             <div>
               <div style={{ fontSize: 15, fontWeight: 700 }}>{store.name}</div>
               <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 2 }}>

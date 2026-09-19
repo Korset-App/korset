@@ -16,6 +16,58 @@ import {
   getScanCoverage,
   getAlternativeEventsSummary,
 } from '../utils/retailAnalytics.js'
+import {
+  AlertTriangleIcon,
+  ArrowForwardIcon,
+  BarcodeScannerIcon,
+  CheckCircleIcon,
+  CompareIcon,
+  EditIcon,
+  ExploreIcon,
+  EyeIcon,
+  FactCheckIcon,
+  InventoryIcon,
+  SparklesIcon,
+  VerifiedBadgeIcon,
+  WalletIcon,
+} from '../components/icons/index.js'
+
+function renderIcon(icon, { size = 16, color = 'currentColor', style = {} } = {}) {
+  if (!icon) return null
+  if (typeof icon === 'function' || (typeof icon === 'object' && icon !== null && icon.$$typeof)) {
+    const IconComp = icon
+    return <IconComp size={size} color={color} style={style} />
+  }
+  const map = {
+    barcode_scanner: BarcodeScannerIcon,
+    inventory: InventoryIcon,
+    inventory_2: InventoryIcon,
+    category_search: ExploreIcon,
+    verified: VerifiedBadgeIcon,
+    verified_user: VerifiedBadgeIcon,
+    query_stats: FactCheckIcon,
+    group: ExploreIcon,
+    warning: AlertTriangleIcon,
+    trending_down: ArrowForwardIcon,
+    money_off: WalletIcon,
+    payments: WalletIcon,
+    fact_check: FactCheckIcon,
+    compare_arrows: CompareIcon,
+    auto_awesome: SparklesIcon,
+    insights: ExploreIcon,
+    trending_up: ArrowForwardIcon,
+    sentiment_dissatisfied: AlertTriangleIcon,
+    bar_chart: FactCheckIcon,
+    check_circle: CheckCircleIcon,
+    visibility_off: EyeIcon,
+    arrow_forward: ArrowForwardIcon,
+    qr_code_2: BarcodeScannerIcon,
+    edit_note: EditIcon,
+    block: AlertTriangleIcon,
+  }
+  const IconComp = map[icon] || ExploreIcon
+  return <IconComp size={size} color={color} style={style} />
+}
 
 // ── Skeleton placeholder ───────────────────────────────────────────
 function Skel({ w = '100%', h = 20, r = 6 }) {
@@ -54,9 +106,7 @@ function MetricCard({ label, sub, value, icon, accent = 'neutral', loading }) {
           color: 'var(--text-dim)',
         }}
       >
-        <span className="material-symbols-outlined" style={{ fontSize: 14, color: th.color }}>
-          {icon}
-        </span>
+        {renderIcon(icon, { size: 14, color: th.color })}
         {label}
       </div>
       {loading ? (
@@ -255,12 +305,7 @@ function ProductRow({ rank, name, scanCount, imageUrl, scanLabel, loading }) {
             style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 2 }}
           />
         ) : (
-          <span
-            className="material-symbols-outlined"
-            style={{ fontSize: 20, color: 'var(--text-dim)' }}
-          >
-            inventory_2
-          </span>
+          <InventoryIcon size={20} color="var(--text-dim)" />
         )}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -357,12 +402,7 @@ function MissedRow({
             style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 2 }}
           />
         ) : (
-          <span
-            className="material-symbols-outlined"
-            style={{ fontSize: 20, color: 'var(--text-dim)' }}
-          >
-            inventory_2
-          </span>
+          <InventoryIcon size={20} color="var(--text-dim)" />
         )}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -393,9 +433,11 @@ function MissedRow({
             color: badgeColor,
           }}
         >
-          <span className="material-symbols-outlined" style={{ fontSize: 10 }}>
-            {badgeIcon}
-          </span>
+          {isOOS ? (
+            <InventoryIcon size={10} color={badgeColor} />
+          ) : (
+            <AlertTriangleIcon size={10} color={badgeColor} />
+          )}
           {badgeLabel}
         </div>
       </div>
@@ -430,9 +472,7 @@ function QueryError({ label, retryLabel, onRetry }) {
         borderRadius: 12,
       }}
     >
-      <span className="material-symbols-outlined" style={{ fontSize: 22, color: '#F87171' }}>
-        warning
-      </span>
+      <AlertTriangleIcon size={22} color="#F87171" />
       <div style={{ fontSize: 13, color: '#F87171' }}>{label}</div>
       <button
         onClick={onRetry}
@@ -456,9 +496,7 @@ function QueryError({ label, retryLabel, onRetry }) {
 function SectionHeader({ icon, iconColor, title }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-      <span className="material-symbols-outlined" style={{ fontSize: 18, color: iconColor }}>
-        {icon}
-      </span>
+      {renderIcon(icon, { size: 18, color: iconColor })}
       <h3
         style={{
           fontSize: 15,
@@ -535,9 +573,7 @@ function AIInsightRow({ insight, t, exists, loading }) {
           flexShrink: 0,
         }}
       >
-        <span className="material-symbols-outlined" style={{ fontSize: 17, color: theme.color }}>
-          {insight.icon}
-        </span>
+        {renderIcon(insight.icon, { size: 17, color: theme.color })}
       </div>
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', lineHeight: 1.25 }}>
@@ -559,9 +595,7 @@ function AIInsightRow({ insight, t, exists, loading }) {
               lineHeight: 1.3,
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
-              arrow_forward
-            </span>
+            <ArrowForwardIcon size={14} color={theme.color} />
             {t(insight.actionKey, values)}
           </div>
         )}
@@ -576,12 +610,9 @@ function EmptyState({ icon, label, sub }) {
     <div
       style={{ textAlign: 'center', padding: '24px 16px', color: 'var(--text-dim)', fontSize: 13 }}
     >
-      <span
-        className="material-symbols-outlined"
-        style={{ fontSize: 30, display: 'block', marginBottom: 8, opacity: 0.45 }}
-      >
-        {icon}
-      </span>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8, opacity: 0.45 }}>
+        {renderIcon(icon, { size: 30, color: 'currentColor' })}
+      </div>
       <div>{label}</div>
       {sub && <div style={{ fontSize: 11, marginTop: 4, opacity: 0.7 }}>{sub}</div>}
     </div>
@@ -783,11 +814,10 @@ export default function RetailDashboardScreen() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
-            <span className="material-symbols-outlined" style={{ color: '#F59E0B', fontSize: 24, flexShrink: 0 }}>
-              visibility_off
-            </span>
+            <EyeIcon size={24} color="#F59E0B" style={{ flexShrink: 0 }} />
             <div style={{ fontSize: 13, color: 'var(--text-sub)', lineHeight: 1.4 }}>
-              {t('retail.dashboard.draftWarning') || 'Ваш магазин находится в режиме черновика и не виден покупателям. Настройте каталог и опубликуйте его в Настройках.'}
+              {t('retail.dashboard.draftWarning') ||
+                'Ваш магазин находится в режиме черновика и не виден покупателям. Настройте каталог и опубликуйте его в Настройках.'}
             </div>
           </div>
           <button
@@ -929,9 +959,7 @@ export default function RetailDashboardScreen() {
               color: 'var(--text-dim)',
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 14, color: '#F87171' }}>
-              trending_down
-            </span>
+            <ArrowForwardIcon size={14} color="#F87171" style={{ transform: 'rotate(45deg)' }} />
             {d.lostRevenue}
           </div>
           {lostQ.isLoading ? (
@@ -953,12 +981,7 @@ export default function RetailDashboardScreen() {
             {periodLabel} · {d.lostRevenueHint}
           </div>
         </div>
-        <span
-          className="material-symbols-outlined"
-          style={{ fontSize: 36, color: 'rgba(248,113,113,0.25)', flexShrink: 0 }}
-        >
-          money_off
-        </span>
+        <WalletIcon size={36} color="rgba(248,113,113,0.25)" style={{ flexShrink: 0 }} />
       </div>
 
       {/* ── Scan coverage progress bar ── */}
@@ -987,9 +1010,7 @@ export default function RetailDashboardScreen() {
               color: 'var(--text-dim)',
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 14, color: '#38BDF8' }}>
-              fact_check
-            </span>
+            <FactCheckIcon size={14} color="#38BDF8" />
             {d.catalogCoverage}
           </div>
           <div

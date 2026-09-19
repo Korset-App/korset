@@ -4,6 +4,7 @@ import { useI18n } from '../../i18n/index.js'
 import { ALLERGENS } from '../../constants/allergens.js'
 import { DIET_PREFERENCES } from '../../constants/dietGoals.js'
 import { DietIcon } from '../../screens/ProfileScreen.jsx'
+import { CloseIcon, CheckCircleIcon, VerifiedBadgeIcon } from '../../components/icons/index.js'
 import './FitCheckDrawer.css'
 
 export default function FitCheckDrawer({
@@ -129,7 +130,7 @@ export default function FitCheckDrawer({
             <div className="fitcheck-drawer__header">
               <div className="fitcheck-drawer__title-wrap">
                 <div className="fitcheck-drawer__icon">
-                  <span className="material-symbols-outlined">shield_with_heart</span>
+                  <VerifiedBadgeIcon size={24} color="#7C3AED" />
                 </div>
                 <div>
                   <h3 className="fitcheck-drawer__title">
@@ -146,9 +147,7 @@ export default function FitCheckDrawer({
                 onClick={onClose}
                 aria-label={t('common.close')}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-                  close
-                </span>
+                <CloseIcon size={20} />
               </button>
             </div>
 
@@ -207,9 +206,7 @@ export default function FitCheckDrawer({
                 className={`fitcheck-chip fitcheck-chip--reset${draftNoRestrictions ? ' is-active' : ''}`}
                 onClick={toggleNoRestrictions}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-                  check_circle
-                </span>
+                <CheckCircleIcon size={18} />
                 <span>{t('home.noPreferences') || 'Без ограничений'}</span>
               </button>
             </div>
@@ -221,9 +218,7 @@ export default function FitCheckDrawer({
                 onClick={handleSave}
                 disabled={saving}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-                  check
-                </span>
+                <CheckCircleIcon size={20} />
                 <span>{t('home.drawerSave') || 'Сохранить настройки'}</span>
               </button>
 

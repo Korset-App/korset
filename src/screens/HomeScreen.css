@@ -1184,83 +1184,472 @@
   min-height: 31px;
 }
 
-/* 7. AI CHEF CARD */
-.home-ai-chef-card {
-  border-radius: 20px;
-  padding: 14px 16px;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--bg-card) 94%, #8b5cf6 6%), color-mix(in srgb, var(--bg-card) 88%, #6366f1 12%));
-  border: 1px solid color-mix(in srgb, #8b5cf6 26%, var(--home-line));
-  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.04);
+/* -------------------------------------------------------------------------- */
+/* 7. AMBIENT AI COPILOT ISLAND (HIGH-END CONVERSATIONAL MODULE)              */
+/* -------------------------------------------------------------------------- */
+
+.home-ai-island {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 4px 0 2px;
 }
 
-.home-ai-chef-card__header {
+/* Ambient backlight aura */
+.home-ai-island__ambient-glow {
+  position: absolute;
+  top: -8px;
+  left: 6%;
+  right: 6%;
+  height: 120px;
+  background: radial-gradient(ellipse 70% 60% at 50% 30%, rgba(124, 58, 237, 0.22) 0%, transparent 70%);
+  filter: blur(28px);
+  pointer-events: none;
+  z-index: 0;
+  border-radius: 40px;
+}
+
+/* Island Card Container (Glassmorphism & Depth) */
+.home-ai-island__container {
+  position: relative;
+  z-index: 1;
+  border-radius: 20px;
+  padding: 14px 15px 15px;
+  background:
+    radial-gradient(120% 90% at 10% 0%, rgba(124, 58, 237, 0.12) 0%, transparent 60%),
+    radial-gradient(90% 70% at 100% 100%, rgba(99, 102, 241, 0.08) 0%, transparent 60%),
+    #0c0c16;
+  border: 1px solid rgba(139, 92, 246, 0.22);
+  border-top: 1px solid rgba(192, 168, 255, 0.32);
+  box-shadow:
+    0 10px 30px -6px rgba(0, 0, 0, 0.55),
+    0 4px 16px rgba(124, 58, 237, 0.14),
+    inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  box-sizing: border-box;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+:root[data-theme='light'] .home-ai-island__container {
+  background:
+    radial-gradient(100% 80% at 10% 0%, rgba(124, 58, 237, 0.08) 0%, transparent 60%),
+    linear-gradient(175deg, #ffffff 0%, #f7f5ff 100%);
+  border: 1px solid rgba(124, 58, 237, 0.16);
+  border-top: 1px solid rgba(124, 58, 237, 0.24);
+  box-shadow:
+    0 10px 28px -6px rgba(109, 93, 252, 0.10),
+    0 2px 8px rgba(0, 0, 0, 0.03),
+    inset 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+/* Header: Brand Avatar, Meta, Shuffle Button */
+.home-ai-island__header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
   margin-bottom: 12px;
 }
 
-.home-ai-chef-card__icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  background: color-mix(in srgb, #8b5cf6 20%, transparent);
-  color: #a855f7;
-}
-
-.home-ai-chef-card__title {
-  margin: 0 0 2px;
-  font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 750;
-  color: var(--home-ink);
-}
-
-.home-ai-chef-card__subtitle {
-  margin: 0;
-  font-size: 11.5px;
-  color: var(--home-muted);
-}
-
-.home-ai-chips {
+.home-ai-island__brand {
   display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
 }
 
-.home-ai-chips::-webkit-scrollbar {
-  display: none;
+.home-ai-island__avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
 }
 
-.home-ai-chip {
+.home-ai-island__pulse-badge {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #10b981;
+  border: 2px solid #0c0c16;
+  box-shadow: 0 0 6px #10b981;
+}
+
+:root[data-theme='light'] .home-ai-island__pulse-badge {
+  border-color: #ffffff;
+}
+
+.home-ai-island__meta {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.home-ai-island__title {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 14.5px;
+  font-weight: 650;
+  color: #ffffff;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:root[data-theme='light'] .home-ai-island__title {
+  color: #111827;
+}
+
+.home-ai-island__status {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 7px 12px;
-  border-radius: 999px;
-  background: color-mix(in srgb, #8b5cf6 12%, var(--bg-card));
-  border: 1px solid color-mix(in srgb, #8b5cf6 28%, transparent);
-  color: var(--home-ink);
-  font-size: 12px;
-  font-weight: 600;
+  gap: 5px;
+  min-width: 0;
+}
+
+.home-ai-island__status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #10b981;
+  flex-shrink: 0;
+}
+
+.home-ai-island__status-label {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 500;
+  color: #9494b8;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:root[data-theme='light'] .home-ai-island__status-label {
+  color: #64748b;
+}
+
+/* Compact icon-only Shuffle Button inside prompts header */
+.home-ai-island__shuffle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid rgba(139, 92, 246, 0.28);
+  background: rgba(139, 92, 246, 0.10);
+  color: #a5a5d0;
   cursor: pointer;
   flex-shrink: 0;
-  transition: all 140ms ease;
+  transition: all 130ms ease;
   user-select: none;
 }
 
-.home-ai-chip:active {
-  transform: scale(0.96);
-  background: color-mix(in srgb, #8b5cf6 24%, var(--bg-card));
+:root[data-theme='light'] .home-ai-island__shuffle-btn {
+  border-color: rgba(124, 58, 237, 0.20);
+  background: rgba(124, 58, 237, 0.06);
+  color: #7c3aed;
 }
 
-.home-ai-chip .material-symbols-outlined {
-  font-size: 15px;
-  color: #a855f7;
+.home-ai-island__shuffle-btn:hover {
+  background: rgba(139, 92, 246, 0.22);
+  border-color: rgba(139, 92, 246, 0.50);
+  color: #ffffff;
+  transform: rotate(60deg);
+}
+
+:root[data-theme='light'] .home-ai-island__shuffle-btn:hover {
+  background: rgba(124, 58, 237, 0.14);
+  color: #6d28d9;
+}
+
+.home-ai-island__shuffle-btn:active {
+  transform: rotate(60deg) scale(0.93);
+}
+
+/* Prompts Section */
+.home-ai-island__prompts-section {
+  margin-bottom: 10px;
+}
+
+.home-ai-island__prompts-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding: 0 1px;
+}
+
+.home-ai-island__prompts-label {
+  font-family: var(--font-body);
+  font-size: 10.5px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #8080a8;
+}
+
+:root[data-theme='light'] .home-ai-island__prompts-label {
+  color: #64748b;
+}
+
+/* Search Form — bottom of block */
+.home-ai-island__search-form {
+  margin-top: 2px;
+}
+
+.home-ai-island__search-capsule {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  height: 44px;
+  padding: 0 4px 0 0;
+  border-radius: 12px;
+  background: rgba(19, 19, 32, 0.85);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.35),
+    0 1px 2px rgba(0, 0, 0, 0.15);
+  box-sizing: border-box;
+  transition: all 180ms ease;
+}
+
+:root[data-theme='light'] .home-ai-island__search-capsule {
+  background: #ffffff;
+  border: 1px solid rgba(124, 58, 237, 0.22);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.03),
+    0 2px 8px rgba(124, 58, 237, 0.06);
+}
+
+.home-ai-island__search-capsule:focus-within {
+  border-color: #8b5cf6;
+  background: rgba(24, 23, 40, 0.95);
+  box-shadow:
+    0 0 0 3px rgba(139, 92, 246, 0.22),
+    0 2px 10px rgba(124, 58, 237, 0.2);
+}
+
+:root[data-theme='light'] .home-ai-island__search-capsule:focus-within {
+  border-color: #7c3aed;
+  background: #ffffff;
+  box-shadow:
+    0 0 0 3px rgba(124, 58, 237, 0.16),
+    0 2px 12px rgba(124, 58, 237, 0.12);
+}
+
+.home-ai-island__input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 450;
+  color: #ffffff;
+  line-height: 1.3;
+  padding: 0 6px 0 10px;
+}
+
+:root[data-theme='light'] .home-ai-island__input {
+  color: #0f172a;
+}
+
+.home-ai-island__input::placeholder {
+  color: #8e8ea8;
+  opacity: 0.9;
+}
+
+:root[data-theme='light'] .home-ai-island__input::placeholder {
+  color: #94a3b8;
+}
+
+/* Tools dock — camera, mic, send */
+.home-ai-island__tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding-right: 4px;
+}
+
+.home-ai-island__tool-btn {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #6b6b90;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, transform 100ms ease;
+  flex-shrink: 0;
+}
+
+:root[data-theme='light'] .home-ai-island__tool-btn {
+  color: #94a3b8;
+}
+
+.home-ai-island__tool-btn:hover {
+  background: rgba(139, 92, 246, 0.14);
+  color: #c4b5fd;
+}
+
+:root[data-theme='light'] .home-ai-island__tool-btn:hover {
+  background: rgba(124, 58, 237, 0.10);
+  color: #7c3aed;
+}
+
+.home-ai-island__tool-btn:active {
+  transform: scale(0.90);
+}
+
+.home-ai-island__send-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: #8e8ea8;
+  display: grid;
+  place-items: center;
+  cursor: default;
+  flex-shrink: 0;
+  transition: all 160ms ease;
+}
+
+:root[data-theme='light'] .home-ai-island__send-btn {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
+.home-ai-island__send-btn.is-active {
+  background: linear-gradient(135deg, #7c3aed, #6366f1);
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.45);
+}
+
+.home-ai-island__send-btn.is-active:active {
+  transform: scale(0.92);
+}
+
+/* Bento Grid (Guaranteed No-Overflow with minmax(0, 1fr)) */
+.home-ai-island__bento-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.home-ai-bento-card {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 10px 10px 10px;
+  min-height: 52px;
+  border-radius: 13px;
+  background: rgba(21, 20, 36, 0.72);
+  border: 1px solid rgba(139, 92, 246, 0.18);
+  border-top: 1px solid rgba(192, 168, 255, 0.22);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  box-sizing: border-box;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+  overflow: hidden;
+  transition: all 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+:root[data-theme='light'] .home-ai-bento-card {
+  background: #ffffff;
+  border: 1px solid rgba(124, 58, 237, 0.14);
+  border-top: 1px solid rgba(124, 58, 237, 0.22);
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.05);
+}
+
+.home-ai-bento-card:hover {
+  background: rgba(30, 28, 52, 0.88);
+  border-color: rgba(139, 92, 246, 0.42);
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 16px rgba(124, 58, 237, 0.16);
+}
+
+:root[data-theme='light'] .home-ai-bento-card:hover {
+  background: #faf8ff;
+  border-color: rgba(124, 58, 237, 0.32);
+  box-shadow: 0 6px 16px rgba(124, 58, 237, 0.12);
+}
+
+.home-ai-bento-card:active {
+  transform: scale(0.97);
+  background: rgba(36, 33, 62, 0.95);
+}
+
+:root[data-theme='light'] .home-ai-bento-card:active {
+  background: #f3efff;
+}
+
+.home-ai-bento-card__icon-wrap {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(139, 92, 246, 0.16);
+  color: #c4b5fd;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+:root[data-theme='light'] .home-ai-bento-card__icon-wrap {
+  background: rgba(124, 58, 237, 0.10);
+  color: #7c3aed;
+}
+
+/* Natural query text — full prompt as card content */
+.home-ai-bento-card__query {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #ddd6fe;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+:root[data-theme='light'] .home-ai-bento-card__query {
+  color: #1e1b4b;
+}
+
+.home-ai-bento-card__arrow {
+  color: #8b5cf6;
+  opacity: 0.45;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  transition: transform 140ms ease, opacity 140ms ease;
+}
+
+.home-ai-bento-card:hover .home-ai-bento-card__arrow {
+  transform: translateX(2px);
+  opacity: 1;
 }
 
 /* 8. SHOPPING LIST SUMMARY */

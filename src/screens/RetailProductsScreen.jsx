@@ -17,6 +17,21 @@ import RetailScannerModal from '../components/RetailScannerModal.jsx'
 import AddScannedProductModal from '../components/retail/AddScannedProductModal.jsx'
 import { buildProductPath } from '../utils/routes.js'
 import { useNavigate } from 'react-router-dom'
+import {
+  CloseIcon,
+  InventoryIcon,
+  StorefrontIcon,
+  BarcodeScannerIcon,
+  ArrowForwardIcon,
+  ChevronDownIcon,
+  CheckCircleIcon,
+  VerifiedBadgeIcon,
+  SparklesIcon,
+  ExploreIcon,
+  AlertTriangleIcon,
+  TrashIcon,
+  UploadFileIcon,
+} from '../components/icons/index.js'
 
 // ── Helpers ────────────────────────────────────────────────────────
 function displayName(p) {
@@ -407,16 +422,11 @@ function PromotionSection({ product, p, promotionMutation }) {
         style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-          <span
-            className="material-symbols-outlined"
-            style={{
-              fontSize: 20,
-              color: isFeatured ? '#F59E0B' : 'var(--text-dim)',
-              transition: 'color 0.2s',
-            }}
-          >
-            {isFeatured ? 'star' : 'star_outline'}
-          </span>
+          <SparklesIcon
+            size={20}
+            color={isFeatured ? '#F59E0B' : 'var(--text-dim)'}
+            style={{ transition: 'color 0.2s' }}
+          />
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
               {p.featuredLabel}
@@ -472,12 +482,7 @@ function PromotionSection({ product, p, promotionMutation }) {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: 17, color: calculatedPct ? '#EF4444' : 'var(--text-dim)' }}
-            >
-              sell
-            </span>
+            <VerifiedBadgeIcon size={17} color={calculatedPct ? '#EF4444' : 'var(--text-dim)'} />
             <label style={{ fontSize: 12, color: 'var(--text-sub)', fontWeight: 600 }}>
               {p.oldPriceLabel}
             </label>
@@ -608,12 +613,7 @@ function ReadonlyBlock({ product, p, storeSlug }) {
               style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }}
             />
           ) : (
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: 28, color: 'var(--text-dim)' }}
-            >
-              inventory_2
-            </span>
+            <InventoryIcon size={28} color="var(--text-dim)" />
           )}
         </div>
 
@@ -673,9 +673,7 @@ function ReadonlyBlock({ product, p, storeSlug }) {
               padding: '5px 11px',
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 13 }}>
-              open_in_new
-            </span>
+            <ArrowForwardIcon size={13} />
             {p.openCard}
           </a>
         </div>
@@ -763,12 +761,7 @@ const ProductCard = memo(
                 style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }}
               />
             ) : (
-              <span
-                className="material-symbols-outlined"
-                style={{ fontSize: 22, color: 'var(--text-dim)' }}
-              >
-                inventory_2
-              </span>
+              <InventoryIcon size={22} color="var(--text-dim)" />
             )}
           </div>
 
@@ -818,9 +811,7 @@ const ProductCard = memo(
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: 10 }}>
-                    star
-                  </span>
+                  <SparklesIcon size={10} />
                   {tr.badgeFeatured}
                 </div>
               )}
@@ -906,18 +897,15 @@ const ProductCard = memo(
           </div>
 
           {/* Chevron */}
-          <span
-            className="material-symbols-outlined"
+          <ChevronDownIcon
+            size={18}
+            color="var(--text-dim)"
             style={{
-              fontSize: 18,
-              color: 'var(--text-dim)',
               flexShrink: 0,
               transform: isExpanded ? 'rotate(180deg)' : 'none',
               transition: 'transform 0.25s',
             }}
-          >
-            expand_more
-          </span>
+          />
         </div>
 
         {/* ── Accordion editor ── */}
@@ -964,9 +952,7 @@ const ProductCard = memo(
                   fontFamily: 'var(--font-body)',
                 }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-                  delete
-                </span>
+                <TrashIcon size={18} />
                 {tr.deleteProduct}
               </button>
             </div>
@@ -1031,12 +1017,7 @@ function GridCard({ product, tr, onEdit }) {
             style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 10 }}
           />
         ) : (
-          <span
-            className="material-symbols-outlined"
-            style={{ fontSize: 32, color: 'var(--text-dim)' }}
-          >
-            inventory_2
-          </span>
+          <InventoryIcon size={32} color="var(--text-dim)" />
         )}
 
         {/* Floating badges on grid image */}
@@ -1066,9 +1047,7 @@ function GridCard({ product, tr, onEdit }) {
                 boxShadow: '0 2px 6px rgba(245,158,11,0.3)',
               }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 10 }}>
-                star
-              </span>
+              <SparklesIcon size={10} />
               {tr.badgeFeatured}
             </div>
           )}
@@ -1248,12 +1227,7 @@ function EditBottomSheet({
                 style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }}
               />
             ) : (
-              <span
-                className="material-symbols-outlined"
-                style={{ fontSize: 24, color: 'var(--text-dim)' }}
-              >
-                inventory_2
-              </span>
+              <InventoryIcon size={24} color="var(--text-dim)" />
             )}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -1287,9 +1261,7 @@ function EditBottomSheet({
               alignItems: 'center',
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-              close
-            </span>
+            <CloseIcon size={20} />
           </button>
         </div>
 
@@ -1314,9 +1286,7 @@ function EditBottomSheet({
                 padding: '5px 11px',
               }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 13 }}>
-                open_in_new
-              </span>
+              <ArrowForwardIcon size={13} />
               {tr.openCard}
             </a>
           </div>
@@ -1357,9 +1327,7 @@ function EditBottomSheet({
               fontFamily: 'var(--font-body)',
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-              delete
-            </span>
+            <TrashIcon size={18} />
             {tr.deleteProduct}
           </button>
         </div>
@@ -1413,9 +1381,7 @@ function ConfirmDeleteModal({ product, tr, deleteMutation, onClose }) {
               flexShrink: 0,
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 22, color: '#F87171' }}>
-              delete
-            </span>
+            <TrashIcon size={22} color="#F87171" />
           </div>
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
@@ -1803,12 +1769,11 @@ export default function RetailProductsScreen() {
   // ── Inline states (error / empty) ──────────────────────────────
   const renderEmpty = () => (
     <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-dim)' }}>
-      <span
-        className="material-symbols-outlined"
-        style={{ fontSize: 36, display: 'block', marginBottom: 10, opacity: 0.4 }}
-      >
-        {search ? 'search_off' : 'inventory_2'}
-      </span>
+      {search ? (
+        <ExploreIcon size={36} style={{ display: 'block', marginBottom: 10, opacity: 0.4 }} />
+      ) : (
+        <InventoryIcon size={36} style={{ display: 'block', marginBottom: 10, opacity: 0.4 }} />
+      )}
       <div style={{ fontSize: 14 }}>{search ? p.notFound : p.emptyCatalog}</div>
       {search && <div style={{ fontSize: 12, marginTop: 4, opacity: 0.7 }}>{p.notFoundSub}</div>}
       {!search && (
@@ -1831,9 +1796,7 @@ export default function RetailProductsScreen() {
             boxShadow: '0 8px 24px rgba(16,185,129,0.25)',
           }}
         >
-          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-            upload_file
-          </span>
+          <UploadFileIcon size={20} />
           {t('retail.nav.import')}
         </button>
       )}
@@ -1851,12 +1814,7 @@ export default function RetailProductsScreen() {
         textAlign: 'center',
       }}
     >
-      <span
-        className="material-symbols-outlined"
-        style={{ fontSize: 36, color: '#F87171', opacity: 0.7 }}
-      >
-        error_outline
-      </span>
+      <AlertTriangleIcon size={36} color="#F87171" style={{ opacity: 0.7 }} />
       <div style={{ fontSize: 14, color: '#F87171' }}>{p.loadError}</div>
       <button
         onClick={() => refetch()}
@@ -1902,12 +1860,7 @@ export default function RetailProductsScreen() {
               gap: 10,
             }}
           >
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: 20, color: 'var(--text-dim)', flexShrink: 0 }}
-            >
-              search
-            </span>
+            <ExploreIcon size={20} color="var(--text-dim)" style={{ flexShrink: 0 }} />
             <input
               type="search"
               placeholder={p.searchPlaceholder}
@@ -1925,13 +1878,12 @@ export default function RetailProductsScreen() {
               }}
             />
             {search && (
-              <span
-                className="material-symbols-outlined"
+              <CloseIcon
+                size={18}
+                color="var(--text-dim)"
                 onClick={() => setSearch('')}
-                style={{ fontSize: 18, color: 'var(--text-dim)', cursor: 'pointer', flexShrink: 0 }}
-              >
-                close
-              </span>
+                style={{ cursor: 'pointer', flexShrink: 0 }}
+              />
             )}
           </div>
 
@@ -1964,9 +1916,7 @@ export default function RetailProductsScreen() {
               transition: 'background 0.2s',
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 22 }}>
-              barcode_scanner
-            </span>
+            <BarcodeScannerIcon size={22} />
           </button>
 
           {/* Import */}
@@ -1987,9 +1937,7 @@ export default function RetailProductsScreen() {
               transition: 'background 0.2s',
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 22 }}>
-              upload_file
-            </span>
+            <UploadFileIcon size={22} />
           </button>
 
           {/* EAN Recovery */}
@@ -2010,9 +1958,7 @@ export default function RetailProductsScreen() {
               flexShrink: 0,
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 22 }}>
-              qr_code_scanner
-            </span>
+            <BarcodeScannerIcon size={22} />
           </button>
         </div>
 
@@ -2052,9 +1998,7 @@ export default function RetailProductsScreen() {
                 fontFamily: 'var(--font-body)',
               }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 15 }}>
-                view_list
-              </span>
+              <InventoryIcon size={15} />
               {p.viewList}
             </button>
             <button
@@ -2075,9 +2019,7 @@ export default function RetailProductsScreen() {
                 fontFamily: 'var(--font-body)',
               }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 15 }}>
-                grid_view
-              </span>
+              <StorefrontIcon size={15} />
               {p.viewGrid}
             </button>
           </div>
@@ -2112,12 +2054,11 @@ export default function RetailProductsScreen() {
             maxWidth: 'calc(100vw - 32px)',
           }}
         >
-          <span
-            className="material-symbols-outlined"
-            style={{ fontSize: 20, color: 'var(--text-inverse)', flexShrink: 0 }}
-          >
-            {scanToast.type === 'found' ? 'check_circle' : 'search_off'}
-          </span>
+          {scanToast.type === 'found' ? (
+            <CheckCircleIcon size={20} color="var(--text-inverse)" style={{ flexShrink: 0 }} />
+          ) : (
+            <ExploreIcon size={20} color="var(--text-inverse)" style={{ flexShrink: 0 }} />
+          )}
           <div style={{ color: 'var(--text)' }}>
             <div style={{ fontSize: 13, fontWeight: 700 }}>
               {scanToast.type === 'found' ? p.scanFound : p.scanNotFound}

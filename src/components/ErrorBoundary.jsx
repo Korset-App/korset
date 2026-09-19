@@ -1,5 +1,6 @@
 import { Component } from 'react'
 import * as Sentry from '@sentry/react'
+import { AlertTriangleIcon } from './icons/index.js'
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -26,7 +27,7 @@ export default class ErrorBoundary extends Component {
       return (
         <div className="error-boundary-overlay">
           <div className="error-boundary-card">
-            <span className="material-symbols-outlined error-boundary-icon">warning</span>
+            <AlertTriangleIcon className="error-boundary-icon" size={48} color="#F87171" />
             <h2 className="error-boundry-title">
               {this.props.t?.('common.errorTitle') || 'Что-то пошло не так'}
             </h2>

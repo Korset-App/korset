@@ -1,6 +1,7 @@
 import { Outlet, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import RetailBottomNav from '../components/RetailBottomNav.jsx'
+import { LockIcon, StorefrontIcon } from '../components/icons/index.js'
 import { buildAuthNavigateState } from '../utils/authFlow.js'
 import { useI18n } from '../i18n/index.js'
 import { useStore } from '../contexts/StoreContext.jsx'
@@ -41,12 +42,7 @@ function NoAccessScreen({ storeName }) {
         textAlign: 'center',
       }}
     >
-      <span
-        className="material-symbols-outlined"
-        style={{ fontSize: 52, color: 'var(--error-bright)' }}
-      >
-        lock
-      </span>
+      <LockIcon size={52} color="var(--error-bright)" />
       <div
         style={{
           fontFamily: 'var(--font-display)',
@@ -130,9 +126,7 @@ export default function RetailLayout() {
               gap: 6,
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-              storefront
-            </span>
+            <StorefrontIcon size={20} />
             Retail Cabinet
           </div>
           <div

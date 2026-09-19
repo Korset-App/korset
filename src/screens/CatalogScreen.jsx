@@ -33,6 +33,14 @@ import {
 import CatalogProductCard from '../components/catalog/CatalogProductCard.jsx'
 import { CompareIcon } from '../components/icons/CompareIcon.jsx'
 import {
+  ArrowBackIcon,
+  StorefrontIcon,
+  CloseIcon,
+  BarcodeScannerIcon,
+  ExploreIcon,
+  InventoryIcon,
+} from '../components/icons/index.js'
+import {
   sortCatalogSearchProducts,
   analyzeCatalogSearchQuery,
 } from '../domain/product/searchQuality.js'
@@ -840,9 +848,7 @@ export default function CatalogScreen() {
                   flexShrink: 0,
                 }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-                  arrow_back
-                </span>
+                <ArrowBackIcon size={20} />
               </button>
             )}
             <div
@@ -878,9 +884,7 @@ export default function CatalogScreen() {
                 onClick={handleStoreInfoClick}
                 aria-label={t('catalog.storeInfo', { storeName: storeTitle })}
               >
-                <span className="material-symbols-outlined" aria-hidden="true">
-                  storefront
-                </span>
+                <StorefrontIcon size={16} />
                 <span>{storeTitle}</span>
                 {showCatalogMeta && !hasQuery && showSubcategories && (
                   <>
@@ -938,12 +942,7 @@ export default function CatalogScreen() {
                 onClick={() => setQ('')}
                 aria-label={t('catalog.clearSearch')}
               >
-                <span
-                  className="material-symbols-outlined"
-                  style={{ fontSize: 14, color: 'var(--text-soft)' }}
-                >
-                  close
-                </span>
+                <CloseIcon size={14} />
               </button>
             )}
             {searchHint && (
@@ -968,9 +967,7 @@ export default function CatalogScreen() {
             onClick={handleScanClick}
             aria-label={t('catalog.scanProduct')}
           >
-            <span className="material-symbols-outlined" aria-hidden="true">
-              barcode_scanner
-            </span>
+            <BarcodeScannerIcon size={20} />
           </button>
           {!showCategories && (
             <div className="catalog-view-toggle">
@@ -1273,7 +1270,7 @@ export default function CatalogScreen() {
               </div>
             ) : hasQuery && isSearchPending ? (
               <div className="catalog-empty-state">
-                <span className="material-symbols-outlined">travel_explore</span>
+                <ExploreIcon size={44} style={{ opacity: 0.5, color: 'var(--text-dim)' }} />
                 <div className="catalog-empty-state-title">{t('catalog.searchLoadingTitle')}</div>
                 <div className="catalog-empty-state-sub">{t('catalog.searchLoadingSub')}</div>
               </div>
@@ -1316,7 +1313,7 @@ export default function CatalogScreen() {
               </div>
             ) : (
               <div className="catalog-empty-state">
-                <span className="material-symbols-outlined">inventory_2</span>
+                <InventoryIcon size={44} style={{ opacity: 0.5, color: 'var(--text-dim)' }} />
                 <div className="catalog-empty-state-title">{t('catalog.emptyCategory')}</div>
               </div>
             )

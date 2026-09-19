@@ -1,4 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
+import {
+  StorefrontIcon,
+  InventoryIcon,
+  BarcodeScannerIcon,
+  VerifiedBadgeIcon,
+  SparklesIcon,
+  CloseIcon,
+  ArrowForwardIcon,
+} from '../icons/index.js'
 import './StoryViewer.css'
 
 function StoryArt({ story, store, catalogProducts, t }) {
@@ -18,14 +27,10 @@ function StoryArt({ story, store, catalogProducts, t }) {
     return (
       <div className="story-art-store">
         <div className="story-art-store__emblem">
-          <span className="material-symbols-outlined" style={{ fontSize: 44 }}>
-            storefront
-          </span>
+          <StorefrontIcon size={44} />
         </div>
         <div className="story-art-store__pill">
-          <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#34d399' }}>
-            inventory_2
-          </span>
+          <InventoryIcon size={16} color="#34d399" />
           <span>{count} товаров онлайн</span>
         </div>
       </div>
@@ -35,12 +40,7 @@ function StoryArt({ story, store, catalogProducts, t }) {
   if (storyKey === 'scan') {
     return (
       <div className="story-art-scan">
-        <span
-          className="material-symbols-outlined"
-          style={{ fontSize: 48, color: 'rgba(255,255,255,0.7)' }}
-        >
-          barcode
-        </span>
+        <BarcodeScannerIcon size={48} color="rgba(255,255,255,0.7)" />
         <div className="story-art-scan__laser" />
         <div className="story-art-scan__tag">0.3 сек</div>
       </div>
@@ -51,9 +51,7 @@ function StoryArt({ story, store, catalogProducts, t }) {
     return (
       <div className="story-art-halal">
         <div className="story-art-halal__stamp">
-          <span className="material-symbols-outlined" style={{ fontSize: 44 }}>
-            verified
-          </span>
+          <VerifiedBadgeIcon size={44} />
         </div>
         <div className="story-art-halal__verified">Халал Даму · 100%</div>
       </div>
@@ -91,9 +89,7 @@ function StoryArt({ story, store, catalogProducts, t }) {
   return (
     <div className="story-art-store">
       <div className="story-art-store__emblem">
-        <span className="material-symbols-outlined" style={{ fontSize: 44 }}>
-          auto_awesome
-        </span>
+        <SparklesIcon size={44} />
       </div>
     </div>
   )
@@ -236,9 +232,7 @@ export default function StoryViewer({
             aria-label={t('common.close')}
             onClick={onClose}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-              close
-            </span>
+            <CloseIcon size={20} />
           </button>
         </header>
 
@@ -273,9 +267,7 @@ export default function StoryViewer({
 
           <button className="story-viewer__cta" type="button" onClick={onCta}>
             <span>{t(`home.stories.${story.key}.cta`, vars)}</span>
-            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-              arrow_forward
-            </span>
+            <ArrowForwardIcon size={20} />
           </button>
         </div>
       </article>

@@ -2,6 +2,24 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { Navigate, Link } from 'react-router-dom'
 import './SuperAdminStoresScreen.css'
+import {
+  LockIcon,
+  CheckCircleIcon,
+  SyncIcon,
+  SparklesIcon,
+  StorefrontIcon,
+  InventoryIcon,
+  BarcodeScannerIcon,
+  AlertTriangleIcon,
+  FactCheckIcon,
+  ExploreIcon,
+  EditIcon,
+  EyeIcon,
+  ArrowForwardIcon,
+  LocationPinIcon,
+  ShareIcon,
+  CloseIcon,
+} from '../components/icons/index.js'
 
 // --- Phone Formatting Utilities (Aligns with RetailSettingsScreen) ---
 const initLocalPhone = (stored) => {
@@ -141,7 +159,7 @@ function SuperAdminLoader() {
 function NoAccessScreen() {
   return (
     <div className="superadmin-no-access">
-      <span className="material-symbols-outlined no-access-icon">lock</span>
+      <LockIcon className="no-access-icon" size={48} />
       <h1 className="no-access-title">Доступ запрещен</h1>
       <p className="no-access-desc">
         Этот раздел предназначен исключительно для супер-администраторов проекта{' '}
@@ -828,7 +846,7 @@ export default function SuperAdminStoresScreen() {
       {/* Toast Alert */}
       {successMessage && (
         <div className="superadmin-toast success">
-          <span className="material-symbols-outlined">check_circle</span>
+          <CheckCircleIcon size={20} />
           <span>{successMessage}</span>
         </div>
       )}
@@ -849,10 +867,10 @@ export default function SuperAdminStoresScreen() {
             disabled={loadingStores || loadingActivity}
             title="Обновить список"
           >
-            <span className="material-symbols-outlined">sync</span>
+            <SyncIcon size={20} />
           </button>
           <button className="create-store-btn" onClick={openCreateDrawer}>
-            <span className="material-symbols-outlined">add</span>
+            <SparklesIcon size={18} />
             Добавить магазин
           </button>
         </div>
@@ -863,7 +881,7 @@ export default function SuperAdminStoresScreen() {
         <div className="superadmin-bento-grid">
           <div className="superadmin-bento-card">
             <div className="bento-card-header">
-              <span className="material-symbols-outlined bento-icon">storefront</span>
+              <StorefrontIcon className="bento-icon" size={24} />
               <span className="bento-label">Всего магазинов</span>
             </div>
             <div className="bento-value">{stats.total}</div>
@@ -873,7 +891,7 @@ export default function SuperAdminStoresScreen() {
           </div>
           <div className="superadmin-bento-card">
             <div className="bento-card-header">
-              <span className="material-symbols-outlined bento-icon">inventory_2</span>
+              <InventoryIcon className="bento-icon" size={24} />
               <span className="bento-label">Суммарный каталог</span>
             </div>
             <div className="bento-value">{stats.totalCatalog.toLocaleString()}</div>
@@ -881,7 +899,7 @@ export default function SuperAdminStoresScreen() {
           </div>
           <div className="superadmin-bento-card">
             <div className="bento-card-header">
-              <span className="material-symbols-outlined bento-icon">qr_code_scanner</span>
+              <BarcodeScannerIcon className="bento-icon" size={24} />
               <span className="bento-label">Всего сканирований</span>
             </div>
             <div className="bento-value">{stats.totalScans.toLocaleString()}</div>
@@ -891,7 +909,7 @@ export default function SuperAdminStoresScreen() {
             className={`superadmin-bento-card ${stats.totalEanErrors > 0 ? 'error-alert-card' : ''}`}
           >
             <div className="bento-card-header">
-              <span className="material-symbols-outlined bento-icon">report</span>
+              <AlertTriangleIcon className="bento-icon" size={24} />
               <span className="bento-label">Ошибки EAN</span>
             </div>
             <div className="bento-value">{stats.totalEanErrors}</div>
@@ -904,7 +922,7 @@ export default function SuperAdminStoresScreen() {
         {/* Global Platform Activity Chart */}
         <div className="superadmin-bento-card chart-card">
           <div className="bento-card-header">
-            <span className="material-symbols-outlined bento-icon">analytics</span>
+            <FactCheckIcon className="bento-icon" size={24} />
             <span className="bento-label">Активность платформы (сканы за 14 дней)</span>
           </div>
           <div className="chart-container-wrapper" style={{ position: 'relative', marginTop: 12 }}>
@@ -1059,7 +1077,7 @@ export default function SuperAdminStoresScreen() {
       {/* Search and Filters */}
       <div className="superadmin-filters-bar">
         <div className="search-box-wrapper">
-          <span className="material-symbols-outlined search-icon">search</span>
+          <ExploreIcon className="search-icon" size={20} />
           <input
             type="text"
             placeholder="Поиск по названию, slug или городу..."
@@ -1102,12 +1120,12 @@ export default function SuperAdminStoresScreen() {
         </div>
       ) : errorMessage ? (
         <div className="superadmin-error-box">
-          <span className="material-symbols-outlined">error</span>
+          <AlertTriangleIcon size={20} />
           <span>{errorMessage}</span>
         </div>
       ) : filteredStores.length === 0 ? (
         <div className="superadmin-empty-box">
-          <span className="material-symbols-outlined">storefront</span>
+          <StorefrontIcon size={40} />
           <h3>Магазины не найдены</h3>
           <p>Попробуйте изменить параметры поиска или фильтрации.</p>
         </div>
@@ -1123,7 +1141,7 @@ export default function SuperAdminStoresScreen() {
                   {store.logo_url ? (
                     <img src={store.logo_url} alt="Logo" className="store-logo-img" />
                   ) : (
-                    <span className="material-symbols-outlined store-fallback-icon">store</span>
+                    <StorefrontIcon className="store-fallback-icon" size={24} />
                   )}
                 </div>
                 <div className="status-toggle-wrapper">
@@ -1137,9 +1155,7 @@ export default function SuperAdminStoresScreen() {
                       handleToggleStoreStatus(store.id, store.is_active)
                     }}
                   >
-                    <span className="material-symbols-outlined">
-                      {store.is_active ? 'toggle_on' : 'toggle_off'}
-                    </span>
+                    {store.is_active ? <CheckCircleIcon size={20} /> : <CloseIcon size={20} />}
                   </button>
                   <button
                     className="store-edit-icon-btn"
@@ -1149,9 +1165,7 @@ export default function SuperAdminStoresScreen() {
                       openEditDrawer(store)
                     }}
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-                      edit
-                    </span>
+                    <EditIcon size={20} />
                   </button>
                 </div>
               </div>
@@ -1184,7 +1198,7 @@ export default function SuperAdminStoresScreen() {
                     rel="noopener noreferrer"
                     className="store-link-tag public"
                   >
-                    <span className="material-symbols-outlined">visibility</span>
+                    <EyeIcon size={16} />
                     Витрина: {store.code}
                   </a>
                   <a
@@ -1193,7 +1207,7 @@ export default function SuperAdminStoresScreen() {
                     rel="noopener noreferrer"
                     className="store-link-tag retail"
                   >
-                    <span className="material-symbols-outlined">login</span>
+                    <ArrowForwardIcon size={16} />
                     Войти в кабинет
                   </a>
                 </div>
@@ -1213,36 +1227,22 @@ export default function SuperAdminStoresScreen() {
                 {/* Metrics Grid */}
                 <div className="store-metrics-grid">
                   <div className="metric-box">
-                    <span
-                      className="material-symbols-outlined"
-                      style={{ fontSize: 18, color: 'var(--text-dim)' }}
-                    >
-                      inventory_2
-                    </span>
+                    <InventoryIcon size={18} color="var(--text-dim)" />
                     <span className="metric-num">{store.catalog_count ?? 0}</span>
                     <span className="metric-lbl">Товары</span>
                   </div>
                   <div className="metric-box">
-                    <span
-                      className="material-symbols-outlined"
-                      style={{ fontSize: 18, color: 'var(--text-dim)' }}
-                    >
-                      qr_code_scanner
-                    </span>
+                    <BarcodeScannerIcon size={18} color="var(--text-dim)" />
                     <span className="metric-num">{store.scan_count ?? 0}</span>
                     <span className="metric-lbl">Сканы</span>
                   </div>
                   <div className={`metric-box ${store.ean_recovery_count > 0 ? 'alert' : ''}`}>
-                    <span
-                      className="material-symbols-outlined"
-                      style={{
-                        fontSize: 18,
-                        color:
-                          store.ean_recovery_count > 0 ? 'var(--error-bright)' : 'var(--text-dim)',
-                      }}
-                    >
-                      report
-                    </span>
+                    <AlertTriangleIcon
+                      size={18}
+                      color={
+                        store.ean_recovery_count > 0 ? 'var(--error-bright)' : 'var(--text-dim)'
+                      }
+                    />
                     <span className="metric-num">{store.ean_recovery_count ?? 0}</span>
                     <span className="metric-lbl">Ошибки EAN</span>
                   </div>
@@ -1250,27 +1250,27 @@ export default function SuperAdminStoresScreen() {
 
                 <div className="store-meta-details" style={{ marginTop: 0, paddingTop: 8 }}>
                   <div className="meta-detail-row">
-                    <span className="material-symbols-outlined detail-icon">location_on</span>
+                    <LocationPinIcon className="detail-icon" size={16} />
                     <span className="detail-text">
                       {store.city}, {store.address || 'Адрес не указан'}
                     </span>
                   </div>
                   <div className="meta-detail-row">
-                    <span className="material-symbols-outlined detail-icon">mail</span>
+                    <ShareIcon className="detail-icon" size={16} />
                     <span className="detail-text" title="Email владельца">
                       {store.owner_email || 'Нет почты'}
                     </span>
                   </div>
                   {store.phone && (
                     <div className="meta-detail-row">
-                      <span className="material-symbols-outlined detail-icon">phone</span>
+                      <ShareIcon className="detail-icon" size={16} />
                       <span className="detail-text">
                         {formatLocalPhone(initLocalPhone(store.phone))}
                       </span>
                     </div>
                   )}
                   <div className="meta-detail-row">
-                    <span className="material-symbols-outlined detail-icon">calendar_month</span>
+                    <FactCheckIcon className="detail-icon" size={16} />
                     <span className="detail-text">
                       Создан: {new Date(store.created_at).toLocaleDateString('ru-RU')}
                     </span>
@@ -1291,14 +1291,14 @@ export default function SuperAdminStoresScreen() {
           <div className="drawer-header">
             <h3>{selectedStore ? 'Редактирование магазина' : 'Новый магазин'}</h3>
             <button className="drawer-close-btn" onClick={() => setIsDrawerOpen(false)}>
-              <span className="material-symbols-outlined">close</span>
+              <CloseIcon size={20} />
             </button>
           </div>
 
           <form onSubmit={handleSubmitStore} className="drawer-form-content">
             {formError && (
               <div className="drawer-form-error">
-                <span className="material-symbols-outlined">error</span>
+                <AlertTriangleIcon size={20} />
                 <span>{formError}</span>
               </div>
             )}
@@ -1612,12 +1612,7 @@ export default function SuperAdminStoresScreen() {
                         {selectedOwner?.email || formValues.ownerEmail || 'Нет почты'}
                       </div>
                     </div>
-                    <span
-                      className="material-symbols-outlined"
-                      style={{ color: 'var(--primary-bright)' }}
-                    >
-                      person
-                    </span>
+                    <EyeIcon size={18} color="var(--primary-bright)" />
                   </div>
                 </div>
 
@@ -1752,9 +1747,7 @@ export default function SuperAdminStoresScreen() {
                           }}
                           title="Показать/скрыть"
                         >
-                          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-                            {showPassword ? 'visibility_off' : 'visibility'}
-                          </span>
+                          <EyeIcon size={20} />
                         </button>
                         <button
                           type="button"
@@ -1871,9 +1864,7 @@ export default function SuperAdminStoresScreen() {
                           }}
                           title="Показать/скрыть"
                         >
-                          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-                            {showPassword ? 'visibility_off' : 'visibility'}
-                          </span>
+                          <EyeIcon size={20} />
                         </button>
                         <button
                           type="button"
@@ -1979,12 +1970,7 @@ export default function SuperAdminStoresScreen() {
                               {selectedOwner.email}
                             </div>
                           </div>
-                          <span
-                            className="material-symbols-outlined"
-                            style={{ color: 'var(--primary-bright)' }}
-                          >
-                            person
-                          </span>
+                          <EyeIcon size={18} color="var(--primary-bright)" />
                         </div>
                       </div>
                     )}

@@ -81,15 +81,17 @@ function ActionRow({ icon, label, danger = false, onClick, disabled = false }) {
         {label}
       </span>
       <svg
-        width="16"
-        height="16"
+        width="15"
+        height="15"
         viewBox="0 0 24 24"
         fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
+        stroke="var(--text-dim)"
+        strokeWidth="1.6"
         strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}
       >
-        <path d="M9 18l6-6-6-6" />
+        <path d="M9 14L4 9M20 9L12 17" />
       </svg>
     </button>
   )
@@ -638,12 +640,14 @@ export default function AccountScreen() {
                 height="18"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="var(--primary-bright)"
-                strokeWidth="2"
+                stroke="var(--primary)"
+                strokeWidth="1.8"
                 strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                <rect x="3" y="11" width="18" height="11" rx="2" />
-                <path d="M7 11V7a5 5 0 0110 0v4" />
+                <rect x="3.5" y="10.5" width="17" height="11" rx="2.5" />
+                <path d="M7 10.5V7a5 5 0 0 1 10 0v3.5" />
+                <circle cx="12" cy="15.5" r="1" fill="var(--primary)" />
               </svg>
             }
             label={t('account.changePassword')}
@@ -679,6 +683,7 @@ export default function AccountScreen() {
                 stroke="var(--error-bright)"
                 strokeWidth="2"
                 strokeLinecap="round"
+                strokeLinejoin="round"
               >
                 <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
                 <polyline points="16 17 21 12 16 7" />
@@ -709,14 +714,14 @@ export default function AccountScreen() {
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="var(--error-bright)"
-                strokeWidth="2"
+                strokeWidth="1.8"
                 strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                <path d="M3 6h18" />
-                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6" />
-                <path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-                <line x1="10" y1="11" x2="10" y2="17" />
-                <line x1="14" y1="11" x2="14" y2="17" />
+                <path d="M4 7h16" />
+                <path d="M10 11v6M14 11v6" />
+                <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12" />
+                <path d="M9 7V4.5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1V7" />
               </svg>
             }
             label={t('account.deleteAccount')}

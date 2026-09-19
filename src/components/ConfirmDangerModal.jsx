@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { TrashIcon } from './icons/index.js'
 
 /**
  * ConfirmDangerModal — destructive action confirmation modal
@@ -92,12 +93,7 @@ export default function ConfirmDangerModal({
                 flexShrink: 0,
               }}
             >
-              <span
-                className="material-symbols-outlined"
-                style={{ fontSize: 22, color: '#EF4444' }}
-              >
-                delete_forever
-              </span>
+              <TrashIcon size={22} color="#EF4444" />
             </div>
             <div>
               <div
@@ -226,9 +222,7 @@ export default function ConfirmDangerModal({
                 </>
               ) : (
                 <>
-                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                    delete_forever
-                  </span>
+                  <TrashIcon size={16} />
                   {confirmLabel}
                 </>
               )}

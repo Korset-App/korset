@@ -1,6 +1,5 @@
 import { supabase } from '../../utils/supabase.js'
 import { enrichProductAI } from '../../services/ai.js'
-import { getStoreCatalogProductByEan } from '../../utils/storeCatalog.js'
 import {
   buildLocalScanHistoryEntry,
   appendLocalScanHistory,
@@ -22,22 +21,17 @@ import {
 import { isUuid, parseRouteProductRef } from './model.js'
 import { canEanAliasResolveBuyerProduct } from './eanAliases.js'
 
-// ─── Session EAN cache (в памяти, сбрасывается при обновлении страницы) ──────
-const _eanCache = new Map()
-const EAN_CACHE_TTL_MS = 5 * 60 * 1000
+import {
+  notifyCatalogWarmed,
+  isCatalogFresh,
+  getCachedProduct,
+  setCachedProduct,
+  getInflightPromise,
+  setInflightPromise,
+  deleteInflightPromise,
+} from '../../utils/resolverCache.js'
 
-// ─── In-flight deduplication (один запрос на EAN, даже если два вызова одновременно) ─
-const _inflightMap = new Map()
-
-// ─── Catalog freshness (выставляется StoreContext после warm-up) ──────────────
-let _catalogCachedAt = 0
-let _catalogWarmedStoreId = null
-const CATALOG_ONLINE_TTL_MS = 60 * 60 * 1000
-
-export function notifyCatalogWarmed(storeId) {
-  _catalogCachedAt = Date.now()
-  _catalogWarmedStoreId = storeId || null
-}
+export { notifyCatalogWarmed }
 
 async function findStoreProduct(ean, storeId) {
   try {
@@ -181,13 +175,13 @@ async function enrichProduct(product) {
 // ─── Enrichment event bus — ProductScreen подписывается и обновляет карточку ─
 export const enrichmentEvents = new EventTarget()
 
-function maybeEnrichInBackground(product, cacheKey) {
+function maybeEnrichInBackground(product, storeId) {
   if (!product) return
   if (product.sourceMeta?.aiEnriched) return
   if (product.ingredients && product.description) return
   enrichProduct(product)
     .then((enriched) => {
-      _eanCache.set(cacheKey, { product: enriched, ts: Date.now() })
+      setCachedProduct(product.ean, storeId, enriched)
       enrichmentEvents.dispatchEvent(
         new CustomEvent('enriched', { detail: { ean: product.ean, product: enriched } })
       )
@@ -327,8 +321,7 @@ async function _resolveProductByEanImpl(normalizedEan, storeId, options) {
           fromCache: true,
         },
       })
-      const catalogFresh =
-        _catalogWarmedStoreId === storeId && Date.now() - _catalogCachedAt < CATALOG_ONLINE_TTL_MS
+      const catalogFresh = isCatalogFresh(storeId)
       if (isOffline || catalogFresh) {
         return finalizeResolvedProduct(coerced, {
           ean: normalizedEan,
@@ -343,25 +336,10 @@ async function _resolveProductByEanImpl(normalizedEan, storeId, options) {
     /* IndexedDB unavailable, proceed with network cascade */
   }
 
-  if (storeId) {
-    const localStoreProduct = coerceProductEntity(
-      getStoreCatalogProductByEan(storeId, normalizedEan)
-    )
-    if (localStoreProduct) {
-      return finalizeResolvedProduct(localStoreProduct, {
-        ean: normalizedEan,
-        foundStatus: 'found_store',
-        storeId,
-        fitResult: options.fitResult,
-        logScan: options.logScan,
-      })
-    }
-  }
-
   // Primary: единый RPC (migration 026) — заменяет findStoreProduct + findGlobalProductByEan
   const rpcResult = await findProductViaRPC(normalizedEan, storeId)
   if (rpcResult && !rpcResult._rpcUnavailable) {
-    maybeEnrichInBackground(rpcResult, cacheKey)
+    maybeEnrichInBackground(rpcResult, storeId)
     return finalizeResolvedProduct(rpcResult, {
       ean: normalizedEan,
       foundStatus: rpcResult.source === 'store' ? 'found_store' : 'found_global',
@@ -376,7 +354,7 @@ async function _resolveProductByEanImpl(normalizedEan, storeId, options) {
     if (storeId) {
       const storeProduct = await findStoreProduct(normalizedEan, storeId)
       if (storeProduct) {
-        maybeEnrichInBackground(storeProduct, cacheKey)
+        maybeEnrichInBackground(storeProduct, storeId)
         return finalizeResolvedProduct(storeProduct, {
           ean: normalizedEan,
           foundStatus: 'found_store',
@@ -388,7 +366,7 @@ async function _resolveProductByEanImpl(normalizedEan, storeId, options) {
     }
     const globalProduct = await findGlobalProductByEan(normalizedEan)
     if (globalProduct) {
-      maybeEnrichInBackground(globalProduct, cacheKey)
+      maybeEnrichInBackground(globalProduct, storeId)
       return finalizeResolvedProduct(globalProduct, {
         ean: normalizedEan,
         foundStatus: 'found_global',
@@ -436,42 +414,42 @@ export async function resolveProductByEan(ean, storeId = null, options = {}) {
   const normalizedEan = String(ean || '').trim()
   if (!normalizedEan) return null
 
-  const cacheKey = `${normalizedEan}:${storeId || ''}`
-  const hit = _eanCache.get(cacheKey)
-  if (hit && Date.now() - hit.ts < EAN_CACHE_TTL_MS) {
+  const hit = getCachedProduct(normalizedEan, storeId)
+  if (hit) {
     if (options.logScan) {
-      const fs = hit.product?.source === 'store' ? 'found_store' : 'found_global'
+      const fs = hit.source === 'store' ? 'found_store' : 'found_global'
       Promise.allSettled([
-        persistLocalHistory(hit.product, fs, storeId),
+        persistLocalHistory(hit, fs, storeId),
         logScan({
           ean: normalizedEan,
           foundStatus: fs,
-          product: hit.product,
+          product: hit,
           storeId,
           fitResult: options.fitResult,
         }),
       ]).catch(() => {})
     }
-    return hit.product
+    return hit
   }
 
-  // Дедупликация in-flight: если уже идёт запрос на этот EAN — ждём его, не запускаем новый
-  if (_inflightMap.has(cacheKey)) {
-    return _inflightMap.get(cacheKey)
+  const inflightKey = `${storeId || 'global'}:${normalizedEan}`
+  const inflight = getInflightPromise(inflightKey)
+  if (inflight) {
+    return inflight
   }
 
   const promise = _resolveProductByEanImpl(normalizedEan, storeId, options)
     .then((product) => {
-      _inflightMap.delete(cacheKey)
-      if (product) _eanCache.set(cacheKey, { product, ts: Date.now() })
+      deleteInflightPromise(inflightKey)
+      if (product) setCachedProduct(normalizedEan, storeId, product)
       return product
     })
     .catch((err) => {
-      _inflightMap.delete(cacheKey)
+      deleteInflightPromise(inflightKey)
       throw err
     })
 
-  _inflightMap.set(cacheKey, promise)
+  setInflightPromise(inflightKey, promise)
   return promise
 }
 

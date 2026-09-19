@@ -17,11 +17,13 @@ const getFeatures = (t) => [
         stroke="currentColor"
         strokeWidth="1.8"
         strokeLinecap="round"
+        strokeLinejoin="round"
       >
-        <rect x="3" y="3" width="7" height="7" />
-        <rect x="14" y="3" width="7" height="7" />
-        <rect x="14" y="14" width="7" height="7" />
-        <path d="M3 17h4v4H3z" />
+        <path d="M4 8V6a2 2 0 0 1 2-2h2" />
+        <path d="M16 4h2a2 2 0 0 1 2 2v2" />
+        <path d="M20 16v2a2 2 0 0 1-2 2h-2" />
+        <path d="M8 20H6a2 2 0 0 1-2-2v-2" />
+        <line x1="5" y1="12" x2="19" y2="12" strokeWidth="2.2" />
       </svg>
     ),
     title: t('about.feat1Title'),
@@ -35,11 +37,18 @@ const getFeatures = (t) => [
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
-        strokeWidth="1.8"
+        strokeWidth="2"
         strokeLinecap="round"
       >
-        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-        <polyline points="22 4 12 14.01 9 11.01" />
+        <line x1="4" y1="21" x2="4" y2="14" />
+        <line x1="4" y1="10" x2="4" y2="3" />
+        <line x1="12" y1="21" x2="12" y2="12" />
+        <line x1="12" y1="8" x2="12" y2="3" />
+        <line x1="20" y1="21" x2="20" y2="16" />
+        <line x1="20" y1="12" x2="20" y2="3" />
+        <line x1="1" y1="14" x2="7" y2="14" />
+        <line x1="9" y1="8" x2="15" y2="8" />
+        <line x1="17" y1="16" x2="23" y2="16" />
       </svg>
     ),
     title: t('about.feat2Title'),
@@ -55,8 +64,12 @@ const getFeatures = (t) => [
         stroke="currentColor"
         strokeWidth="1.8"
         strokeLinecap="round"
+        strokeLinejoin="round"
       >
-        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+        <path d="M9 6h11M9 12h11M9 18h11" />
+        <polyline points="4 6 5.5 7.5 7.5 4.5" />
+        <polyline points="4 12 5.5 13.5 7.5 10.5" />
+        <polyline points="4 18 5.5 19.5 7.5 16.5" />
       </svg>
     ),
     title: t('about.feat3Title'),
@@ -72,9 +85,12 @@ const getFeatures = (t) => [
         stroke="currentColor"
         strokeWidth="1.8"
         strokeLinecap="round"
+        strokeLinejoin="round"
       >
-        <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z" />
-        <path d="M8 2v16M16 6v16" />
+        <path d="M3 9l2-5h14l2 5" />
+        <path d="M21 9v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9" />
+        <path d="M3 9h18" />
+        <path d="M10 13a2 2 0 0 0 4 0" />
       </svg>
     ),
     title: t('about.feat4Title'),
@@ -88,10 +104,12 @@ const getFeatures = (t) => [
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
-        strokeWidth="1.8"
+        strokeWidth="1.7"
         strokeLinecap="round"
+        strokeLinejoin="round"
       >
-        <path d="M18 20V10M12 20V4M6 20v-6" />
+        <path d="M12 8v4l2.5 2.5" />
+        <path d="M5.6 5.6 4.34 6.87l2.54.01M4.32 4.33l.02 2.54M3 12a9 9 0 0 0 13.5 7.79M19.8 16.5A9 9 0 0 0 5.67 5.6" />
       </svg>
     ),
     title: t('about.feat5Title'),
@@ -107,8 +125,10 @@ const getFeatures = (t) => [
         stroke="currentColor"
         strokeWidth="1.8"
         strokeLinecap="round"
+        strokeLinejoin="round"
       >
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        <path d="M9.5 12l1.8 1.8 3.5-3.6" />
       </svg>
     ),
     title: t('about.feat6Title'),

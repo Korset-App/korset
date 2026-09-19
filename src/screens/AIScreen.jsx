@@ -19,6 +19,7 @@ import {
   loadAIChatSession,
   saveAIChatSession,
 } from '../domain/ai/context.js'
+import { AlertTriangleIcon, InventoryIcon, TrashIcon } from '../components/icons/index.js'
 
 function formatAiPrice(value) {
   return Number.isFinite(Number(value))
@@ -191,9 +192,7 @@ function ProductAIMessageDetails({ message, t, onProductOpen }) {
                       style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 2 }}
                     />
                   ) : (
-                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-                      grocery
-                    </span>
+                    <InventoryIcon size={18} color="currentColor" />
                   )}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -437,12 +436,7 @@ export default function AIScreen() {
           padding: 40,
         }}
       >
-        <span
-          className="material-symbols-outlined"
-          style={{ fontSize: 48, color: 'var(--text-disabled)' }}
-        >
-          cloud_off
-        </span>
+        <AlertTriangleIcon size={48} color="var(--text-disabled)" />
         <p style={{ color: 'var(--text-faint)', textAlign: 'center', fontSize: 14 }}>
           {t('scan.aiOffline')}
         </p>
@@ -547,9 +541,7 @@ export default function AIScreen() {
             aria-label={t('ai.clearChat')}
             title={t('ai.clearChat')}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 19 }}>
-              delete
-            </span>
+            <TrashIcon size={19} />
           </button>
         )}
       </div>
@@ -590,12 +582,7 @@ export default function AIScreen() {
               style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 2 }}
             />
           ) : (
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: 22, color: 'var(--text-disabled)' }}
-            >
-              grocery
-            </span>
+            <InventoryIcon size={22} color="var(--text-disabled)" />
           )}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -649,12 +636,7 @@ export default function AIScreen() {
             alignItems: 'flex-start',
           }}
         >
-          <span
-            className="material-symbols-outlined"
-            style={{ fontSize: 17, color: 'var(--warning)', lineHeight: 1.2 }}
-          >
-            warning
-          </span>
+          <AlertTriangleIcon size={17} color="var(--warning)" style={{ lineHeight: 1.2 }} />
           <div style={{ fontSize: 11, color: 'var(--text-sub)', lineHeight: 1.4, opacity: 0.9 }}>
             {t('ai.disclaimer')}
           </div>

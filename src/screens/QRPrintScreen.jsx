@@ -4,14 +4,13 @@ import QRCode from 'react-qr-code'
 import { useI18n } from '../i18n/index.js'
 import { getLocalName } from '../utils/localName.js'
 import { useStore } from '../contexts/StoreContext.jsx'
-import { getStoreCatalogProducts } from '../utils/storeCatalog.js'
 import { buildProductPath } from '../utils/routes.js'
 import { formatPrice } from '../utils/formatPrice.js'
 
 export default function QRPrintScreen() {
   const navigate = useNavigate()
   const { t, exists } = useI18n()
-  const { currentStore } = useStore()
+  const { currentStore, catalogProducts } = useStore()
   const howSteps = []
   let hi = 0
   while (exists(`qr.howSteps.${hi}`)) {
@@ -19,10 +18,7 @@ export default function QRPrintScreen() {
     hi++
   }
 
-  const products = useMemo(
-    () => (currentStore?.slug ? getStoreCatalogProducts(currentStore.slug) : []),
-    [currentStore]
-  )
+  const products = useMemo(() => catalogProducts || [], [catalogProducts])
   const storeSlug = currentStore?.slug
 
   return (

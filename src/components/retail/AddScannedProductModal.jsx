@@ -6,6 +6,13 @@ import {
   buildStoreProductUpsertPayload,
 } from '../../domain/retail/catalogManagement.js'
 import { getImageUrl } from '../../utils/imageUrl.js'
+import {
+  VerifiedBadgeIcon,
+  CheckCircleIcon,
+  CloseIcon,
+  BarcodeScannerIcon,
+  InventoryIcon,
+} from '../../components/icons/index.js'
 
 export default function AddScannedProductModal({ ean, storeId, onClose, onAdded }) {
   const { t } = useI18n()
@@ -126,12 +133,11 @@ export default function AddScannedProductModal({ ean, storeId, onClose, onAdded 
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span
-              className="material-symbols-outlined"
-              style={{ color: 'var(--primary-bright)', fontSize: 24 }}
-            >
-              {globalProduct ? 'verified' : 'add_circle'}
-            </span>
+            {globalProduct ? (
+              <VerifiedBadgeIcon size={24} color="var(--primary-bright)" />
+            ) : (
+              <CheckCircleIcon size={24} color="var(--primary-bright)" />
+            )}
             <h3
               style={{
                 fontFamily: 'var(--font-display)',
@@ -159,9 +165,7 @@ export default function AddScannedProductModal({ ean, storeId, onClose, onAdded 
               padding: 4,
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-              close
-            </span>
+            <CloseIcon size={20} />
           </button>
         </div>
 
@@ -181,9 +185,7 @@ export default function AddScannedProductModal({ ean, storeId, onClose, onAdded 
             marginBottom: 16,
           }}
         >
-          <span className="material-symbols-outlined" style={{ fontSize: 15 }}>
-            barcode
-          </span>
+          <BarcodeScannerIcon size={15} color="var(--primary-bright)" />
           <span>{ean}</span>
         </div>
 
@@ -231,7 +233,7 @@ export default function AddScannedProductModal({ ean, storeId, onClose, onAdded 
                       color: 'var(--text-dim)',
                     }}
                   >
-                    <span className="material-symbols-outlined">inventory_2</span>
+                    <InventoryIcon size={24} color="var(--text-dim)" />
                   </div>
                 )}
                 <div style={{ flex: 1, minWidth: 0 }}>

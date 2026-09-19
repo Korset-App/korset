@@ -16,6 +16,14 @@ import {
   normalizeTrustedAliasReviewCandidate,
 } from '../domain/product/eanAliases.js'
 import RetailScannerModal from '../components/RetailScannerModal.jsx'
+import {
+  TrashIcon,
+  VerifiedBadgeIcon,
+  BarcodeScannerIcon,
+  AlertTriangleIcon,
+  InventoryIcon,
+  EditIcon,
+} from '../components/icons/index.js'
 
 const PAGE_SIZE = 50
 const CORRECTION_REPORT_LIMIT = 30
@@ -430,12 +438,7 @@ export default function EanRecoveryScreen() {
                     flexShrink: 0,
                   }}
                 >
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ fontSize: 22, color: '#F87171' }}
-                  >
-                    delete_forever
-                  </span>
+                  <TrashIcon size={22} color="#F87171" />
                 </div>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
@@ -546,12 +549,7 @@ export default function EanRecoveryScreen() {
                     flexShrink: 0,
                   }}
                 >
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ fontSize: 22, color: '#10B981' }}
-                  >
-                    verified
-                  </span>
+                  <VerifiedBadgeIcon size={22} color="#10B981" />
                 </div>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>
@@ -696,9 +694,7 @@ export default function EanRecoveryScreen() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-          <span className="material-symbols-outlined" style={{ color: '#FB923C', fontSize: 24 }}>
-            qr_code_scanner
-          </span>
+          <BarcodeScannerIcon size={24} color="#FB923C" />
           <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
             {t('retail.products.eanRecovery')}
           </h1>
@@ -844,12 +840,7 @@ export default function EanRecoveryScreen() {
               flexShrink: 0,
             }}
           >
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: 20, color: 'var(--retail-accent)' }}
-            >
-              report
-            </span>
+            <AlertTriangleIcon size={20} color="var(--retail-accent)" />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div
@@ -1059,12 +1050,7 @@ export default function EanRecoveryScreen() {
                 flexShrink: 0,
               }}
             >
-              <span
-                className="material-symbols-outlined"
-                style={{ fontSize: 20, color: 'var(--retail-accent)' }}
-              >
-                verified
-              </span>
+              <VerifiedBadgeIcon size={20} color="var(--retail-accent)" />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div
@@ -1275,12 +1261,7 @@ export default function EanRecoveryScreen() {
                       style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }}
                     />
                   ) : (
-                    <span
-                      className="material-symbols-outlined"
-                      style={{ fontSize: 22, color: 'var(--text-disabled)' }}
-                    >
-                      image_not_supported
-                    </span>
+                    <InventoryIcon size={22} color="var(--text-disabled)" />
                   )}
                 </a>
 
@@ -1378,12 +1359,7 @@ export default function EanRecoveryScreen() {
                           flexShrink: 0,
                         }}
                       >
-                        <span
-                          className="material-symbols-outlined"
-                          style={{ fontSize: 16, color: 'var(--text-dim)' }}
-                        >
-                          edit
-                        </span>
+                        <EditIcon size={16} color="var(--text-dim)" />
                       </button>
                     </div>
                   )}
@@ -1426,12 +1402,7 @@ export default function EanRecoveryScreen() {
                     flexShrink: 0,
                   }}
                 >
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ fontSize: 18, color: '#F87171' }}
-                  >
-                    delete_forever
-                  </span>
+                  <TrashIcon size={18} color="#F87171" />
                 </button>
               </div>
 
@@ -1538,12 +1509,7 @@ export default function EanRecoveryScreen() {
                       fontFamily: 'var(--font-body)',
                     }}
                   >
-                    <span
-                      className="material-symbols-outlined"
-                      style={{ fontSize: 16, verticalAlign: -3, marginRight: 4 }}
-                    >
-                      edit
-                    </span>
+                    <EditIcon size={16} style={{ verticalAlign: -3, marginRight: 4 }} />
                     {t('retail.products.enterBarcode')}
                   </button>
                   <button
@@ -1563,9 +1529,7 @@ export default function EanRecoveryScreen() {
                       gap: 4,
                     }}
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                      barcode_scanner
-                    </span>
+                    <BarcodeScannerIcon size={16} />
                     {t('retail.products.scan')}
                   </button>
                 </div>

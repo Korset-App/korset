@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import ProfileAvatar from '../components/ProfileAvatar.jsx'
+import KorsetAvatar from '../components/KorsetAvatar.jsx'
 import SegmentedToggle from '../components/SegmentedToggle.jsx'
 import StoryViewer from '../components/home/StoryViewer.jsx'
 import FitCheckDrawer from '../components/home/FitCheckDrawer.jsx'
@@ -13,6 +14,8 @@ import {
   HOME_STORY_KEYS,
   HOME_DEPARTMENTS,
   AI_PROMPT_CHIPS,
+  AI_PROMPT_SETS,
+  getRotatedAIPrompts,
   getHomeDeptLabel,
   getShowcaseProducts,
   getProductDisplayBadges,
@@ -28,6 +31,8 @@ import { getCategoryLabel } from '../domain/product/categoryMap.js'
 import { setLang, useI18n } from '../i18n/index.js'
 import { useTheme } from '../utils/theme.js'
 import { buildProductPath } from '../utils/routes.js'
+import { WalletIcon } from '../components/icons/WalletIcon.jsx'
+import { IconGallery } from '../components/icons/IconGallery.jsx'
 import LandingScreen from './LandingScreen.jsx'
 import './HomeScreen.css'
 
@@ -202,6 +207,237 @@ function GlutenFreeIcon({ size = 16 }) {
   )
 }
 
+function BottomNavAiIcon({ size = 18, className = '' }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M12 1.99996C12.9057 1.99996 13.7829 2.12194 14.6172 2.34762C14.2223 3.14741 14 4.04768 14 4.99997C14 8.31368 16.6863 11 20 11C20.6685 11 21.3106 10.8882 21.9111 10.6865C21.9676 11.1165 22 11.5546 22 12C22 17.5228 17.5228 22 12 22C10.2975 22 8.69425 21.5746 7.29102 20.8242L2 22L3.17578 16.709C2.42542 15.3057 2 13.7025 2 12C2.00002 6.47714 6.47717 1.99996 12 1.99996ZM19.5293 1.3193C19.7058 0.893513 20.2942 0.8935 20.4707 1.3193L20.7236 1.93063C21.1555 2.97343 21.9615 3.80614 22.9746 4.2568L23.6914 4.57614C24.1022 4.75882 24.1022 5.35635 23.6914 5.53903L22.9326 5.87692C21.945 6.3162 21.1534 7.11943 20.7139 8.1279L20.4668 8.69333C20.2863 9.10747 19.7136 9.10747 19.5332 8.69333L19.2861 8.1279C18.8466 7.11942 18.0551 6.3162 17.0674 5.87692L16.3076 5.53903C15.8974 5.35618 15.8974 4.75895 16.3076 4.57614L17.0254 4.2568C18.0384 3.80614 18.8445 2.97343 19.2764 1.93063L19.5293 1.3193Z" />
+    </svg>
+  )
+}
+
+function BurgerIcon({ size = 18, className = '' }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M4 10a8 8 0 0 1 16 0H4z" />
+      <rect x="2" y="13" width="20" height="3" rx="1.5" />
+      <path d="M4 19a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1H4v1z" />
+    </svg>
+  )
+}
+
+function BreakfastIcon({ size = 18, className = '' }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <ellipse cx="12" cy="14" rx="8" ry="5" />
+      <circle cx="12" cy="13" r="2.5" fill="currentColor" fillOpacity="0.25" />
+      <path d="M4 12V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4" />
+      <line x1="8" y1="2" x2="8" y2="4" />
+      <line x1="12" y1="2" x2="12" y2="4" />
+      <line x1="16" y1="2" x2="16" y2="4" />
+    </svg>
+  )
+}
+
+function SoupIcon({ size = 18, className = '' }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M3 11h18a1 1 0 0 1 1 1 8 8 0 0 1-8 8H10a8 8 0 0 1-8-8 1 1 0 0 1 1-1z" />
+      <path d="M7 21h10" />
+      <path d="M9 5c0 1.2.8 2 1 3M12 4c0 1.2.8 2 1 3M15 5c0 1.2.8 2 1 3" strokeWidth="1.4" />
+    </svg>
+  )
+}
+
+function TeaCupIcon({ size = 18, className = '' }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
+      <path d="M2 8h16v7a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
+      <line x1="6" y1="2" x2="6" y2="4" strokeWidth="1.4" />
+      <line x1="10" y1="2" x2="10" y2="4" strokeWidth="1.4" />
+      <line x1="14" y1="2" x2="14" y2="4" strokeWidth="1.4" />
+    </svg>
+  )
+}
+
+function SaladIcon({ size = 18, className = '' }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M3 12h18a8 8 0 0 1-16 0z" />
+      <path d="M12 12V4a4 4 0 0 1 4 4" />
+      <path d="M8 8a3 3 0 0 1 4-3" />
+    </svg>
+  )
+}
+
+function AiArrowRightIcon({ size = 14, className = '' }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <line x1="5" y1="12" x2="19" y2="12" />
+      <polyline points="12 5 19 12 12 19" />
+    </svg>
+  )
+}
+
+function AiShuffleIcon({ size = 13, className = '' }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <polyline points="23 4 23 10 17 10" />
+      <polyline points="1 20 1 14 7 14" />
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+    </svg>
+  )
+}
+
+function MicIcon({ size = 18, className = '' }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+      <line x1="12" y1="19" x2="12" y2="23" />
+      <line x1="8" y1="23" x2="16" y2="23" />
+    </svg>
+  )
+}
+
+function AiArrowUpIcon({ size = 16, className = '' }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M12 19V5M5 12l7-7 7 7" />
+    </svg>
+  )
+}
+
+function getAiScenarioIcon(iconKey, size = 16) {
+  switch (iconKey) {
+    case 'burger':
+      return <BurgerIcon size={size} />
+    case 'wallet':
+      return <WalletIcon size={size} />
+    case 'breakfast':
+      return <BreakfastIcon size={size} />
+    case 'halal':
+      return <HalalIcon size={size} />
+    case 'soup':
+      return <SoupIcon size={size} />
+    case 'sugar_free':
+    case 'apple':
+      return <SugarFreeIcon size={size} />
+    case 'tea':
+      return <TeaCupIcon size={size} />
+    case 'salad':
+      return <SaladIcon size={size} />
+    default:
+      return <BottomNavAiIcon size={size} />
+  }
+}
+
 function getStoreLogoUrl(store = {}) {
   return STORE_LOGO_FALLBACKS[store.slug || store.code] || store.logo_url || store.logo
 }
@@ -321,6 +557,46 @@ export default function HomeScreen() {
   const [installPrompt, setInstallPrompt] = useState(null)
   const [isInstalled, setIsInstalled] = useState(isStandalonePwa)
   const [failedImageEans, setFailedImageEans] = useState(() => new Set())
+
+  // AI Chef block state & rotation logic
+  const [aiQuery, setAiQuery] = useState('')
+  const [aiPromptSetIndex, setAiPromptSetIndex] = useState(() => {
+    if (typeof window === 'undefined') return 0
+    const saved = window.localStorage.getItem('korset_home_ai_prompt_set')
+    const count = Number(saved) || 0
+    return count % (AI_PROMPT_SETS.length || 1)
+  })
+
+  const handleShuffleAiPrompts = () => {
+    setAiPromptSetIndex((prev) => {
+      const next = (prev + 1) % (AI_PROMPT_SETS.length || 1)
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('korset_home_ai_prompt_set', String(next))
+      }
+      return next
+    })
+  }
+
+  const handleAiSubmit = (e) => {
+    if (e) e.preventDefault()
+    const text = aiQuery.trim()
+    if (!text) return
+    navigate(routes.ai, { state: { initialPrompt: text } })
+  }
+
+  const handleAiPromptClick = (promptText) => {
+    navigate(routes.ai, { state: { initialPrompt: promptText } })
+  }
+
+  const handleOpenAiCamera = () => {
+    navigate(routes.ai, { state: { openCamera: true, openImagePicker: true } })
+  }
+
+  const handleStartAiVoice = () => {
+    navigate(routes.ai, { state: { startVoice: true } })
+  }
+
+  const currentAiPrompts = useMemo(() => getRotatedAIPrompts(aiPromptSetIndex), [aiPromptSetIndex])
 
   // PWA install prompt handler
   useEffect(() => {
@@ -1147,37 +1423,113 @@ export default function HomeScreen() {
         </section>
       )}
 
-      {/* 7. AI CHEF / ASSISTANT BAR */}
-      <section className="home-ai-chef-card">
-        <div className="home-ai-chef-card__header">
-          <div className="home-ai-chef-card__icon">
-            <HomeIcon name="auto_awesome" />
+      {/* 7. AMBIENT AI COPILOT ISLAND (HIGH-END STORE CONVERSATIONAL MODULE) */}
+      <section className="home-ai-island" aria-labelledby="home-ai-island-title">
+        <div className="home-ai-island__ambient-glow" aria-hidden="true" />
+        <div className="home-ai-island__container">
+          <div className="home-ai-island__header">
+            <div className="home-ai-island__brand">
+              <div className="home-ai-island__avatar-wrap">
+                <KorsetAvatar size={34} />
+                <span className="home-ai-island__pulse-badge" aria-hidden="true" />
+              </div>
+              <div className="home-ai-island__meta">
+                <h3 id="home-ai-island-title" className="home-ai-island__title">
+                  {t('home.aiAssistantTitle') || 'ИИ-помощник'}
+                </h3>
+                <div className="home-ai-island__status">
+                  <span className="home-ai-island__status-dot" aria-hidden="true" />
+                  <span className="home-ai-island__status-label">
+                    {t('home.aiOnlineStatus') || 'В сети'} · {storeName}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
-          <div>
-            <h3 className="home-ai-chef-card__title">
-              {t('home.aiChefTitle') || 'ИИ-Шеф магазина'}
-            </h3>
-            <p className="home-ai-chef-card__subtitle">
-              {t('home.aiChefSubtitle') || 'Подберет рецепт или товары из наличия'}
-            </p>
-          </div>
-        </div>
 
-        <div className="home-ai-chips">
-          {AI_PROMPT_CHIPS.map((chip) => {
-            const promptText = t(chip.promptKey)
-            return (
+          <div className="home-ai-island__prompts-section">
+            <div className="home-ai-island__prompts-header">
+              <span className="home-ai-island__prompts-label">
+                {t('home.aiOptionsLabel') || 'Готовые сценарии'}
+              </span>
               <button
-                key={chip.key}
                 type="button"
-                className="home-ai-chip"
-                onClick={() => navigate(routes.ai, { state: { initialPrompt: promptText } })}
+                className="home-ai-island__shuffle-btn"
+                onClick={handleShuffleAiPrompts}
+                title={t('home.aiShufflePrompt') || 'Другие варианты'}
+                aria-label={t('home.aiShufflePrompt') || 'Другие варианты'}
               >
-                <HomeIcon name={chip.icon} />
-                <span>{promptText}</span>
+                <AiShuffleIcon size={14} />
               </button>
-            )
-          })}
+            </div>
+
+            <div className="home-ai-island__bento-grid">
+              {currentAiPrompts.map((scenario) => {
+                const prompt = t(scenario.promptKey)
+                return (
+                  <button
+                    key={scenario.key}
+                    type="button"
+                    className="home-ai-bento-card"
+                    onClick={() => handleAiPromptClick(prompt)}
+                  >
+                    <div className="home-ai-bento-card__icon-wrap">
+                      {getAiScenarioIcon(scenario.icon, 16)}
+                    </div>
+                    <span className="home-ai-bento-card__query">{prompt}</span>
+                    <div className="home-ai-bento-card__arrow" aria-hidden="true">
+                      <AiArrowRightIcon size={12} />
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <form className="home-ai-island__search-form" onSubmit={handleAiSubmit}>
+            <div className="home-ai-island__search-capsule">
+              <input
+                type="text"
+                className="home-ai-island__input"
+                value={aiQuery}
+                onChange={(e) => setAiQuery(e.target.value)}
+                placeholder={
+                  t('home.aiInputPlaceholder') || 'Спросить о товаре, рецепте или цене...'
+                }
+                aria-label={
+                  t('home.aiInputPlaceholder') || 'Спросить о товаре, рецепте или цене...'
+                }
+              />
+              <div className="home-ai-island__tools">
+                <button
+                  type="button"
+                  className="home-ai-island__tool-btn"
+                  onClick={handleOpenAiCamera}
+                  title={t('ai.image.open') || 'Прикрепить фото'}
+                  aria-label={t('ai.image.open') || 'Прикрепить фото'}
+                >
+                  <IconGallery size={17} />
+                </button>
+                <button
+                  type="button"
+                  className="home-ai-island__tool-btn"
+                  onClick={handleStartAiVoice}
+                  title={t('ai.voice.start') || 'Голосовой ввод'}
+                  aria-label={t('ai.voice.start') || 'Голосовой ввод'}
+                >
+                  <MicIcon size={17} />
+                </button>
+                <button
+                  type="submit"
+                  className={`home-ai-island__send-btn${aiQuery.trim() ? ' is-active' : ''}`}
+                  aria-label={t('home.aiInputSubmit') || 'Спросить'}
+                  disabled={!aiQuery.trim()}
+                >
+                  <AiArrowUpIcon size={15} />
+                </button>
+              </div>
+            </div>
+          </form>
         </div>
       </section>
 

@@ -1,17 +1,15 @@
 import { extractFlavorAttribute } from './attributeExtractor.js'
 
-export function buildCanonicalId({ id, ean, demoId } = {}) {
+export function buildCanonicalId({ id, ean } = {}) {
   if (id && isUuid(id)) return `gp:${id}`
   if (ean) return `ean:${String(ean)}`
-  if (demoId) return `demo:${demoId}`
   return `tmp:${Math.random().toString(36).slice(2, 10)}`
 }
 
 export function createEmptyProduct(overrides = {}) {
   const ean = overrides.ean ? String(overrides.ean) : null
   const id = overrides.id || null
-  const demoId = overrides.demoId || null
-  const canonicalId = overrides.canonicalId || buildCanonicalId({ id, ean, demoId })
+  const canonicalId = overrides.canonicalId || buildCanonicalId({ id, ean })
   const images = Array.isArray(overrides.images) ? overrides.images.filter(Boolean) : []
   const image = overrides.image || images[0] || null
   const manufacturer = normalizeManufacturer(
@@ -46,7 +44,6 @@ export function createEmptyProduct(overrides = {}) {
     },
 
     id,
-    demoId,
     ean,
     alternateEans: normalizeStringArray(overrides.alternateEans ?? overrides.alternate_eans),
     name: overrides.name || '',
@@ -127,10 +124,9 @@ export function parseRouteProductRef(raw) {
   if (!value) return {}
   if (value.startsWith('gp:')) return { canonicalId: value, id: value.slice(3) }
   if (value.startsWith('ean:')) return { canonicalId: value, ean: value.slice(4) }
-  if (value.startsWith('demo:')) return { canonicalId: value, demoId: value.slice(5) }
   if (isUuid(value)) return { id: value, canonicalId: `gp:${value}` }
   if (/^\d{8,14}$/.test(value)) return { ean: value, canonicalId: `ean:${value}` }
-  return { demoId: value, canonicalId: `demo:${value}` }
+  return { ean: value, canonicalId: `ean:${value}` }
 }
 
 export function normalizeStringArray(input) {

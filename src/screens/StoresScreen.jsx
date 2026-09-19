@@ -2,9 +2,15 @@ import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../utils/supabase.js'
 import { useStore } from '../contexts/StoreContext.jsx'
-import { getStores } from '../data/stores.js'
 import { useI18n } from '../i18n/index.js'
 import { filterStoreListings, normalizeStoreListing } from '../domain/stores/listing.js'
+import {
+  LocationPinIcon,
+  ArrowBackIcon,
+  StorefrontIcon,
+  ExploreIcon,
+  CloseIcon,
+} from '../components/icons/index.js'
 import './StoresScreen.css'
 
 const STORE_TONES = ['violet', 'mint', 'amber', 'sky']
@@ -71,9 +77,7 @@ function StoreCard({ store, index, onSelect, t }) {
 
         {store.city || store.address ? (
           <span className="stores-card__meta">
-            <span className="material-symbols-outlined" aria-hidden="true">
-              location_on
-            </span>
+            <LocationPinIcon size={14} />
             {store.city ? <span>{store.city}</span> : null}
             {store.city && store.address ? (
               <span className="stores-card__separator" aria-hidden="true" />
@@ -117,13 +121,13 @@ export default function StoresScreen() {
       .order('name')
       .then(({ data }) => {
         if (cancelled) return
-        const source = data?.length ? data.map((s) => ({ ...s, slug: s.code })) : getStores()
+        const source = (data || []).map((s) => ({ ...s, slug: s.code }))
         setStores(source.map(normalizeStoreListing))
         setLoading(false)
       })
       .catch(() => {
         if (cancelled) return
-        setStores(getStores().map(normalizeStoreListing))
+        setStores([])
         setLoading(false)
       })
 
@@ -156,9 +160,7 @@ export default function StoresScreen() {
           onClick={() => navigate(-1)}
           aria-label={t('common.back')}
         >
-          <span className="material-symbols-outlined" aria-hidden="true">
-            arrow_back
-          </span>
+          <ArrowBackIcon size={20} />
         </button>
         <a className="stores-brand" href="/" aria-label="Körset">
           <img
@@ -193,9 +195,7 @@ export default function StoresScreen() {
           />
           {hasQuery ? (
             <button type="button" onClick={() => setQuery('')} aria-label={t('stores.clearSearch')}>
-              <span className="material-symbols-outlined" aria-hidden="true">
-                close
-              </span>
+              <CloseIcon size={16} />
             </button>
           ) : null}
         </label>
@@ -222,9 +222,7 @@ export default function StoresScreen() {
 
         {!loading && stores.length === 0 ? (
           <div className="stores-empty">
-            <span className="material-symbols-outlined" aria-hidden="true">
-              storefront
-            </span>
+            <StorefrontIcon size={44} style={{ opacity: 0.5, color: 'var(--text-dim)' }} />
             <h2>{t('stores.emptyTitle')}</h2>
             <p>{t('stores.emptyText')}</p>
           </div>
@@ -232,9 +230,7 @@ export default function StoresScreen() {
 
         {!loading && stores.length > 0 && filteredStores.length === 0 ? (
           <div className="stores-empty stores-empty--search">
-            <span className="material-symbols-outlined" aria-hidden="true">
-              travel_explore
-            </span>
+            <ExploreIcon size={44} style={{ opacity: 0.5, color: 'var(--text-dim)' }} />
             <h2>{t('stores.noResultsTitle')}</h2>
             <p>{t('stores.noResultsText')}</p>
           </div>

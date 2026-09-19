@@ -3,7 +3,6 @@ import { useLocation } from 'react-router-dom'
 import { supabase } from '../utils/supabase.js'
 import { normalizeNutrition, parseJson } from '../domain/product/model.js'
 import { PRIVACY_EVENT } from '../utils/privacySettings.js'
-import { getStoreBySlug } from '../data/stores.js'
 import { saveCatalogToIndexedDB } from '../utils/offlineDB.js'
 import { notifyCatalogWarmed } from '../domain/product/resolver.js'
 import { getImageUrl } from '../utils/imageUrl.js'
@@ -171,8 +170,7 @@ async function fetchStoreBySlug(slug) {
     .eq('is_active', true)
     .maybeSingle()
   if (!error && data) return normalizeStore(data)
-  const local = getStoreBySlug(slug)
-  return local ? normalizeStore({ ...local, code: local.slug, is_active: local.isActive }) : null
+  return null
 }
 
 export async function fetchFullProduct(storeId, ean) {

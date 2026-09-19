@@ -12,6 +12,7 @@ import { CartIcon } from '../components/icons/CartIcon.jsx'
 import { CameraIcon } from '../components/icons/CameraIcon.jsx'
 import { GalleryIcon } from '../components/icons/GalleryIcon.jsx'
 import { IconGallery } from '../components/icons/IconGallery.jsx'
+import { CloseIcon } from '../components/icons/index.js'
 import { askGeneralAI, askPackageImageAI, transcribeVoiceInput } from '../services/ai.js'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { useProfile } from '../contexts/ProfileContext.jsx'
@@ -679,6 +680,18 @@ export default function AIAssistantScreen() {
     }
   }
 
+  const initialActionProcessed = useRef(false)
+  useEffect(() => {
+    if (initialActionProcessed.current) return
+    if (location.state?.openImagePicker || location.state?.openCamera) {
+      initialActionProcessed.current = true
+      setImagePickerOpen(true)
+    } else if (location.state?.startVoice) {
+      initialActionProcessed.current = true
+      startVoiceRecording()
+    }
+  }, [location.state])
+
   const sendMessage = async (text, { image = null } = {}) => {
     const cleanText = text.trim()
     if ((!cleanText && !image) || loading) return
@@ -812,7 +825,7 @@ export default function AIAssistantScreen() {
                   className="ai-history-close"
                   aria-label={t('ai.history.close')}
                 >
-                  <span className="material-symbols-outlined ai-history-close__icon">close</span>
+                  <CloseIcon size={18} />
                 </button>
               </div>
 

@@ -18,6 +18,7 @@ import {
 } from '../utils/localHistory.js'
 import { PRIVACY_EVENT } from '../utils/privacySettings.js'
 import { buildAuthNavigateState } from '../utils/authFlow.js'
+import { FactCheckIcon, SyncIcon, TrashIcon } from '../components/icons/index.js'
 
 function toDate(value) {
   if (!value) return null
@@ -336,9 +337,7 @@ export default function HistoryScreen() {
               gap: 6,
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-              checklist
-            </span>
+            <FactCheckIcon size={16} />
             {t('history.tabFavorites')}
             {displayedFavorites.length > 0 && (
               <span
@@ -373,12 +372,7 @@ export default function HistoryScreen() {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
-              <span
-                className="material-symbols-outlined"
-                style={{ color: '#A78BFA', fontSize: 24, flexShrink: 0 }}
-              >
-                sync
-              </span>
+              <SyncIcon size={24} color="#A78BFA" />
               <div style={{ fontSize: 13, color: 'var(--text-sub)', lineHeight: 1.4 }}>
                 {t('history.guestFavoritesBanner') ||
                   'Войдите в аккаунт, чтобы сохранять список покупок между вашими устройствами.'}
@@ -461,12 +455,7 @@ export default function HistoryScreen() {
                   <polyline points="12 6 12 12 16 14" />
                 </svg>
               ) : (
-                <span
-                  className="material-symbols-outlined"
-                  style={{ fontSize: 28, color: 'var(--icon-muted)' }}
-                >
-                  checklist
-                </span>
+                <FactCheckIcon size={28} color="var(--icon-muted)" />
               )}
             </div>
             <p
@@ -606,9 +595,7 @@ export default function HistoryScreen() {
                       flexShrink: 0,
                     }}
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-                      delete_outline
-                    </span>
+                    <TrashIcon size={18} />
                   </button>
                 ) : (
                   <svg

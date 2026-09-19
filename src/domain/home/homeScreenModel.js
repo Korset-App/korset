@@ -88,11 +88,63 @@ export const HOME_DEPARTMENTS = [
   }
 })
 
-export const AI_PROMPT_CHIPS = [
-  { key: 'plov', promptKey: 'home.aiPromptPlov', icon: 'restaurant' },
-  { key: 'dinner', promptKey: 'home.aiPromptDinner', icon: 'schedule' },
-  { key: 'snack', promptKey: 'home.aiPromptSnack', icon: 'cookie' },
+export const AI_PROMPT_SETS = [
+  [
+    {
+      key: 'burger',
+      promptKey: 'home.aiPromptBurger',
+      icon: 'burger',
+    },
+    {
+      key: 'dinner',
+      promptKey: 'home.aiPromptDinner',
+      icon: 'wallet',
+    },
+  ],
+  [
+    {
+      key: 'breakfast',
+      promptKey: 'home.aiPromptBreakfast',
+      icon: 'breakfast',
+    },
+    {
+      key: 'halal_sweets',
+      promptKey: 'home.aiPromptHalalSweets',
+      icon: 'halal',
+    },
+  ],
+  [
+    {
+      key: 'soup',
+      promptKey: 'home.aiPromptSoup',
+      icon: 'soup',
+    },
+    {
+      key: 'school_snack',
+      promptKey: 'home.aiPromptSchoolSnack',
+      icon: 'sugar_free',
+    },
+  ],
+  [
+    {
+      key: 'tea_pastry',
+      promptKey: 'home.aiPromptTeaPastry',
+      icon: 'tea',
+    },
+    {
+      key: 'fit_dinner',
+      promptKey: 'home.aiPromptFitDinner',
+      icon: 'salad',
+    },
+  ],
 ]
+
+export const AI_PROMPT_CHIPS = AI_PROMPT_SETS.flat()
+
+export function getRotatedAIPrompts(setIndex = 0) {
+  const index = Math.abs(Number(setIndex) || 0) % AI_PROMPT_SETS.length
+  return AI_PROMPT_SETS[index]
+}
 
 export function hasValidProductImage(product) {
   if (!product) return false

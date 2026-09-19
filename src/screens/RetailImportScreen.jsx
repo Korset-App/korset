@@ -7,6 +7,7 @@ import {
 } from '../utils/retailImport.js'
 import { useI18n } from '../i18n/index.js'
 import { useStore } from '../contexts/StoreContext.jsx'
+import { UploadFileIcon } from '../components/icons/index.js'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024
 
@@ -237,9 +238,7 @@ export default function RetailImportScreen() {
           border: '1.5px dashed rgba(56,189,248,0.46)',
         }}
       >
-        <span className="material-symbols-outlined" style={{ fontSize: 38, color: '#38BDF8' }}>
-          upload_file
-        </span>
+        <UploadFileIcon size={38} color="#38BDF8" />
         <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginTop: 12 }}>
           {fileName || t.choose}
         </div>

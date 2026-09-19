@@ -241,17 +241,27 @@ export default function FaqScreen() {
               }}
             >
               <svg
-                width="22"
-                height="22"
+                width="24"
+                height="24"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="var(--primary)"
-                strokeWidth="1.8"
-                strokeLinecap="round"
+                xmlns="http://www.w3.org/2000/svg"
               >
-                <circle cx="12" cy="12" r="10" />
-                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-                <line x1="12" y1="17" x2="12.01" y2="17" strokeWidth="2.5" />
+                <mask id="faq-hero-mask">
+                  <rect width="24" height="24" fill="white" />
+                  <path
+                    d="M9.6 9a2.4 2.4 0 0 1 4.8 0c0 1.6-2.4 2.3-2.4 3.9"
+                    stroke="black"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                  />
+                  <circle cx="12" cy="16.8" r="1.3" fill="black" />
+                </mask>
+                <path
+                  d="M1.25 12C1.25 6.06294 6.06294 1.25 12 1.25C17.937 1.25 22.75 6.06293 22.75 12C22.75 17.937 17.937 22.75 12 22.75C10.1437 22.75 8.39536 22.2788 6.87016 21.4493L2.63727 22.2373C2.39422 22.2826 2.14448 22.2051 1.96967 22.0303C1.79485 21.8555 1.71742 21.6058 1.76267 21.3627L2.55076 17.1298C1.72113 15.6046 1.25 13.8563 1.25 12Z"
+                  fill="var(--primary)"
+                  mask="url(#faq-hero-mask)"
+                />
               </svg>
             </div>
             <div>

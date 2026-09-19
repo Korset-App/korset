@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { useI18n } from '../../i18n/index.js'
+import { ShareIcon } from '../icons/index.js'
 
 export default function ImageCarousel({ images, fallbackEan, singleImage, onShare, shareLabel }) {
   const { t } = useI18n()
@@ -175,9 +176,7 @@ function ShareActions({ onShare, shareLabel }) {
           }
         }}
       >
-        <span className="material-symbols-outlined" style={{ fontSize: 17 }}>
-          ios_share
-        </span>
+        <ShareIcon size={17} />
       </button>
     </div>
   )
