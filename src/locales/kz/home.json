@@ -577,5 +577,22 @@
   "home.featureHalal": "Халал бөлімі",
   "home.featureBakery": "Жаңа піскен нан",
   "home.featurePayment": "Kaspi QR және карталар",
-  "home.featureParking": "Ыңғайлы автотұрақ"
+  "home.featureParking": "Ыңғайлы автотұрақ",
+  "home.storeDetailsMore": "Дүкен туралы толығырақ",
+  "home.storeDetailsLess": "Жинау",
+  "home.storeServicesTitle": "Артықшылықтар мен сервіс",
+  "home.serviceHalalDesc": "Кепілдік берілген бөлек сақтау және сертификаттарды бақылау",
+  "home.serviceBakeryDesc": "Күн сайын жаңа нан мен тоқаш жеткізілуі",
+  "home.servicePaymentDesc": "QR арқылы жылдам есептесу және карталармен байланыссыз төлем",
+  "home.serviceParkingDesc": "Дүкен кіреберісінің алдындағы автотұрақ орындары",
+  "home.storeScheduleTitle": "Жұмыс уақыты",
+  "home.storeScheduleAllDays": "Дүйсенбі — жексенбі",
+  "home.storeOpenNow": "Қазір ашық",
+  "home.storeClosedNow": "Қазір жабық",
+  "home.storeAboutFallback": "{storeName} — кең таңдауы, жаңа піскен наны, халал бөлімі мен ыңғайлы төлемі бар азық-түлік дүкені.",
+  "home.photoPrev": "Алдыңғы фото",
+  "home.photoNext": "Келесі фото",
+  "home.photoOf": "{n}-фото",
+  "home.photoCount": "{n} фото",
+  "home.storeOpenPhoto": "{storeName} фотосын ашу"
 }

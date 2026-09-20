@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import ProfileAvatar from '../components/ProfileAvatar.jsx'
@@ -833,13 +834,17 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (activePhotoIndex === null) return
+    document.body.style.overflow = 'hidden'
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') setActivePhotoIndex(null)
       if (e.key === 'ArrowRight') handleNextPhoto()
       if (e.key === 'ArrowLeft') handlePrevPhoto()
     }
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    return () => {
+      document.body.style.overflow = ''
+      window.removeEventListener('keydown', handleKeyDown)
+    }
   }, [activePhotoIndex, handleNextPhoto, handlePrevPhoto])
 
   if (!isStoreApp) {
@@ -1818,12 +1823,12 @@ export default function HomeScreen() {
                 onClick={() => setActivePhotoIndex(0)}
                 role="button"
                 tabIndex={0}
-                aria-label={`Открыть фото ${storeName}`}
+                aria-label={t('home.storeOpenPhoto', { storeName })}
               >
                 <img src={storePhotos[0]} alt={storeName} loading="lazy" />
                 <div className="home-store-photo-badge">
                   <HomeIcon name="photo_camera" />
-                  <span>{storePhotos.length} фото</span>
+                  <span>{t('home.photoCount', { n: storePhotos.length })}</span>
                 </div>
               </div>
 
@@ -1835,7 +1840,7 @@ export default function HomeScreen() {
                       type="button"
                       className="home-store-media-strip__thumb"
                       onClick={() => setActivePhotoIndex(idx + 1)}
-                      aria-label={`Фото ${idx + 2}`}
+                      aria-label={t('home.photoOf', { n: idx + 2 })}
                     >
                       <img src={url} alt={`${storeName} ${idx + 2}`} loading="lazy" />
                       {idx === 3 && storePhotos.length > 5 && (
@@ -1968,59 +1973,75 @@ export default function HomeScreen() {
                 }}
                 aria-expanded={isStoreDetailsExpanded}
               >
-                <span>{isStoreDetailsExpanded ? 'Свернуть данные' : 'Подробнее о магазине'}</span>
+                <span>
+                  {isStoreDetailsExpanded ? t('home.storeDetailsLess') : t('home.storeDetailsMore')}
+                </span>
                 <HomeIcon name={isStoreDetailsExpanded ? 'expand_less' : 'expand_more'} />
               </button>
 
               {isStoreDetailsExpanded && (
                 <div className="home-store-accordion__body">
                   <div className="home-store-accordion__section">
-                    <h4>{t('home.storeAbout') || 'Описание'}</h4>
+                    <h4>{t('home.storeAbout')}</h4>
                     <p className="home-store-accordion__desc">
-                      {currentStore.description ||
-                        `${storeName} — современный продуктовый магазин формата «у дома». Широкий ассортимент свежих продуктов, молочной продукции, халал-отдел, выпечка и удобная оплата.`}
+                      {currentStore.description || t('home.storeAboutFallback', { storeName })}
                     </p>
                   </div>
 
                   <div className="home-store-accordion__section">
-                    <h4>Преимущества и сервис</h4>
+                    <h4>{t('home.storeServicesTitle')}</h4>
                     <ul className="home-store-services-list">
                       <li>
                         <HomeIcon name="verified" />
                         <div>
-                          <strong>Халал-отдел</strong>
-                          <span>Гарантированное раздельное хранение и контроль сертификатов</span>
+                          <strong>{t('home.featureHalal')}</strong>
+                          <span>{t('home.serviceHalalDesc')}</span>
                         </div>
                       </li>
                       <li>
                         <HomeIcon name="bakery_dining" />
                         <div>
-                          <strong>Свежая выпечка</strong>
-                          <span>Ежедневные поставки свежего хлеба и сдобы</span>
+                          <strong>{t('home.featureBakery')}</strong>
+                          <span>{t('home.serviceBakeryDesc')}</span>
                         </div>
                       </li>
                       <li>
                         <HomeIcon name="qr_code_2" />
                         <div>
-                          <strong>Оплата Kaspi QR</strong>
-                          <span>Быстрый расчёт по QR и бесконтактная оплата картами</span>
+                          <strong>{t('home.featurePayment')}</strong>
+                          <span>{t('home.servicePaymentDesc')}</span>
                         </div>
                       </li>
                       <li>
                         <HomeIcon name="local_parking" />
                         <div>
-                          <strong>Удобная парковка</strong>
-                          <span>Парковочные места прямо перед входом в магазин</span>
+                          <strong>{t('home.featureParking')}</strong>
+                          <span>{t('home.serviceParkingDesc')}</span>
                         </div>
                       </li>
                     </ul>
                   </div>
 
                   <div className="home-store-accordion__section">
-                    <h4>График работы</h4>
+                    <h4>{t('home.storeScheduleTitle')}</h4>
                     <div className="home-store-schedule-table">
+                      {schedule.isConfigured && (
+                        <div className="home-store-schedule-row home-store-schedule-row--status">
+                          <span className="home-store-schedule-status">
+                            <span
+                              className={`home-status-dot${schedule.isOpen ? ' is-open' : ' is-closed'}`}
+                            />
+                            {schedule.isOpen ? t('home.storeOpenNow') : t('home.storeClosedNow')}
+                          </span>
+                          <strong>
+                            {schedule.isOpen
+                              ? t('home.storeClosesAt', { time: schedule.closes })
+                              : t('home.storeOpensAt', { time: schedule.opens })}
+                          </strong>
+                        </div>
+                      )}
                       <div className="home-store-schedule-row">
-                        <span>Понедельник — Воскресенье</span>
+                        <span>{t('home.storeScheduleAllDays')}</span>
                         <strong>{storeHours}</strong>
                       </div>
                     </div>
@@ -2033,81 +2054,86 @@ export default function HomeScreen() {
       </section>
 
       {/* Lightbox for Store Photos (Interactive with arrows, counter, touch swipe & thumbnails) */}
-      {activePhotoIndex !== null && storePhotos?.[activePhotoIndex] && (
-        <div
-          className="home-lightbox-modal"
-          onClick={() => setActivePhotoIndex(null)}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-          role="dialog"
-          aria-modal="true"
-        >
-          {/* Top Bar: Counter & Close */}
-          <div className="home-lightbox-topbar" onClick={(e) => e.stopPropagation()}>
-            <span className="home-lightbox-counter">
-              {activePhotoIndex + 1} / {storePhotos.length}
-            </span>
-            <button
-              type="button"
-              className="home-lightbox-close"
-              onClick={() => setActivePhotoIndex(null)}
-              aria-label={t('common.close')}
-            >
-              <HomeIcon name="close" />
-            </button>
-          </div>
-
-          {/* Main Stage with Navigation Arrows */}
-          <div className="home-lightbox-stage" onClick={(e) => e.stopPropagation()}>
-            {storePhotos.length > 1 && (
+      {/* Portaled to body: pageEnter animation leaves a transform on .screen, which would
+          turn it into the containing block for position:fixed and clip the modal */}
+      {activePhotoIndex !== null &&
+        storePhotos?.[activePhotoIndex] &&
+        createPortal(
+          <div
+            className="home-lightbox-modal"
+            onClick={() => setActivePhotoIndex(null)}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            role="dialog"
+            aria-modal="true"
+          >
+            {/* Top Bar: Counter & Close */}
+            <div className="home-lightbox-topbar" onClick={(e) => e.stopPropagation()}>
+              <span className="home-lightbox-counter">
+                {activePhotoIndex + 1} / {storePhotos.length}
+              </span>
               <button
                 type="button"
-                className="home-lightbox-nav home-lightbox-nav--prev"
-                onClick={handlePrevPhoto}
-                aria-label="Предыдущее фото"
+                className="home-lightbox-close"
+                onClick={() => setActivePhotoIndex(null)}
+                aria-label={t('common.close')}
               >
-                <HomeIcon name="chevron_left" />
+                <HomeIcon name="close" />
               </button>
-            )}
-
-            <div className="home-lightbox-img-wrap">
-              <img
-                src={storePhotos[activePhotoIndex]}
-                alt={`${storeName} ${activePhotoIndex + 1}`}
-                className="home-lightbox-img"
-              />
             </div>
 
-            {storePhotos.length > 1 && (
-              <button
-                type="button"
-                className="home-lightbox-nav home-lightbox-nav--next"
-                onClick={handleNextPhoto}
-                aria-label="Следующее фото"
-              >
-                <HomeIcon name="chevron_right" />
-              </button>
-            )}
-          </div>
-
-          {/* Bottom Thumbnails Strip */}
-          {storePhotos.length > 1 && (
-            <div className="home-lightbox-thumbs" onClick={(e) => e.stopPropagation()}>
-              {storePhotos.map((url, idx) => (
+            {/* Main Stage with Navigation Arrows */}
+            <div className="home-lightbox-stage" onClick={(e) => e.stopPropagation()}>
+              {storePhotos.length > 1 && (
                 <button
-                  key={url}
                   type="button"
-                  className={`home-lightbox-thumb-btn${idx === activePhotoIndex ? ' is-active' : ''}`}
-                  onClick={() => setActivePhotoIndex(idx)}
-                  aria-label={`Фото ${idx + 1}`}
+                  className="home-lightbox-nav home-lightbox-nav--prev"
+                  onClick={handlePrevPhoto}
+                  aria-label={t('home.photoPrev')}
                 >
-                  <img src={url} alt="" />
+                  <HomeIcon name="chevron_left" />
                 </button>
-              ))}
+              )}
+
+              <div className="home-lightbox-img-wrap">
+                <img
+                  src={storePhotos[activePhotoIndex]}
+                  alt={`${storeName} ${activePhotoIndex + 1}`}
+                  className="home-lightbox-img"
+                />
+              </div>
+
+              {storePhotos.length > 1 && (
+                <button
+                  type="button"
+                  className="home-lightbox-nav home-lightbox-nav--next"
+                  onClick={handleNextPhoto}
+                  aria-label={t('home.photoNext')}
+                >
+                  <HomeIcon name="chevron_right" />
+                </button>
+              )}
             </div>
-          )}
-        </div>
-      )}
+
+            {/* Bottom Thumbnails Strip */}
+            {storePhotos.length > 1 && (
+              <div className="home-lightbox-thumbs" onClick={(e) => e.stopPropagation()}>
+                {storePhotos.map((url, idx) => (
+                  <button
+                    key={url}
+                    type="button"
+                    className={`home-lightbox-thumb-btn${idx === activePhotoIndex ? ' is-active' : ''}`}
+                    onClick={() => setActivePhotoIndex(idx)}
+                    aria-label={t('home.photoOf', { n: idx + 1 })}
+                  >
+                    <img src={url} alt="" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>,
+          document.body
+        )}
 
       {/* MODAL / SHEET: FitCheck Drawer */}
       <FitCheckDrawer

@@ -2542,6 +2542,21 @@
   color: var(--home-ink);
 }
 
+.home-store-schedule-row--status {
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px dashed var(--home-line);
+}
+
+.home-store-schedule-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--home-ink);
+}
+
 /* Lightbox Modal (2GIS / Krisha.kz style) */
 .home-lightbox-modal {
   position: fixed;

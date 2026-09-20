@@ -577,5 +577,22 @@
   "home.featureHalal": "Халал-отдел",
   "home.featureBakery": "Свежая выпечка",
   "home.featurePayment": "Kaspi QR и карты",
-  "home.featureParking": "Удобная парковка"
+  "home.featureParking": "Удобная парковка",
+  "home.storeDetailsMore": "Подробнее о магазине",
+  "home.storeDetailsLess": "Свернуть данные",
+  "home.storeServicesTitle": "Преимущества и сервис",
+  "home.serviceHalalDesc": "Гарантированное раздельное хранение и контроль сертификатов",
+  "home.serviceBakeryDesc": "Ежедневные поставки свежего хлеба и сдобы",
+  "home.servicePaymentDesc": "Быстрый расчёт по QR и бесконтактная оплата картами",
+  "home.serviceParkingDesc": "Парковочные места прямо перед входом в магазин",
+  "home.storeScheduleTitle": "График работы",
+  "home.storeScheduleAllDays": "Понедельник — Воскресенье",
+  "home.storeOpenNow": "Сейчас открыто",
+  "home.storeClosedNow": "Сейчас закрыто",
+  "home.storeAboutFallback": "{storeName} — продуктовый магазин с широким ассортиментом, свежей выпечкой, халал-отделом и удобной оплатой.",
+  "home.photoPrev": "Предыдущее фото",
+  "home.photoNext": "Следующее фото",
+  "home.photoOf": "Фото {n}",
+  "home.photoCount": "{n} фото",
+  "home.storeOpenPhoto": "Открыть фото {storeName}"
 }

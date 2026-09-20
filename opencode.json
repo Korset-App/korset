@@ -1,7 +1,24 @@
 {
   "$schema": "https://opencode.ai/config.json",
 
-  "small_model": "iyhapi/gemini-3-flash",
+  "model": "bai/glm-5.3-flash",
+  "small_model": "bai/glm-5.3-flash",
+
+  "provider": {
+    "bai": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "b.ai",
+      "options": {
+        "baseURL": "https://api.b.ai/v1",
+        "apiKey": "{file:.opencode/b-ai-api-key}"
+      },
+      "models": {
+        "glm-5.3-flash": {
+          "name": "GLM 5.3 Flash"
+        }
+      }
+    }
+  },
 
   "compaction": {
     "auto": true,
@@ -15,10 +32,10 @@
 
   "agent": {
     "explore": {
-      "model": "iyhapi/gemini-3-flash"
+      "model": "bai/glm-5.3-flash"
     },
     "general": {
-      "model": "iyhapi/claude-sonnet-4.6"
+      "model": "bai/glm-5.3-flash"
     }
   },
 
