@@ -224,5 +224,8 @@
   "product.report.reason.other": "Другое",
   "catalog.globalTitle": "Каталог Körset",
   "catalog.searchError": "Ошибка поиска",
-  "catalog.searchErrorHint": "Показаны локальные результаты"
+  "catalog.searchErrorHint": "Показаны локальные результаты",
+  "catalog.viewGrid": "Сетка",
+  "catalog.viewList": "Список",
+  "catalog.selectedCount": "Выбрано: {{count}}"
 }

@@ -89,6 +89,6 @@ test('catalog defaults to grid view and shows grid toggle first', async () => {
   assert.match(screenSource, /sessionStorage\.getItem\('korset_catalog_view'\) \|\| 'grid'/)
   assert.match(
     screenSource,
-    /className=\{`catalog-view-btn\$\{viewMode === 'grid'[\s\S]*?aria-label="Сетка"[\s\S]*?className=\{`catalog-view-btn\$\{viewMode === 'list'[\s\S]*?aria-label="Список"/
+    /className=\{`catalog-view-btn\$\{viewMode === 'grid'[\s\S]*?aria-label=(?:\{t\('catalog\.viewGrid'\)\}|"Сетка")[\s\S]*?className=\{`catalog-view-btn\$\{viewMode === 'list'[\s\S]*?aria-label=(?:\{t\('catalog\.viewList'\)\}|"Список")/
   )
 })

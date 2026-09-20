@@ -437,12 +437,11 @@ body.ai-history-open .bottom-nav {
 
 .ai-capability-card {
   position: relative;
-  display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: 9px 10px;
-  align-items: start;
-  min-height: 112px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+  min-height: 120px;
   padding: 14px 13px;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--border) 82%, var(--primary-bright) 6%);
@@ -484,15 +483,18 @@ body.ai-history-open .bottom-nav {
   background: color-mix(in srgb, var(--bg-card) 82%, var(--primary-bright) 18%);
   color: var(--text-sub);
   font-size: 20px;
+  flex-shrink: 0;
 }
 
 .ai-capability-card__content {
-  display: grid;
-  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
   position: relative;
   z-index: 1;
   min-width: 0;
+  width: 100%;
   gap: 5px;
+  flex: 1;
 }
 
 .ai-capability-card__title {
@@ -500,6 +502,9 @@ body.ai-history-open .bottom-nav {
   font-size: 14px;
   font-weight: 820;
   line-height: 1.18;
+  min-height: 2.36em;
+  display: flex;
+  align-items: flex-start;
 }
 
 .ai-capability-card__description {
@@ -509,12 +514,7 @@ body.ai-history-open .bottom-nav {
   font-size: 11.6px;
   line-height: 1.36;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
-.ai-capability-card__chevron {
-  color: var(--text-faint);
-  font-size: 18px;
+  -webkit-line-clamp: 3;
 }
 
 .ai-capability-card--aqua {
@@ -1344,10 +1344,13 @@ body.ai-history-open .bottom-nav {
 
   .ai-capability-card__title {
     font-size: 12.8px;
+    min-height: 2.36em;
   }
 
   .ai-capability-card__description {
     font-size: 11px;
+    line-height: 1.35;
+    -webkit-line-clamp: 3;
   }
 
   .ai-composer {

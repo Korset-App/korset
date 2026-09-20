@@ -164,12 +164,11 @@
   white-space: normal;
   word-break: break-word;
   line-height: 1.15;
-  height: 28px;
   min-height: 28px;
+  height: auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
   max-width: 100%;
   margin-top: 2px;
 }
@@ -185,7 +184,7 @@
     font-size: 40px;
   }
   .stat-card__label {
-    font-size: 12px;
+    font-size: 10.5px;
   }
 }
 

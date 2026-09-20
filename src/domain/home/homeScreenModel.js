@@ -1,4 +1,5 @@
 import { getCategoryShowcase } from '../product/catalogShowcase.js'
+import { DIET_PREFERENCES } from '../../constants/dietGoals.js'
 
 export const HOME_SCREEN_SECTIONS = [
   'header',
@@ -238,7 +239,7 @@ export const KZ_POPULAR_BRAND_KEYWORDS = [
   'данон',
 ]
 
-export function getProductBadgeSummary(product) {
+export function getProductBadgeSummary(product, lang = 'ru') {
   const allBadges = []
   if (!product) return { badges: [], extraCount: 0 }
 
@@ -279,23 +280,13 @@ export function getProductBadgeSummary(product) {
   const dietTags = product.dietTags || product.diet_tags || product.diet_tags_json || []
   const tags = Array.isArray(dietTags) ? dietTags : []
 
-  if (tags.includes('sugar_free')) {
-    allBadges.push({ key: 'sugar_free', type: 'diet', label: 'Без сахара' })
-  }
-  if (tags.includes('lactose_free')) {
-    allBadges.push({ key: 'lactose_free', type: 'diet', label: 'Без лактозы' })
-  }
-  if (tags.includes('gluten_free')) {
-    allBadges.push({ key: 'gluten_free', type: 'diet', label: 'Без глютена' })
-  }
-  if (tags.includes('vegan')) {
-    allBadges.push({ key: 'vegan', type: 'diet', label: 'Веган' })
-  }
-  if (tags.includes('keto')) {
-    allBadges.push({ key: 'keto', type: 'diet', label: 'Кето' })
-  }
-  if (tags.includes('vegetarian')) {
-    allBadges.push({ key: 'vegetarian', type: 'diet', label: 'Вегетариан' })
+  const knownDietKeys = ['sugar_free', 'lactose_free', 'gluten_free', 'vegan', 'keto', 'vegetarian']
+  for (const tagKey of knownDietKeys) {
+    if (tags.includes(tagKey)) {
+      const pref = DIET_PREFERENCES.find((p) => p.id === tagKey)
+      const label = pref?.label?.[lang] || pref?.label?.ru || tagKey
+      allBadges.push({ key: tagKey, type: 'diet', label })
+    }
   }
 
   if (allBadges.length <= 1) {
@@ -319,9 +310,9 @@ export function getProductBadgeSummary(product) {
   }
 }
 
-export function getProductDisplayBadges(product) {
+export function getProductDisplayBadges(product, lang = 'ru') {
   if (!product) return []
-  const summary = getProductBadgeSummary(product)
+  const summary = getProductBadgeSummary(product, lang)
   return summary.badges
 }
 

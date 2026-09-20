@@ -1329,7 +1329,7 @@ export default function HomeScreen() {
             {showcaseProducts.map((product) => {
               const isFav = checkIsFavorite ? checkIsFavorite(product.ean) : false
               const productImage = product.image || product.image_url
-              const { badges, extraCount } = getProductBadgeSummary(product)
+              const { badges, extraCount } = getProductBadgeSummary(product, lang)
               const hasDiscount = Boolean(
                 (product.discountPercent && product.discountPercent > 0) ||
                 (product.oldPriceKzt && product.oldPriceKzt > product.priceKzt)

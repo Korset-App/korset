@@ -224,5 +224,8 @@
   "product.report.reason.other": "Басқа",
   "catalog.globalTitle": "Körset каталогі",
   "catalog.searchError": "Іздеу қатесі",
-  "catalog.searchErrorHint": "Жергілікті нәтижелер көрсетілді"
+  "catalog.searchErrorHint": "Жергілікті нәтижелер көрсетілді",
+  "catalog.viewGrid": "Тор",
+  "catalog.viewList": "Тізім",
+  "catalog.selectedCount": "Таңдалды: {{count}}"
 }

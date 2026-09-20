@@ -396,7 +396,7 @@ const ListFooter = forwardRef(({ style, ...props }, ref) => (
   <div ref={ref} style={{ ...style, height: 100 }} {...props} />
 ))
 
-function CategoryShowcaseCard({ categoryKey, label, onSelect, index, isActive }) {
+function CategoryShowcaseCard({ categoryKey, label, onSelect, index, isActive, lang }) {
   const showcase = getCategoryShowcase(categoryKey)
 
   return (
@@ -422,7 +422,9 @@ function CategoryShowcaseCard({ categoryKey, label, onSelect, index, isActive })
         <img src={showcase.image} alt="" loading="lazy" decoding="async" />
       </span>
       <span className="catalog-category-copy">
-        <span className="catalog-category-title">{label}</span>
+        <span className="catalog-category-title" lang={lang === 'kz' ? 'kk' : 'ru'}>
+          {label}
+        </span>
       </span>
     </button>
   )
@@ -864,7 +866,7 @@ export default function CatalogScreen() {
               <div
                 style={{
                   fontFamily: 'var(--font-display)',
-                  fontSize: 30,
+                  fontSize: showSubcategories ? 'clamp(19px, 5vw, 25px)' : 'clamp(24px, 6vw, 30px)',
                   fontWeight: 500,
                   color: 'var(--text)',
                   margin: 0,
@@ -977,7 +979,7 @@ export default function CatalogScreen() {
                   setViewMode('grid')
                   sessionStorage.setItem('korset_catalog_view', 'grid')
                 }}
-                aria-label="Сетка"
+                aria-label={t('catalog.viewGrid')}
               >
                 {viewMode === 'grid' ? IconGridActive : IconGrid}
               </button>
@@ -987,7 +989,7 @@ export default function CatalogScreen() {
                   setViewMode('list')
                   sessionStorage.setItem('korset_catalog_view', 'list')
                 }}
-                aria-label="Список"
+                aria-label={t('catalog.viewList')}
               >
                 {viewMode === 'list' ? IconListActive : IconList}
               </button>
@@ -1022,7 +1024,7 @@ export default function CatalogScreen() {
         )}
 
         {showSubcategories && (
-          <div style={{ display: 'flex', gap: 10, padding: '0 20px', marginBottom: 12 }}>
+          <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
             {activeSubcategoryKeys.length > 1 && (
               <button
                 className={`catalog-dropdown-trigger${isSubMenuOpen || selectedSubcategories.length > 0 ? ' active' : ''}`}
@@ -1045,7 +1047,7 @@ export default function CatalogScreen() {
                     ? t('catalog.allSubcategories')
                     : selectedSubcategories.length === 1
                       ? getSubcategoryLabel(selectedCategory, selectedSubcategories[0], lang)
-                      : `${lang === 'kz' ? 'Таңдалды' : 'Выбрано'}: ${selectedSubcategories.length}`}
+                      : t('catalog.selectedCount', { count: selectedSubcategories.length })}
                 </span>
                 <span
                   className="material-symbols-outlined"
@@ -1212,7 +1214,7 @@ export default function CatalogScreen() {
                 whiteSpace: 'nowrap',
               }}
             >
-              {comparePin.nameKz && lang === 'kz' ? comparePin.nameKz : comparePin.name}
+              {getLocalName(comparePin)}
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-soft)', marginTop: 1 }}>
               {t('compare.selectSecond')}
@@ -1248,6 +1250,7 @@ export default function CatalogScreen() {
                   onSelect={handleCategoryClick}
                   index={index}
                   isActive={pendingCategory === catKey}
+                  lang={lang}
                 />
               )
             })}

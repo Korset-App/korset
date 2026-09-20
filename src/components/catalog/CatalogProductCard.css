@@ -120,6 +120,7 @@
 
 .catalog-product-card--list .catalog-product-card__badges {
   margin-top: auto;
+  padding-right: 48px;
 }
 
 .catalog-product-card--list .catalog-product-card__badges[data-badge-count='1'] .catalog-product-card__badge,

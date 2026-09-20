@@ -2289,31 +2289,31 @@ body {
 
 .catalog-category-card[data-variant='hero'] {
   grid-column: span 4;
-  grid-row: span 3;
-  --cat-title-size: clamp(21px, 6vw, 26px);
+  grid-row: span 2;
+  --cat-title-size: clamp(24px, 7.5vw, 34px);
   --cat-image-scale: 1.02;
 }
 
 .catalog-category-card[data-variant='wide'] {
   grid-column: span 4;
-  grid-row: span 2;
-  --cat-title-size: clamp(17px, 4.8vw, 21px);
-  --cat-image-scale: 0.96;
+  grid-row: span 1;
+  --cat-title-size: clamp(16px, 4.8vw, 20px);
+  --cat-image-scale: 1;
 }
 
 .catalog-category-card[data-variant='portrait'] {
   grid-column: span 2;
-  grid-row: span 3;
-  --cat-title-size: clamp(17px, 4.8vw, 21px);
+  grid-row: span 2;
+  --cat-title-size: clamp(15px, 4.4vw, 19px);
   --cat-image-y: 38%;
 }
 
 .catalog-category-card[data-variant='compact'] {
   grid-column: span 2;
-  grid-row: span 2;
-  --cat-title-size: clamp(14px, 3.8vw, 17px);
-  --cat-image-scale: 0.92;
-  --cat-image-y: 36%;
+  grid-row: span 1;
+  --cat-title-size: clamp(13.5px, 3.8vw, 16.5px);
+  --cat-image-scale: 1.04;
+  --cat-image-y: 38%;
 }
 
 .catalog-category-card[data-variant='square'] {
@@ -2507,32 +2507,35 @@ body {
   --tone-hi: #d9c8ff;
 }
 
-.catalog-category-card[data-variant='wide'] .catalog-category-media {
-  left: auto;
-  right: clamp(4px, 1.5vw, 12px);
-  width: 50%;
-  height: 90%;
-  top: 5%;
-  bottom: 5%;
+.catalog-category-card[data-category='sweets'] {
+  --cat-title-size: clamp(28px, 9vw, 40px);
+  --cat-image-y: 44%;
 }
 
-.catalog-category-card[data-variant='wide'] .catalog-category-copy {
-  max-width: 52%;
-  left: clamp(10px, 3vw, 16px);
-  right: auto;
-  bottom: clamp(8px, 2.5vw, 14px);
+.catalog-category-card[data-category='dairy_eggs'] {
+  --cat-title-size: clamp(15px, 4.3vw, 18px);
 }
 
-.catalog-category-card[data-variant='compact'] .catalog-category-media {
-  bottom: 36%;
+.catalog-category-card[data-category='fish'] {
+  --cat-title-size: clamp(16px, 4.8vw, 20px);
 }
 
-.catalog-category-card[data-variant='portrait'] .catalog-category-media {
-  bottom: 28%;
+.catalog-category-card[data-category='meat'] {
+  --cat-image-scale: 1.12;
+  --cat-image-y: 36%;
 }
 
-.catalog-category-card[data-variant='hero'] .catalog-category-media {
-  bottom: 24%;
+.catalog-category-card[data-category='dairy_eggs'],
+.catalog-category-card[data-category='fish'],
+.catalog-category-card[data-category='fruits_veg'],
+.catalog-category-card[data-category='bread'] {
+  --cat-image-y: 34%;
+}
+
+.catalog-category-card[data-category='sauces_spices'],
+.catalog-category-card[data-category='frozen'],
+.catalog-category-card[data-category='household'] {
+  --cat-title-size: clamp(20px, 6vw, 28px);
 }
 
 .catalog-category-card[data-category='tea_coffee'],
@@ -2676,6 +2679,8 @@ body {
   line-height: 1.15;
   overflow-wrap: break-word;
   word-break: normal;
+  -webkit-hyphens: auto;
+  hyphens: auto;
   text-wrap: balance;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -2785,7 +2790,7 @@ body {
   }
 
   .catalog-category-title {
-    line-height: 0.96;
+    line-height: 1.1;
   }
 
   .catalog-category-count {
@@ -2844,17 +2849,17 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  max-width: 48%;
-  min-height: 40px;
-  padding: 8px 13px;
+  gap: 6px;
+  max-width: 42%;
+  min-height: 36px;
+  padding: 6px 11px;
   border: 1.5px solid var(--input-border);
-  border-radius: 14px;
+  border-radius: 12px;
   background: var(--input-bg);
   color: var(--text);
   box-shadow: none;
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: clamp(12px, 3.4vw, 14px);
   font-weight: 700;
   letter-spacing: 0.02em;
   line-height: 1;
@@ -2934,7 +2939,7 @@ body {
 .catalog-search-input {
   width: 100%;
   height: 50px;
-  padding: 0 46px 0 46px;
+  padding: 0 58px 0 44px;
   border-radius: 16px;
   background: var(--input-bg);
   border: 1.5px solid var(--input-border);

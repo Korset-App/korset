@@ -2130,9 +2130,12 @@ export default function ProfileScreen() {
                             color: item.labelStyle?.color || 'var(--text)',
                             flex: 1,
                             minWidth: 0,
+                            lineHeight: 1.25,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
                             overflow: 'hidden',
-                            whiteSpace: 'nowrap',
-                            textOverflow: 'ellipsis',
+                            overflowWrap: 'break-word',
                           }}
                         >
                           {item.label}

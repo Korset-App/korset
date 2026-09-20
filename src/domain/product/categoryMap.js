@@ -23,7 +23,7 @@ export const CATEGORY_ICONS = {
 
 export const CATEGORIES = {
   dairy_eggs: {
-    ru: 'Молочные продукты и яйца',
+    ru: 'Молоко и яйца',
     kz: 'Сүт пен жұмыртқа',
     subcategories: {
       milk: { ru: 'Молоко', kz: 'Сүт' },
