@@ -18,6 +18,7 @@ function corsHeaders(origin) {
 }
 
 const VALID_EAN = /^\d{8,14}$/
+const VALID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const ALLOWED_REASONS = new Set([
   'wrong_product',
   'wrong_weight_or_volume',
@@ -154,7 +155,8 @@ export default async function handler(req, res) {
     const insertPayload = {
       ean: cleanEan,
       shown_ean: shownEan && VALID_EAN.test(String(shownEan)) ? String(shownEan) : null,
-      shown_global_product_id: shownProductId || null,
+      shown_global_product_id:
+        shownProductId && VALID_UUID.test(String(shownProductId)) ? String(shownProductId) : null,
       store_id: storeId,
       reason: cleanReason,
       context: type === 'new_product' ? 'scan_result' : 'product_card',

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useI18n } from '../../i18n/index.js'
 import { CameraIcon } from '../icons/CameraIcon.jsx'
@@ -134,7 +135,7 @@ function ProductSubmissionContent({
     status === 'compressing' ||
     status === 'uploading' ||
     status === 'success' ||
-    (photos.length === 0 && !comment.trim())
+    (isCorrection && photos.length === 0 && !comment.trim())
 
   return (
     <>
@@ -367,7 +368,7 @@ export default function ProductSubmissionSheet({
     }
   }, [open])
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -401,6 +402,7 @@ export default function ProductSubmissionSheet({
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   )
 }
