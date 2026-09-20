@@ -104,10 +104,10 @@ export default function StoryViewer({
   t,
   onClose,
   onSlide,
+  onSlideView,
   onCta,
 }) {
-  const [progress, setProgress] = useState(0)
-  const isPausedRef = useRef(false)
+  const [isPaused, setIsPaused] = useState(false)
   const touchStartYRef = useRef(0)
   const slideKey = story?.slides?.[slideIndex] || `${story?.key}.0`
 
@@ -117,25 +117,20 @@ export default function StoryViewer({
     address: [store?.city, store?.address].filter(Boolean).join(', ') || '',
   }
 
-  // Timer progression (4500ms)
+  // Report slide view immediately when slide is viewed
   useEffect(() => {
-    setProgress(0)
-    const DURATION = 4500
-    const startTime = Date.now()
+    if (!story?.key) return
+    onSlideView?.(story.key, slideIndex, story.slides?.length || 3)
+  }, [story?.key, slideIndex, onSlideView, story?.slides?.length])
 
-    const interval = setInterval(() => {
-      if (isPausedRef.current) return
-      const elapsed = Date.now() - startTime
-      const p = Math.min(elapsed / DURATION, 1)
-      setProgress(p)
-      if (p >= 1) {
-        clearInterval(interval)
-        onSlide(1)
-      }
-    }, 40)
-
-    return () => clearInterval(interval)
-  }, [slideIndex, story?.key, onSlide])
+  // Pause progress when page/tab is hidden
+  useEffect(() => {
+    const handleVisibility = () => {
+      setIsPaused(document.hidden)
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [])
 
   // Body lock
   useEffect(() => {
@@ -178,15 +173,9 @@ export default function StoryViewer({
       aria-label={t(`home.stories.${story.key}.title`, vars)}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      onPointerDown={() => {
-        isPausedRef.current = true
-      }}
-      onPointerUp={() => {
-        isPausedRef.current = false
-      }}
-      onPointerLeave={() => {
-        isPausedRef.current = false
-      }}
+      onPointerDown={() => setIsPaused(true)}
+      onPointerUp={() => setIsPaused(false)}
+      onPointerLeave={() => setIsPaused(false)}
     >
       <button
         className="story-viewer__backdrop"
@@ -201,15 +190,22 @@ export default function StoryViewer({
         {/* Top Progress Bars */}
         <div className="story-viewer__progress-wrap" aria-hidden="true">
           {story.slides.map((s, idx) => {
-            let scale = 0
-            if (idx < slideIndex) scale = 1
-            else if (idx === slideIndex) scale = progress
+            const isCompleted = idx < slideIndex
+            const isActive = idx === slideIndex
             return (
               <div key={s} className="story-viewer__progress-bar">
-                <div
-                  className="story-viewer__progress-fill"
-                  style={{ transform: `scaleX(${scale})` }}
-                />
+                {isCompleted && <div className="story-viewer__progress-fill is-completed" />}
+                {isActive && (
+                  <div
+                    key={`${story.key}_${slideIndex}`}
+                    className="story-viewer__progress-fill is-active"
+                    style={{ animationPlayState: isPaused ? 'paused' : 'running' }}
+                    onAnimationEnd={() => onSlide(1)}
+                  />
+                )}
+                {!isCompleted && !isActive && (
+                  <div className="story-viewer__progress-fill is-pending" />
+                )}
               </div>
             )
           })}

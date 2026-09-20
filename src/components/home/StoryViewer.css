@@ -110,17 +110,42 @@ body.story-viewer-open .bottom-nav {
 .story-viewer__progress-bar {
   flex: 1;
   height: 3px;
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.22);
   border-radius: 999px;
   overflow: hidden;
+  position: relative;
 }
 
 .story-viewer__progress-fill {
+  position: absolute;
+  inset: 0;
+  width: 100%;
   height: 100%;
   background: #fff;
   border-radius: inherit;
   transform-origin: left;
-  transition: transform 40ms linear;
+  will-change: transform;
+}
+
+.story-viewer__progress-fill.is-completed {
+  transform: scaleX(1);
+}
+
+.story-viewer__progress-fill.is-pending {
+  transform: scaleX(0);
+}
+
+.story-viewer__progress-fill.is-active {
+  animation: story-bar-fill 4500ms linear forwards;
+}
+
+@keyframes story-bar-fill {
+  0% {
+    transform: scaleX(0);
+  }
+  100% {
+    transform: scaleX(1);
+  }
 }
 
 /* Top bar: store identity & close */

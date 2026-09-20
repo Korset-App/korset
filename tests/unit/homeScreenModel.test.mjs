@@ -138,3 +138,109 @@ test('getShowcaseProducts prioritizes popular KZ brands and enforces category di
   const bakeryItems = showcase.filter((p) => p.category_id === 'bakery')
   assert.ok(bakeryItems.length <= 1)
 })
+
+test('clearSeenStories resets seen stories correctly', async () => {
+  const { markStorySeen, loadSeenStories, clearSeenStories } = await import(
+    '../../src/domain/home/homeScreenModel.js'
+  )
+
+  const mockStorage = {}
+  globalThis.window = {
+    localStorage: {
+      getItem: (k) => mockStorage[k] || null,
+      setItem: (k, v) => {
+        mockStorage[k] = v
+      },
+      removeItem: (k) => {
+        delete mockStorage[k]
+      },
+    },
+  }
+
+  markStorySeen('test-store', 'scan')
+  assert.ok(loadSeenStories('test-store').has('scan'))
+
+  clearSeenStories('test-store')
+  assert.equal(loadSeenStories('test-store').size, 0)
+})
+
+test('recordStorySlideView tracks slide progress and marks fully seen only on completion', async () => {
+  const {
+    recordStorySlideView,
+    loadStoryProgress,
+    loadSeenStories,
+    sortStoriesBySeen,
+    clearSeenStories,
+  } = await import('../../src/domain/home/homeScreenModel.js')
+
+  const mockStorage = {}
+  globalThis.window = {
+    localStorage: {
+      getItem: (k) => mockStorage[k] || null,
+      setItem: (k, v) => {
+        mockStorage[k] = v
+      },
+      removeItem: (k) => {
+        delete mockStorage[k]
+      },
+    },
+  }
+
+  // 1. Viewing slide 0 out of 3 -> progress 1, not fully seen
+  const res1 = recordStorySlideView('test-store', 'store', 0, 3)
+  assert.equal(res1.isFullySeen, false)
+  assert.equal(res1.progressMap.store, 1)
+  assert.equal(loadSeenStories('test-store').has('store'), false)
+
+  // 2. Sorting keeps partially seen story in front group
+  const mockStories = [{ key: 'store', slides: [0, 1, 2] }, { key: 'scan', slides: [0, 1, 2] }]
+  const sorted = sortStoriesBySeen(mockStories, loadSeenStories('test-store'), res1.progressMap)
+  assert.equal(sorted[0].key, 'store')
+
+  // 3. Completing slide 2 (last slide) -> marks fully seen
+  const res2 = recordStorySlideView('test-store', 'store', 2, 3)
+  assert.equal(res2.isFullySeen, true)
+  assert.equal(res2.progressMap.store, 3)
+  assert.ok(loadSeenStories('test-store').has('store'))
+
+  // 4. clearSeenStories resets both progress and seen set
+  clearSeenStories('test-store')
+  assert.equal(loadStoryProgress('test-store').store, undefined)
+  assert.equal(loadSeenStories('test-store').size, 0)
+})
+
+test('recordStorySlideView supports variable slide counts (4 and 5 slides)', async () => {
+  const {
+    recordStorySlideView,
+    loadStoryProgress,
+    loadSeenStories,
+    clearSeenStories,
+  } = await import('../../src/domain/home/homeScreenModel.js')
+
+  const mockStorage = {}
+  globalThis.window = {
+    localStorage: {
+      getItem: (k) => mockStorage[k] || null,
+      setItem: (k, v) => {
+        mockStorage[k] = v
+      },
+      removeItem: (k) => {
+        delete mockStorage[k]
+      },
+    },
+  }
+
+  // Story with 5 slides: viewing slide 3 out of 5 -> 4 viewed, not fully seen
+  const res1 = recordStorySlideView('store-5', 'fit', 3, 5)
+  assert.equal(res1.isFullySeen, false)
+  assert.equal(res1.progressMap.fit, 4)
+  assert.equal(loadSeenStories('store-5').has('fit'), false)
+
+  // Viewing final slide 4 out of 5 -> 5 viewed, marked fully seen
+  const res2 = recordStorySlideView('store-5', 'fit', 4, 5)
+  assert.equal(res2.isFullySeen, true)
+  assert.equal(res2.progressMap.fit, 5)
+  assert.ok(loadSeenStories('store-5').has('fit'))
+
+  clearSeenStories('store-5')
+})

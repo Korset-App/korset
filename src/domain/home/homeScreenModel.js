@@ -17,7 +17,7 @@ export const HOME_STORY_KEYS = [
     tone: 'emerald',
     image: '/stories/store.webp',
     cta: 'catalog',
-    slides: ['store.0', 'store.1', 'store.2'],
+    slides: ['store.0', 'store.1', 'store.2', 'store.3'],
   },
   {
     key: 'catalog',
@@ -25,7 +25,7 @@ export const HOME_STORY_KEYS = [
     tone: 'cyan',
     image: '/stories/catalog.webp',
     cta: 'catalog',
-    slides: ['catalog.0', 'catalog.1', 'catalog.2'],
+    slides: ['catalog.0', 'catalog.1', 'catalog.2', 'catalog.3'],
   },
   {
     key: 'scan',
@@ -41,7 +41,7 @@ export const HOME_STORY_KEYS = [
     tone: 'teal',
     image: '/stories/fit.webp',
     cta: 'fit',
-    slides: ['fit.0', 'fit.1', 'fit.2'],
+    slides: ['fit.0', 'fit.1', 'fit.2', 'fit.3', 'fit.4'],
   },
   {
     key: 'ai',
@@ -49,7 +49,7 @@ export const HOME_STORY_KEYS = [
     tone: 'violet',
     image: '/stories/ai.webp',
     cta: 'ai',
-    slides: ['ai.0', 'ai.1', 'ai.2'],
+    slides: ['ai.0', 'ai.1', 'ai.2', 'ai.3'],
   },
 ]
 
@@ -238,9 +238,9 @@ export const KZ_POPULAR_BRAND_KEYWORDS = [
   'данон',
 ]
 
-export function getProductDisplayBadges(product) {
-  const badges = []
-  if (!product) return badges
+export function getProductBadgeSummary(product) {
+  const allBadges = []
+  if (!product) return { badges: [], extraCount: 0 }
 
   // 1. Скидка (если есть)
   const discountPercent = product.discountPercent ?? product.discount_percent
@@ -248,7 +248,7 @@ export function getProductDisplayBadges(product) {
   const oldPrice = product.oldPriceKzt ?? product.old_price_kzt ?? 0
 
   if (typeof discountPercent === 'number' && discountPercent > 0) {
-    badges.push({
+    allBadges.push({
       key: 'discount',
       type: 'discount',
       label: `-${discountPercent}%`,
@@ -256,7 +256,7 @@ export function getProductDisplayBadges(product) {
   } else if (oldPrice > price && price > 0) {
     const pct = Math.round((1 - price / oldPrice) * 100)
     if (pct > 0) {
-      badges.push({
+      allBadges.push({
         key: 'discount',
         type: 'discount',
         label: `-${pct}%`,
@@ -268,7 +268,7 @@ export function getProductDisplayBadges(product) {
   const halal = (product.halalStatus || product.halal_status || '').toLowerCase()
   const isHalal = halal === 'certified' || halal === 'halal' || halal === 'yes'
   if (isHalal) {
-    badges.push({
+    allBadges.push({
       key: 'halal',
       type: 'halal',
       label: 'Халал',
@@ -279,17 +279,50 @@ export function getProductDisplayBadges(product) {
   const dietTags = product.dietTags || product.diet_tags || product.diet_tags_json || []
   const tags = Array.isArray(dietTags) ? dietTags : []
 
+  if (tags.includes('sugar_free')) {
+    allBadges.push({ key: 'sugar_free', type: 'diet', label: 'Без сахара' })
+  }
   if (tags.includes('lactose_free')) {
-    badges.push({ key: 'lactose_free', type: 'diet', label: 'Без лактозы' })
-  } else if (tags.includes('sugar_free')) {
-    badges.push({ key: 'sugar_free', type: 'diet', label: 'Без сахара' })
-  } else if (tags.includes('gluten_free')) {
-    badges.push({ key: 'gluten_free', type: 'diet', label: 'Без глютена' })
-  } else if (tags.includes('vegan')) {
-    badges.push({ key: 'vegan', type: 'diet', label: 'Веган' })
+    allBadges.push({ key: 'lactose_free', type: 'diet', label: 'Без лактозы' })
+  }
+  if (tags.includes('gluten_free')) {
+    allBadges.push({ key: 'gluten_free', type: 'diet', label: 'Без глютена' })
+  }
+  if (tags.includes('vegan')) {
+    allBadges.push({ key: 'vegan', type: 'diet', label: 'Веган' })
+  }
+  if (tags.includes('keto')) {
+    allBadges.push({ key: 'keto', type: 'diet', label: 'Кето' })
+  }
+  if (tags.includes('vegetarian')) {
+    allBadges.push({ key: 'vegetarian', type: 'diet', label: 'Вегетариан' })
   }
 
-  return badges.slice(0, 2)
+  if (allBadges.length <= 1) {
+    return { badges: allBadges, extraCount: 0 }
+  }
+
+  const first = allBadges[0]
+  const second = allBadges[1]
+  const combinedLength = (first?.label?.length || 0) + (second?.label?.length || 0)
+
+  if (combinedLength > 16) {
+    return {
+      badges: [first],
+      extraCount: allBadges.length - 1,
+    }
+  }
+
+  return {
+    badges: allBadges.slice(0, 2),
+    extraCount: Math.max(0, allBadges.length - 2),
+  }
+}
+
+export function getProductDisplayBadges(product) {
+  if (!product) return []
+  const summary = getProductBadgeSummary(product)
+  return summary.badges
 }
 
 const POPULARITY_STORAGE_PREFIX = 'korset_store_pop_'
@@ -435,10 +468,25 @@ export function getShowcaseProducts(catalogProducts = [], limit = 12, popularity
     }
   }
 
-  return selected
+  // Демо-выборка для визуальной проверки всех тегов покупателем:
+  // гарантируем наличие товаров с каждым типом бейджа среди первых карточек
+  const previewTags = ['sugar_free', 'lactose_free', 'gluten_free', 'vegan', 'keto']
+  let tagIdx = 0
+  return selected.map((p, idx) => {
+    const existingTags = p.dietTags || p.diet_tags || []
+    if (idx > 0 && tagIdx < previewTags.length && existingTags.length === 0) {
+      const demoTag = previewTags[tagIdx++]
+      return {
+        ...p,
+        dietTags: [demoTag],
+      }
+    }
+    return p
+  })
 }
 
 const STORY_SEEN_PREFIX = 'korset_story_seen_'
+const STORY_PROGRESS_PREFIX = 'korset_story_progress_'
 
 export function loadSeenStories(slug) {
   if (typeof window === 'undefined') return new Set()
@@ -459,19 +507,90 @@ export function saveSeenStories(slug, seenSet) {
   }
 }
 
+export function loadStoryProgress(slug) {
+  if (typeof window === 'undefined' || !slug) return {}
+  try {
+    const raw = window.localStorage.getItem(STORY_PROGRESS_PREFIX + slug)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+export function saveStoryProgress(slug, progressMap) {
+  if (typeof window === 'undefined' || !slug) return
+  try {
+    window.localStorage.setItem(STORY_PROGRESS_PREFIX + slug, JSON.stringify(progressMap || {}))
+  } catch {
+    /* quota exceeded — silently ignore */
+  }
+}
+
+export function recordStorySlideView(slug, storyKey, slideIndex, totalSlides = 3) {
+  if (!slug || !storyKey) return { progressMap: {}, isFullySeen: false }
+  const current = loadStoryProgress(slug)
+  const currentViewed = Number(current[storyKey]) || 0
+  const nextViewed = Math.min(totalSlides, Math.max(currentViewed, Number(slideIndex) + 1))
+  const updated = { ...current, [storyKey]: nextViewed }
+  saveStoryProgress(slug, updated)
+
+  let isFullySeen = false
+  if (nextViewed >= totalSlides) {
+    isFullySeen = true
+    markStorySeen(slug, storyKey)
+  }
+  return { progressMap: updated, isFullySeen }
+}
+
 export function markStorySeen(slug, storyKey) {
   const seen = loadSeenStories(slug)
-  if (seen.has(storyKey)) return seen
-  seen.add(storyKey)
-  saveSeenStories(slug, seen)
+  if (!seen.has(storyKey)) {
+    seen.add(storyKey)
+    saveSeenStories(slug, seen)
+  }
+  // Also set progress to full if available
+  const currentProgress = loadStoryProgress(slug)
+  const storyDef = HOME_STORY_KEYS.find((s) => s.key === storyKey)
+  const total = storyDef?.slides?.length || 3
+  if ((currentProgress[storyKey] || 0) < total) {
+    saveStoryProgress(slug, { ...currentProgress, [storyKey]: total })
+  }
   return seen
 }
 
-export function sortStoriesBySeen(stories, seenSet) {
+export function clearSeenStories(slug) {
+  if (typeof window === 'undefined') return
+  try {
+    if (slug) {
+      window.localStorage.removeItem(STORY_SEEN_PREFIX + slug)
+      window.localStorage.removeItem(STORY_PROGRESS_PREFIX + slug)
+    } else {
+      const keys = Object.keys(window.localStorage)
+      for (const k of keys) {
+        if (k.startsWith(STORY_SEEN_PREFIX) || k.startsWith(STORY_PROGRESS_PREFIX)) {
+          window.localStorage.removeItem(k)
+        }
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+export function sortStoriesBySeen(stories, seenSet, progressMap = {}) {
   const unseen = []
   const seen = []
   for (const story of stories) {
-    if (seenSet.has(story.key)) {
+    const total = story.slides?.length || 3
+    const viewed =
+      progressMap[story.key] !== undefined
+        ? progressMap[story.key]
+        : seenSet.has(story.key)
+          ? total
+          : 0
+    const isFullySeen = viewed >= total || seenSet.has(story.key)
+
+    if (isFullySeen) {
       seen.push(story)
     } else {
       unseen.push(story)

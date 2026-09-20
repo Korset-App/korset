@@ -24,6 +24,8 @@
   "profile.scannerSettings": "Звук",
   "profile.languageHeader": "Язык",
   "profile.theme": "Тема",
+  "profile.resetStories": "Сбросить историю сторис",
+  "profile.resetStoriesSub": "Пометить все истории как новые",
   "profile.sectionSupport": "Помощь и инфо",
   "profile.faq": "Вопросы и ответы",
   "profile.feedback": "Обратная связь",
