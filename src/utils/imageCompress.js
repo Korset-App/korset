@@ -70,7 +70,7 @@ export function compressBanner(file) {
 }
 
 export function compressSubmissionPhoto(file) {
-  return compressImage(file, 1600, 0.82)
+  return compressImage(file, 1200, 0.78)
 }
 
 export function blobToDataUrl(blob) {
