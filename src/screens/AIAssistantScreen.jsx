@@ -12,7 +12,13 @@ import { CartIcon } from '../components/icons/CartIcon.jsx'
 import { CameraIcon } from '../components/icons/CameraIcon.jsx'
 import { GalleryIcon } from '../components/icons/GalleryIcon.jsx'
 import { IconGallery } from '../components/icons/IconGallery.jsx'
-import { CloseIcon, PlusIcon, SearchIcon } from '../components/icons/index.js'
+import {
+  CloseIcon,
+  PlusIcon,
+  SearchIcon,
+  MicrophoneIcon,
+  SendIcon,
+} from '../components/icons/index.js'
 import { askGeneralAI, askPackageImageAI, transcribeVoiceInput } from '../services/ai.js'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { useProfile } from '../contexts/ProfileContext.jsx'
@@ -1184,9 +1190,15 @@ export default function AIAssistantScreen() {
                     : t(recording ? 'ai.voice.stop' : 'ai.voice.start')
                 }
               >
-                <span className="material-symbols-outlined ai-voice-button__icon">
-                  {voiceProcessing ? 'progress_activity' : recording ? 'stop' : 'mic'}
-                </span>
+                {voiceProcessing ? (
+                  <span className="material-symbols-outlined ai-voice-button__icon">
+                    progress_activity
+                  </span>
+                ) : recording ? (
+                  <span className="material-symbols-outlined ai-voice-button__icon">stop</span>
+                ) : (
+                  <MicrophoneIcon size={18} />
+                )}
               </button>
             </div>
             <button
@@ -1195,17 +1207,7 @@ export default function AIAssistantScreen() {
               disabled={loading || (!input.trim() && !selectedImage)}
               className="ai-composer__send"
             >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              >
-                <path d="M12 19V5M5 12l7-7 7 7" />
-              </svg>
+              <SendIcon size={20} />
             </button>
           </div>
         </div>

@@ -472,31 +472,38 @@ export default function ScanScreen() {
         const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import('html5-qrcode')
         if (!mountedRef.current || startSeq !== startSeqRef.current) return
 
-        const scanner = new Html5Qrcode(ID, {
-          verbose: false,
-          formatsToSupport: [
-            Html5QrcodeSupportedFormats.EAN_13,
-            Html5QrcodeSupportedFormats.EAN_8,
-            Html5QrcodeSupportedFormats.CODE_128,
-            Html5QrcodeSupportedFormats.CODE_39,
-            Html5QrcodeSupportedFormats.UPC_A,
-            Html5QrcodeSupportedFormats.UPC_E,
-          ],
-          experimentalFeatures: { useBarCodeDetectorIfSupported: true },
-        })
-        scannerRef.current = scanner
+        const createScanner = () =>
+          new Html5Qrcode(ID, {
+            verbose: false,
+            formatsToSupport: [
+              Html5QrcodeSupportedFormats.EAN_13,
+              Html5QrcodeSupportedFormats.EAN_8,
+              Html5QrcodeSupportedFormats.CODE_128,
+              Html5QrcodeSupportedFormats.CODE_39,
+              Html5QrcodeSupportedFormats.UPC_A,
+              Html5QrcodeSupportedFormats.UPC_E,
+            ],
+            experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+          })
 
         const scanConfig = {
           fps: 15,
+          qrbox: (viewfinderWidth, viewfinderHeight) => {
+            const width = Math.min(
+              viewfinderWidth - 16,
+              Math.max(240, Math.floor(viewfinderWidth * 0.9))
+            )
+            const height = Math.min(
+              viewfinderHeight - 16,
+              Math.max(180, Math.floor(viewfinderHeight * 0.6))
+            )
+            return {
+              width: Math.max(120, width),
+              height: Math.max(120, height),
+            }
+          },
           disableFlip: false,
         }
-
-        const hdVideo = {
-          width: { min: 1280, ideal: 1920 },
-          height: { min: 720, ideal: 1080 },
-        }
-
-        const selectedCamId = cameraList[idx]?.id
 
         const onScanSuccess = async (ean) => {
           if (busyRef.current || !mountedRef.current) return
@@ -561,18 +568,40 @@ export default function ScanScreen() {
           }
         }
 
+        let defaultCamConfig
+        if (cameraList.length > 0 && cameraList[idx]?.id) {
+          defaultCamConfig = { deviceId: { exact: cameraList[idx].id } }
+        } else {
+          defaultCamConfig = { facingMode: 'environment' }
+        }
+
         const cameraAttempts = [
-          selectedCamId ? { deviceId: { exact: selectedCamId }, ...hdVideo } : null,
-          selectedCamId ? { deviceId: { exact: selectedCamId } } : null,
-          { facingMode: { ideal: 'environment' }, ...hdVideo },
-          { facingMode: { ideal: 'environment' } },
+          defaultCamConfig,
+          cameraList[idx]?.id || null,
           { facingMode: 'environment' },
-          cameraList[0]?.id,
+          cameraList[0]?.id || null,
+          { facingMode: 'user' },
         ].filter(Boolean)
+
         let lastStartError = null
         for (const config of cameraAttempts) {
           if (!mountedRef.current || startSeq !== startSeqRef.current) return
           try {
+            if (scannerRef.current) {
+              try {
+                await scannerRef.current.stop()
+              } catch {
+                /* noop */
+              }
+              try {
+                scannerRef.current.clear()
+              } catch {
+                /* noop */
+              }
+              scannerRef.current = null
+            }
+            const scanner = createScanner()
+            scannerRef.current = scanner
             await scanner.start(config, scanConfig, onScanSuccess, () => {})
             if (!mountedRef.current || startSeq !== startSeqRef.current) {
               try {
@@ -593,8 +622,8 @@ export default function ScanScreen() {
 
         if (!mountedRef.current) {
           try {
-            await scanner.stop()
-            scanner.clear()
+            await scannerRef.current?.stop()
+            scannerRef.current?.clear()
           } catch {
             /* noop */
           }
@@ -602,7 +631,7 @@ export default function ScanScreen() {
         }
         setStatus('ready')
         try {
-          const settings = scanner.getRunningTrackSettings()
+          const settings = scannerRef.current?.getRunningTrackSettings()
           const host = document.getElementById('korset-scan-view')
           if (host && settings?.facingMode === 'user') {
             host.classList.add('scan-video-mirrored')
@@ -628,8 +657,14 @@ export default function ScanScreen() {
               if (caps.exposureMode?.includes('continuous')) {
                 advanced.push({ exposureMode: 'continuous' })
               }
-              if (advanced.length > 0) {
-                track.applyConstraints({ advanced }).catch(() => {})
+              const trackConstraints = {}
+              if (advanced.length > 0) trackConstraints.advanced = advanced
+              if (caps.width?.max && caps.width.max >= 1280) {
+                trackConstraints.width = { ideal: 1920 }
+                trackConstraints.height = { ideal: 1080 }
+              }
+              if (Object.keys(trackConstraints).length > 0) {
+                track.applyConstraints(trackConstraints).catch(() => {})
               }
             }
           }

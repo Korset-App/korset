@@ -23,6 +23,7 @@ import {
   AlertTriangleIcon,
   ArrowBackIcon,
   InventoryIcon,
+  SendIcon,
   TrashIcon,
 } from '../components/icons/index.js'
 
@@ -869,17 +870,7 @@ export default function AIScreen() {
               transition: 'all 0.2s ease',
             }}
           >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="var(--text-inverse)"
-              strokeWidth="2"
-              strokeLinecap="round"
-            >
-              <path d="M12 19V5M5 12l7-7 7 7" />
-            </svg>
+            <SendIcon size={20} color="var(--text-inverse)" />
           </button>
         </div>
       </div>

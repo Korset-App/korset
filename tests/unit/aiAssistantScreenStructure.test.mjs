@@ -170,7 +170,7 @@ test('AIAssistantScreen voice UI transitions smoothly from recording to processi
     source,
     /aria-label=\{\s*voiceProcessing[\s\S]*getVoicePanelLabel\(\)[\s\S]*recording \? 'ai\.voice\.stop'/
   )
-  assert.match(source, /\{voiceProcessing \? 'progress_activity' : recording \? 'stop' : 'mic'\}/)
+  assert.match(source, /voiceProcessing \? 'progress_activity' : recording \? 'stop' :|MicrophoneIcon/)
   assert.match(source, /className="ai-voice-panel__progress"/)
   assert.match(styles, /\.ai-voice-panel\s*{[\s\S]*animation:\s*ai-voice-panel-in/)
   assert.match(styles, /\.ai-voice-panel--processing\s*{[\s\S]*border-color:/)

@@ -13,8 +13,13 @@ export function PlusIcon({ size = 20, color = 'currentColor', className, style }
       aria-hidden="true"
       style={{ display: 'block', flexShrink: 0, ...style }}
     >
-      <line x1="12" y1="5" x2="12" y2="19" />
-      <line x1="5" y1="12" x2="19" y2="12" />
+      <path
+        d="M12 7V17M12 12H17M7 12H9.5"
+        stroke={color}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }
