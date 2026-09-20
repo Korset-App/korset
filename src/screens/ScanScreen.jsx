@@ -450,18 +450,24 @@ export default function ScanScreen() {
   const stopScanner = useCallback(async () => {
     try {
       if (scannerRef.current) {
-        await scannerRef.current.stop()
+        if (scannerRef.current.isScanning) {
+          await scannerRef.current.stop()
+        }
         scannerRef.current.clear()
         scannerRef.current = null
       }
     } catch {
       /* noop */
     }
+    const container = document.getElementById(ID)
+    if (container) {
+      container.innerHTML = ''
+    }
     trackRef.current = null
   }, [])
 
   const startScanner = useCallback(
-    async (cameraList, idx) => {
+    async (cameraList = [], idx = 0) => {
       const startSeq = ++startSeqRef.current
       busyRef.current = true
       setStatus('starting')
@@ -483,7 +489,6 @@ export default function ScanScreen() {
               Html5QrcodeSupportedFormats.UPC_E,
               Html5QrcodeSupportedFormats.CODE_128,
             ],
-            experimentalFeatures: { useBarCodeDetectorIfSupported: true },
           })
 
         const scanConfig = {
@@ -602,20 +607,21 @@ export default function ScanScreen() {
           }
         }
 
-        let defaultCamConfig
-        if (cameraList.length > 0 && cameraList[idx]?.id) {
-          defaultCamConfig = { deviceId: { exact: cameraList[idx].id } }
+        let cameraAttempts = []
+        if (idx > 0 && cameraList[idx]?.id) {
+          cameraAttempts = [
+            cameraList[idx].id,
+            { deviceId: cameraList[idx].id },
+            { facingMode: 'environment' },
+            { facingMode: 'user' },
+          ]
         } else {
-          defaultCamConfig = { facingMode: 'environment' }
+          cameraAttempts = [
+            { facingMode: 'environment' },
+            cameraList[0]?.id || null,
+            { facingMode: 'user' },
+          ].filter(Boolean)
         }
-
-        const cameraAttempts = [
-          defaultCamConfig,
-          cameraList[idx]?.id || null,
-          { facingMode: 'environment' },
-          cameraList[0]?.id || null,
-          { facingMode: 'user' },
-        ].filter(Boolean)
 
         let lastStartError = null
         for (const config of cameraAttempts) {
@@ -623,7 +629,9 @@ export default function ScanScreen() {
           try {
             if (scannerRef.current) {
               try {
-                await scannerRef.current.stop()
+                if (scannerRef.current.isScanning) {
+                  await scannerRef.current.stop()
+                }
               } catch {
                 /* noop */
               }
@@ -634,12 +642,15 @@ export default function ScanScreen() {
               }
               scannerRef.current = null
             }
+            const container = document.getElementById(ID)
+            if (container) container.innerHTML = ''
+
             const scanner = createScanner()
             scannerRef.current = scanner
             await scanner.start(config, scanConfig, onScanSuccess, () => {})
             if (!mountedRef.current || startSeq !== startSeqRef.current) {
               try {
-                await scanner.stop()
+                if (scanner.isScanning) await scanner.stop()
                 scanner.clear()
               } catch {
                 /* noop */
@@ -656,7 +667,7 @@ export default function ScanScreen() {
 
         if (!mountedRef.current) {
           try {
-            await scannerRef.current?.stop()
+            if (scannerRef.current?.isScanning) await scannerRef.current.stop()
             scannerRef.current?.clear()
           } catch {
             /* noop */
@@ -688,6 +699,22 @@ export default function ScanScreen() {
         } catch {
           /* noop */
         }
+
+        // Quietly populate camera list in background once permission is active
+        try {
+          const list = await Html5Qrcode.getCameras()
+          if (mountedRef.current && list && list.length > 0) {
+            const sorted = [...list].sort((a, b) => {
+              const backRe = /back|rear|environment|задн|тыльн|сзади|основн|арт|артқы|негізгі/i
+              const aBack = backRe.test(a.label) ? 1 : 0
+              const bBack = backRe.test(b.label) ? 1 : 0
+              return bBack - aBack
+            })
+            setCameras(sorted)
+          }
+        } catch {
+          /* noop */
+        }
       } catch (e) {
         busyRef.current = false
         if (!mountedRef.current) return
@@ -703,24 +730,7 @@ export default function ScanScreen() {
 
   useEffect(() => {
     mountedRef.current = true
-    async function init() {
-      try {
-        const { Html5Qrcode } = await import('html5-qrcode')
-        const list = await Html5Qrcode.getCameras()
-        if (!mountedRef.current) return
-        const sorted = [...(list || [])].sort((a, b) => {
-          const backRe = /back|rear|environment|задн|тыльн|сзади|основн|арт|артқы|негізгі/i
-          const aBack = backRe.test(a.label) ? 1 : 0
-          const bBack = backRe.test(b.label) ? 1 : 0
-          return bBack - aBack
-        })
-        setCameras(sorted)
-        startScanner(sorted, 0)
-      } catch {
-        if (mountedRef.current) startScanner([], 0)
-      }
-    }
-    init()
+    startScanner([], 0)
     return () => {
       mountedRef.current = false
       startSeqRef.current += 1
@@ -730,7 +740,7 @@ export default function ScanScreen() {
       clearTimeout(focusTimer.current)
       cleanupAudioContext()
     }
-  }, []) // eslint-disable-line
+  }, [startScanner, stopScanner])
 
   const switchCamera = useCallback(async () => {
     if (cameras.length < 2) return
