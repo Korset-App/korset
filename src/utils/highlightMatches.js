@@ -1,4 +1,4 @@
-function highlightMatches(text, query) {
+export function highlightMatches(text, query) {
   if (!text || !query) return text
   var tokens = query
     .trim()

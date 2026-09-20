@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { Navigate, Link } from 'react-router-dom'
 import './SuperAdminStoresScreen.css'

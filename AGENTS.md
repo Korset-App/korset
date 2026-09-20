@@ -24,6 +24,8 @@ Judge product decisions by B2B value: does this help sell or retain store subscr
 V1 scope is **grocery stores only**. No pharmacy, electronics, construction,
 alcohol/tobacco, or generic marketplace flows unless the user explicitly changes scope.
 
+EAN / Barcode accuracy is mission-critical: never guess, approximate, or typo barcode digits. Always double-check exact EAN strings against database records or scan events.
+
 ## Stack — do not substitute
 
 React 18 + Vite · JavaScript, **not** TypeScript · vanilla CSS, **not** Tailwind ·
