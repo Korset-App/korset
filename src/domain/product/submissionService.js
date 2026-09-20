@@ -76,7 +76,11 @@ export async function submitProductData({
 
     if (!response.ok) {
       const errJson = await response.json().catch(() => ({}))
-      return { ok: false, error: errJson.error || `HTTP_${response.status}` }
+      return {
+        ok: false,
+        error: errJson.error || `HTTP_${response.status}`,
+        errorCode: errJson.errorCode || `HTTP_${response.status}`,
+      }
     }
 
     const result = await response.json()

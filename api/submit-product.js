@@ -39,6 +39,7 @@ const ALLOWED_REASONS = new Set([
 function getAdminClient() {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  console.log('[submit-product] env check — url:', url ? 'SET' : 'MISSING', '| key:', key ? 'SET' : 'MISSING')
   if (!url || !key) return null
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
 }
@@ -52,13 +53,17 @@ export default async function handler(req, res) {
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).set(cors).json({ error: 'Method not allowed' })
+    return res.status(405).set(cors).json({ error: 'Method not allowed', errorCode: 'METHOD_NOT_ALLOWED' })
   }
 
   try {
     const admin = getAdminClient()
     if (!admin) {
-      return res.status(500).set(cors).json({ error: 'Server misconfigured' })
+      console.error('[submit-product] SUPABASE_SERVICE_ROLE_KEY or SUPABASE_URL missing from env')
+      return res.status(500).set(cors).json({
+        error: 'Server misconfigured: missing SUPABASE_SERVICE_ROLE_KEY',
+        errorCode: 'MISSING_ENV',
+      })
     }
 
     const {
@@ -77,21 +82,24 @@ export default async function handler(req, res) {
 
     const cleanEan = String(ean || '').trim()
     if (!VALID_EAN.test(cleanEan)) {
-      return res.status(400).set(cors).json({ error: 'Invalid EAN format' })
+      return res.status(400).set(cors).json({ error: 'Invalid EAN format', errorCode: 'INVALID_EAN' })
     }
 
-    const cleanClientToken = clientToken && typeof clientToken === 'string'
-      ? clientToken.slice(0, 64)
+    // client_token must be a valid UUID for the uuid column in postgres
+    const rawToken = clientToken && typeof clientToken === 'string' ? clientToken.trim() : ''
+    const cleanClientToken = VALID_UUID.test(rawToken)
+      ? rawToken
       : '00000000-0000-0000-0000-000000000000'
 
     // Resolve store_id if storeSlug provided
     let storeId = null
     if (storeSlug) {
-      const { data: store } = await admin
+      const { data: store, error: storeErr } = await admin
         .from('stores')
         .select('id')
         .eq('slug', storeSlug)
         .maybeSingle()
+      if (storeErr) console.warn('[submit-product] store lookup error:', storeErr)
       if (store?.id) storeId = store.id
     }
 
@@ -115,7 +123,10 @@ export default async function handler(req, res) {
 
         const buffer = Buffer.from(base64Data, 'base64')
         // Size guard: max 3MB per photo
-        if (buffer.length > 3 * 1024 * 1024) continue
+        if (buffer.length > 3 * 1024 * 1024) {
+          console.warn('[submit-product] photo too large, skipping:', buffer.length)
+          continue
+        }
 
         const label = item?.label ? `_${item.label.replace(/[^a-z0-9]/gi, '')}` : ''
         const fileName = `submissions/${cleanEan}/${Date.now()}_${i}${label}.${ext}`
@@ -133,7 +144,7 @@ export default async function handler(req, res) {
             uploadedPhotoUrls.push(pubData.publicUrl)
           }
         } else {
-          console.error('[submit-product] upload error:', uploadError)
+          console.error('[submit-product] upload error:', uploadError.message, uploadError)
         }
       }
     }
@@ -166,6 +177,8 @@ export default async function handler(req, res) {
       metadata_json: metadataJson,
     }
 
+    console.log('[submit-product] inserting, ean:', cleanEan, 'type:', type, 'reason:', cleanReason, 'photos:', uploadedPhotoUrls.length)
+
     const { data: event, error: insertError } = await admin
       .from('product_correction_events')
       .insert(insertPayload)
@@ -173,10 +186,15 @@ export default async function handler(req, res) {
       .single()
 
     if (insertError) {
-      console.error('[submit-product] insert error:', insertError)
-      return res.status(500).set(cors).json({ error: 'Database insert failed' })
+      console.error('[submit-product] insert error code:', insertError.code, '| message:', insertError.message, '| details:', insertError.details, '| hint:', insertError.hint)
+      return res.status(500).set(cors).json({
+        error: `Database insert failed: ${insertError.message}`,
+        errorCode: insertError.code || 'DB_INSERT_FAILED',
+        hint: insertError.hint || null,
+      })
     }
 
+    console.log('[submit-product] success, id:', event?.id)
     return res.status(200).set(cors).json({
       ok: true,
       id: event?.id,
@@ -184,6 +202,9 @@ export default async function handler(req, res) {
     })
   } catch (err) {
     console.error('[submit-product] exception:', err)
-    return res.status(500).set(cors).json({ error: 'Internal server error' })
+    return res.status(500).set(cors).json({
+      error: `Internal server error: ${err?.message}`,
+      errorCode: 'EXCEPTION',
+    })
   }
 }

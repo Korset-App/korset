@@ -126,7 +126,9 @@ function ProductSubmissionContent({
       }, 1200)
     } else {
       setStatus('error')
-      setErrorMessage(t('scan.submission.error'))
+      const codeHint = result.errorCode ? ` [${result.errorCode}]` : ''
+      const detail = result.error ? ` (${result.error})` : ''
+      setErrorMessage(`${t('scan.submission.error')}${codeHint}${detail}`)
     }
   }
 
