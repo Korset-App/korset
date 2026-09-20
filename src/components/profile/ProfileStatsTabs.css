@@ -156,7 +156,7 @@
 }
 
 .stat-card__label {
-  font-size: 13px;
+  font-size: clamp(10.5px, 3.2vw, 13px);
   font-weight: 600;
   color: var(--text-sub);
   letter-spacing: 0.2px;

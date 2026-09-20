@@ -114,7 +114,7 @@
 .catalog-product-card--list .catalog-product-card__badges[data-badge-count='1'],
 .catalog-product-card--list .catalog-product-card__badges[data-badge-count='2'],
 .catalog-product-card--list .catalog-product-card__badges[data-badge-count='3'] {
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 4px;
 }
 
