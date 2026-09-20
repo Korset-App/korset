@@ -10,6 +10,7 @@ function LightboxModal({ images, initialIndex = 0, onClose }) {
   const [pos, setPos] = useState({ x: 0, y: 0 })
   const startDistanceRef = useRef(null)
   const startPosRef = useRef(null)
+  const swipeStartRef = useRef(null)
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
@@ -28,14 +29,23 @@ function LightboxModal({ images, initialIndex = 0, onClose }) {
       )
       startDistanceRef.current = dist
       setIsDragging(true)
-    } else if (e.touches.length === 1 && scale > 1) {
-      startPosRef.current = {
-        touchX: e.touches[0].clientX,
-        touchY: e.touches[0].clientY,
-        posX: pos.x,
-        posY: pos.y,
+    } else if (e.touches.length === 1) {
+      if (scale > 1) {
+        startPosRef.current = {
+          touchX: e.touches[0].clientX,
+          touchY: e.touches[0].clientY,
+          posX: pos.x,
+          posY: pos.y,
+        }
+        setIsDragging(true)
+      } else {
+        // Track single-finger swipe when scale is 1
+        swipeStartRef.current = {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY,
+          time: Date.now(),
+        }
       }
-      setIsDragging(true)
     }
   }
 
@@ -58,13 +68,30 @@ function LightboxModal({ images, initialIndex = 0, onClose }) {
     }
   }
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e) => {
     startDistanceRef.current = null
     startPosRef.current = null
     setIsDragging(false)
     if (scale <= 1) {
       setPos({ x: 0, y: 0 })
+      // Check horizontal swipe if not zoomed
+      if (swipeStartRef.current && e.changedTouches?.length > 0) {
+        const touch = e.changedTouches[0]
+        const deltaX = touch.clientX - swipeStartRef.current.x
+        const deltaY = touch.clientY - swipeStartRef.current.y
+        const timeDiff = Date.now() - swipeStartRef.current.time
+
+        // Swipe left (next photo) or right (previous photo)
+        if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) && timeDiff < 400) {
+          if (deltaX < 0 && index < images.length - 1) {
+            setIndex((prev) => prev + 1)
+          } else if (deltaX > 0 && index > 0) {
+            setIndex((prev) => prev - 1)
+          }
+        }
+      }
     }
+    swipeStartRef.current = null
   }
 
   const handleDoubleTap = () => {
@@ -136,7 +163,7 @@ function LightboxModal({ images, initialIndex = 0, onClose }) {
         </button>
       </div>
 
-      {/* Image container */}
+      {/* Image container with navigation arrows */}
       <div
         style={{
           flex: 1,
@@ -152,6 +179,39 @@ function LightboxModal({ images, initialIndex = 0, onClose }) {
         onDoubleClick={handleDoubleTap}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Previous Image Arrow */}
+        {images.length > 1 && index > 0 && scale === 1 && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              setIndex((prev) => prev - 1)
+            }}
+            style={{
+              position: 'absolute',
+              left: 12,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: 44,
+              height: 44,
+              borderRadius: '50%',
+              background: 'rgba(0, 0, 0, 0.5)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              zIndex: 5,
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 24 }}>
+              chevron_left
+            </span>
+          </button>
+        )}
+
+        {/* Image */}
         <img
           src={images[index]}
           alt=""
@@ -165,6 +225,38 @@ function LightboxModal({ images, initialIndex = 0, onClose }) {
           }}
           draggable={false}
         />
+
+        {/* Next Image Arrow */}
+        {images.length > 1 && index < images.length - 1 && scale === 1 && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              setIndex((prev) => prev + 1)
+            }}
+            style={{
+              position: 'absolute',
+              right: 12,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: 44,
+              height: 44,
+              borderRadius: '50%',
+              background: 'rgba(0, 0, 0, 0.5)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              zIndex: 5,
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 24 }}>
+              chevron_right
+            </span>
+          </button>
+        )}
       </div>
 
       {/* Bottom Thumbnail Bar / Switcher if > 1 image */}

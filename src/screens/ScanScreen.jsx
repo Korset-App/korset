@@ -649,23 +649,6 @@ export default function ScanScreen() {
             const track = videoEl.srcObject.getVideoTracks()[0]
             if (track) {
               trackRef.current = track
-              const caps = track.getCapabilities?.() || {}
-              const advanced = []
-              if (caps.focusMode?.includes('continuous')) {
-                advanced.push({ focusMode: 'continuous' })
-              }
-              if (caps.exposureMode?.includes('continuous')) {
-                advanced.push({ exposureMode: 'continuous' })
-              }
-              const trackConstraints = {}
-              if (advanced.length > 0) trackConstraints.advanced = advanced
-              if (caps.width?.max && caps.width.max >= 1280) {
-                trackConstraints.width = { ideal: 1920 }
-                trackConstraints.height = { ideal: 1080 }
-              }
-              if (Object.keys(trackConstraints).length > 0) {
-                track.applyConstraints(trackConstraints).catch(() => {})
-              }
             }
           }
         } catch {
