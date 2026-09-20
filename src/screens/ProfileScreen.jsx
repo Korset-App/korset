@@ -258,7 +258,7 @@ export function DietIcon({ name, size = 24 }) {
       </svg>
     ),
     sulfites: (
-      <svg width={w} height={h} viewBox="15 5 108 125" fill="currentColor">
+      <svg width={w} height={h} viewBox="0 0 140 140" fill="currentColor">
         <g transform="translate(0.000000,135.000000) scale(0.100000,-0.100000)">
           <path d="M425 1225 c-45 -44 -22 -102 43 -107 l37 -3 0 -115 -1 -115 -127 -332 c-70 -183 -127 -340 -127 -348 0 -9 11 -27 25 -40 l24 -25 336 0 c322 0 336 1 355 20 11 11 20 33 20 48 0 16 -56 176 -125 356 l-125 328 0 114 0 114 33 0 c63 0 94 74 47 112 -20 16 -44 18 -207 18 -182 0 -184 0 -208 -25z m405 -24 c13 -25 13 -27 -6 -45 -9 -9 -32 -16 -55 -16 l-39 0 0 -124 c0 -123 0 -125 45 -242 29 -74 42 -121 36 -127 -23 -23 -99 -20 -175 8 -63 23 -86 27 -131 21 l-55 -6 31 82 c55 147 60 169 57 279 l-3 104 -40 3 c-45 4 -65 17 -65 41 0 37 19 41 207 41 170 0 183 -1 193 -19z m-152 -688 c5 -17 -26 -29 -40 -15 -6 6 -7 15 -3 22 9 14 37 9 43 -7z m-133 -113 c0 -18 -6 -26 -23 -28 -27 -4 -40 22 -22 44 19 22 45 13 45 -16z m222 -106 c6 -16 -23 -54 -42 -54 -7 0 -20 9 -29 19 -30 33 7 79 47 59 10 -5 21 -16 24 -24z" />
         </g>
@@ -267,7 +267,24 @@ export function DietIcon({ name, size = 24 }) {
   }
   icons.nutrition = icons.celery
   icons.science = icons.sulfites
-  return icons[name] || null
+  const svg = icons[name] || null
+  if (!svg) return null
+  return (
+    <span
+      style={{
+        width: size,
+        height: size,
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        lineHeight: 1,
+        overflow: 'visible',
+      }}
+    >
+      {svg}
+    </span>
+  )
 }
 
 import { useUserData } from '../contexts/UserDataContext.jsx'

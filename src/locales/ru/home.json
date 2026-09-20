@@ -1,5 +1,7 @@
 {
   "home.welcome": "Добро пожаловать",
+  "home.storeClosesAt": "до {time}",
+  "home.storeOpensAt": "с {time}",
   "home.intro": "Сканируй товары и узнай — подходят ли они именно тебе",
   "home.scanBtn": "Сканировать штрихкод",
   "home.scanSub": "Наведи на любой товар в магазине",
