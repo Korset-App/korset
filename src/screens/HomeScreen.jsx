@@ -911,26 +911,22 @@ export default function HomeScreen() {
               </div>
 
               <div className="home-store-badge__sub">
-                {schedule.isConfigured && (
-                  <span
-                    className={`home-status-dot${schedule.isOpen ? ' is-open' : ' is-closed'}`}
-                  />
-                )}
-                <span className="home-store-badge__status-text">
-                  {schedule.isOpen
-                    ? t('home.storeClosesAt', { time: schedule.closes }) ||
-                      `Открыто до ${schedule.closes}`
-                    : schedule.isConfigured
-                      ? t('home.storeOpensAt', { time: schedule.opens }) ||
-                        `Закрыто до ${schedule.opens}`
-                      : storeHours}
-                </span>
-                {storeAddress && (
-                  <>
-                    <span className="home-store-badge__sep">·</span>
-                    <span className="home-store-badge__address">{storeAddress}</span>
-                  </>
-                )}
+                <div className="home-store-badge__status-line">
+                  {schedule.isConfigured && (
+                    <span
+                      className={`home-status-dot${schedule.isOpen ? ' is-open' : ' is-closed'}`}
+                    />
+                  )}
+                  <span className="home-store-badge__status-text">
+                    {schedule.isOpen
+                      ? t('home.storeClosesAt', { time: schedule.closes }) ||
+                        `до ${schedule.closes}`
+                      : schedule.isConfigured
+                        ? t('home.storeOpensAt', { time: schedule.opens }) || `с ${schedule.opens}`
+                        : storeHours}
+                  </span>
+                </div>
+                {storeAddress && <span className="home-store-badge__address">{storeAddress}</span>}
               </div>
             </div>
           </div>

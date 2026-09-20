@@ -1926,8 +1926,8 @@ export default function ProfileScreen() {
                 {
                   icon: (
                     <svg
-                      width="18"
-                      height="18"
+                      width="21"
+                      height="21"
                       viewBox="8 8 176 176"
                       fill="none"
                       xmlns="http://www.w3.org/2000/svg"
