@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useI18n } from '../../i18n/index.js'
 import { ALLERGENS } from '../../constants/allergens.js'
@@ -136,7 +137,9 @@ export default function FitCheckDrawer({
     ? 0
     : (draftHalal ? 1 : 0) + draftDietGoals.length + draftAllergens.length
 
-  return (
+  if (typeof document === 'undefined') return null
+
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -312,6 +315,7 @@ export default function FitCheckDrawer({
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   )
 }

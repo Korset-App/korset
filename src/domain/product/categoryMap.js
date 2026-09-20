@@ -24,7 +24,7 @@ export const CATEGORY_ICONS = {
 export const CATEGORIES = {
   dairy_eggs: {
     ru: 'Молочные продукты и яйца',
-    kz: 'Сүт өнімдері мен жұмыртқа',
+    kz: 'Сүт пен жұмыртқа',
     subcategories: {
       milk: { ru: 'Молоко', kz: 'Сүт' },
       fermented: { ru: 'Кисломолочные', kz: 'Қышқыл сүт' },
@@ -47,7 +47,7 @@ export const CATEGORIES = {
   },
   deli: {
     ru: 'Колбасы и деликатесы',
-    kz: 'Шұжық пен деликатес',
+    kz: 'Шұжық өнімдері',
     subcategories: {
       sausage: { ru: 'Колбасы и сосиски', kz: 'Шұжық пен сосиски' },
       pate: { ru: 'Паштеты', kz: 'Паштеттер' },
@@ -58,7 +58,7 @@ export const CATEGORIES = {
   },
   fish: {
     ru: 'Рыба и морепродукты',
-    kz: 'Балық пен теңіз өнімдері',
+    kz: 'Балық өнімдері',
     subcategories: {
       fish: { ru: 'Рыба', kz: 'Балық' },
       seafood: { ru: 'Морепродукты', kz: 'Теңіз өнімдері' },
@@ -146,7 +146,7 @@ export const CATEGORIES = {
   },
   frozen: {
     ru: 'Замороженные',
-    kz: 'Мұздатылған',
+    kz: 'Мұздатылған өнімдер',
     subcategories: {
       semi_finished: { ru: 'Полуфабрикаты', kz: 'Жартылай дайын өнімдер' },
       frozen_veg: { ru: 'Замороженные овощи', kz: 'Мұздатылған көкөніс' },

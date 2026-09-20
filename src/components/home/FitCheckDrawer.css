@@ -12,6 +12,10 @@ body.fitcheck-drawer-open .bottom-nav {
   transition: opacity 160ms ease, transform 220ms ease !important;
 }
 
+body.fitcheck-drawer-open .home-screen {
+  overflow: hidden !important;
+}
+
 .fitcheck-drawer-backdrop {
   position: fixed;
   inset: 0;

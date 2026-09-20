@@ -2290,35 +2290,36 @@ body {
 .catalog-category-card[data-variant='hero'] {
   grid-column: span 4;
   grid-row: span 3;
-  --cat-title-size: clamp(20px, 6vw, 28px);
-  --cat-image-scale: 1.03;
+  --cat-title-size: clamp(21px, 6vw, 26px);
+  --cat-image-scale: 1.02;
 }
 
 .catalog-category-card[data-variant='wide'] {
   grid-column: span 4;
   grid-row: span 2;
-  --cat-title-size: clamp(16px, 4.6vw, 21px);
-  --cat-image-scale: 1;
+  --cat-title-size: clamp(17px, 4.8vw, 21px);
+  --cat-image-scale: 0.96;
 }
 
 .catalog-category-card[data-variant='portrait'] {
   grid-column: span 2;
   grid-row: span 3;
-  --cat-title-size: clamp(14px, 3.8vw, 17px);
+  --cat-title-size: clamp(17px, 4.8vw, 21px);
   --cat-image-y: 38%;
 }
 
 .catalog-category-card[data-variant='compact'] {
   grid-column: span 2;
   grid-row: span 2;
-  --cat-title-size: clamp(13px, 3.5vw, 16px);
-  --cat-image-scale: 0.98;
+  --cat-title-size: clamp(14px, 3.8vw, 17px);
+  --cat-image-scale: 0.92;
+  --cat-image-y: 36%;
 }
 
 .catalog-category-card[data-variant='square'] {
   grid-column: span 3;
   grid-row: span 2;
-  --cat-title-size: clamp(15px, 4.2vw, 19px);
+  --cat-title-size: clamp(16px, 4.5vw, 20px);
 }
 
 .catalog-category-card[data-category='dairy_eggs'] {
@@ -2506,51 +2507,32 @@ body {
   --tone-hi: #d9c8ff;
 }
 
-.catalog-category-card[data-category='sweets'] {
-  --cat-title-size: clamp(31px, 10.8vw, 45px);
-  --cat-image-y: 44%;
+.catalog-category-card[data-variant='wide'] .catalog-category-media {
+  left: auto;
+  right: clamp(4px, 1.5vw, 12px);
+  width: 50%;
+  height: 90%;
+  top: 5%;
+  bottom: 5%;
 }
 
-.catalog-category-card[data-category='snacks'] {
-  --cat-title-size: clamp(17px, 5.1vw, 22px);
+.catalog-category-card[data-variant='wide'] .catalog-category-copy {
+  max-width: 52%;
+  left: clamp(10px, 3vw, 16px);
+  right: auto;
+  bottom: clamp(8px, 2.5vw, 14px);
 }
 
-.catalog-category-card[data-category='dairy_eggs'] {
-  --cat-title-size: clamp(15px, 4.3vw, 18px);
+.catalog-category-card[data-variant='compact'] .catalog-category-media {
+  bottom: 36%;
 }
 
-.catalog-category-card[data-category='fish'] {
-  --cat-title-size: clamp(17px, 5.1vw, 22px);
+.catalog-category-card[data-variant='portrait'] .catalog-category-media {
+  bottom: 28%;
 }
 
-.catalog-category-card[data-category='dairy_eggs'] .catalog-category-title,
-.catalog-category-card[data-category='fish'] .catalog-category-title {
-  display: -webkit-box;
-}
-
-.catalog-category-card[data-category='dairy_eggs'] .catalog-category-copy {
-  max-width: calc(100% - 12px);
-}
-
-.catalog-category-card[data-category='dairy_eggs'],
-.catalog-category-card[data-category='fish'],
-.catalog-category-card[data-category='fruits_veg'],
-.catalog-category-card[data-category='bread'] {
-  --cat-image-y: 34%;
-}
-
-.catalog-category-card[data-category='sauces_spices'],
-.catalog-category-card[data-category='frozen'],
-.catalog-category-card[data-category='household'] {
-  --cat-title-size: clamp(16px, 4.8vw, 22px);
-}
-
-.catalog-category-card[data-category='sauces_spices'] {
-  --cat-title-size: clamp(15px, 4.5vw, 20px);
-}
-
-.catalog-category-card[data-category='sauces_spices'] .catalog-category-title {
-  display: -webkit-box;
+.catalog-category-card[data-variant='hero'] .catalog-category-media {
+  bottom: 24%;
 }
 
 .catalog-category-card[data-category='tea_coffee'],
