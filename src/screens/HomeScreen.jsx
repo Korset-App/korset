@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import ProfileAvatar from '../components/ProfileAvatar.jsx'
@@ -13,12 +13,10 @@ import { useUserData } from '../contexts/UserDataContext.jsx'
 import {
   HOME_STORY_KEYS,
   HOME_DEPARTMENTS,
-  AI_PROMPT_CHIPS,
   AI_PROMPT_SETS,
   getRotatedAIPrompts,
   getHomeDeptLabel,
   getShowcaseProducts,
-  getProductDisplayBadges,
   getProductBadgeSummary,
   getStorePopularityMap,
   recordProductView,
@@ -26,12 +24,10 @@ import {
   loadSeenStories,
   loadStoryProgress,
   recordStorySlideView,
-  markStorySeen,
   clearSeenStories,
   sortStoriesBySeen,
 } from '../domain/home/homeScreenModel.js'
 import { parseStoreSchedule } from '../domain/stores/schedule.js'
-import { getCategoryLabel } from '../domain/product/categoryMap.js'
 import { setLang, useI18n } from '../i18n/index.js'
 import { useTheme } from '../utils/theme.js'
 import { buildProductPath } from '../utils/routes.js'
@@ -42,6 +38,7 @@ import {
   BarcodeScannerIcon,
   InventoryIcon,
   SparklesIcon,
+  SyncIcon,
 } from '../components/icons/index.js'
 import { DietIcon } from './ProfileScreen.jsx'
 import LandingScreen from './LandingScreen.jsx'
@@ -55,6 +52,27 @@ const STORE_LOGO_FALLBACKS = {
 
 const STORE_HOURS_FALLBACKS = {
   mars: '09:00-23:00',
+}
+
+const STORE_PHOTO_FALLBACKS = {
+  mars: [
+    'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?auto=format&fit=crop&w=800&q=80',
+  ],
+  nurly: [
+    'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=800&q=80',
+  ],
+  kalina: [
+    'https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=800&q=80',
+  ],
+  default: [
+    'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?auto=format&fit=crop&w=800&q=80',
+  ],
 }
 
 function SearchIcon({ className = '', width = 20, height = 20 }) {
@@ -474,10 +492,16 @@ export default function HomeScreen() {
     isStoreOwnerOrAdmin,
     catalogProducts = [],
   } = useStore()
-  const { favoritesCount = 0, toggleFavorite, checkIsFavorite } = useUserData() || {}
+  const {
+    favoritesCount = 0,
+    favoriteEans = new Set(),
+    toggleFavorite,
+    checkIsFavorite,
+  } = useUserData() || {}
 
   const avatarButtonRef = useRef(null)
   const storeInfoRef = useRef(null)
+  const screenRef = useRef(null)
 
   const [activeStoryKey, setActiveStoryKey] = useState(null)
   const [activeSlideIndex, setActiveSlideIndex] = useState(0)
@@ -495,6 +519,21 @@ export default function HomeScreen() {
   const [installPrompt, setInstallPrompt] = useState(null)
   const [isInstalled, setIsInstalled] = useState(isStandalonePwa)
   const [failedImageEans, setFailedImageEans] = useState(() => new Set())
+  const [isShoppingListExpanded, setIsShoppingListExpanded] = useState(false)
+  const [isStoreDetailsExpanded, setIsStoreDetailsExpanded] = useState(false)
+
+  // Home search bar state & submission
+  const [homeSearchQuery, setHomeSearchQuery] = useState('')
+
+  const handleHomeSearchSubmit = (e) => {
+    if (e) e.preventDefault()
+    const text = homeSearchQuery.trim()
+    if (text) {
+      navigate(`${routes.catalog}?q=${encodeURIComponent(text)}`, { state: { q: text } })
+    } else {
+      navigate(routes.catalog, { state: { resetCategory: true, resetAll: true } })
+    }
+  }
 
   // AI Chef block state & rotation logic
   const [aiQuery, setAiQuery] = useState('')
@@ -554,6 +593,43 @@ export default function HomeScreen() {
     }
   }, [])
 
+  // Scroll restoration between navigations
+  useEffect(() => {
+    const el = screenRef.current
+    const cache = window.__korset_scroll_cache || (window.__korset_scroll_cache = {})
+    const key = `home_${currentStore?.slug || 'store'}`
+
+    if (cache[key] !== undefined && cache[key] > 0) {
+      const targetScroll = cache[key]
+      if (typeof window !== 'undefined' && window.requestAnimationFrame) {
+        window.requestAnimationFrame(() => {
+          if (el) el.scrollTop = targetScroll
+          window.scrollTo(0, targetScroll)
+        })
+      }
+    }
+
+    const handleScroll = () => {
+      const top =
+        el && el.scrollTop > 0
+          ? el.scrollTop
+          : window.scrollY || document.documentElement?.scrollTop || 0
+      cache[key] = top
+    }
+
+    if (el) {
+      el.addEventListener('scroll', handleScroll, { passive: true })
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
+
+    return () => {
+      if (el) {
+        el.removeEventListener('scroll', handleScroll)
+      }
+      window.removeEventListener('scroll', handleScroll)
+    }
+  }, [currentStore?.slug])
+
   // Sync seen stories and progress with active store slug
   useEffect(() => {
     if (!isStoreApp || !currentStore?.slug) return
@@ -591,7 +667,7 @@ export default function HomeScreen() {
 
   const popularityMap = useMemo(
     () => getStorePopularityMap(currentStore?.slug),
-    [currentStore?.slug, favoritesCount]
+    [currentStore?.slug]
   )
 
   const rawShowcaseProducts = useMemo(
@@ -603,6 +679,11 @@ export default function HomeScreen() {
     () => rawShowcaseProducts.filter((product) => !failedImageEans.has(product.ean)),
     [rawShowcaseProducts, failedImageEans]
   )
+
+  const shoppingListProducts = useMemo(() => {
+    if (!favoriteEans || favoriteEans.size === 0 || !Array.isArray(catalogProducts)) return []
+    return catalogProducts.filter((p) => favoriteEans.has(p.ean))
+  }, [catalogProducts, favoriteEans])
 
   const storeHours = getStoreHours(currentStore, t)
   const schedule = useMemo(() => parseStoreSchedule(storeHours), [storeHours])
@@ -630,7 +711,10 @@ export default function HomeScreen() {
         fallback: 'Халал',
         iconName: 'halal',
         isActive: Boolean(profile?.halal || profile?.halalOnly),
-        toggle: () => updateProfile({ halal: !(profile?.halal || profile?.halalOnly) }),
+        toggle: () => {
+          const nextVal = !(profile?.halal || profile?.halalOnly)
+          updateProfile({ halal: nextVal, halalOnly: nextVal })
+        },
       },
       {
         id: 'sugar_free',
@@ -702,6 +786,62 @@ export default function HomeScreen() {
     return count
   }, [profile])
 
+  const storePhotos = useMemo(() => {
+    if (Array.isArray(currentStore?.images) && currentStore.images.length > 0) {
+      return currentStore.images
+    }
+    const slug = currentStore?.slug || currentStore?.code
+    return (slug && STORE_PHOTO_FALLBACKS[slug]) || STORE_PHOTO_FALLBACKS.default || []
+  }, [currentStore])
+
+  const touchStartXRef = useRef(null)
+
+  const handleNextPhoto = useCallback(
+    (e) => {
+      if (e) e.stopPropagation()
+      if (!storePhotos.length) return
+      setActivePhotoIndex((prev) => (prev === null ? 0 : (prev + 1) % storePhotos.length))
+    },
+    [storePhotos.length]
+  )
+
+  const handlePrevPhoto = useCallback(
+    (e) => {
+      if (e) e.stopPropagation()
+      if (!storePhotos.length) return
+      setActivePhotoIndex((prev) =>
+        prev === null ? 0 : (prev - 1 + storePhotos.length) % storePhotos.length
+      )
+    },
+    [storePhotos.length]
+  )
+
+  const handleTouchStart = (e) => {
+    touchStartXRef.current = e.touches[0].clientX
+  }
+
+  const handleTouchEnd = (e) => {
+    if (touchStartXRef.current === null) return
+    const deltaX = e.changedTouches[0].clientX - touchStartXRef.current
+    if (deltaX > 45) {
+      handlePrevPhoto()
+    } else if (deltaX < -45) {
+      handleNextPhoto()
+    }
+    touchStartXRef.current = null
+  }
+
+  useEffect(() => {
+    if (activePhotoIndex === null) return
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setActivePhotoIndex(null)
+      if (e.key === 'ArrowRight') handleNextPhoto()
+      if (e.key === 'ArrowLeft') handlePrevPhoto()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [activePhotoIndex, handleNextPhoto, handlePrevPhoto])
+
   if (!isStoreApp) {
     return <LandingScreen />
   }
@@ -743,10 +883,12 @@ export default function HomeScreen() {
     : ''
 
   const profileName = displayName || user?.email || t('profile.title')
+
   const hasContacts = Boolean(
     currentStore.phone ||
     currentStore.whatsapp_number ||
     currentStore.instagram_url ||
+    currentStore.instagram ||
     currentStore.twogis_url
   )
 
@@ -861,7 +1003,7 @@ export default function HomeScreen() {
   }
 
   return (
-    <main className="screen home-screen">
+    <main ref={screenRef} className="screen home-screen">
       <Helmet>
         <title>{`${storeName} — онлайн-каталог товаров, цены | Körset`}</title>
         <meta
@@ -1017,7 +1159,7 @@ export default function HomeScreen() {
                     type="button"
                     onClick={handleResetSeenStories}
                   >
-                    <HomeIcon name="replay" />
+                    <SyncIcon size={18} />
                     <span>{t('home.resetStories') || 'Сбросить сторис (как новые)'}</span>
                   </button>
 
@@ -1129,20 +1271,25 @@ export default function HomeScreen() {
 
         {/* 3. SMART SEARCH & SCAN BAR */}
         <div className="home-search-container">
-          <button
-            type="button"
-            className="home-search-bar"
-            onClick={() => navigate(routes.catalog)}
-            aria-label={t('catalog.searchPlaceholder')}
-          >
-            <SearchIcon className="home-search-bar__icon" />
-            <span className="home-search-bar__placeholder">
-              {t('home.searchPlaceholder', { count: catalogProducts?.length || 10240 })}
-            </span>
-            <span
+          <form className="home-search-bar" onSubmit={handleHomeSearchSubmit}>
+            <button
+              type="submit"
+              className="home-search-bar__icon-btn"
+              aria-label={t('common.search') || 'Поиск'}
+            >
+              <SearchIcon className="home-search-bar__icon" />
+            </button>
+            <input
+              type="search"
+              className="home-search-bar__input"
+              value={homeSearchQuery}
+              onChange={(e) => setHomeSearchQuery(e.target.value)}
+              placeholder={t('home.searchPlaceholder', { count: catalogProducts?.length || 10240 })}
+              aria-label={t('catalog.searchPlaceholder')}
+            />
+            <button
+              type="button"
               className="home-search-bar__scan-btn"
-              role="button"
-              tabIndex={0}
               aria-label={t('home.scanBtn')}
               onClick={(e) => {
                 e.stopPropagation()
@@ -1150,8 +1297,8 @@ export default function HomeScreen() {
               }}
             >
               <HomeIcon name="barcode_scanner" />
-            </span>
-          </button>
+            </button>
+          </form>
         </div>
       </div>
 
@@ -1269,7 +1416,9 @@ export default function HomeScreen() {
           <button
             type="button"
             className="home-dept-item"
-            onClick={() => navigate(routes.catalog)}
+            onClick={() =>
+              navigate(routes.catalog, { state: { resetCategory: true, resetAll: true } })
+            }
             aria-label={t('home.deptAll') || 'Весь каталог'}
           >
             <div className="all-tile">
@@ -1525,12 +1674,8 @@ export default function HomeScreen() {
                 className="home-ai-island__input"
                 value={aiQuery}
                 onChange={(e) => setAiQuery(e.target.value)}
-                placeholder={
-                  t('home.aiInputPlaceholder') || 'Спросить о товаре, рецепте или цене...'
-                }
-                aria-label={
-                  t('home.aiInputPlaceholder') || 'Спросить о товаре, рецепте или цене...'
-                }
+                placeholder={t('home.aiInputPlaceholder') || 'Спросить о товаре или цене...'}
+                aria-label={t('home.aiInputPlaceholder') || 'Спросить о товаре или цене...'}
               />
               <div className="home-ai-island__tools">
                 <button
@@ -1540,7 +1685,7 @@ export default function HomeScreen() {
                   title={t('ai.image.open') || 'Прикрепить фото'}
                   aria-label={t('ai.image.open') || 'Прикрепить фото'}
                 >
-                  <IconGallery size={17} />
+                  <IconGallery size={16} />
                 </button>
                 <button
                   type="button"
@@ -1549,7 +1694,7 @@ export default function HomeScreen() {
                   title={t('ai.voice.start') || 'Голосовой ввод'}
                   aria-label={t('ai.voice.start') || 'Голосовой ввод'}
                 >
-                  <MicIcon size={17} />
+                  <MicIcon size={15} />
                 </button>
                 <button
                   type="submit"
@@ -1557,7 +1702,7 @@ export default function HomeScreen() {
                   aria-label={t('home.aiInputSubmit') || 'Спросить'}
                   disabled={!aiQuery.trim()}
                 >
-                  <AiArrowUpIcon size={15} />
+                  <AiArrowUpIcon size={14} />
                 </button>
               </div>
             </div>
@@ -1567,125 +1712,400 @@ export default function HomeScreen() {
 
       {/* 8. SHOPPING LIST SUMMARY (WHEN ITEMS EXIST) */}
       {favoritesCount > 0 && (
-        <section className="home-shopping-summary">
-          <button
-            type="button"
-            className="home-shopping-card"
-            onClick={() => navigate(`${routes.profile}?tab=favorites`)}
-          >
-            <div className="home-shopping-card__icon">
-              <HomeIcon name="checklist" />
+        <section className="home-shopping-summary" aria-label={t('home.shoppingListTitle')}>
+          <div className="home-shopping-card">
+            <div
+              className="home-shopping-card__header"
+              onClick={() => setIsShoppingListExpanded((prev) => !prev)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  setIsShoppingListExpanded((prev) => !prev)
+                }
+              }}
+              aria-expanded={isShoppingListExpanded}
+            >
+              <div className="home-shopping-card__icon">
+                <HomeIcon name="checklist" />
+              </div>
+              <div className="home-shopping-card__info">
+                <h4>{t('home.shoppingListTitle') || 'Список покупок'}</h4>
+                <p>
+                  {favoritesCount > 0
+                    ? `${favoritesCount} ${favoritesCount === 1 ? 'товар' : favoritesCount < 5 ? 'товара' : 'товаров'}`
+                    : t('home.shoppingEmpty') || 'Пока пусто'}
+                </p>
+              </div>
+              <div className="home-shopping-card__header-actions">
+                <HomeIcon
+                  name="expand_more"
+                  className={`home-shopping-card__chevron${isShoppingListExpanded ? ' is-open' : ''}`}
+                />
+              </div>
             </div>
-            <div className="home-shopping-card__info">
-              <h4>{t('home.shoppingListTitle') || 'Ваш список покупок'}</h4>
-              <p>
-                {t('home.shoppingItemsCount', { count: favoritesCount }) ||
-                  `${favoritesCount} товаров в списке`}
-              </p>
-            </div>
-            <HomeIcon name="chevron_right" className="home-shopping-card__arrow" />
-          </button>
+
+            {isShoppingListExpanded && (
+              <div className="home-shopping-card__body">
+                {shoppingListProducts.length > 0 ? (
+                  <div className="home-shopping-carousel">
+                    {shoppingListProducts.slice(0, 8).map((product) => {
+                      const productImage = product.image || product.image_url
+                      return (
+                        <div
+                          key={product.ean}
+                          className="home-shopping-carousel__item"
+                          onClick={() => handleProductCardClick(product)}
+                          role="button"
+                          tabIndex={0}
+                        >
+                          <div className="home-shopping-carousel__media">
+                            {productImage ? (
+                              <img src={productImage} alt={product.name} loading="lazy" />
+                            ) : (
+                              <HomeIcon name="grocery" />
+                            )}
+                          </div>
+                          <span className="home-shopping-carousel__price">
+                            {product.priceKzt
+                              ? `${product.priceKzt.toLocaleString('ru-RU')} ₸`
+                              : ''}
+                          </span>
+                          <span className="home-shopping-carousel__name">{product.name}</span>
+                        </div>
+                      )
+                    })}
+                    <button
+                      type="button"
+                      className="home-shopping-carousel__more-btn"
+                      onClick={() => navigate(`${routes.history}?tab=favorites`)}
+                    >
+                      <HomeIcon name="arrow_forward" />
+                      <span>{t('home.openShoppingList') || 'Открыть'}</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="home-shopping-card__compact-action">
+                    <button
+                      type="button"
+                      className="home-shopping-card__open-list-btn"
+                      onClick={() => navigate(`${routes.history}?tab=favorites`)}
+                    >
+                      <HomeIcon name="format_list_bulleted" />
+                      <span>{t('home.openShoppingList') || 'Открыть список покупок'}</span>
+                      <HomeIcon name="arrow_forward" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </section>
       )}
 
-      {/* 9. STORE LOCATION, PHOTOS & CONTACTS */}
+      {/* 9. STORE UNIFIED PROFILE & GALLERY (2GIS / Krisha.kz style) */}
       <section ref={storeInfoRef} className="home-store-details-section">
         <div className="home-section-header">
           <h2>{t('home.storeAboutTitle', { storeName }) || `О магазине ${storeName}`}</h2>
         </div>
 
-        {/* Store Interior Photos Carousel with Lightbox */}
-        {currentStore?.images && currentStore.images.length > 0 && (
-          <div className="home-store-photos-carousel">
-            {currentStore.images.map((url, idx) => (
+        <div className="home-store-unified-card">
+          {/* A. Hero Media Banner with Photo Counter & Strip */}
+          {storePhotos && storePhotos.length > 0 && (
+            <div className="home-store-media-block">
               <div
-                key={url}
-                className="home-store-photo-thumb"
-                onClick={() => setActivePhotoIndex(idx)}
+                className="home-store-media-hero"
+                onClick={() => setActivePhotoIndex(0)}
                 role="button"
                 tabIndex={0}
-                aria-label={`Photo ${idx + 1}`}
+                aria-label={`Открыть фото ${storeName}`}
               >
-                <img src={url} alt={`${storeName} ${idx + 1}`} loading="lazy" />
+                <img src={storePhotos[0]} alt={storeName} loading="lazy" />
+                <div className="home-store-photo-badge">
+                  <HomeIcon name="photo_camera" />
+                  <span>{storePhotos.length} фото</span>
+                </div>
               </div>
-            ))}
-          </div>
-        )}
 
-        {/* Store Contacts & Facts */}
-        <div className="home-store-facts-card">
-          {storeAddress && (
-            <div className="home-store-fact-row">
-              <HomeIcon name="location_on" />
-              <span>
-                {storeCity} · {storeAddress}
+              {storePhotos.length > 1 && (
+                <div className="home-store-media-strip">
+                  {storePhotos.slice(1, 5).map((url, idx) => (
+                    <button
+                      key={url}
+                      type="button"
+                      className="home-store-media-strip__thumb"
+                      onClick={() => setActivePhotoIndex(idx + 1)}
+                      aria-label={`Фото ${idx + 2}`}
+                    >
+                      <img src={url} alt={`${storeName} ${idx + 2}`} loading="lazy" />
+                      {idx === 3 && storePhotos.length > 5 && (
+                        <span className="home-store-media-strip__more">
+                          +{storePhotos.length - 5}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* B. Core Store Info */}
+          <div
+            className="home-store-card__content"
+            onClick={() => setIsStoreDetailsExpanded((prev) => !prev)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                setIsStoreDetailsExpanded((prev) => !prev)
+              }
+            }}
+          >
+            <div className="home-store-card__header-row">
+              <div className="home-store-card__title-wrap">
+                <h3 className="home-store-card__name">{storeName}</h3>
+                <div className="home-store-card__status-row">
+                  <span className="home-store-status-dot" />
+                  <span className="home-store-status-text">{storeHours}</span>
+                </div>
+              </div>
+              <StoreLogo store={currentStore} className="home-store-logo--inline" />
+            </div>
+
+            {storeAddress && (
+              <div className="home-store-fact-row">
+                <HomeIcon name="location_on" />
+                <span>
+                  {storeCity} · {storeAddress}
+                </span>
+              </div>
+            )}
+
+            {/* Features Tags Preview */}
+            <div className="home-store-features">
+              <span className="home-store-feature-chip">
+                <DietIcon name="halal" size={13} />
+                <span>{t('home.featureHalal')}</span>
+              </span>
+              <span className="home-store-feature-chip">
+                <HomeIcon name="bakery_dining" />
+                <span>{t('home.featureBakery')}</span>
+              </span>
+              <span className="home-store-feature-chip">
+                <HomeIcon name="credit_card" />
+                <span>{t('home.featurePayment')}</span>
+              </span>
+              <span className="home-store-feature-chip">
+                <HomeIcon name="local_parking" />
+                <span>{t('home.featureParking')}</span>
               </span>
             </div>
-          )}
-          <div className="home-store-fact-row">
-            <HomeIcon name="schedule" />
-            <span>{storeHours}</span>
-          </div>
 
-          {hasContacts && (
-            <div className="home-store-contact-buttons">
-              {currentStore.twogis_url && (
-                <a
-                  href={currentStore.twogis_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="home-store-contact-btn home-store-contact-btn--2gis"
-                >
-                  <span className="home-btn-glyph">2G</span>
-                  <span>{t('home.storeRoute2Gis') || '2GIS'}</span>
-                </a>
-              )}
-              {currentStore.whatsapp_number && (
-                <a
-                  href={`https://wa.me/${currentStore.whatsapp_number.replace(/\D/g, '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="home-store-contact-btn home-store-contact-btn--wa"
-                >
-                  <span className="home-btn-glyph">WA</span>
-                  <span>WhatsApp</span>
-                </a>
-              )}
-              {currentStore.phone && (
-                <a
-                  href={`tel:${currentStore.phone.replace(/[^\d+]/g, '')}`}
-                  className="home-store-contact-btn home-store-contact-btn--call"
-                >
-                  <HomeIcon name="call" />
-                  <span>{t('home.storeCall') || 'Звонок'}</span>
-                </a>
+            {/* Quick Action Contacts */}
+            {hasContacts && (
+              <div className="home-store-contact-buttons" onClick={(e) => e.stopPropagation()}>
+                {currentStore.twogis_url && (
+                  <a
+                    href={currentStore.twogis_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="home-store-contact-btn home-store-contact-btn--2gis"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <span className="home-btn-glyph">2G</span>
+                    <span>{t('home.storeRoute2Gis') || '2GIS'}</span>
+                  </a>
+                )}
+                {currentStore.whatsapp_number && (
+                  <a
+                    href={`https://wa.me/${currentStore.whatsapp_number.replace(/\D/g, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="home-store-contact-btn home-store-contact-btn--wa"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <span className="home-btn-glyph">WA</span>
+                    <span>WhatsApp</span>
+                  </a>
+                )}
+                {(currentStore.instagram_url || currentStore.instagram) && (
+                  <a
+                    href={
+                      currentStore.instagram_url ||
+                      `https://instagram.com/${currentStore.instagram.replace('@', '')}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="home-store-contact-btn home-store-contact-btn--insta"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <span className="home-btn-glyph">IG</span>
+                    <span>Instagram</span>
+                  </a>
+                )}
+                {currentStore.phone && (
+                  <a
+                    href={`tel:${currentStore.phone.replace(/[^\d+]/g, '')}`}
+                    className="home-store-contact-btn home-store-contact-btn--call"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <HomeIcon name="call" />
+                    <span>{t('home.storeCall') || 'Звонок'}</span>
+                  </a>
+                )}
+              </div>
+            )}
+
+            {/* Expandable Details Accordion */}
+            <div className="home-store-accordion">
+              <button
+                type="button"
+                className={`home-store-accordion__trigger${isStoreDetailsExpanded ? ' is-open' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsStoreDetailsExpanded((prev) => !prev)
+                }}
+                aria-expanded={isStoreDetailsExpanded}
+              >
+                <span>{isStoreDetailsExpanded ? 'Свернуть данные' : 'Подробнее о магазине'}</span>
+                <HomeIcon name={isStoreDetailsExpanded ? 'expand_less' : 'expand_more'} />
+              </button>
+
+              {isStoreDetailsExpanded && (
+                <div className="home-store-accordion__body">
+                  <div className="home-store-accordion__section">
+                    <h4>{t('home.storeAbout') || 'Описание'}</h4>
+                    <p className="home-store-accordion__desc">
+                      {currentStore.description ||
+                        `${storeName} — современный продуктовый магазин формата «у дома». Широкий ассортимент свежих продуктов, молочной продукции, халал-отдел, выпечка и удобная оплата.`}
+                    </p>
+                  </div>
+
+                  <div className="home-store-accordion__section">
+                    <h4>Преимущества и сервис</h4>
+                    <ul className="home-store-services-list">
+                      <li>
+                        <HomeIcon name="verified" />
+                        <div>
+                          <strong>Халал-отдел</strong>
+                          <span>Гарантированное раздельное хранение и контроль сертификатов</span>
+                        </div>
+                      </li>
+                      <li>
+                        <HomeIcon name="bakery_dining" />
+                        <div>
+                          <strong>Свежая выпечка</strong>
+                          <span>Ежедневные поставки свежего хлеба и сдобы</span>
+                        </div>
+                      </li>
+                      <li>
+                        <HomeIcon name="qr_code_2" />
+                        <div>
+                          <strong>Оплата Kaspi QR</strong>
+                          <span>Быстрый расчёт по QR и бесконтактная оплата картами</span>
+                        </div>
+                      </li>
+                      <li>
+                        <HomeIcon name="local_parking" />
+                        <div>
+                          <strong>Удобная парковка</strong>
+                          <span>Парковочные места прямо перед входом в магазин</span>
+                        </div>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="home-store-accordion__section">
+                    <h4>График работы</h4>
+                    <div className="home-store-schedule-table">
+                      <div className="home-store-schedule-row">
+                        <span>Понедельник — Воскресенье</span>
+                        <strong>{storeHours}</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
-          )}
+          </div>
         </div>
       </section>
 
-      {/* Lightbox for Store Photos */}
-      {activePhotoIndex !== null && currentStore?.images && (
+      {/* Lightbox for Store Photos (Interactive with arrows, counter, touch swipe & thumbnails) */}
+      {activePhotoIndex !== null && storePhotos?.[activePhotoIndex] && (
         <div
           className="home-lightbox-modal"
           onClick={() => setActivePhotoIndex(null)}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
           role="dialog"
           aria-modal="true"
         >
-          <button
-            type="button"
-            className="home-lightbox-close"
-            onClick={() => setActivePhotoIndex(null)}
-            aria-label={t('common.close')}
-          >
-            <HomeIcon name="close" />
-          </button>
-          <img
-            src={currentStore.images[activePhotoIndex]}
-            alt="Store full view"
-            className="home-lightbox-img"
-          />
+          {/* Top Bar: Counter & Close */}
+          <div className="home-lightbox-topbar" onClick={(e) => e.stopPropagation()}>
+            <span className="home-lightbox-counter">
+              {activePhotoIndex + 1} / {storePhotos.length}
+            </span>
+            <button
+              type="button"
+              className="home-lightbox-close"
+              onClick={() => setActivePhotoIndex(null)}
+              aria-label={t('common.close')}
+            >
+              <HomeIcon name="close" />
+            </button>
+          </div>
+
+          {/* Main Stage with Navigation Arrows */}
+          <div className="home-lightbox-stage" onClick={(e) => e.stopPropagation()}>
+            {storePhotos.length > 1 && (
+              <button
+                type="button"
+                className="home-lightbox-nav home-lightbox-nav--prev"
+                onClick={handlePrevPhoto}
+                aria-label="Предыдущее фото"
+              >
+                <HomeIcon name="chevron_left" />
+              </button>
+            )}
+
+            <div className="home-lightbox-img-wrap">
+              <img
+                src={storePhotos[activePhotoIndex]}
+                alt={`${storeName} ${activePhotoIndex + 1}`}
+                className="home-lightbox-img"
+              />
+            </div>
+
+            {storePhotos.length > 1 && (
+              <button
+                type="button"
+                className="home-lightbox-nav home-lightbox-nav--next"
+                onClick={handleNextPhoto}
+                aria-label="Следующее фото"
+              >
+                <HomeIcon name="chevron_right" />
+              </button>
+            )}
+          </div>
+
+          {/* Bottom Thumbnails Strip */}
+          {storePhotos.length > 1 && (
+            <div className="home-lightbox-thumbs" onClick={(e) => e.stopPropagation()}>
+              {storePhotos.map((url, idx) => (
+                <button
+                  key={url}
+                  type="button"
+                  className={`home-lightbox-thumb-btn${idx === activePhotoIndex ? ' is-active' : ''}`}
+                  onClick={() => setActivePhotoIndex(idx)}
+                  aria-label={`Фото ${idx + 1}`}
+                >
+                  <img src={url} alt="" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { CompareIcon } from '../icons/CompareIcon.jsx'
+import { DietIcon } from '../../screens/ProfileScreen.jsx'
 import './CatalogProductCard.css'
 
 function ProductThumb({ product }) {
@@ -55,63 +56,19 @@ function VerdictBadge({ verdict }) {
 }
 
 function AttributeIcon({ badge }) {
-  if (badge.id === 'halal') {
-    return (
-      <svg viewBox="0 0 16 16" aria-hidden="true" className="catalog-product-card__badge-icon">
-        <path d="M8.95 2.05c-2.63.47-4.63 2.77-4.63 5.53 0 3.1 2.52 5.62 5.62 5.62 1.21 0 2.33-.38 3.25-1.03a6.07 6.07 0 0 1-4.73 2.27A6.43 6.43 0 0 1 2.03 8c0-3.27 2.44-5.97 5.6-6.38.45-.06.9.1 1.32.43Z" />
-        <path d="M11.1 4.32 11.7 5.6l1.38.2-1 .98.24 1.38-1.22-.64-1.22.64.24-1.38-1-.98 1.38-.2.6-1.28Z" />
-      </svg>
-    )
+  const iconMap = {
+    halal: 'halal',
+    sugar_free: 'nosugar',
+    gluten_free: 'nogluten',
+    lactose_free: 'nodairy',
+    vegan: 'vegan',
+    keto: 'keto',
+    vegetarian: 'veggie',
+    low_fat: 'lowfat',
+    kid_friendly: 'kids',
   }
-
-  if (badge.id === 'sugar_free') {
-    return (
-      <svg viewBox="0 0 16 16" aria-hidden="true" className="catalog-product-card__badge-icon">
-        <path d="M8 2.1 13.6 5.3v5.4L8 13.9l-5.6-3.2V5.3L8 2.1Zm0 1.55L3.75 6.08v3.84L8 12.35l4.25-2.43V6.08L8 3.65Z" />
-        <path d="M2.2 12.74 12.74 2.2l1.06 1.06L3.26 13.8 2.2 12.74Z" />
-      </svg>
-    )
-  }
-
-  if (badge.id === 'gluten_free') {
-    return (
-      <svg viewBox="0 0 16 16" aria-hidden="true" className="catalog-product-card__badge-icon">
-        <path d="M7.25 2h1.5v12h-1.5V2Z" />
-        <path d="M5.2 3.2c1.12.3 2.05 1.3 2.05 2.63v.75C6.13 6.28 5.2 5.28 5.2 3.95V3.2Zm5.6 0v.75c0 1.33-.93 2.33-2.05 2.63v-.75c0-1.33.93-2.33 2.05-2.63ZM4.6 7.05c1.36.28 2.65 1.42 2.65 3v.69c-1.36-.28-2.65-1.42-2.65-3v-.69Zm6.8 0v.69c0 1.58-1.29 2.72-2.65 3v-.69c0-1.58 1.29-2.72 2.65-3Z" />
-      </svg>
-    )
-  }
-
-  if (badge.id === 'lactose_free') {
-    return (
-      <svg viewBox="0 0 16 16" aria-hidden="true" className="catalog-product-card__badge-icon">
-        <path d="M5.15 1.8h5.7v1.45l-.95 1.1v8.05c0 .99-.8 1.8-1.8 1.8H7.9c-.99 0-1.8-.81-1.8-1.8V4.35l-.95-1.1V1.8Zm1.5 1.32.95 1.1v8.18c0 .17.13.3.3.3h.2c.17 0 .3-.13.3-.3V4.22l.95-1.1h-2.7Z" />
-        <path d="M2.2 12.74 12.74 2.2l1.06 1.06L3.26 13.8 2.2 12.74Z" />
-      </svg>
-    )
-  }
-
-  if (badge.id === 'vegan') {
-    return (
-      <svg viewBox="0 0 16 16" aria-hidden="true" className="catalog-product-card__badge-icon">
-        <path d="M13.9 2.25c-3.5.08-6.13.83-7.87 2.28C4.36 5.92 3.6 7.9 3.74 10.46l-1.3 1.3 1.06 1.06 1.22-1.22c2.56.17 4.56-.58 5.96-2.25 1.44-1.72 2.18-4.1 2.22-7.1ZM5.4 9.8c.06-1.76.6-3.1 1.6-4 1.02-.92 2.5-1.52 4.42-1.78-.22 1.86-.82 3.3-1.8 4.3-.96.98-2.37 1.47-4.22 1.48Z" />
-      </svg>
-    )
-  }
-
-  if (badge.id === 'keto') {
-    return (
-      <svg viewBox="0 0 16 16" aria-hidden="true" className="catalog-product-card__badge-icon">
-        <path d="M3.2 2.3h2.04v4.38L8.52 2.3h2.36L7.5 6.77l3.64 6.93H8.78L6.16 8.6l-.92 1.2v3.9H3.2V2.3Zm8.82 7.1c.5 0 .9.4.9.9v2.5c0 .5-.4.9-.9.9s-.9-.4-.9-.9v-2.5c0-.5.4-.9.9-.9Z" />
-      </svg>
-    )
-  }
-
-  return (
-    <svg viewBox="0 0 16 16" aria-hidden="true" className="catalog-product-card__badge-icon">
-      <path d="M8 2.2a5.8 5.8 0 1 1 0 11.6A5.8 5.8 0 0 1 8 2.2Zm0 1.5a4.3 4.3 0 1 0 0 8.6 4.3 4.3 0 0 0 0-8.6Z" />
-    </svg>
-  )
+  const name = iconMap[badge.id] || badge.id
+  return <DietIcon name={name} size={14} />
 }
 
 function AttributeBadge({ badge }) {

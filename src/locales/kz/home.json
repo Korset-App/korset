@@ -573,5 +573,9 @@
   "home.deptGrocery": "Бакалея",
   "home.deptAll": "Барлық бөлімдер",
   "home.allDepts": "Барлығы",
-  "home.storeAboutTitle": "{storeName} дүкені туралы"
+  "home.storeAboutTitle": "{storeName} дүкені туралы",
+  "home.featureHalal": "Халал бөлімі",
+  "home.featureBakery": "Жаңа піскен нан",
+  "home.featurePayment": "Kaspi QR және карталар",
+  "home.featureParking": "Ыңғайлы автотұрақ"
 }

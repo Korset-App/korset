@@ -48,10 +48,10 @@ export const ALLERGENS = [
   {
     id: 'mollusks',
     label: { ru: 'Моллюски (мидии, кальмары)', kz: 'Жұмсақ денелілер' },
-    icon: 'shell',
+    icon: 'mollusks',
     frequency: 1,
   },
-  { id: 'lupin', label: { ru: 'Люпин', kz: 'Люпин' }, icon: 'celery', frequency: 1 },
+  { id: 'lupin', label: { ru: 'Люпин', kz: 'Люпин' }, icon: 'lupin', frequency: 1 },
 ]
 
 // Порог частоты для "Показать все" в UI

@@ -160,7 +160,8 @@ export default function FitCheckDrawer({
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 260 }}
+            transition={{ type: 'spring', damping: 32, stiffness: 350, mass: 0.8 }}
+            style={{ willChange: 'transform' }}
             drag="y"
             dragConstraints={{ top: 0 }}
             dragElastic={0.15}

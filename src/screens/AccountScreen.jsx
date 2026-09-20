@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext.jsx'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { useI18n } from '../i18n/index.js'
 import GoogleLogo from '../components/GoogleLogo.jsx'
+import { LockIcon } from '../components/icons/index.js'
 import { supabase } from '../utils/supabase.js'
 import { buildProfilePath } from '../utils/routes.js'
 
@@ -398,17 +399,12 @@ export default function AccountScreen() {
                     justifyContent: 'center',
                   }}
                 >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="var(--text-sub)"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  >
-                    <rect x="2" y="4" width="20" height="16" rx="2" />
-                    <path d="M22 7l-10 6L2 7" />
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--text-sub)">
+                    <path
+                      fillRule="evenodd"
+                      clipRule="evenodd"
+                      d="M7 2.75C5.38503 2.75 3.92465 3.15363 2.86466 4.1379C1.79462 5.13152 1.25 6.60705 1.25 8.5V15.5C1.25 17.393 1.79462 18.8685 2.86466 19.8621C3.92465 20.8464 5.38503 21.25 7 21.25H17C18.615 21.25 20.0754 20.8464 21.1353 19.8621C22.2054 18.8685 22.75 17.393 22.75 15.5V8.5C22.75 6.60705 22.2054 5.13152 21.1353 4.1379C20.0754 3.15363 18.615 2.75 17 2.75H7ZM19.2285 8.3623C19.5562 8.10904 19.6166 7.63802 19.3633 7.31026C19.1101 6.98249 18.6391 6.9221 18.3113 7.17537L12.7642 11.4616C12.3141 11.8095 11.6858 11.8095 11.2356 11.4616L5.6886 7.17537C5.36083 6.9221 4.88982 6.98249 4.63655 7.31026C4.38328 7.63802 4.44367 8.10904 4.77144 8.3623L10.3185 12.6486C11.3089 13.4138 12.691 13.4138 13.6814 12.6486L19.2285 8.3623Z"
+                    />
                   </svg>
                 </div>
                 <div style={{ flex: 1 }}>
@@ -634,22 +630,7 @@ export default function AccountScreen() {
           </div>
 
           <ActionRow
-            icon={
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="var(--primary)"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect x="3.5" y="10.5" width="17" height="11" rx="2.5" />
-                <path d="M7 10.5V7a5 5 0 0 1 10 0v3.5" />
-                <circle cx="12" cy="15.5" r="1" fill="var(--primary)" />
-              </svg>
-            }
+            icon={<LockIcon size={18} color="var(--primary)" />}
             label={t('account.changePassword')}
             onClick={handleResetPassword}
             disabled={resetLoading || resetSent || !email}

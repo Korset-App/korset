@@ -43,6 +43,9 @@ body.fitcheck-drawer-open .home-screen {
   flex-direction: column;
   overflow: hidden;
   touch-action: pan-y;
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 .fitcheck-drawer__handle-wrap {

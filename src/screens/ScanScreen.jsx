@@ -10,6 +10,7 @@ import { buildTermsPath, buildPrivacyPath } from '../utils/routes.js'
 import TermsConsentSheet, { isTermsAccepted } from '../components/TermsConsentSheet.jsx'
 import { CompareIcon } from '../components/icons/CompareIcon.jsx'
 import { IconGallery } from '../components/icons/IconGallery.jsx'
+import ProductSubmissionSheet from '../components/product/ProductSubmissionSheet.jsx'
 import './ScanScreen.css'
 
 // Success scan sound via Web Audio API, without asset files.
@@ -331,6 +332,8 @@ export default function ScanScreen() {
   const [searching, setSearching] = useState(false)
   const [scanFlash, setScanFlash] = useState(false)
   const [notFoundEan, setNotFoundEan] = useState(null)
+  const [submissionOpen, setSubmissionOpen] = useState(false)
+  const [submissionEan, setSubmissionEan] = useState(null)
   const [cameras, setCameras] = useState([])
   const [camIdx, setCamIdx] = useState(0)
   const [focusPt, setFocusPt] = useState(null)
@@ -475,6 +478,7 @@ export default function ScanScreen() {
             Html5QrcodeSupportedFormats.EAN_13,
             Html5QrcodeSupportedFormats.EAN_8,
             Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
             Html5QrcodeSupportedFormats.UPC_A,
             Html5QrcodeSupportedFormats.UPC_E,
           ],
@@ -484,25 +488,15 @@ export default function ScanScreen() {
 
         const scanConfig = {
           fps: 15,
-          qrbox: (viewfinderWidth, viewfinderHeight) => {
-            const safeWidth = Math.max(160, viewfinderWidth - 24)
-            const safeHeight = Math.max(120, viewfinderHeight - 24)
-            const width = Math.min(340, Math.max(220, Math.floor(viewfinderWidth * 0.82)))
-            const height = Math.min(210, Math.max(140, Math.floor(width * 0.58)))
-            return {
-              width: Math.min(width, safeWidth),
-              height: Math.min(height, safeHeight),
-            }
-          },
           disableFlip: false,
         }
 
-        let cameraConfig
-        if (cameraList.length > 0 && cameraList[idx]) {
-          cameraConfig = { deviceId: { exact: cameraList[idx].id } }
-        } else {
-          cameraConfig = { facingMode: 'environment' }
+        const hdVideo = {
+          width: { min: 1280, ideal: 1920 },
+          height: { min: 720, ideal: 1080 },
         }
+
+        const selectedCamId = cameraList[idx]?.id
 
         const onScanSuccess = async (ean) => {
           if (busyRef.current || !mountedRef.current) return
@@ -515,13 +509,11 @@ export default function ScanScreen() {
           } catch {
             /* noop */
           }
+          const currentStoreId = storeRef.current?.id || null
           if (compareModeRef.current) {
             // Compare mode: wait for product before deciding flow
             setSearching(true)
-            const [result] = await Promise.all([
-              lookupProduct(ean, storeRef.current?.id || slugRef.current),
-              stopScanner(),
-            ])
+            const [result] = await Promise.all([lookupProduct(ean, currentStoreId), stopScanner()])
             if (!mountedRef.current) return
 
             if (result.type === 'local' || result.type === 'external') {
@@ -558,7 +550,7 @@ export default function ScanScreen() {
               if (mountedRef.current) setScanFlash(false)
             }, 350)
             stopScanner()
-            lookupProduct(ean, storeRef.current?.id || slugRef.current)
+            lookupProduct(ean, currentStoreId)
               .then((r) => {
                 if (r?.product) rememberScan(r.product)
               })
@@ -570,8 +562,9 @@ export default function ScanScreen() {
         }
 
         const cameraAttempts = [
-          cameraConfig,
-          cameraList[idx]?.id,
+          selectedCamId ? { deviceId: { exact: selectedCamId }, ...hdVideo } : null,
+          selectedCamId ? { deviceId: { exact: selectedCamId } } : null,
+          { facingMode: { ideal: 'environment' }, ...hdVideo },
           { facingMode: { ideal: 'environment' } },
           { facingMode: 'environment' },
           cameraList[0]?.id,
@@ -625,7 +618,20 @@ export default function ScanScreen() {
           const videoEl = document.querySelector('#' + ID + ' video')
           if (videoEl?.srcObject) {
             const track = videoEl.srcObject.getVideoTracks()[0]
-            if (track) trackRef.current = track
+            if (track) {
+              trackRef.current = track
+              const caps = track.getCapabilities?.() || {}
+              const advanced = []
+              if (caps.focusMode?.includes('continuous')) {
+                advanced.push({ focusMode: 'continuous' })
+              }
+              if (caps.exposureMode?.includes('continuous')) {
+                advanced.push({ exposureMode: 'continuous' })
+              }
+              if (advanced.length > 0) {
+                track.applyConstraints({ advanced }).catch(() => {})
+              }
+            }
           }
         } catch {
           /* noop */
@@ -1063,9 +1069,18 @@ export default function ScanScreen() {
         {scanFlash && <div className="scan-success-flash" />}
 
         {notFoundEan && (
-          <div className="scan-toast scan-toast--bad">
+          <div
+            className="scan-toast scan-toast--bad"
+            style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 4 }}
+            onClick={() => {
+              setSubmissionEan(notFoundEan)
+              setSubmissionOpen(true)
+            }}
+          >
             <strong>{!isOnline ? t('scan.offlineNotFound') : t('scan.notFoundToast')}</strong>
-            <span>{notFoundEan}</span>
+            <span>
+              {notFoundEan} — <u>{t('scan.submission.titleNew')}</u>
+            </span>
           </div>
         )}
 
@@ -1196,6 +1211,18 @@ export default function ScanScreen() {
         onAccept={() => setConsentOpen(false)}
         onNavigateTerms={() => navigate(buildTermsPath(storeSlug))}
         onNavigatePolicy={() => navigate(buildPrivacyPath(storeSlug))}
+      />
+      <ProductSubmissionSheet
+        open={submissionOpen}
+        onClose={() => setSubmissionOpen(false)}
+        mode="new_product"
+        ean={submissionEan || notFoundEan}
+        storeSlug={storeSlug}
+        playSuccessSound={playSuccessBeep}
+        onSuccess={() => {
+          setNotFoundEan(null)
+          setSubmissionEan(null)
+        }}
       />
     </div>
   )

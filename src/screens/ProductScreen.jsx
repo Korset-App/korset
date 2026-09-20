@@ -40,6 +40,8 @@ import NutritionUnified from '../components/product/NutritionUnified.jsx'
 import IngredientsPreview from '../components/product/IngredientsPreview.jsx'
 import SpecsGrid from '../components/product/SpecsGrid.jsx'
 import SectionLabel from '../components/product/SectionLabel.jsx'
+import ProductSubmissionSheet from '../components/product/ProductSubmissionSheet.jsx'
+import { AlertTriangleIcon, CameraIcon } from '../components/icons/index.js'
 
 function getManufacturerText(product) {
   if (!product) return ''
@@ -88,6 +90,8 @@ export default function ProductScreen() {
   const [unknownRequestStatus, setUnknownRequestStatus] = useState('idle')
   const [shoppingAdding, setShoppingAdding] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
+  const [submissionOpen, setSubmissionOpen] = useState(false)
+  const [submissionMode, setSubmissionMode] = useState('new_product')
 
   const addShoppingAnimation = () => {
     setShoppingAdding(true)
@@ -111,18 +115,27 @@ export default function ProductScreen() {
     let aborted = false
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setFetchingFull(true)
+    const timer = setTimeout(() => {
+      if (!aborted) setFetchingFull(false)
+    }, 4500)
+
     resolveProductByEan(ean, storeId, { logScan: false })
       .then((p) => {
         if (!aborted) {
+          clearTimeout(timer)
           setFetchingFull(false)
           if (p) setFullProduct(p)
         }
       })
       .catch(() => {
-        if (!aborted) setFetchingFull(false)
+        if (!aborted) {
+          clearTimeout(timer)
+          setFetchingFull(false)
+        }
       })
     return () => {
       aborted = true
+      clearTimeout(timer)
     }
   }, [needsResolve, ean, storeId])
 
@@ -131,14 +144,45 @@ export default function ProductScreen() {
     let aborted = false
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setFetchingFull(true)
-    fetchFullProduct(storeId, ean).then((fp) => {
-      if (!aborted) {
-        setFetchingFull(false)
-        if (fp) setFullProduct(fp)
-      }
-    })
+    const timer = setTimeout(() => {
+      if (!aborted) setFetchingFull(false)
+    }, 4500)
+
+    const fetchPromise = storeId ? fetchFullProduct(storeId, ean) : Promise.resolve(null)
+
+    fetchPromise
+      .then(async (fp) => {
+        if (aborted) return
+        if (fp) {
+          clearTimeout(timer)
+          setFetchingFull(false)
+          setFullProduct(fp)
+          return
+        }
+        // Fallback to global resolver if store product not found
+        try {
+          const gp = await resolveProductByEan(ean, storeId, { logScan: false })
+          if (!aborted) {
+            clearTimeout(timer)
+            setFetchingFull(false)
+            if (gp) setFullProduct(gp)
+          }
+        } catch {
+          if (!aborted) {
+            clearTimeout(timer)
+            setFetchingFull(false)
+          }
+        }
+      })
+      .catch(() => {
+        if (!aborted) {
+          clearTimeout(timer)
+          setFetchingFull(false)
+        }
+      })
     return () => {
       aborted = true
+      clearTimeout(timer)
     }
   }, [needsFullFetch, storeId, ean])
 
@@ -339,10 +383,28 @@ export default function ProductScreen() {
               {ean}
             </div>
           )}
+          <button
+            className="btn btn-primary"
+            style={{
+              marginTop: 4,
+              minWidth: 220,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+            }}
+            onClick={() => {
+              setSubmissionMode('new_product')
+              setSubmissionOpen(true)
+            }}
+          >
+            <CameraIcon size={20} />
+            <span>{t('scan.submission.titleNew')}</span>
+          </button>
           {canRequestUnknown && (
             <button
-              className="btn btn-primary"
-              style={{ marginTop: 2, minWidth: 190 }}
+              className="btn btn-secondary"
+              style={{ minWidth: 220 }}
               onClick={handleUnknownProductRequest}
               disabled={unknownRequestStatus === 'sending' || unknownRequestStatus === 'sent'}
             >
@@ -358,12 +420,25 @@ export default function ProductScreen() {
           )}
           <button
             className="btn btn-secondary"
-            style={{ marginTop: canRequestUnknown ? 0 : 8 }}
+            style={{ minWidth: 220 }}
             onClick={() => navigate(buildCatalogPath(activeStoreSlug))}
           >
             {canRequestUnknown ? t('product.unknownEan.scanAnother') : t('product.backToList')}
           </button>
         </div>
+
+        <ProductSubmissionSheet
+          open={submissionOpen}
+          onClose={() => setSubmissionOpen(false)}
+          mode="new_product"
+          ean={ean}
+          storeSlug={activeStoreSlug}
+          onSuccess={() => {
+            if (activeStoreSlug) {
+              navigate(`/s/${activeStoreSlug}/scan`)
+            }
+          }}
+        />
       </div>
     )
   }
@@ -473,31 +548,58 @@ export default function ProductScreen() {
             getCategoryLabel(product.subcategory, lang) ||
             ''}
         </div>
-        <button
-          onClick={handleToggleFavorite}
-          className={`product-header__shopping-btn${isFavorite ? ' product-header__shopping-btn--active' : ''}${shoppingAdding ? ' product-header__shopping-btn--animating' : ''}`}
-          style={{
-            width: 38,
-            height: 38,
-            borderRadius: 12,
-            border: '1px solid var(--glass-border)',
-            background: isFavorite ? 'var(--glass-muted)' : 'var(--glass-bg)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            flexShrink: 0,
-            transition: 'background 0.15s, border-color 0.15s, transform 0.2s ease',
-            color: isFavorite ? 'var(--accent-sky)' : 'var(--text)',
-          }}
-        >
-          <span
-            className="material-symbols-outlined"
-            style={{ fontSize: 20, fontVariationSettings: isFavorite ? "'FILL' 1" : "'FILL' 0" }}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          <button
+            type="button"
+            onClick={() => {
+              setSubmissionMode('correction')
+              setSubmissionOpen(true)
+            }}
+            title={t('scan.submission.reportMismatch')}
+            aria-label={t('scan.submission.reportMismatch')}
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 12,
+              border: '1px solid var(--glass-border)',
+              background: 'var(--glass-bg)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              flexShrink: 0,
+              color: 'var(--text-sub)',
+              transition: 'background 0.15s, color 0.15s',
+            }}
           >
-            checklist
-          </span>
-        </button>
+            <AlertTriangleIcon size={18} />
+          </button>
+          <button
+            onClick={handleToggleFavorite}
+            className={`product-header__shopping-btn${isFavorite ? ' product-header__shopping-btn--active' : ''}${shoppingAdding ? ' product-header__shopping-btn--animating' : ''}`}
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 12,
+              border: '1px solid var(--glass-border)',
+              background: isFavorite ? 'var(--glass-muted)' : 'var(--glass-bg)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              flexShrink: 0,
+              transition: 'background 0.15s, border-color 0.15s, transform 0.2s ease',
+              color: isFavorite ? 'var(--accent-sky)' : 'var(--text)',
+            }}
+          >
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: 20, fontVariationSettings: isFavorite ? "'FILL' 1" : "'FILL' 0" }}
+            >
+              checklist
+            </span>
+          </button>
+        </div>
       </div>
 
       {/* CONTENT */}
@@ -787,7 +889,43 @@ export default function ProductScreen() {
             {t('compare.btnLabel') || t('product.addToCompare')}
           </button>
         </div>
+
+        {/* Report mismatch link */}
+        <div style={{ marginTop: 12, marginBottom: 8, textAlign: 'center' }}>
+          <button
+            type="button"
+            onClick={() => {
+              setSubmissionMode('correction')
+              setSubmissionOpen(true)
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-dim)',
+              fontSize: 13,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '8px 12px',
+              borderRadius: 8,
+            }}
+          >
+            <AlertTriangleIcon size={15} />
+            <span>{t('scan.submission.reportMismatch')}</span>
+          </button>
+        </div>
       </div>
+
+      {/* Product Submission / Correction Bottom Sheet */}
+      <ProductSubmissionSheet
+        open={submissionOpen}
+        onClose={() => setSubmissionOpen(false)}
+        mode={submissionMode}
+        ean={product?.ean || ean}
+        product={product}
+        storeSlug={activeStoreSlug}
+      />
 
       {/* Share copied toast */}
       {shareCopied && (

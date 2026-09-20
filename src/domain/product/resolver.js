@@ -410,9 +410,10 @@ async function _resolveProductByEanImpl(normalizedEan, storeId, options) {
 }
 
 // ─── Публичный резолвер: session EAN cache → in-flight dedup → _resolveProductByEanImpl ─
-export async function resolveProductByEan(ean, storeId = null, options = {}) {
+export async function resolveProductByEan(ean, rawStoreId = null, options = {}) {
   const normalizedEan = String(ean || '').trim()
   if (!normalizedEan) return null
+  const storeId = isUuid(rawStoreId) ? rawStoreId : null
 
   const hit = getCachedProduct(normalizedEan, storeId)
   if (hit) {

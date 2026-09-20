@@ -519,7 +519,7 @@
   "home.aiOnlineStatus": "В сети",
   "home.aiStoreCatalog": "Каталог {storeName}",
   "home.aiStatusOnline": "В сети • Каталог {storeName}",
-  "home.aiInputPlaceholder": "Спросить о товаре, рецепте или цене...",
+  "home.aiInputPlaceholder": "Спросить о товаре или цене...",
   "home.aiInputSubmit": "Спросить",
   "home.aiIdeasTitle": "Идеи для покупок",
   "home.aiShufflePrompt": "Другие идеи",
@@ -573,5 +573,9 @@
   "home.deptGrocery": "Бакалея",
   "home.deptAll": "Весь каталог",
   "home.allDepts": "Все",
-  "home.storeAboutTitle": "О магазине {storeName}"
+  "home.storeAboutTitle": "О магазине {storeName}",
+  "home.featureHalal": "Халал-отдел",
+  "home.featureBakery": "Свежая выпечка",
+  "home.featurePayment": "Kaspi QR и карты",
+  "home.featureParking": "Удобная парковка"
 }

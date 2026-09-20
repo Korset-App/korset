@@ -7,7 +7,14 @@ export function productMatchesRouteEan(product, ean) {
   if (!product || !routeEan) return false
   if (normalizeEan(product.ean) === routeEan) return true
   const alternateEans = product.alternateEans || product.alternate_eans || []
-  return Array.isArray(alternateEans) && alternateEans.map(String).includes(routeEan)
+  if (Array.isArray(alternateEans) && alternateEans.map(String).includes(routeEan)) return true
+  if (
+    product.sourceMeta?.resolvedAliasEan &&
+    normalizeEan(product.sourceMeta.resolvedAliasEan) === routeEan
+  ) {
+    return true
+  }
+  return false
 }
 
 function hasUsefulValue(value) {

@@ -94,7 +94,7 @@ export default function RetailScannerModal({ onScan, onClose }) {
 
         await scanner.start(
           camCfg,
-          { fps: 20, qrbox: { width: 280, height: 160 }, aspectRatio: 1.777, disableFlip: false },
+          { fps: 20, aspectRatio: 1.777, disableFlip: false },
           async (ean) => {
             if (busyRef.current || !mountedRef.current) return
             busyRef.current = true

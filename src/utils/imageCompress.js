@@ -69,6 +69,19 @@ export function compressBanner(file) {
   })
 }
 
+export function compressSubmissionPhoto(file) {
+  return compressImage(file, 1600, 0.82)
+}
+
+export function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
+}
+
 const MAX_FILE_BYTES = 5 * 1024 * 1024
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'image/pjpeg', '']
 

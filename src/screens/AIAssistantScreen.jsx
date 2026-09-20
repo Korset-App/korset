@@ -12,7 +12,7 @@ import { CartIcon } from '../components/icons/CartIcon.jsx'
 import { CameraIcon } from '../components/icons/CameraIcon.jsx'
 import { GalleryIcon } from '../components/icons/GalleryIcon.jsx'
 import { IconGallery } from '../components/icons/IconGallery.jsx'
-import { CloseIcon } from '../components/icons/index.js'
+import { CloseIcon, PlusIcon, SearchIcon } from '../components/icons/index.js'
 import { askGeneralAI, askPackageImageAI, transcribeVoiceInput } from '../services/ai.js'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { useProfile } from '../contexts/ProfileContext.jsx'
@@ -831,7 +831,7 @@ export default function AIAssistantScreen() {
 
               <div className="ai-history-actions">
                 <button type="button" onClick={() => startNewChat()} className="ai-history-primary">
-                  <span className="material-symbols-outlined ai-history-action-icon">add</span>
+                  <PlusIcon size={18} />
                   {t('ai.history.newChat')}
                 </button>
                 {historyItems.length > 0 && (

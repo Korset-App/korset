@@ -459,13 +459,6 @@ export default function CatalogScreen() {
   const [selectedCategory, setSelectedCategory] = useState(
     () => location.state?.category || sessionStorage.getItem('korset_catalog_category') || null
   )
-
-  useEffect(() => {
-    if (location.state?.category) {
-      setSelectedCategory(location.state.category)
-      sessionStorage.setItem('korset_catalog_category', location.state.category)
-    }
-  }, [location.state?.category])
   const [selectedSubcategories, setSelectedSubcategories] = useState(() => {
     try {
       const val = sessionStorage.getItem('korset_catalog_subcategories')
@@ -474,6 +467,32 @@ export default function CatalogScreen() {
       return []
     }
   })
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const urlQ = params.get('q')
+    if (urlQ !== null) {
+      setQ(urlQ)
+      sessionStorage.setItem('korset_catalog_q', urlQ)
+    } else if (location.state?.q !== undefined) {
+      setQ(location.state.q)
+      sessionStorage.setItem('korset_catalog_q', location.state.q)
+    }
+
+    if (location.state?.resetCategory || location.state?.resetAll) {
+      setSelectedCategory(null)
+      setSelectedSubcategories([])
+      sessionStorage.removeItem('korset_catalog_category')
+      sessionStorage.removeItem('korset_catalog_subcategories')
+      if (location.state?.resetAll) {
+        setQ('')
+        sessionStorage.removeItem('korset_catalog_q')
+      }
+    } else if (location.state?.category) {
+      setSelectedCategory(location.state.category)
+      sessionStorage.setItem('korset_catalog_category', location.state.category)
+    }
+  }, [location.search, location.state])
   const [pendingCategory, setPendingCategory] = useState(null)
   const categoryExitTimerRef = useRef(null)
   const [isSubMenuOpen, setIsSubMenuOpen] = useState(false)
@@ -719,18 +738,21 @@ export default function CatalogScreen() {
     }
   }, [])
 
-  const handleCategoryClick = useCallback((catKey) => {
-    if (categoryExitTimerRef.current) clearTimeout(categoryExitTimerRef.current)
-    sessionStorage.setItem('korset_catalog_scroll', '0')
-    scrollRef.current = 0
-    setPendingCategory(catKey)
-    categoryExitTimerRef.current = setTimeout(() => {
-      setSelectedCategory(catKey)
-      setSelectedSubcategories([])
-      setPendingCategory(null)
-      categoryExitTimerRef.current = null
-    }, 80)
-  }, [])
+  const handleCategoryClick = useCallback(
+    (catKey) => {
+      if (categoryExitTimerRef.current) clearTimeout(categoryExitTimerRef.current)
+      sessionStorage.setItem('korset_catalog_scroll', '0')
+      scrollRef.current = 0
+      setPendingCategory(catKey)
+      categoryExitTimerRef.current = setTimeout(() => {
+        setSelectedCategory(catKey)
+        setSelectedSubcategories([])
+        setPendingCategory(null)
+        categoryExitTimerRef.current = null
+      }, 80)
+    },
+    [setSelectedSubcategories]
+  )
 
   const handleBackToCategories = useCallback(() => {
     if (categoryExitTimerRef.current) clearTimeout(categoryExitTimerRef.current)
@@ -741,7 +763,7 @@ export default function CatalogScreen() {
     setSelectedSubcategories([])
     setIsSubMenuOpen(false)
     setIsSortMenuOpen(false)
-  }, [])
+  }, [setSelectedSubcategories])
 
   const storeTitle =
     currentStore?.name || (storeSlug ? `${storeSlug[0].toUpperCase()}${storeSlug.slice(1)}` : '')

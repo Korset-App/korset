@@ -23,6 +23,7 @@
     "check:ai:live:dry": "node scripts/run-live-ai-quality-gate.mjs",
     "memory:save": "node scripts/memory-save.mjs",
     "optimize:banners": "node scripts/optimize-banners.mjs",
+    "submissions:process": "node scripts/process-submissions.mjs",
     "task:update": "node scripts/update-task-board.mjs",
     "prepare": "husky"
   },
