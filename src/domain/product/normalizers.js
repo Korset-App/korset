@@ -53,7 +53,17 @@ export function normalizeGlobalProduct(row, storeOverlay = null) {
       subcategory: row.subcategory || null,
       quantity: row.quantity || null,
       group: row.group || null,
-      images: Array.isArray(row.images) ? row.images : parseJson(row.images, []),
+      images: (() => {
+        const list = []
+        if (row.image_url) list.push(getImageUrl(row.image_url))
+        if (row.image_ingredients_url) list.push(getImageUrl(row.image_ingredients_url))
+        if (Array.isArray(row.images)) list.push(...row.images.map(getImageUrl))
+        else {
+          const parsed = parseJson(row.images, [])
+          if (Array.isArray(parsed)) list.push(...parsed.map(getImageUrl))
+        }
+        return Array.from(new Set(list.filter(Boolean)))
+      })(),
       image: getImageUrl(row.image_url) || null,
       description: row.description || null,
       ingredients: row.ingredients_raw || null,
