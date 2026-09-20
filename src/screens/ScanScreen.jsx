@@ -11,6 +11,7 @@ import TermsConsentSheet, { isTermsAccepted } from '../components/TermsConsentSh
 import { CompareIcon } from '../components/icons/CompareIcon.jsx'
 import { IconGallery } from '../components/icons/IconGallery.jsx'
 import ProductSubmissionSheet from '../components/product/ProductSubmissionSheet.jsx'
+import { isValidBarcodeChecksum } from '../utils/barcodeChecksum.js'
 import './ScanScreen.css'
 
 // Success scan sound via Web Audio API, without asset files.
@@ -478,16 +479,15 @@ export default function ScanScreen() {
             formatsToSupport: [
               Html5QrcodeSupportedFormats.EAN_13,
               Html5QrcodeSupportedFormats.EAN_8,
-              Html5QrcodeSupportedFormats.CODE_128,
-              Html5QrcodeSupportedFormats.CODE_39,
               Html5QrcodeSupportedFormats.UPC_A,
               Html5QrcodeSupportedFormats.UPC_E,
+              Html5QrcodeSupportedFormats.CODE_128,
             ],
             experimentalFeatures: { useBarCodeDetectorIfSupported: true },
           })
 
         const scanConfig = {
-          fps: 15,
+          fps: 20,
           qrbox: (viewfinderWidth, viewfinderHeight) => {
             const width = Math.min(
               viewfinderWidth - 16,
@@ -505,9 +505,43 @@ export default function ScanScreen() {
           disableFlip: false,
         }
 
-        const onScanSuccess = async (ean) => {
+        let pendingCandidate = null
+        let candidateHits = 0
+        let candidateTime = 0
+
+        const onScanSuccess = async (rawEan) => {
           if (busyRef.current || !mountedRef.current) return
+          const cleanEan = String(rawEan || '').trim()
+          if (!cleanEan) return
+
+          // 1. Check GS1 standard checksum for numeric barcodes (EAN-13, EAN-8, UPC-A)
+          const isNumeric = /^\d{8,14}$/.test(cleanEan)
+          if (isNumeric) {
+            const hasValidChecksum = isValidBarcodeChecksum(cleanEan)
+            if (!hasValidChecksum) {
+              // Checksum failed -> optical artifact, reject immediately
+              return
+            }
+          }
+
+          // 2. Multi-frame confirmation: require 2 identical consecutive reads within 400ms
+          const now = Date.now()
+          if (pendingCandidate === cleanEan && now - candidateTime < 400) {
+            candidateHits += 1
+          } else {
+            pendingCandidate = cleanEan
+            candidateHits = 1
+            candidateTime = now
+            return
+          }
+
+          if (candidateHits < 2) return
+
           busyRef.current = true
+          pendingCandidate = null
+          candidateHits = 0
+
+          const ean = cleanEan
           playSuccessBeep()
           try {
             if (loadSoundSettings().vibration) {
