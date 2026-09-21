@@ -521,25 +521,23 @@ export default function ScanScreen() {
 
           // 1. Check GS1 standard checksum for numeric barcodes (EAN-13, EAN-8, UPC-A, ITF-14)
           const isNumeric = /^\d{8,14}$/.test(cleanEan)
-          if (isNumeric) {
-            const hasValidChecksum = isValidBarcodeChecksum(cleanEan)
-            if (!hasValidChecksum) {
-              // Checksum failed -> optical artifact, reject immediately
-              return
-            }
-          } else {
-            // For non-standard non-checksum barcodes, require 2 consecutive reads within 1500ms
-            const now = Date.now()
-            if (pendingCandidate === cleanEan && now - candidateTime < 1500) {
-              candidateHits += 1
-            } else {
-              pendingCandidate = cleanEan
-              candidateHits = 1
-              candidateTime = now
-              return
-            }
-            if (candidateHits < 2) return
+          if (isNumeric && !isValidBarcodeChecksum(cleanEan)) {
+            // Checksum failed -> optical artifact, reject immediately
+            return
           }
+
+          // 2. Multi-frame confirmation: require 2 identical consecutive reads within 1200ms
+          const now = Date.now()
+          if (pendingCandidate === cleanEan && now - candidateTime < 1200) {
+            candidateHits += 1
+          } else {
+            pendingCandidate = cleanEan
+            candidateHits = 1
+            candidateTime = now
+            return
+          }
+
+          if (candidateHits < 2) return
 
           busyRef.current = true
           pendingCandidate = null
