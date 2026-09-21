@@ -127,6 +127,8 @@ Infrastructure: RLS + JWT. Sentry + Telegram alerts. Offline (SW + IndexedDB). R
 
 **EAN Integrity:** КРИТИЧНО: загрязнённые `alternate_eans` (146,805 alias, 81.4% critical). Recovery (8 stages): 1-7D завершены — containment, trusted model (migration 047-049), quarantine (144,856 rows), resolver, parser hardening, correction UI. Trusted=0 (нужна ручная promotion). План: `docs/vault/plans/2026-06-01-product-ean-integrity-recovery-plan.md`.
 
+**Product Submissions:** неизвестный EAN → фото с упаковки в `ProductSubmissionSheet.jsx` → загрузка в Supabase Storage (`public-assets/submissions/<ean>/...`) → запись в `product_correction_events`. Обработка: `npm run submissions:process` (`scripts/process-submissions.mjs`) через Vision AI (Gemini / OpenAI) с извлечением названия, состава, КБЖУ, категории и апсертом в `global_products` и `store_products`. Документ: `docs/vault/knowledge/product-submission-pipeline.md`.
+
 **Keto:** net-carb (fiber-aware), tag extraction. 12.1% safe, 87.9% caution (11,862 продуктов).
 
 ---
@@ -186,5 +188,6 @@ UI: browser/Playwright smoke. Data scripts: dry-run перед боевым за
 - `docs/vault/knowledge/model-routing-and-cost-control.md` — распределение моделей и экономия квоты.
 - `docs/vault/architecture/` — auth, offline, fit-check, category, EAN recovery.
 - `docs/vault/knowledge/data-moat-pipeline-strategy.md` — стратегия данных.
+- `docs/vault/knowledge/product-submission-pipeline.md` — пайплайн обработки заявок и фото товаров (`npm run submissions:process`).
 - `docs/vault/changelog/` — последние session notes.
 - `docs/vault/changelog/2026-06-14-context-cleanup-archive.md` — что удалено из CONTEXT.md и почему.

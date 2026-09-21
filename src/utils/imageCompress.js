@@ -1,33 +1,57 @@
 /* global FileReader */
 
-export function compressImage(file, maxDim, quality) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.readAsDataURL(file)
-    reader.onload = (event) => {
-      const img = new Image()
+export async function compressImage(file, maxDim, quality) {
+  if (!file) throw new Error('no_file')
+
+  let imgSource = null
+  let width = 0
+  let height = 0
+  let cleanup = null
+
+  if (typeof window !== 'undefined' && typeof window.createImageBitmap === 'function') {
+    try {
+      imgSource = await window.createImageBitmap(file)
+      width = imgSource.width
+      height = imgSource.height
+      cleanup = () => imgSource?.close?.()
+    } catch {
+      imgSource = null
+    }
+  }
+
+  if (!imgSource) {
+    const objectUrl = URL.createObjectURL(file)
+    cleanup = () => URL.revokeObjectURL(objectUrl)
+    const img = new Image()
+    await new Promise((resolve, reject) => {
       img.onload = () => {
-        let { width, height } = img
-        const ratio = Math.min(maxDim / width, maxDim / height, 1)
-        if (ratio < 1) {
-          width = Math.round(width * ratio)
-          height = Math.round(height * ratio)
-        }
-        const canvas = document.createElement('canvas')
-        canvas.width = width
-        canvas.height = height
-        const ctx = canvas.getContext('2d')
-        ctx.drawImage(img, 0, 0, width, height)
-        canvas.toBlob(
-          (blob) => (blob ? resolve(blob) : reject(new Error('blob_failed'))),
-          'image/jpeg',
-          quality
-        )
+        width = img.naturalWidth || img.width
+        height = img.naturalHeight || img.height
+        imgSource = img
+        resolve()
       }
       img.onerror = () => reject(new Error('image_load_failed'))
-      img.src = event.target.result
-    }
-    reader.onerror = () => reject(new Error('file_read_failed'))
+      img.src = objectUrl
+    })
+  }
+
+  const ratio = Math.min(maxDim / width, maxDim / height, 1)
+  const targetW = Math.max(1, Math.round(width * ratio))
+  const targetH = Math.max(1, Math.round(height * ratio))
+
+  const canvas = document.createElement('canvas')
+  canvas.width = targetW
+  canvas.height = targetH
+  const ctx = canvas.getContext('2d')
+  ctx.drawImage(imgSource, 0, 0, targetW, targetH)
+  if (cleanup) cleanup()
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error('blob_failed'))),
+      'image/jpeg',
+      quality
+    )
   })
 }
 

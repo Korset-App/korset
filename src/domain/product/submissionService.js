@@ -67,10 +67,28 @@ export async function submitProductData({
             uploadedPhotoUrls.push(pubData.publicUrl)
           }
         } else {
-          console.warn('[submissionService] storage upload failed, skipping photo', i, uploadError)
+          console.error('[submissionService] storage upload failed:', uploadError)
+          return {
+            ok: false,
+            error: uploadError.message || 'storage_upload_failed',
+            errorCode: 'STORAGE_UPLOAD_FAILED',
+          }
         }
       } catch (compressErr) {
-        console.warn('[submissionService] file compress failed, skipping photo', i, compressErr)
+        console.error('[submissionService] file compress failed:', compressErr)
+        return {
+          ok: false,
+          error: compressErr?.message || 'compress_failed',
+          errorCode: 'COMPRESS_FAILED',
+        }
+      }
+    }
+
+    if (files.length > 0 && uploadedPhotoUrls.length === 0) {
+      return {
+        ok: false,
+        error: 'no_photos_uploaded',
+        errorCode: 'PHOTO_UPLOAD_FAILED',
       }
     }
 

@@ -94,5 +94,6 @@
   "scan.submission.reportMismatch": "Басқа тауар ма?",
   "scan.submission.reportError": "Қате туралы хабарлау",
   "scan.submission.cancel": "Болдырмау",
-  "scan.submission.retake": "Қайта түсіру"
+  "scan.submission.retake": "Қайта түсіру",
+  "scan.submission.photoRequired": "Қаптаманың кемінде бір фотосын қосыңыз"
 }

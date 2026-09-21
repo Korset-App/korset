@@ -94,5 +94,6 @@
   "scan.submission.reportMismatch": "Не тот товар?",
   "scan.submission.reportError": "Сообщить об ошибке",
   "scan.submission.cancel": "Отмена",
-  "scan.submission.retake": "Переснять"
+  "scan.submission.retake": "Переснять",
+  "scan.submission.photoRequired": "Добавьте хотя бы одно фото упаковки"
 }

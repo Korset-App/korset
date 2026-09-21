@@ -137,6 +137,7 @@ function ProductSubmissionContent({
     status === 'compressing' ||
     status === 'uploading' ||
     status === 'success' ||
+    (!isCorrection && photos.length === 0) ||
     (isCorrection && photos.length === 0 && !comment.trim())
 
   return (
@@ -316,6 +317,18 @@ function ProductSubmissionContent({
 
       {/* Footer / Submit Button */}
       <div className="korset-sub-footer">
+        {!isCorrection && photos.length === 0 && (
+          <p
+            style={{
+              margin: '0 0 8px 0',
+              fontSize: 12,
+              color: 'var(--text-sub)',
+              textAlign: 'center',
+            }}
+          >
+            {t('scan.submission.photoRequired')}
+          </p>
+        )}
         <button
           type="button"
           className="korset-sub-primary-btn"

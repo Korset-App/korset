@@ -76,20 +76,95 @@ Rules:
 2. If nutrition per 100g is not visible, use null for those nutriments fields.
 3. Choose the most appropriate category from the given list.`
 
+  if (GEMINI_API_KEY) {
+    const imageParts = await Promise.all(
+      photoUrls.map(async (url) => {
+        const res = await fetch(url)
+        if (!res.ok) throw new Error(`Failed to download image from ${url}: ${res.status}`)
+        const arrayBuffer = await res.arrayBuffer()
+        const base64Data = Buffer.from(arrayBuffer).toString('base64')
+        const mimeType = res.headers.get('content-type') || 'image/jpeg'
+        return {
+          inline_data: {
+            mime_type: mimeType.split(';')[0],
+            data: base64Data,
+          },
+        }
+      })
+    )
+
+    const modelsToTry = ['gemini-flash-latest', 'gemini-3.6-flash']
+    let lastError = null
+
+    for (const model of modelsToTry) {
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
+          const geminiRes = await fetch(geminiUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-goog-api-key': GEMINI_API_KEY,
+            },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [{ text: prompt }, ...imageParts],
+                },
+              ],
+              generationConfig: {
+                response_mime_type: 'application/json',
+                temperature: 0.1,
+              },
+            }),
+          })
+
+          if (geminiRes.status === 503 || geminiRes.status === 429) {
+            console.log(`⚠️ Gemini ${model} returned ${geminiRes.status}, retrying in 2s (attempt ${attempt}/3)...`)
+            await new Promise((r) => setTimeout(r, 2000))
+            continue
+          }
+
+          if (!geminiRes.ok) {
+            const errText = await geminiRes.text()
+            throw new Error(`Gemini Vision API error: ${geminiRes.status} ${errText}`)
+          }
+
+          const data = await geminiRes.json()
+          const content = data.candidates?.[0]?.content?.parts?.[0]?.text
+          return JSON.parse(content)
+        } catch (err) {
+          lastError = err
+          if (attempt === 3) break
+          await new Promise((r) => setTimeout(r, 1500))
+        }
+      }
+    }
+
+    throw lastError || new Error('Failed to extract data via Gemini Vision')
+  }
+
   if (OPENAI_API_KEY) {
+    const base = process.env.OPENAI_API_BASE_URL || 'https://api.openai.com/v1'
+    const model = process.env.OPENAI_VISION_MODEL || 'gpt-4o-mini'
+    const fetchUrl = `${base.replace(/\/+$/, '')}/chat/completions`
+    const headers = { 'Content-Type': 'application/json' }
+    if (fetchUrl.includes('.azure.com') || fetchUrl.includes('.services.ai.azure.com')) {
+      headers['api-key'] = OPENAI_API_KEY
+    } else {
+      headers['Authorization'] = `Bearer ${OPENAI_API_KEY}`
+    }
+
     const imageContents = photoUrls.map((url) => ({
       type: 'image_url',
       image_url: { url, detail: 'high' },
     }))
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch(fetchUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-      },
+      headers,
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model,
         messages: [
           {
             role: 'system',
@@ -222,24 +297,33 @@ async function main() {
       }
 
       const primaryImage = photoUrls[0] || null
+      const ingredientsImage = photoUrls[1] || null
 
       if (subType === 'new_product') {
+        // Fetch existing if any to avoid erasing richer data
+        const { data: existing } = await admin
+          .from('global_products')
+          .select('name_kz, brand, quantity, ingredients_raw, nutriments_json, image_url, image_ingredients_url')
+          .eq('ean', ev.ean)
+          .maybeSingle()
+
         // Upsert into global_products
         const { data: newProd, error: gpErr } = await admin
           .from('global_products')
           .upsert(
             {
               ean: ev.ean,
-              name: parsed.name,
-              name_kz: parsed.name_kz || null,
-              brand: parsed.brand || null,
+              name: parsed.name || existing?.name,
+              name_kz: parsed.name_kz || existing?.name_kz || null,
+              brand: parsed.brand || existing?.brand || null,
               category: parsed.category,
-              quantity: parsed.quantity || null,
-              ingredients_raw: parsed.ingredients_raw || null,
-              nutriments_json: parsed.nutriments || null,
-              image_url: primaryImage,
+              quantity: parsed.quantity || existing?.quantity || null,
+              ingredients_raw: parsed.ingredients_raw || existing?.ingredients_raw || null,
+              nutriments_json: parsed.nutriments || existing?.nutriments_json || null,
+              image_url: primaryImage || existing?.image_url || null,
+              image_ingredients_url: ingredientsImage || existing?.image_ingredients_url || null,
               is_active: true,
-              source_primary: 'shopper_submission',
+              source_primary: 'ai_enriched',
             },
             { onConflict: 'ean' }
           )
