@@ -79,18 +79,23 @@ export async function getAIResponse(question, lang, faqItems) {
       headers['api-key'] = API_KEY
     }
 
+    const reqPayload = {
+      model: MODEL,
+      max_completion_tokens: MAX_TOKENS,
+      temperature: 0.5,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: question },
+      ],
+    }
+    if (MODEL.includes('deepseek') || fetchUrl.includes('deepseek')) {
+      reqPayload.thinking = { type: 'disabled' }
+    }
+
     const res = await fetch(fetchUrl, {
       method: 'POST',
       headers,
-      body: JSON.stringify({
-        model: MODEL,
-        max_completion_tokens: MAX_TOKENS,
-        temperature: 0.5,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: question },
-        ],
-      }),
+      body: JSON.stringify(reqPayload),
       signal: controller.signal,
     })
 

@@ -93,7 +93,7 @@ Rules:
       })
     )
 
-    const modelsToTry = ['gemini-flash-latest', 'gemini-3.6-flash']
+    const modelsToTry = ['gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3.5-flash']
     let lastError = null
 
     for (const model of modelsToTry) {
@@ -120,8 +120,11 @@ Rules:
           })
 
           if (geminiRes.status === 503 || geminiRes.status === 429) {
-            console.log(`⚠️ Gemini ${model} returned ${geminiRes.status}, retrying in 2s (attempt ${attempt}/3)...`)
-            await new Promise((r) => setTimeout(r, 2000))
+            console.log(`⚠️ Gemini ${model} returned ${geminiRes.status}, retrying in ${attempt * 2}s (attempt ${attempt}/3)...`)
+            if (attempt === 3) {
+              throw new Error(`Gemini Vision API error: ${geminiRes.status} service unavailable/rate limited`)
+            }
+            await new Promise((r) => setTimeout(r, attempt * 2000))
             continue
           }
 
@@ -141,7 +144,7 @@ Rules:
       }
     }
 
-    throw lastError || new Error('Failed to extract data via Gemini Vision')
+    console.warn(`⚠️ Gemini Vision API failed (${lastError?.message}). Trying OpenAI fallback...`)
   }
 
   if (OPENAI_API_KEY) {

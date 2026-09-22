@@ -400,12 +400,22 @@ async function fetchRagContext(product, _mode, profile) {
 
     const openAiBaseUrl = process.env.OPENAI_API_BASE_URL
     const base = openAiBaseUrl || 'https://api.openai.com/v1'
-    const fetchUrl = `${base.replace(/\/+$/, '')}/embeddings`
+    let fetchUrl = `${base.replace(/\/+$/, '')}/embeddings`
     const headers = {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
     }
-    if (fetchUrl.includes('.azure.com') || fetchUrl.includes('.services.ai.azure.com')) {
+    if (base.includes('deepseek')) {
+      if (process.env.EMBEDDINGS_API_BASE_URL) {
+        fetchUrl = `${process.env.EMBEDDINGS_API_BASE_URL.replace(/\/+$/, '')}/embeddings`
+        headers.Authorization = `Bearer ${process.env.EMBEDDINGS_API_KEY || process.env.OPENAI_API_KEY}`
+      } else if (process.env.GITHUB_TOKEN) {
+        fetchUrl = 'https://models.github.ai/inference/embeddings'
+        headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`
+      } else {
+        return null
+      }
+    } else if (fetchUrl.includes('.azure.com') || fetchUrl.includes('.services.ai.azure.com')) {
       headers['api-key'] = process.env.OPENAI_API_KEY
     }
 
@@ -594,6 +604,10 @@ async function handleChat(req, res) {
         headers['api-key'] = apiKey
       }
       requestBody.model = modelSelection.model
+    }
+
+    if (requestBody.model?.includes('deepseek') || fetchUrl.includes('deepseek')) {
+      requestBody.thinking = { type: 'disabled' }
     }
 
     const openaiRes = await fetch(fetchUrl, {
@@ -1043,6 +1057,9 @@ async function handleTranscription(req, res) {
       const cleanBase = azureEndpointBase.replace(/^https?:\/\//, '').replace(/\/+$/, '')
       fetchUrl = `https://${cleanBase}/openai/deployments/${deploymentName}/audio/transcriptions?api-version=${apiVersion}`
       headers['api-key'] = azureApiKey
+    } else if (process.env.GROQ_API_KEY) {
+      fetchUrl = 'https://api.groq.com/openai/v1/audio/transcriptions'
+      headers['Authorization'] = `Bearer ${process.env.GROQ_API_KEY}`
     } else {
       const base = openAiBaseUrl || 'https://api.openai.com/v1'
       fetchUrl = `${base.replace(/\/+$/, '')}/audio/transcriptions`
@@ -1272,6 +1289,10 @@ async function handleImageAnalysis(req, res) {
         headers['api-key'] = apiKey
       }
       requestBody.model = IMAGE_AI_MODEL
+    }
+
+    if (requestBody.model?.includes('deepseek') || fetchUrl.includes('deepseek')) {
+      requestBody.thinking = { type: 'disabled' }
     }
 
     const openaiRes = await fetch(fetchUrl, {
