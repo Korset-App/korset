@@ -104,9 +104,9 @@
   flex-direction: column;
   gap: 16px;
   overflow-y: auto;
-  padding: 12px 16px calc(var(--ai-bottom-nav-space, calc(72px + env(safe-area-inset-bottom, 0px))) + var(--ai-composer-space, 96px) + 18px);
+  padding: 12px 16px calc(var(--ai-bottom-nav-space, calc(76px + env(safe-area-inset-bottom, 0px))) + var(--ai-composer-space, 96px) + 24px);
   scroll-padding-bottom: calc(
-    var(--ai-bottom-nav-space, calc(72px + env(safe-area-inset-bottom, 0px))) + var(--ai-composer-space, 96px) + 18px
+    var(--ai-bottom-nav-space, calc(76px + env(safe-area-inset-bottom, 0px))) + var(--ai-composer-space, 96px) + 24px
   );
 }
 
@@ -146,8 +146,7 @@ body.ai-history-open .bottom-nav {
   box-shadow:
     0 -8px 40px color-mix(in srgb, var(--bg-app) 24%, transparent),
     inset 0 1px 0 color-mix(in srgb, var(--text) 6%, transparent);
-  touch-action: none;
-  padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
@@ -275,6 +274,7 @@ body.ai-history-open .bottom-nav {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
+  touch-action: pan-y;
   padding: 0 18px 14px;
 }
 
@@ -439,15 +439,17 @@ body.ai-history-open .bottom-nav {
   gap: 10px;
   overflow: visible;
   padding: 0;
+  align-items: stretch;
 }
 
 .ai-capability-card {
   position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
+  justify-content: space-between;
   align-items: flex-start;
   min-height: 124px;
+  height: 100%;
   padding: 13px;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--border) 82%, var(--primary-bright) 6%);
@@ -489,18 +491,20 @@ body.ai-history-open .bottom-nav {
   border-radius: 11px;
   background: color-mix(in srgb, var(--bg-card) 82%, var(--primary-bright) 18%);
   color: var(--text-sub);
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   flex-shrink: 0;
 }
 
 .ai-capability-card__content {
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
   position: relative;
   z-index: 1;
   min-width: 0;
   width: 100%;
   gap: 4px;
+  margin-top: auto;
 }
 
 .ai-capability-card__title {
@@ -510,10 +514,8 @@ body.ai-history-open .bottom-nav {
   line-height: 1.25;
   letter-spacing: -0.01em;
   margin: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .ai-capability-card__description {
@@ -521,10 +523,8 @@ body.ai-history-open .bottom-nav {
   font-size: 11.5px;
   line-height: 1.35;
   margin: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .ai-capability-card--aqua {
@@ -832,10 +832,10 @@ body.ai-history-open .bottom-nav {
 .ai-composer {
   position: fixed;
   right: 0;
-  bottom: var(--ai-bottom-nav-space, calc(72px + env(safe-area-inset-bottom, 0px)));
+  bottom: var(--ai-bottom-nav-space, calc(76px + env(safe-area-inset-bottom, 0px)));
   left: 0;
   z-index: 90;
-  padding: 6px 14px 4px;
+  padding: 8px 14px 12px;
   border-top: 1px solid color-mix(in srgb, var(--glass-border) 56%, transparent);
   background: linear-gradient(
     180deg,
@@ -869,7 +869,8 @@ body.ai-history-open .bottom-nav {
   grid-template-areas:
     'input input'
     'tools send';
-  align-items: end;
+  gap: 8px 6px;
+  align-items: center;
 }
 
 .ai-voice-notice,
@@ -1201,7 +1202,7 @@ body.ai-history-open .bottom-nav {
 }
 
 .ai-composer__dock.is-expanded .ai-composer__tools {
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 .ai-composer__input {
@@ -1210,7 +1211,7 @@ body.ai-history-open .bottom-nav {
   box-sizing: border-box;
   width: 100%;
   min-height: 36px;
-  max-height: 118px;
+  max-height: 120px;
   min-width: 0;
   padding: 8px 10px;
   border: 0;
@@ -1230,8 +1231,8 @@ body.ai-history-open .bottom-nav {
 }
 
 .ai-composer__dock.is-expanded .ai-composer__input {
-  min-height: 46px;
-  padding-right: 10px;
+  min-height: 48px;
+  padding: 4px 8px;
 }
 
 .ai-composer__input::placeholder {

@@ -1,5 +1,6 @@
 /* global MediaRecorder, Blob, ResizeObserver */
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useI18n } from '../i18n/index.js'
@@ -234,9 +235,12 @@ export default function AIAssistantScreen() {
   const visibleMessages = messagesStoreSlug === activeStoreSlug ? messages : []
   const voiceProcessing = voiceStatus === 'uploading' || voiceStatus === 'transcribing'
   const voiceMeterLevel = Math.max(1, Math.ceil(voiceLevel * 12))
+  const [isMultiline, setIsMultiline] = useState(false)
   const imageAccept = AI_IMAGE_INPUT_LIMITS.acceptedMimeTypes.join(',')
   const composerExpanded =
-    input.split('\n').length >= 3 ||
+    isMultiline ||
+    input.includes('\n') ||
+    input.length > 40 ||
     Boolean(selectedImage) ||
     Boolean(imageError) ||
     imagePickerOpen
@@ -289,7 +293,10 @@ export default function AIAssistantScreen() {
     const inputElement = composerInputRef.current
     if (!inputElement) return
     inputElement.style.height = 'auto'
-    inputElement.style.height = `${Math.min(inputElement.scrollHeight, 118)}px`
+    const scrollHeight = inputElement.scrollHeight
+    const multiline = scrollHeight > 42 || input.includes('\n') || input.length > 40
+    setIsMultiline(multiline)
+    inputElement.style.height = `${Math.min(scrollHeight, 120)}px`
   }, [input])
 
   useEffect(() => {
@@ -511,13 +518,7 @@ export default function AIAssistantScreen() {
       }
 
       recognition.onend = () => {
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-          try {
-            recognition.start()
-          } catch {
-            // ignore
-          }
-        }
+        voiceRecognitionRef.current = null
       }
 
       recognition.start()
@@ -818,144 +819,161 @@ export default function AIAssistantScreen() {
           )}
         </div>
       </div>
-      <AnimatePresence>
-        {historyOpen && (
-          <>
-            <motion.div
-              key="ai-history-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="ai-history-backdrop"
-              onClick={() => setHistoryOpen(false)}
-            />
-            <motion.section
-              key="ai-history-sheet"
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-              drag="y"
-              dragConstraints={{ top: 0, bottom: 0 }}
-              dragElastic={0.15}
-              onDragEnd={(event, info) => {
-                if (info.offset.y > 100 || info.velocity.y > 500) setHistoryOpen(false)
-              }}
-              className="ai-history-sheet"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="ai-history-title"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <div className="ai-history-sheet__handle" />
-              <div className="ai-history-sheet__head">
-                <div>
-                  <h2 id="ai-history-title" className="ai-history-sheet__title">
-                    {t('ai.history.title')}
-                  </h2>
-                  <p className="ai-history-sheet__subtitle">{t('ai.history.subtitle')}</p>
-                </div>
-                <button
-                  type="button"
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <AnimatePresence>
+            {historyOpen && (
+              <>
+                <motion.div
+                  key="ai-history-backdrop"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="ai-history-backdrop"
                   onClick={() => setHistoryOpen(false)}
-                  className="ai-history-close"
-                  aria-label={t('ai.history.close')}
+                />
+                <motion.section
+                  key="ai-history-sheet"
+                  initial={{ y: '100%' }}
+                  animate={{ y: 0 }}
+                  exit={{ y: '100%' }}
+                  transition={{ type: 'spring', damping: 28, stiffness: 260 }}
+                  drag="y"
+                  dragConstraints={{ top: 0, bottom: 0 }}
+                  dragElastic={0.15}
+                  onDragEnd={(event, info) => {
+                    if (info.offset.y > 100 || info.velocity.y > 500) setHistoryOpen(false)
+                  }}
+                  className="ai-history-sheet"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="ai-history-title"
+                  onClick={(event) => event.stopPropagation()}
                 >
-                  <CloseIcon size={18} />
-                </button>
-              </div>
-
-              <div className="ai-history-actions">
-                <button type="button" onClick={() => startNewChat()} className="ai-history-primary">
-                  <PlusIcon size={18} />
-                  {t('ai.history.newChat')}
-                </button>
-                {historyItems.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setClearConfirming((current) => !current)}
-                    className="ai-history-secondary ai-history-danger"
-                  >
-                    {clearConfirming ? t('ai.history.cancel') : t('ai.history.clearAll')}
-                  </button>
-                )}
-              </div>
-
-              {clearConfirming && (
-                <div className="ai-history-confirm">
-                  <span>{t('ai.history.clearAllConfirm')}</span>
-                  <button
-                    type="button"
-                    onClick={confirmClearStoreHistory}
-                    className="ai-history-confirm__button ai-history-danger"
-                  >
-                    {t('ai.history.confirmClear')}
-                  </button>
-                </div>
-              )}
-
-              <div className="ai-history-list">
-                {historyLoading ? (
-                  <div className="ai-history-empty">{t('ai.history.loading')}</div>
-                ) : historyItems.length === 0 ? (
-                  <div className="ai-history-empty">
-                    <span className="material-symbols-outlined ai-history-empty__icon">forum</span>
-                    <strong>{t('ai.history.emptyTitle')}</strong>
-                    <span>{t('ai.history.emptyText')}</span>
-                  </div>
-                ) : (
-                  historyItems.map((item) => (
-                    <div key={item.id} className="ai-history-item">
-                      <button
-                        type="button"
-                        onClick={() => openConversation(item.id)}
-                        className="ai-history-item__main"
-                      >
-                        <span className="ai-history-item__title">{item.title}</span>
-                        {item.preview && (
-                          <span className="ai-history-item__preview">{item.preview}</span>
-                        )}
-                        <span className="ai-history-item__meta">
-                          {formatHistoryDate(item.updatedAt, lang)} ·{' '}
-                          {t('ai.history.messageCount', { count: item.messageCount })}
-                        </span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => requestDeleteConversation(item.id)}
-                        className="ai-history-item__delete"
-                        aria-label={t('ai.history.delete')}
-                      >
-                        <TrashIcon size={18} />
-                      </button>
-                      {deleteCandidateId === item.id && (
-                        <div className="ai-history-item__confirm">
-                          <span>{t('ai.history.deleteConfirm')}</span>
-                          <button
-                            type="button"
-                            onClick={() => confirmDeleteConversation(item.id)}
-                            className="ai-history-confirm__button ai-history-danger"
-                          >
-                            {t('ai.history.confirmDelete')}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDeleteCandidateId(null)}
-                            className="ai-history-confirm__button"
-                          >
-                            {t('ai.history.cancel')}
-                          </button>
-                        </div>
-                      )}
+                  <div className="ai-history-sheet__handle" />
+                  <div className="ai-history-sheet__head">
+                    <div>
+                      <h2 id="ai-history-title" className="ai-history-sheet__title">
+                        {t('ai.history.title')}
+                      </h2>
+                      <p className="ai-history-sheet__subtitle">{t('ai.history.subtitle')}</p>
                     </div>
-                  ))
-                )}
-              </div>
-            </motion.section>
-          </>
+                    <button
+                      type="button"
+                      onClick={() => setHistoryOpen(false)}
+                      className="ai-history-close"
+                      aria-label={t('ai.history.close')}
+                    >
+                      <CloseIcon size={18} />
+                    </button>
+                  </div>
+
+                  <div className="ai-history-actions">
+                    <button
+                      type="button"
+                      onClick={() => startNewChat()}
+                      className="ai-history-primary"
+                    >
+                      <PlusIcon size={18} />
+                      {t('ai.history.newChat')}
+                    </button>
+                    {historyItems.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setClearConfirming((current) => !current)}
+                        className="ai-history-secondary ai-history-danger"
+                      >
+                        {clearConfirming ? t('ai.history.cancel') : t('ai.history.clearAll')}
+                      </button>
+                    )}
+                  </div>
+
+                  {clearConfirming && (
+                    <div className="ai-history-confirm">
+                      <span>{t('ai.history.clearAllConfirm')}</span>
+                      <button
+                        type="button"
+                        onClick={confirmClearStoreHistory}
+                        className="ai-history-confirm__button ai-history-danger"
+                      >
+                        {t('ai.history.confirmClear')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setClearConfirming(false)}
+                        className="ai-history-confirm__button"
+                      >
+                        {t('ai.history.cancel')}
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="ai-history-list">
+                    {historyLoading ? (
+                      <div className="ai-history-empty">{t('ai.history.loading')}</div>
+                    ) : historyItems.length === 0 ? (
+                      <div className="ai-history-empty">
+                        <span className="material-symbols-outlined ai-history-empty__icon">
+                          forum
+                        </span>
+                        <strong>{t('ai.history.emptyTitle')}</strong>
+                        <span>{t('ai.history.emptyText')}</span>
+                      </div>
+                    ) : (
+                      historyItems.map((item) => (
+                        <div key={item.id} className="ai-history-item">
+                          <button
+                            type="button"
+                            onClick={() => openConversation(item.id)}
+                            className="ai-history-item__main"
+                          >
+                            <span className="ai-history-item__title">{item.title}</span>
+                            {item.preview && (
+                              <span className="ai-history-item__preview">{item.preview}</span>
+                            )}
+                            <span className="ai-history-item__meta">
+                              {formatHistoryDate(item.updatedAt, lang)} ·{' '}
+                              {t('ai.history.messageCount', { count: item.messageCount })}
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => requestDeleteConversation(item.id)}
+                            className="ai-history-item__delete"
+                            aria-label={t('ai.history.delete')}
+                          >
+                            <TrashIcon size={18} />
+                          </button>
+                          {deleteCandidateId === item.id && (
+                            <div className="ai-history-item__confirm">
+                              <span>{t('ai.history.deleteConfirm')}</span>
+                              <button
+                                type="button"
+                                onClick={() => confirmDeleteConversation(item.id)}
+                                className="ai-history-confirm__button ai-history-danger"
+                              >
+                                {t('ai.history.confirmDelete')}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setDeleteCandidateId(null)}
+                                className="ai-history-confirm__button"
+                              >
+                                {t('ai.history.cancel')}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </motion.section>
+              </>
+            )}
+          </AnimatePresence>,
+          document.body
         )}
-      </AnimatePresence>
       <div className="ai-scroll">
         {visibleMessages.length === 0 && (
           <div className="ai-empty-state">
@@ -1230,7 +1248,7 @@ export default function AIAssistantScreen() {
               disabled={loading || (!input.trim() && !selectedImage)}
               className="ai-composer__send"
             >
-              <SendIcon size={20} />
+              <SendIcon size={24} />
             </button>
           </div>
         </div>
