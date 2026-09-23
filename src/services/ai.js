@@ -153,7 +153,7 @@ export async function transcribeVoiceInput({
       await new Promise((resolve) => setTimeout(resolve, 600))
       res = await performFetch()
     }
-  } catch (error) {
+  } catch (_error) {
     try {
       await new Promise((resolve) => setTimeout(resolve, 600))
       res = await performFetch()
