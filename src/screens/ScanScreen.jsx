@@ -587,19 +587,33 @@ export default function ScanScreen() {
               startScannerRef.current?.(cameraList, idx)
             }
           } else {
-            // Normal mode: navigate immediately, then enrich recent scans in background.
+            // Normal mode: await fast lookup or navigate immediately with optimistic state
             setScanFlash(true)
             setTimeout(() => {
               if (mountedRef.current) setScanFlash(false)
             }, 350)
-            stopScanner()
-            lookupProduct(ean, currentStoreId)
-              .then((r) => {
-                if (r?.product) rememberScan(r.product)
-              })
-              .catch(() => {})
+            await stopScanner()
+            let resolvedProduct = null
+            try {
+              const lookupPromise = lookupProduct(ean, currentStoreId)
+              const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(null), 800))
+              const r = await Promise.race([lookupPromise, timeoutPromise])
+              if (r?.product) {
+                resolvedProduct = r.product
+                rememberScan(r.product)
+              } else {
+                // If it took >800ms, let it finish and save in background
+                lookupPromise
+                  .then((bgR) => {
+                    if (bgR?.product) rememberScan(bgR.product)
+                  })
+                  .catch(() => {})
+              }
+            } catch {
+              /* noop */
+            }
             navigate(buildProductPath(slugRef.current, ean), {
-              state: { ean, fromScan: true },
+              state: { ean, fromScan: true, product: resolvedProduct },
             })
           }
         }

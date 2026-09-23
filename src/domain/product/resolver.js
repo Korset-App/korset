@@ -336,7 +336,35 @@ async function _resolveProductByEanImpl(normalizedEan, storeId, options) {
     /* IndexedDB unavailable, proceed with network cascade */
   }
 
-  // Primary: единый RPC (migration 026) — заменяет findStoreProduct + findGlobalProductByEan
+  // 1. Direct store product lookup (fast index lookup, avoids RPC joins/timeouts)
+  if (storeId) {
+    const storeProduct = await findStoreProduct(normalizedEan, storeId)
+    if (storeProduct) {
+      maybeEnrichInBackground(storeProduct, storeId)
+      return finalizeResolvedProduct(storeProduct, {
+        ean: normalizedEan,
+        foundStatus: 'found_store',
+        storeId,
+        fitResult: options.fitResult,
+        logScan: options.logScan,
+      })
+    }
+  }
+
+  // 2. Direct global product lookup
+  const globalProduct = await findGlobalProductByEan(normalizedEan)
+  if (globalProduct) {
+    maybeEnrichInBackground(globalProduct, storeId)
+    return finalizeResolvedProduct(globalProduct, {
+      ean: normalizedEan,
+      foundStatus: 'found_global',
+      storeId,
+      fitResult: options.fitResult,
+      logScan: options.logScan,
+    })
+  }
+
+  // 3. RPC fallback for complex alias resolution
   const rpcResult = await findProductViaRPC(normalizedEan, storeId)
   if (rpcResult && !rpcResult._rpcUnavailable) {
     maybeEnrichInBackground(rpcResult, storeId)
@@ -347,34 +375,6 @@ async function _resolveProductByEanImpl(normalizedEan, storeId, options) {
       fitResult: options.fitResult,
       logScan: options.logScan,
     })
-  }
-
-  // Fallback: прямые запросы (если migration 026 ещё не применена)
-  if (rpcResult?._rpcUnavailable) {
-    if (storeId) {
-      const storeProduct = await findStoreProduct(normalizedEan, storeId)
-      if (storeProduct) {
-        maybeEnrichInBackground(storeProduct, storeId)
-        return finalizeResolvedProduct(storeProduct, {
-          ean: normalizedEan,
-          foundStatus: 'found_store',
-          storeId,
-          fitResult: options.fitResult,
-          logScan: options.logScan,
-        })
-      }
-    }
-    const globalProduct = await findGlobalProductByEan(normalizedEan)
-    if (globalProduct) {
-      maybeEnrichInBackground(globalProduct, storeId)
-      return finalizeResolvedProduct(globalProduct, {
-        ean: normalizedEan,
-        foundStatus: 'found_global',
-        storeId,
-        fitResult: options.fitResult,
-        logScan: options.logScan,
-      })
-    }
   }
 
   if (isOffline) {

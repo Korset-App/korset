@@ -21,8 +21,10 @@ const DB_NAME = 'korset-offline-db'
 //   - pending_scans: + index 'client_token' (для дедуп flush'а на сервере)
 // v3 (2026-05-01):
 //   - store_catalog: category index remains (now uses normalized keys)
+// v4 (2026-09-23):
+//   - catalog v2 overhaul: purge stale legacy catalog cache and alternate_eans
 // ══════════════════════════════════════════════════════════════════
-const DB_VERSION = 3
+const DB_VERSION = 4
 
 const STORE_CATALOG = 'store_catalog'
 const STORE_META = 'store_meta'
@@ -82,6 +84,20 @@ function runMigrations(db, oldVersion, newVersion, tx) {
   // The index will automatically reflect updated category values
   // when the catalog is re-synced from the server.
   // ──────────────────────────────────────────────────────────────
+
+  // ──────────────────────────────────────────────────────────────
+  // Migration v3 → v4: purge stale catalog products and reset cache
+  // ──────────────────────────────────────────────────────────────
+  if (oldVersion < 4) {
+    if (db.objectStoreNames.contains(STORE_CATALOG)) {
+      const catalogStore = tx.objectStore(STORE_CATALOG)
+      catalogStore.clear()
+    }
+    if (db.objectStoreNames.contains(STORE_META)) {
+      const metaStore = tx.objectStore(STORE_META)
+      metaStore.clear()
+    }
+  }
 }
 
 function getDB() {

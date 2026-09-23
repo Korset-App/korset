@@ -117,7 +117,7 @@ export default function ProductScreen() {
     setFetchingFull(true)
     const timer = setTimeout(() => {
       if (!aborted) setFetchingFull(false)
-    }, 4500)
+    }, 8000)
 
     resolveProductByEan(ean, storeId, { logScan: false })
       .then((p) => {
@@ -146,7 +146,7 @@ export default function ProductScreen() {
     setFetchingFull(true)
     const timer = setTimeout(() => {
       if (!aborted) setFetchingFull(false)
-    }, 4500)
+    }, 8000)
 
     const fetchPromise = storeId ? fetchFullProduct(storeId, ean) : Promise.resolve(null)
 
