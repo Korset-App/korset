@@ -134,23 +134,35 @@ export async function transcribeVoiceInput({
   form.append('storeSlug', storeSlug || '')
   if (durationMs != null) form.append('durationMs', String(Math.round(Number(durationMs))))
 
-  const signal =
-    typeof globalThis.AbortSignal?.timeout === 'function'
-      ? globalThis.AbortSignal.timeout(TRANSCRIBE_TIMEOUT_MS)
-      : undefined
-
-  let res
-  try {
-    res = await fetch(AI_TRANSCRIBE_ENDPOINT, {
+  const performFetch = async () => {
+    const signal =
+      typeof globalThis.AbortSignal?.timeout === 'function'
+        ? globalThis.AbortSignal.timeout(TRANSCRIBE_TIMEOUT_MS)
+        : undefined
+    return fetch(AI_TRANSCRIBE_ENDPOINT, {
       method: 'POST',
       body: form,
       signal,
     })
-  } catch (error) {
-    if (error?.name === 'AbortError' || error?.name === 'TimeoutError') {
-      throw new Error('transcription_timeout', { cause: error })
+  }
+
+  let res
+  try {
+    res = await performFetch()
+    if (!res.ok && (res.status === 502 || res.status === 503 || res.status === 504)) {
+      await new Promise((resolve) => setTimeout(resolve, 600))
+      res = await performFetch()
     }
-    throw new Error('transcription_unavailable', { cause: error })
+  } catch (error) {
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 600))
+      res = await performFetch()
+    } catch (secondError) {
+      if (secondError?.name === 'AbortError' || secondError?.name === 'TimeoutError') {
+        throw new Error('transcription_timeout', { cause: secondError })
+      }
+      throw new Error('transcription_unavailable', { cause: secondError })
+    }
   }
 
   if (!res.ok) {

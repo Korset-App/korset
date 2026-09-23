@@ -20,6 +20,7 @@ import {
   MicrophoneIcon,
   SendIcon,
   StopSquareIcon,
+  SyncIcon,
 } from '../components/icons/index.js'
 import { askGeneralAI, askPackageImageAI, transcribeVoiceInput } from '../services/ai.js'
 import { useStore } from '../contexts/StoreContext.jsx'
@@ -277,7 +278,6 @@ export default function AIAssistantScreen() {
   const composerExpanded =
     isMultiline ||
     input.includes('\n') ||
-    input.length > 42 ||
     Boolean(selectedImage) ||
     Boolean(imageError) ||
     imagePickerOpen
@@ -326,27 +326,50 @@ export default function AIAssistantScreen() {
     }
   }, [])
 
+  const MULTILINE_COLLAPSE_THRESHOLD = 22
+  const MULTILINE_EXPAND_THRESHOLD = 32
+
   useEffect(() => {
     const inputElement = composerInputRef.current
     if (!inputElement) return
 
-    if (!input) {
+    const trimmed = input.trim()
+    const hasExplicitNewline = input.includes('\n')
+
+    if (!trimmed) {
       setIsMultiline(false)
+      inputElement.style.height = ''
+      return
+    }
+
+    setIsMultiline((current) => {
+      if (hasExplicitNewline) return true
+      if (current) {
+        return input.length > MULTILINE_COLLAPSE_THRESHOLD
+      }
+      inputElement.style.height = 'auto'
+      const scrollHeight = inputElement.scrollHeight
+      return scrollHeight > 44 || input.length >= MULTILINE_EXPAND_THRESHOLD
+    })
+  }, [input])
+
+  useEffect(() => {
+    const inputElement = composerInputRef.current
+    if (!inputElement) return
+
+    if (!input.trim()) {
       inputElement.style.height = ''
       return
     }
 
     inputElement.style.height = 'auto'
     const scrollHeight = inputElement.scrollHeight
-    const hasExplicitNewline = input.includes('\n')
-    const multiline = hasExplicitNewline || scrollHeight > 44 || input.length > 42
-    setIsMultiline(multiline)
-    if (multiline) {
-      inputElement.style.height = `${Math.min(scrollHeight, 120)}px`
+    if (isMultiline) {
+      inputElement.style.height = `${Math.min(Math.max(scrollHeight, 38), 120)}px`
     } else {
       inputElement.style.height = ''
     }
-  }, [input])
+  }, [input, isMultiline])
 
   useEffect(() => {
     if (messagesStoreSlug !== activeStoreSlug) return undefined
@@ -541,52 +564,8 @@ export default function AIAssistantScreen() {
   }
 
   const startVoiceDraftRecognition = () => {
-    const RecognitionCtor =
-      typeof window !== 'undefined'
-        ? window.SpeechRecognition || window.webkitSpeechRecognition
-        : null
-    if (!RecognitionCtor) return
-
-    try {
-      const recognition = new RecognitionCtor()
-      recognition.continuous = true
-      recognition.interimResults = true
-      recognition.lang = lang === 'kz' ? 'kk-KZ' : 'ru-RU'
-      recognition.maxAlternatives = 1
-
-      recognition.onresult = (event) => {
-        let interimText = ''
-        let finalText = ''
-        for (let i = 0; i < event.results.length; i++) {
-          const result = event.results[i]
-          const part = result[0]?.transcript || ''
-          if (result.isFinal) {
-            finalText += (finalText ? ' ' : '') + part
-          } else {
-            interimText += (interimText ? ' ' : '') + part
-          }
-        }
-        const combined = [finalText, interimText].filter(Boolean).join(' ').trim()
-        if (combined) {
-          voiceDraftRef.current = combined
-          setVoiceDraft(combined)
-          setInput(mergeVoiceTranscriptIntoInput(inputBeforeVoiceRef.current, combined))
-        }
-      }
-
-      recognition.onerror = (e) => {
-        console.warn('[ai-voice] draft recognition:', e?.error)
-      }
-
-      recognition.onend = () => {
-        voiceRecognitionRef.current = null
-      }
-
-      recognition.start()
-      voiceRecognitionRef.current = recognition
-    } catch {
-      voiceRecognitionRef.current = null
-    }
+    // Intentionally disabled to eliminate Chromium's 6-second silence disconnect chime
+    // and to ensure MediaRecorder has uninterrupted, exclusive hardware microphone access.
   }
 
   const getVoiceErrorText = (error) => {
@@ -1299,9 +1278,7 @@ export default function AIAssistantScreen() {
                 }
               >
                 {voiceProcessing ? (
-                  <span className="material-symbols-outlined ai-voice-button__icon">
-                    progress_activity
-                  </span>
+                  <SyncIcon size={18} className="ai-voice-button__icon is-spinning" />
                 ) : recording ? (
                   // 'stop'
                   <StopSquareIcon size={16} />

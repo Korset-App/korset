@@ -9,7 +9,7 @@
 
 Körset — mobile-first PWA: цифровой каталог + Fit-Check для офлайн-продуктовых магазинов Казахстана.
 
-**Модель:** B2B2C. Платят магазины, покупатели используют бесплатно. V1: только продуктовые, пилот Астана.
+**Модель:** B2B2C. Платят магазины, покупатели используют бесплатно. V1: только продуктовые. Легенда питча: основатель из Усть-Каменогорска (4 подключенных работающих магазина), пилот и масштабирование — в Астане.
 
 **Стратегический поворот (2026-06-11):** от «закрытого ассистента» к «публичному каталогу магазина». Деталь: `docs/vault/plans/2026-06-11-store-access-and-digital-catalog-strategy.md`.
 
@@ -100,7 +100,7 @@ Retail:
 - Dashboard (метрики + AI-инсайты + баннер черновика), Products (price/stock, barcode search), Import (CSV/XLS/XLSX), Settings (store data, QR, управление картинками со сжатием, геокоординаты, интеграция Leaflet-карты), EAN Recovery (correction inbox, trusted candidates). Multi-store.
 
 Stores:
-- 3 активных: Марс (mars, ~10K), Нұрлы (nurly, ~2.5K), Калина (kalina, ~2K).
+- 4 активных (все в Усть-Каменогорске): Марс (mars, ~12.5K), Береке (bereke, ~11.4K), Нұрлы (nurly, ~4K), Калина (kalina, ~3.3K).
 - Управление: `node scripts/create-store.mjs --slug xxx ...`, `node scripts/deactivate-store.mjs --slug xxx`, `node scripts/seed-store-catalog.mjs --store-slug xxx ...`
 
 Super Admin: `/korset-admin/stores` — премиум Bento-дашборд с KPI, интерактивный SVG-график сканов (14 дней), спарклайны в карточках, умная Drawer-панель управления (CRM, биллинг-пресеты, живой поиск и смена владельцев, менеджер ролей, режим публикации/черновика).

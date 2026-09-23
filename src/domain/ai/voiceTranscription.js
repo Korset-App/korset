@@ -1,7 +1,7 @@
 export const AI_VOICE_LIMITS = {
   minDurationMs: 800,
-  maxDurationMs: 30_000,
-  maxBytes: 4 * 1024 * 1024,
+  maxDurationMs: 40_000,
+  maxBytes: 6 * 1024 * 1024,
 }
 
 export const AI_VOICE_MIME_CANDIDATES = [

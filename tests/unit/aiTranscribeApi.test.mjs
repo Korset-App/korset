@@ -14,9 +14,9 @@ import {
 } from '../../api/ai.js'
 
 test('transcription API limits are explicit and privacy-safe', () => {
-  assert.equal(TRANSCRIPTION_LIMITS.maxDurationMs, 30_000)
+  assert.equal(TRANSCRIPTION_LIMITS.maxDurationMs, 40_000)
   assert.equal(TRANSCRIPTION_LIMITS.minDurationMs, 800)
-  assert.equal(TRANSCRIPTION_LIMITS.maxBytes, 4 * 1024 * 1024)
+  assert.equal(TRANSCRIPTION_LIMITS.maxBytes, 6 * 1024 * 1024)
 })
 
 test('sanitizeTranscriptionMeta keeps only compact non-PII fields', () => {

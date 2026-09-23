@@ -864,8 +864,8 @@ export const TRANSCRIPTION_MODEL = process.env.OPENAI_TRANSCRIPTION_MODEL || 'gp
 
 export const TRANSCRIPTION_LIMITS = {
   minDurationMs: 800,
-  maxDurationMs: 30_000,
-  maxBytes: 4 * 1024 * 1024,
+  maxDurationMs: 40_000,
+  maxBytes: 6 * 1024 * 1024,
 }
 
 export const TRANSCRIPTION_RATE_LIMITS = {
@@ -955,7 +955,7 @@ export function sanitizeTranscriptionMeta({ lang, storeSlug, durationMs } = {}) 
   const safeDuration = Number(durationMs)
   const rounded = Number.isFinite(safeDuration) && safeDuration >= 0 ? Math.round(safeDuration) : null
   const clamped =
-    rounded != null && rounded > TRANSCRIPTION_LIMITS.maxDurationMs && rounded <= TRANSCRIPTION_LIMITS.maxDurationMs + 3000
+    rounded != null && rounded > TRANSCRIPTION_LIMITS.maxDurationMs && rounded <= TRANSCRIPTION_LIMITS.maxDurationMs + 4000
       ? TRANSCRIPTION_LIMITS.maxDurationMs
       : rounded
   return {
@@ -1010,7 +1010,7 @@ function validateAudio({ file, durationMs }) {
   if (!isSupportedTranscriptionAudioType(file.contentType)) return 'unsupported_audio_type'
   if (file.buffer.length > TRANSCRIPTION_LIMITS.maxBytes) return 'audio_too_large'
   if (durationMs != null && durationMs < TRANSCRIPTION_LIMITS.minDurationMs) return 'audio_too_short'
-  if (durationMs != null && durationMs > TRANSCRIPTION_LIMITS.maxDurationMs + 3000) return 'audio_too_long'
+  if (durationMs != null && durationMs > TRANSCRIPTION_LIMITS.maxDurationMs + 4000) return 'audio_too_long'
   return null
 }
 
@@ -1023,7 +1023,8 @@ async function handleTranscription(req, res) {
 
   const apiKey = process.env.OPENAI_API_KEY
   const azureApiKey = process.env.AZURE_OPENAI_KEY
-  if (!apiKey && !azureApiKey) {
+  const groqApiKey = process.env.GROQ_API_KEY
+  if (!apiKey && !azureApiKey && !groqApiKey) {
     return void res.status(500).json({ error: 'Neither OPENAI_API_KEY nor AZURE_OPENAI_KEY is configured' })
   }
 
@@ -1043,51 +1044,91 @@ async function handleTranscription(req, res) {
     const validationError = validateAudio({ file, durationMs: meta.durationMs })
     if (validationError) return void res.status(400).json({ error: validationError })
 
-    const form = new FormData()
-    form.append('model', TRANSCRIPTION_MODEL)
-    form.append('response_format', 'json')
-    if (meta.lang === 'ru') form.append('language', 'ru')
-    if (meta.lang === 'kz') form.append('language', 'kk')
-    form.append('file', new Blob([file.buffer], { type: file.contentType }), file.filename)
+    const createForm = (modelName) => {
+      const form = new FormData()
+      form.append('model', modelName)
+      form.append('response_format', 'json')
+      if (meta.lang === 'ru') form.append('language', 'ru')
+      if (meta.lang === 'kz') form.append('language', 'kk')
+      form.append('file', new Blob([file.buffer], { type: file.contentType }), file.filename)
+      return form
+    }
 
-    let fetchUrl = 'https://api.openai.com/v1/audio/transcriptions'
-    const headers = {}
-
+    const providers = []
     const azureEndpointBase = process.env.AZURE_OPENAI_ENDPOINT_BASE
     const openAiBaseUrl = process.env.OPENAI_API_BASE_URL
 
     if (azureEndpointBase && azureApiKey) {
-      const deploymentName = TRANSCRIPTION_MODEL
+      const deploymentName = process.env.AZURE_OPENAI_TRANSCRIPTION_DEPLOYMENT || TRANSCRIPTION_MODEL
       const apiVersion = process.env.AZURE_OPENAI_API_VERSION || '2024-02-15-preview'
       const cleanBase = azureEndpointBase.replace(/^https?:\/\//, '').replace(/\/+$/, '')
-      fetchUrl = `https://${cleanBase}/openai/deployments/${deploymentName}/audio/transcriptions?api-version=${apiVersion}`
-      headers['api-key'] = azureApiKey
-    } else if (process.env.GROQ_API_KEY) {
-      fetchUrl = 'https://api.groq.com/openai/v1/audio/transcriptions'
-      headers['Authorization'] = `Bearer ${process.env.GROQ_API_KEY}`
-    } else {
-      const base = openAiBaseUrl || 'https://api.openai.com/v1'
-      fetchUrl = `${base.replace(/\/+$/, '')}/audio/transcriptions`
-      headers['Authorization'] = `Bearer ${apiKey}`
-      if (fetchUrl.includes('.azure.com') || fetchUrl.includes('.services.ai.azure.com')) {
+      providers.push({
+        name: 'azure',
+        url: `https://${cleanBase}/openai/deployments/${deploymentName}/audio/transcriptions?api-version=${apiVersion}`,
+        headers: { 'api-key': azureApiKey },
+        model: deploymentName,
+      })
+    }
+
+    if (groqApiKey) {
+      providers.push({
+        name: 'groq',
+        url: 'https://api.groq.com/openai/v1/audio/transcriptions',
+        headers: { Authorization: `Bearer ${groqApiKey}` },
+        model: process.env.GROQ_TRANSCRIPTION_MODEL || 'whisper-large-v3-turbo',
+      })
+    }
+
+    if (apiKey) {
+      const base = openAiBaseUrl && !openAiBaseUrl.includes('deepseek') ? openAiBaseUrl : 'https://api.openai.com/v1'
+      const openAiModel =
+        process.env.OPENAI_TRANSCRIPTION_MODEL && !process.env.OPENAI_TRANSCRIPTION_MODEL.includes('whisper-large')
+          ? process.env.OPENAI_TRANSCRIPTION_MODEL
+          : 'whisper-1'
+      const headers = { Authorization: `Bearer ${apiKey}` }
+      if (base.includes('.azure.com') || base.includes('.services.ai.azure.com')) {
         headers['api-key'] = apiKey
+      }
+      providers.push({
+        name: 'openai',
+        url: `${base.replace(/\/+$/, '')}/audio/transcriptions`,
+        headers,
+        model: openAiModel,
+      })
+    }
+
+    let successfulData = null
+    let usedModel = TRANSCRIPTION_MODEL
+    let lastStatus = 502
+
+    for (const provider of providers) {
+      try {
+        const form = createForm(provider.model)
+        const providerRes = await fetch(provider.url, {
+          method: 'POST',
+          headers: provider.headers,
+          body: form,
+        })
+        if (providerRes.ok) {
+          successfulData = await providerRes.json()
+          usedModel = provider.model
+          break
+        }
+        lastStatus = providerRes.status
+        console.warn(`[ai-transcribe] ${provider.name} returned status ${providerRes.status}`)
+      } catch (provErr) {
+        console.warn(`[ai-transcribe] ${provider.name} error:`, provErr?.message)
       }
     }
 
-    const openaiRes = await fetch(fetchUrl, {
-      method: 'POST',
-      headers,
-      body: form,
-    })
-
-    if (!openaiRes.ok) {
-      const errorType = classifyTranscriptionError(openaiRes.status)
+    if (!successfulData) {
+      const errorType = classifyTranscriptionError(lastStatus)
       logTranscriptionUsage(
         buildTranscriptionUsageEvent({
           startedAt,
           status: 'error',
           errorType,
-          model: TRANSCRIPTION_MODEL,
+          model: usedModel,
           storeSlug: meta.storeSlug,
           durationMs: meta.durationMs,
           audioBytes: file.buffer.length,
@@ -1097,23 +1138,22 @@ async function handleTranscription(req, res) {
       return void res.status(502).json({ error: 'transcription_failed' })
     }
 
-    const data = await openaiRes.json()
-    const text = cleanString(data.text, 1200)
+    const text = cleanString(successfulData.text, 1200)
     if (!text) return void res.status(422).json({ error: 'empty_transcription' })
 
     logTranscriptionUsage(
       buildTranscriptionUsageEvent({
         startedAt,
         status: 'ok',
-        model: TRANSCRIPTION_MODEL,
+        model: usedModel,
         storeSlug: meta.storeSlug,
         durationMs: meta.durationMs,
         audioBytes: file.buffer.length,
-        language: data.language || meta.lang,
+        language: successfulData.language || meta.lang,
       })
     )
 
-    return void res.status(200).json({ text, language: data.language || meta.lang, durationMs: meta.durationMs })
+    return void res.status(200).json({ text, language: successfulData.language || meta.lang, durationMs: meta.durationMs })
   } catch (error) {
     console.error('[ai-transcribe] error', error)
     logTranscriptionUsage(

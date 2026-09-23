@@ -854,6 +854,9 @@ body.ai-history-open .bottom-nav {
   box-shadow:
     0 14px 34px color-mix(in srgb, var(--bg-app) 16%, transparent),
     inset 0 1px 0 color-mix(in srgb, var(--text) 8%, transparent);
+  transition:
+    padding 140ms ease,
+    border-radius 140ms ease;
 }
 
 .ai-composer__row {
@@ -1231,6 +1234,12 @@ body.ai-history-open .bottom-nav {
   color: var(--success-bright);
 }
 
+.ai-voice-button.is-processing .ai-voice-button__icon,
+.ai-voice-button__icon.is-spinning {
+  animation: ai-spin 0.85s linear infinite;
+  transform-origin: center;
+}
+
 .ai-voice-button__icon,
 .ai-image-button__icon {
   font-size: 18px;
@@ -1264,6 +1273,7 @@ body.ai-history-open .bottom-nav {
   line-height: 1.45;
   letter-spacing: -0.01em;
   scrollbar-width: thin;
+  transition: height 120ms ease;
 }
 
 .ai-composer__dock.is-expanded .ai-composer__input {
@@ -1414,11 +1424,23 @@ body.ai-history-open .bottom-nav {
   }
 }
 
+@keyframes ai-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ai-typing__dot,
   .ai-voice-panel__pulse,
   .ai-voice-panel__progress::after,
   .ai-voice-button.is-processing,
+  .ai-voice-button.is-processing .ai-voice-button__icon,
+  .ai-voice-button__icon.is-spinning,
   .ai-voice-wave__bar.is-active {
     animation: none;
   }

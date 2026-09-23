@@ -71,6 +71,11 @@ export function createEmptyProduct(overrides = {}) {
     categoriesTags: normalizeStringArray(overrides.categoriesTags ?? overrides.categories_tags),
     halalStatus: normalizeHalalStatus(overrides.halalStatus ?? overrides.halal),
     halal: normalizeHalalStatus(overrides.halalStatus ?? overrides.halal),
+    halalCertifier: overrides.halalCertifier ?? overrides.halal_certifier ?? null,
+    halalNotes: overrides.halalNotes ?? overrides.halal_notes ?? null,
+    cookingInstructions: overrides.cookingInstructions ?? overrides.cooking_instructions ?? null,
+    storageConditions: overrides.storageConditions ?? overrides.storage_conditions ?? null,
+    shelfLife: overrides.shelfLife ?? overrides.shelf_life ?? null,
 
     nutritionPer100: normalizeNutrition(overrides.nutritionPer100 || overrides.nutrition),
     alcohol100g: normalizeNumber(overrides.alcohol100g ?? overrides.alcohol_100g),
