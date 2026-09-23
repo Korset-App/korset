@@ -19,6 +19,7 @@ import {
   SearchIcon,
   MicrophoneIcon,
   SendIcon,
+  StopSquareIcon,
 } from '../components/icons/index.js'
 import { askGeneralAI, askPackageImageAI, transcribeVoiceInput } from '../services/ai.js'
 import { useStore } from '../contexts/StoreContext.jsx'
@@ -45,7 +46,39 @@ import { buildProductPath } from '../utils/routes.js'
 import './AIAssistantScreen.css'
 
 const VOICE_PRIVACY_KEY = 'korset_ai_voice_privacy_seen'
+const AI_DRAFT_KEY_PREFIX = 'korset_ai_draft_'
 const DEFAULT_AI_LAYOUT_METRICS = { composerHeight: 96, bottomNavHeight: 76 }
+
+function getStoredAIDraft(storeSlug) {
+  if (typeof window === 'undefined') return ''
+  try {
+    return window.sessionStorage.getItem(`${AI_DRAFT_KEY_PREFIX}${storeSlug}`) || ''
+  } catch {
+    return ''
+  }
+}
+
+function saveStoredAIDraft(storeSlug, text) {
+  if (typeof window === 'undefined') return
+  try {
+    if (text && text.trim()) {
+      window.sessionStorage.setItem(`${AI_DRAFT_KEY_PREFIX}${storeSlug}`, text)
+    } else {
+      window.sessionStorage.removeItem(`${AI_DRAFT_KEY_PREFIX}${storeSlug}`)
+    }
+  } catch (_err) {
+    // ignore storage quota or private mode errors
+  }
+}
+
+function clearStoredAIDraft(storeSlug) {
+  if (typeof window === 'undefined') return
+  try {
+    window.sessionStorage.removeItem(`${AI_DRAFT_KEY_PREFIX}${storeSlug}`)
+  } catch (_err) {
+    // ignore storage quota or private mode errors
+  }
+}
 
 function formatHistoryDate(value, lang) {
   const date = new Date(value)
@@ -183,7 +216,7 @@ export default function AIAssistantScreen() {
       }).messages
   )
   const [messagesStoreSlug, setMessagesStoreSlug] = useState(activeStoreSlug)
-  const [input, setInput] = useState('')
+  const [input, setInput] = useState(() => getStoredAIDraft(activeStoreSlug))
   const initialPromptProcessed = useRef(false)
 
   useEffect(() => {
@@ -191,8 +224,13 @@ export default function AIAssistantScreen() {
     if (initialPrompt && !initialPromptProcessed.current) {
       initialPromptProcessed.current = true
       setInput(initialPrompt)
+      saveStoredAIDraft(activeStoreSlug, initialPrompt)
     }
-  }, [location.state])
+  }, [location.state, activeStoreSlug])
+
+  useEffect(() => {
+    saveStoredAIDraft(activeStoreSlug, input)
+  }, [input, activeStoreSlug])
   const [loading, setLoading] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [historyItems, setHistoryItems] = useState([])
@@ -234,13 +272,12 @@ export default function AIAssistantScreen() {
   const inputBeforeVoiceRef = useRef('')
   const visibleMessages = messagesStoreSlug === activeStoreSlug ? messages : []
   const voiceProcessing = voiceStatus === 'uploading' || voiceStatus === 'transcribing'
-  const voiceMeterLevel = Math.max(1, Math.ceil(voiceLevel * 12))
   const [isMultiline, setIsMultiline] = useState(false)
   const imageAccept = AI_IMAGE_INPUT_LIMITS.acceptedMimeTypes.join(',')
   const composerExpanded =
     isMultiline ||
     input.includes('\n') ||
-    input.length > 40 ||
+    input.length > 42 ||
     Boolean(selectedImage) ||
     Boolean(imageError) ||
     imagePickerOpen
@@ -292,11 +329,23 @@ export default function AIAssistantScreen() {
   useEffect(() => {
     const inputElement = composerInputRef.current
     if (!inputElement) return
+
+    if (!input) {
+      setIsMultiline(false)
+      inputElement.style.height = ''
+      return
+    }
+
     inputElement.style.height = 'auto'
     const scrollHeight = inputElement.scrollHeight
-    const multiline = scrollHeight > 42 || input.includes('\n') || input.length > 40
+    const hasExplicitNewline = input.includes('\n')
+    const multiline = hasExplicitNewline || scrollHeight > 44 || input.length > 42
     setIsMultiline(multiline)
-    inputElement.style.height = `${Math.min(scrollHeight, 120)}px`
+    if (multiline) {
+      inputElement.style.height = `${Math.min(scrollHeight, 120)}px`
+    } else {
+      inputElement.style.height = ''
+    }
   }, [input])
 
   useEffect(() => {
@@ -461,21 +510,33 @@ export default function AIAssistantScreen() {
       const audioContext = new AudioContextCtor()
       const analyser = audioContext.createAnalyser()
       analyser.fftSize = 128
+      analyser.smoothingTimeConstant = 0.4
       const source = audioContext.createMediaStreamSource(stream)
       source.connect(analyser)
       const data = new Uint8Array(analyser.frequencyBinCount)
       voiceAudioContextRef.current = audioContext
 
-      const tick = () => {
+      let lastUpdate = 0
+      const tick = (now) => {
         analyser.getByteFrequencyData(data)
-        const average = data.reduce((sum, value) => sum + value, 0) / Math.max(1, data.length)
-        setVoiceLevel(Math.min(1, average / 96))
+        let sum = 0
+        let count = 0
+        for (let i = 2; i < Math.min(data.length, 28); i++) {
+          sum += data[i]
+          count++
+        }
+        const avg = count ? sum / count : 0
+        const normalized = Math.max(0, Math.min(1, (avg - 6) / 28))
+        if (!lastUpdate || now - lastUpdate > 50) {
+          lastUpdate = now
+          setVoiceLevel((prev) => Math.round((prev * 0.35 + normalized * 0.65) * 100) / 100)
+        }
         voiceAnimationRef.current = window.requestAnimationFrame(tick)
       }
 
-      tick()
+      voiceAnimationRef.current = window.requestAnimationFrame(tick)
     } catch {
-      setVoiceLevel(0.2)
+      setVoiceLevel(0.32)
     }
   }
 
@@ -739,6 +800,7 @@ export default function AIAssistantScreen() {
     setMessages(newMessages)
     setMessagesStoreSlug(activeStoreSlug)
     setInput('')
+    clearStoredAIDraft(activeStoreSlug)
     if (image) {
       setSelectedImage(null)
       setImageError('')
@@ -1158,12 +1220,16 @@ export default function AIAssistantScreen() {
                 <span className="ai-voice-panel__time">{formatVoiceTime(voiceElapsedMs)}</span>
               </div>
               <div className="ai-voice-wave" aria-hidden="true">
-                {Array.from({ length: 12 }, (_, index) => (
-                  <span
-                    key={index}
-                    className={`ai-voice-wave__bar${index < voiceMeterLevel ? ' is-active' : ''}`}
-                  />
-                ))}
+                {Array.from({ length: 12 }, (_, index) => {
+                  const dist = Math.abs(index - 5.5)
+                  const active = voiceLevel > (dist / 6) * 0.75
+                  return (
+                    <span
+                      key={index}
+                      className={`ai-voice-wave__bar${active ? ' is-active' : ''}`}
+                    />
+                  )
+                })}
               </div>
               {voiceProcessing && <div className="ai-voice-panel__progress" aria-hidden="true" />}
               {voiceDraft && <div className="ai-voice-draft">{voiceDraft}</div>}
@@ -1187,6 +1253,19 @@ export default function AIAssistantScreen() {
             </div>
           )}
           <div className="ai-composer__row">
+            <button
+              type="button"
+              onClick={() => setImagePickerOpen((current) => !current)}
+              disabled={loading}
+              className={`ai-image-button${selectedImage ? ' has-image' : ''}`}
+              aria-label={t('ai.image.open')}
+              title={t('ai.image.open')}
+            >
+              <span className="ai-image-button__icon">
+                <IconGallery size={18} />
+              </span>
+            </button>
+            <span className="ai-composer__divider" aria-hidden="true" />
             <textarea
               ref={composerInputRef}
               value={input}
@@ -1202,19 +1281,7 @@ export default function AIAssistantScreen() {
               rows={1}
               className="ai-composer__input"
             />
-            <div className="ai-composer__tools">
-              <button
-                type="button"
-                onClick={() => setImagePickerOpen((current) => !current)}
-                disabled={loading}
-                className={`ai-image-button${selectedImage ? ' has-image' : ''}`}
-                aria-label={t('ai.image.open')}
-                title={t('ai.image.open')}
-              >
-                <span className="ai-image-button__icon">
-                  <IconGallery size={18} />
-                </span>
-              </button>
+            <div className="ai-composer__actions-right">
               <button
                 type="button"
                 onClick={recording ? stopVoiceRecording : startVoiceRecording}
@@ -1236,20 +1303,22 @@ export default function AIAssistantScreen() {
                     progress_activity
                   </span>
                 ) : recording ? (
-                  <span className="material-symbols-outlined ai-voice-button__icon">stop</span>
+                  // 'stop'
+                  <StopSquareIcon size={16} />
                 ) : (
                   <MicrophoneIcon size={18} />
                 )}
               </button>
+              <button
+                type="button"
+                onClick={() => sendMessage(input, { image: selectedImage })}
+                disabled={loading || (!input.trim() && !selectedImage)}
+                className="ai-composer__send"
+                aria-label={t('ai.send')}
+              >
+                <SendIcon size={24} />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => sendMessage(input, { image: selectedImage })}
-              disabled={loading || (!input.trim() && !selectedImage)}
-              className="ai-composer__send"
-            >
-              <SendIcon size={24} />
-            </button>
           </div>
         </div>
       </div>

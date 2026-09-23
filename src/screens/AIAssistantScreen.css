@@ -858,19 +858,43 @@ body.ai-history-open .bottom-nav {
 
 .ai-composer__row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto 40px;
-  grid-template-areas: 'input tools send';
-  gap: 7px;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  grid-template-areas: 'image divider input right';
+  gap: 8px;
   align-items: center;
 }
 
 .ai-composer__dock.is-expanded .ai-composer__row {
-  grid-template-columns: minmax(0, 1fr) 40px;
+  grid-template-columns: auto 1fr auto;
   grid-template-areas:
-    'input input'
-    'tools send';
+    'input input input'
+    'image .     right';
   gap: 8px 6px;
   align-items: center;
+}
+
+.ai-composer__divider {
+  display: block;
+  grid-area: divider;
+  width: 1px;
+  height: 22px;
+  background: color-mix(in srgb, var(--glass-soft-border) 90%, var(--primary-bright) 10%);
+  border-radius: 999px;
+  margin: 0 -1px;
+  flex-shrink: 0;
+}
+
+.ai-composer__dock.is-expanded .ai-composer__divider {
+  display: none;
+}
+
+.ai-composer__actions-right {
+  display: inline-flex;
+  grid-area: right;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .ai-voice-notice,
@@ -1067,48 +1091,67 @@ body.ai-history-open .bottom-nav {
 .ai-voice-wave {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 3px;
-  height: 16px;
-  padding: 0 2px;
+  height: 20px;
+  padding: 0 4px;
   flex-shrink: 0;
 }
 
 .ai-voice-wave__bar {
   width: 3px;
-  height: 4px;
+  height: 6px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--text-faint) 38%, transparent);
+  background: color-mix(in srgb, var(--primary-bright) 30%, var(--text-faint));
   transform-origin: center;
   transition:
-    height 110ms ease,
-    background 110ms ease,
-    opacity 110ms ease;
+    height 120ms ease,
+    background 140ms ease,
+    opacity 140ms ease;
 }
 
-.ai-voice-wave__bar:nth-child(2n) {
+.ai-voice-wave__bar:nth-child(1),
+.ai-voice-wave__bar:nth-child(12) {
+  height: 5px;
+}
+
+.ai-voice-wave__bar:nth-child(2),
+.ai-voice-wave__bar:nth-child(11) {
   height: 8px;
 }
 
-.ai-voice-wave__bar:nth-child(3n) {
+.ai-voice-wave__bar:nth-child(3),
+.ai-voice-wave__bar:nth-child(10) {
   height: 12px;
 }
 
-.ai-voice-wave__bar:nth-child(4n) {
+.ai-voice-wave__bar:nth-child(4),
+.ai-voice-wave__bar:nth-child(9) {
   height: 15px;
 }
 
+.ai-voice-wave__bar:nth-child(5),
+.ai-voice-wave__bar:nth-child(8) {
+  height: 18px;
+}
+
+.ai-voice-wave__bar:nth-child(6),
+.ai-voice-wave__bar:nth-child(7) {
+  height: 20px;
+}
+
 .ai-voice-wave__bar.is-active {
-  animation: ai-voice-wave 760ms ease-in-out infinite;
+  animation: ai-voice-wave 680ms ease-in-out infinite alternate;
   background: linear-gradient(180deg, var(--primary-bright), var(--success-bright));
   opacity: 1;
 }
 
 .ai-voice-wave__bar.is-active:nth-child(2n) {
-  animation-delay: 90ms;
+  animation-delay: 80ms;
 }
 
 .ai-voice-wave__bar.is-active:nth-child(3n) {
-  animation-delay: 160ms;
+  animation-delay: 140ms;
 }
 
 .ai-voice-panel__progress {
@@ -1193,16 +1236,8 @@ body.ai-history-open .bottom-nav {
   font-size: 18px;
 }
 
-.ai-composer__tools {
-  display: inline-flex;
-  grid-area: tools;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
-}
-
-.ai-composer__dock.is-expanded .ai-composer__tools {
-  justify-content: flex-start;
+.ai-image-button {
+  grid-area: image;
 }
 
 .ai-composer__input {
@@ -1210,10 +1245,10 @@ body.ai-history-open .bottom-nav {
   grid-area: input;
   box-sizing: border-box;
   width: 100%;
-  min-height: 36px;
+  min-height: 38px;
   max-height: 120px;
   min-width: 0;
-  padding: 8px 10px;
+  padding: 8px 12px;
   border: 0;
   border-radius: 18px;
   outline: none;
@@ -1225,14 +1260,15 @@ body.ai-history-open .bottom-nav {
   background: transparent;
   color: var(--text);
   font-family: var(--font-body);
-  font-size: 14px;
-  line-height: 1.38;
+  font-size: 16px;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
   scrollbar-width: thin;
 }
 
 .ai-composer__dock.is-expanded .ai-composer__input {
-  min-height: 48px;
-  padding: 4px 8px;
+  min-height: 38px;
+  padding: 6px 10px;
 }
 
 .ai-composer__input::placeholder {
