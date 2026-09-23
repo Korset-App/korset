@@ -3,7 +3,11 @@ import { useLocation } from 'react-router-dom'
 import { supabase } from '../utils/supabase.js'
 import { normalizeNutrition, parseJson } from '../domain/product/model.js'
 import { PRIVACY_EVENT } from '../utils/privacySettings.js'
-import { saveCatalogToIndexedDB } from '../utils/offlineDB.js'
+import {
+  getCatalogFromIndexedDB,
+  getCurrentCachedStoreId,
+  saveCatalogToIndexedDB,
+} from '../utils/offlineDB.js'
 import { notifyCatalogWarmed } from '../domain/product/resolver.js'
 import { getImageUrl } from '../utils/imageUrl.js'
 import { enrichQuantity } from '../utils/parseQuantity.js'
@@ -285,13 +289,27 @@ export function StoreProvider({ children }) {
       }
 
       if (loadedStoreIdRef.current !== storeId) {
-        setFullCatalog(null)
         loadedStoreIdRef.current = storeId
       }
 
-      if (!isOnline) return
+      // 1. Instant cache warm-up from IndexedDB if available for this store
+      try {
+        const cachedStoreId = await getCurrentCachedStoreId()
+        if (cachedStoreId === storeId && !aborted) {
+          const cachedProducts = await getCatalogFromIndexedDB()
+          if (Array.isArray(cachedProducts) && cachedProducts.length > 0 && !aborted) {
+            setFullCatalog(cachedProducts)
+          }
+        }
+      } catch {
+        // Non-blocking fallback to network
+      }
 
-      setFullCatalog(null)
+      if (!isOnline) {
+        setIsCatalogLoading(false)
+        return
+      }
+
       setIsCatalogLoading(true)
 
       let offset = 0

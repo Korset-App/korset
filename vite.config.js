@@ -21,8 +21,26 @@ export default defineConfig({
       injectManifest: {
         swSrc: 'src/sw.js',
         swDest: 'dist/sw.js',
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,webp,jpg,jpeg}'],
-        maximumFileSizeToCacheInBytes: 8 * 1024 * 1024, // 8MB for large story covers
+        globPatterns: [
+          '**/*.{js,css,html}',
+          'favicon.png',
+          'logo.png',
+          'manifest.webmanifest',
+          'brand/**',
+          'stories/*.webp',
+          'avatars/*.webp',
+          'profile-bgs/*.webp',
+        ],
+        globIgnores: [
+          '**/raw/**',
+          'catalog-raw/**',
+          'landing/**',
+          '**/*.mp4',
+          '2026-*.png',
+          'ava/**',
+          'stories/*.png',
+        ],
+        maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
       },
       manifest: {
         name: 'Körset',
@@ -55,9 +73,9 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: process.env.VITE_API_TARGET || 'https://korset.vercel.app',
         changeOrigin: true,
-        secure: false,
+        secure: true,
       },
     },
   },

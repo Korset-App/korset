@@ -953,10 +953,15 @@ export function parseMultipartFormData(buffer, contentType = '') {
 export function sanitizeTranscriptionMeta({ lang, storeSlug, durationMs } = {}) {
   const safeLang = lang === 'ru' || lang === 'kz' ? lang : 'auto'
   const safeDuration = Number(durationMs)
+  const rounded = Number.isFinite(safeDuration) && safeDuration >= 0 ? Math.round(safeDuration) : null
+  const clamped =
+    rounded != null && rounded > TRANSCRIPTION_LIMITS.maxDurationMs && rounded <= TRANSCRIPTION_LIMITS.maxDurationMs + 3000
+      ? TRANSCRIPTION_LIMITS.maxDurationMs
+      : rounded
   return {
     lang: safeLang,
     storeSlug: cleanString(storeSlug, 80) || null,
-    durationMs: Number.isFinite(safeDuration) && safeDuration >= 0 ? Math.round(safeDuration) : null,
+    durationMs: clamped,
   }
 }
 
@@ -1005,7 +1010,7 @@ function validateAudio({ file, durationMs }) {
   if (!isSupportedTranscriptionAudioType(file.contentType)) return 'unsupported_audio_type'
   if (file.buffer.length > TRANSCRIPTION_LIMITS.maxBytes) return 'audio_too_large'
   if (durationMs != null && durationMs < TRANSCRIPTION_LIMITS.minDurationMs) return 'audio_too_short'
-  if (durationMs != null && durationMs > TRANSCRIPTION_LIMITS.maxDurationMs) return 'audio_too_long'
+  if (durationMs != null && durationMs > TRANSCRIPTION_LIMITS.maxDurationMs + 3000) return 'audio_too_long'
   return null
 }
 

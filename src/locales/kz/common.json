@@ -68,5 +68,6 @@
   "stores.noResultsText": "Дүкен атауын, ауданын немесе мекенжайын енгізіп көріңіз.",
   "stores.ownerEyebrow": "Иелер үшін",
   "stores.ownerTitle": "Дүкеніңізді қосқыңыз келе ме?",
-  "stores.ownerCta": "Байланысу"
+  "stores.ownerCta": "Байланысу",
+  "common.errorReloading": "Қолданба жаңартылуда…"
 }

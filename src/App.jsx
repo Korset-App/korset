@@ -10,47 +10,53 @@ import { AuthProvider, useAuth } from './contexts/AuthContext.jsx'
 import { ProfileProvider } from './contexts/ProfileContext.jsx'
 import { StoreProvider } from './contexts/StoreContext.jsx'
 import { OfflineProvider, useOffline } from './contexts/OfflineContext.jsx'
+import { useI18n } from './i18n/index.js'
 
-const HomeScreen = lazy(() => import('./screens/HomeScreen.jsx'))
-const ProfileScreen = lazy(() => import('./screens/ProfileScreen.jsx'))
-const ProfileEditScreen = lazy(() => import('./screens/ProfileEditScreen.jsx'))
-const AccountScreen = lazy(() => import('./screens/AccountScreen.jsx'))
-const CatalogScreen = lazy(() => import('./screens/CatalogScreen.jsx'))
-const ScanScreen = lazy(() => import('./screens/ScanScreen.jsx'))
-const ProductScreen = lazy(() => import('./screens/ProductScreen.jsx'))
-const ProductCompositionScreen = lazy(() => import('./screens/ProductCompositionScreen.jsx'))
-const AlternativesScreen = lazy(() => import('./screens/AlternativesScreen.jsx'))
-const AIScreen = lazy(() => import('./screens/AIScreen.jsx'))
-const AIAssistantScreen = lazy(() => import('./screens/AIAssistantScreen.jsx'))
-const QRPrintScreen = lazy(() => import('./screens/QRPrintScreen.jsx'))
-const StoresScreen = lazy(() => import('./screens/StoresScreen.jsx'))
-const StorePublicScreen = lazy(() => import('./screens/StorePublicScreen.jsx'))
-const AuthScreen = lazy(() => import('./screens/AuthScreen.jsx'))
-const UpdatePasswordScreen = lazy(() => import('./screens/UpdatePasswordScreen.jsx'))
-const SetupProfileScreen = lazy(() => import('./screens/SetupProfileScreen.jsx'))
-const HistoryScreen = lazy(() => import('./screens/HistoryScreen.jsx'))
-const PrivacySettingsScreen = lazy(() => import('./screens/PrivacySettingsScreen.jsx'))
-const PrivacyPolicyScreen = lazy(() => import('./screens/PrivacyPolicyScreen.jsx'))
-const SoundSettingsScreen = lazy(() => import('./screens/SoundSettingsScreen.jsx'))
-const FaqScreen = lazy(() => import('./screens/FaqScreen.jsx'))
-const AboutScreen = lazy(() => import('./screens/AboutScreen.jsx'))
-const TermsScreen = lazy(() => import('./screens/TermsScreen.jsx'))
-const RetailLayout = lazy(() => import('./layouts/RetailLayout.jsx'))
-const RetailDashboardScreen = lazy(() => import('./screens/RetailDashboardScreen.jsx'))
-const RetailEntryScreen = lazy(() => import('./screens/RetailEntryScreen.jsx'))
-const RetailProductsScreen = lazy(() => import('./screens/RetailProductsScreen.jsx'))
-const RetailImportScreen = lazy(() => import('./screens/RetailImportScreen.jsx'))
-const RetailSettingsScreen = lazy(() => import('./screens/RetailSettingsScreen.jsx'))
-const EanRecoveryScreen = lazy(() => import('./screens/EanRecoveryScreen.jsx'))
-const CompareScreen = lazy(() => import('./screens/CompareScreen.jsx'))
-const ProductMockScreen = lazy(() => import('./screens/_mock/ProductMockScreen.jsx'))
-const SuperAdminStoresScreen = lazy(() => import('./screens/SuperAdminStoresScreen.jsx'))
+import { lazyWithRetry } from './utils/lazyWithRetry.js'
+
+const HomeScreen = lazyWithRetry(() => import('./screens/HomeScreen.jsx'))
+const ProfileScreen = lazyWithRetry(() => import('./screens/ProfileScreen.jsx'))
+const ProfileEditScreen = lazyWithRetry(() => import('./screens/ProfileEditScreen.jsx'))
+const AccountScreen = lazyWithRetry(() => import('./screens/AccountScreen.jsx'))
+const CatalogScreen = lazyWithRetry(() => import('./screens/CatalogScreen.jsx'))
+const ScanScreen = lazyWithRetry(() => import('./screens/ScanScreen.jsx'))
+const ProductScreen = lazyWithRetry(() => import('./screens/ProductScreen.jsx'))
+const ProductCompositionScreen = lazyWithRetry(
+  () => import('./screens/ProductCompositionScreen.jsx')
+)
+const AlternativesScreen = lazyWithRetry(() => import('./screens/AlternativesScreen.jsx'))
+const AIScreen = lazyWithRetry(() => import('./screens/AIScreen.jsx'))
+const AIAssistantScreen = lazyWithRetry(() => import('./screens/AIAssistantScreen.jsx'))
+const QRPrintScreen = lazyWithRetry(() => import('./screens/QRPrintScreen.jsx'))
+const StoresScreen = lazyWithRetry(() => import('./screens/StoresScreen.jsx'))
+const StorePublicScreen = lazyWithRetry(() => import('./screens/StorePublicScreen.jsx'))
+const AuthScreen = lazyWithRetry(() => import('./screens/AuthScreen.jsx'))
+const UpdatePasswordScreen = lazyWithRetry(() => import('./screens/UpdatePasswordScreen.jsx'))
+const SetupProfileScreen = lazyWithRetry(() => import('./screens/SetupProfileScreen.jsx'))
+const HistoryScreen = lazyWithRetry(() => import('./screens/HistoryScreen.jsx'))
+const PrivacySettingsScreen = lazyWithRetry(() => import('./screens/PrivacySettingsScreen.jsx'))
+const PrivacyPolicyScreen = lazyWithRetry(() => import('./screens/PrivacyPolicyScreen.jsx'))
+const SoundSettingsScreen = lazyWithRetry(() => import('./screens/SoundSettingsScreen.jsx'))
+const FaqScreen = lazyWithRetry(() => import('./screens/FaqScreen.jsx'))
+const AboutScreen = lazyWithRetry(() => import('./screens/AboutScreen.jsx'))
+const TermsScreen = lazyWithRetry(() => import('./screens/TermsScreen.jsx'))
+const RetailLayout = lazyWithRetry(() => import('./layouts/RetailLayout.jsx'))
+const RetailDashboardScreen = lazyWithRetry(() => import('./screens/RetailDashboardScreen.jsx'))
+const RetailEntryScreen = lazyWithRetry(() => import('./screens/RetailEntryScreen.jsx'))
+const RetailProductsScreen = lazyWithRetry(() => import('./screens/RetailProductsScreen.jsx'))
+const RetailImportScreen = lazyWithRetry(() => import('./screens/RetailImportScreen.jsx'))
+const RetailSettingsScreen = lazyWithRetry(() => import('./screens/RetailSettingsScreen.jsx'))
+const EanRecoveryScreen = lazyWithRetry(() => import('./screens/EanRecoveryScreen.jsx'))
+const CompareScreen = lazyWithRetry(() => import('./screens/CompareScreen.jsx'))
+const ProductMockScreen = lazyWithRetry(() => import('./screens/_mock/ProductMockScreen.jsx'))
+const SuperAdminStoresScreen = lazyWithRetry(() => import('./screens/SuperAdminStoresScreen.jsx'))
 
 function AppInner() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const { user } = useAuth()
   const { refreshPendingCount } = useOffline()
+  const { t } = useI18n()
 
   const hideNav =
     pathname === '/' ||
@@ -90,72 +96,77 @@ function AppInner() {
   return (
     <div className="app-frame">
       <OfflineBanner />
-      <Suspense fallback={<RouteLoader />}>
-        <Routes>
-          <Route path="/" element={<HomeScreen />} />
-          <Route path="/stores" element={<StoresScreen />} />
-          <Route path="/stores/:storeSlug" element={<StorePublicScreen />} />
-          <Route path="/s/:storeSlug" element={<HomeScreen />} />
-          <Route path="/s/:storeSlug/catalog" element={<CatalogScreen />} />
-          <Route path="/s/:storeSlug/scan" element={<ScanScreen />} />
-          <Route path="/s/:storeSlug/ai" element={<AIAssistantScreen />} />
-          <Route path="/s/:storeSlug/history" element={<HistoryScreen />} />
-          <Route path="/s/:storeSlug/profile" element={<ProfileScreen />} />
-          <Route path="/s/:storeSlug/profile/edit" element={<ProfileEditScreen />} />
-          <Route path="/s/:storeSlug/account" element={<AccountScreen />} />
-          <Route path="/s/:storeSlug/privacy" element={<PrivacySettingsScreen />} />
-          <Route path="/s/:storeSlug/sound-settings" element={<SoundSettingsScreen />} />
-          <Route path="/s/:storeSlug/faq" element={<FaqScreen />} />
-          <Route path="/s/:storeSlug/about" element={<AboutScreen />} />
-          <Route path="/s/:storeSlug/terms" element={<TermsScreen />} />
-          <Route path="/s/:storeSlug/product/:ean" element={<ProductScreen />} />
-          <Route
-            path="/s/:storeSlug/product/:ean/composition"
-            element={<ProductCompositionScreen />}
-          />
-          <Route path="/s/:storeSlug/product/:ean/alternatives" element={<AlternativesScreen />} />
-          <Route path="/s/:storeSlug/product/:ean/ai" element={<AIScreen />} />
-          <Route path="/s/:storeSlug/product/:ean/compare/:ean2" element={<CompareScreen />} />
+      <ErrorBoundary key={pathname} t={t}>
+        <Suspense fallback={<RouteLoader />}>
+          <Routes>
+            <Route path="/" element={<HomeScreen />} />
+            <Route path="/stores" element={<StoresScreen />} />
+            <Route path="/stores/:storeSlug" element={<StorePublicScreen />} />
+            <Route path="/s/:storeSlug" element={<HomeScreen />} />
+            <Route path="/s/:storeSlug/catalog" element={<CatalogScreen />} />
+            <Route path="/s/:storeSlug/scan" element={<ScanScreen />} />
+            <Route path="/s/:storeSlug/ai" element={<AIAssistantScreen />} />
+            <Route path="/s/:storeSlug/history" element={<HistoryScreen />} />
+            <Route path="/s/:storeSlug/profile" element={<ProfileScreen />} />
+            <Route path="/s/:storeSlug/profile/edit" element={<ProfileEditScreen />} />
+            <Route path="/s/:storeSlug/account" element={<AccountScreen />} />
+            <Route path="/s/:storeSlug/privacy" element={<PrivacySettingsScreen />} />
+            <Route path="/s/:storeSlug/sound-settings" element={<SoundSettingsScreen />} />
+            <Route path="/s/:storeSlug/faq" element={<FaqScreen />} />
+            <Route path="/s/:storeSlug/about" element={<AboutScreen />} />
+            <Route path="/s/:storeSlug/terms" element={<TermsScreen />} />
+            <Route path="/s/:storeSlug/product/:ean" element={<ProductScreen />} />
+            <Route
+              path="/s/:storeSlug/product/:ean/composition"
+              element={<ProductCompositionScreen />}
+            />
+            <Route
+              path="/s/:storeSlug/product/:ean/alternatives"
+              element={<AlternativesScreen />}
+            />
+            <Route path="/s/:storeSlug/product/:ean/ai" element={<AIScreen />} />
+            <Route path="/s/:storeSlug/product/:ean/compare/:ean2" element={<CompareScreen />} />
 
-          <Route path="/auth" element={<AuthScreen />} />
-          <Route path="/update-password" element={<UpdatePasswordScreen />} />
-          <Route path="/setup-profile" element={<SetupProfileScreen />} />
-          <Route path="/qr-print" element={<QRPrintScreen />} />
-          <Route path="/privacy-policy" element={<PrivacyPolicyScreen />} />
+            <Route path="/auth" element={<AuthScreen />} />
+            <Route path="/update-password" element={<UpdatePasswordScreen />} />
+            <Route path="/setup-profile" element={<SetupProfileScreen />} />
+            <Route path="/qr-print" element={<QRPrintScreen />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicyScreen />} />
 
-          {/* Mock screens (dev preview, not in production nav) */}
-          <Route path="/_mock/product" element={<ProductMockScreen />} />
+            {/* Mock screens (dev preview, not in production nav) */}
+            <Route path="/_mock/product" element={<ProductMockScreen />} />
 
-          {/* Super Admin Panel */}
-          <Route path="/korset-admin/stores" element={<SuperAdminStoresScreen />} />
+            {/* Super Admin Panel */}
+            <Route path="/korset-admin/stores" element={<SuperAdminStoresScreen />} />
 
-          {/* Retail Cabinet Entry — finds store by owner_id */}
-          <Route path="/retail" element={<RetailEntryScreen />} />
+            {/* Retail Cabinet Entry — finds store by owner_id */}
+            <Route path="/retail" element={<RetailEntryScreen />} />
 
-          {/* Retail Cabinet B2B Routes */}
-          <Route path="/retail/:storeSlug" element={<RetailLayout />}>
-            <Route path="dashboard" element={<RetailDashboardScreen />} />
-            <Route path="products" element={<RetailProductsScreen />} />
-            <Route path="import" element={<RetailImportScreen />} />
-            <Route path="ean-recovery" element={<EanRecoveryScreen />} />
-            <Route path="settings" element={<RetailSettingsScreen />} />
-            <Route index element={<Navigate to="dashboard" replace />} />
-          </Route>
+            {/* Retail Cabinet B2B Routes */}
+            <Route path="/retail/:storeSlug" element={<RetailLayout />}>
+              <Route path="dashboard" element={<RetailDashboardScreen />} />
+              <Route path="products" element={<RetailProductsScreen />} />
+              <Route path="import" element={<RetailImportScreen />} />
+              <Route path="ean-recovery" element={<EanRecoveryScreen />} />
+              <Route path="settings" element={<RetailSettingsScreen />} />
+              <Route index element={<Navigate to="dashboard" replace />} />
+            </Route>
 
-          {/* Legacy Global Routes -> Redirect to Store Selection */}
-          <Route path="/profile" element={<Navigate to="/stores" replace />} />
-          <Route path="/account" element={<Navigate to="/stores" replace />} />
-          <Route path="/catalog" element={<Navigate to="/stores" replace />} />
-          <Route path="/scan" element={<Navigate to="/stores" replace />} />
-          <Route path="/ai" element={<Navigate to="/stores" replace />} />
-          <Route path="/history" element={<Navigate to="/stores" replace />} />
-          <Route path="/notifications" element={<Navigate to="/stores" replace />} />
-          <Route path="/privacy" element={<Navigate to="/stores" replace />} />
-          <Route path="/product/*" element={<Navigate to="/stores" replace />} />
+            {/* Legacy Global Routes -> Redirect to Store Selection */}
+            <Route path="/profile" element={<Navigate to="/stores" replace />} />
+            <Route path="/account" element={<Navigate to="/stores" replace />} />
+            <Route path="/catalog" element={<Navigate to="/stores" replace />} />
+            <Route path="/scan" element={<Navigate to="/stores" replace />} />
+            <Route path="/ai" element={<Navigate to="/stores" replace />} />
+            <Route path="/history" element={<Navigate to="/stores" replace />} />
+            <Route path="/notifications" element={<Navigate to="/stores" replace />} />
+            <Route path="/privacy" element={<Navigate to="/stores" replace />} />
+            <Route path="/product/*" element={<Navigate to="/stores" replace />} />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </ErrorBoundary>
       {!hideNav && <BottomNav />}
     </div>
   )

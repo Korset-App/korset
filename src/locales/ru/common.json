@@ -68,5 +68,6 @@
   "stores.noResultsText": "Попробуйте название магазина, район или адрес.",
   "stores.ownerEyebrow": "Для владельцев",
   "stores.ownerTitle": "Хотите добавить свой магазин?",
-  "stores.ownerCta": "Связаться"
+  "stores.ownerCta": "Связаться",
+  "common.errorReloading": "Обновляем приложение…"
 }

@@ -230,18 +230,16 @@ export default function AIAssistantScreen() {
   const voiceAudioContextRef = useRef(null)
   const voiceRecognitionRef = useRef(null)
   const voiceDraftRef = useRef('')
+  const inputBeforeVoiceRef = useRef('')
   const visibleMessages = messagesStoreSlug === activeStoreSlug ? messages : []
   const voiceProcessing = voiceStatus === 'uploading' || voiceStatus === 'transcribing'
   const voiceMeterLevel = Math.max(1, Math.ceil(voiceLevel * 12))
   const imageAccept = AI_IMAGE_INPUT_LIMITS.acceptedMimeTypes.join(',')
   const composerExpanded =
-    input.length > 72 ||
-    input.includes('\n') ||
+    input.split('\n').length >= 3 ||
     Boolean(selectedImage) ||
     Boolean(imageError) ||
-    imagePickerOpen ||
-    recording ||
-    voiceStatus !== 'idle'
+    imagePickerOpen
 
   useEffect(() => {
     if (!historyStoreRef.current && typeof window !== 'undefined' && window.indexedDB) {
@@ -475,7 +473,10 @@ export default function AIAssistantScreen() {
   }
 
   const startVoiceDraftRecognition = () => {
-    const RecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition
+    const RecognitionCtor =
+      typeof window !== 'undefined'
+        ? window.SpeechRecognition || window.webkitSpeechRecognition
+        : null
     if (!RecognitionCtor) return
 
     try {
@@ -483,17 +484,42 @@ export default function AIAssistantScreen() {
       recognition.continuous = true
       recognition.interimResults = true
       recognition.lang = lang === 'kz' ? 'kk-KZ' : 'ru-RU'
+      recognition.maxAlternatives = 1
+
       recognition.onresult = (event) => {
-        const transcript = Array.from(event.results)
-          .map((result) => result[0]?.transcript || '')
-          .join(' ')
-          .trim()
-        if (transcript) {
-          voiceDraftRef.current = transcript
-          setVoiceDraft(transcript)
+        let interimText = ''
+        let finalText = ''
+        for (let i = 0; i < event.results.length; i++) {
+          const result = event.results[i]
+          const part = result[0]?.transcript || ''
+          if (result.isFinal) {
+            finalText += (finalText ? ' ' : '') + part
+          } else {
+            interimText += (interimText ? ' ' : '') + part
+          }
+        }
+        const combined = [finalText, interimText].filter(Boolean).join(' ').trim()
+        if (combined) {
+          voiceDraftRef.current = combined
+          setVoiceDraft(combined)
+          setInput(mergeVoiceTranscriptIntoInput(inputBeforeVoiceRef.current, combined))
         }
       }
-      recognition.onerror = () => {}
+
+      recognition.onerror = (e) => {
+        console.warn('[ai-voice] draft recognition:', e?.error)
+      }
+
+      recognition.onend = () => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+          try {
+            recognition.start()
+          } catch {
+            // ignore
+          }
+        }
+      }
+
       recognition.start()
       voiceRecognitionRef.current = recognition
     } catch {
@@ -561,8 +587,9 @@ export default function AIAssistantScreen() {
 
   const insertVoiceDraftFallback = () => {
     const draft = voiceDraftRef.current.trim()
-    if (!draft) return false
-    insertVoiceText(draft)
+    const inputHasText = input.trim().length > inputBeforeVoiceRef.current.trim().length
+    if (!draft && !inputHasText) return false
+    if (draft) insertVoiceText(draft)
     setVoiceDraft('')
     voiceDraftRef.current = ''
     setVoiceError('')
@@ -599,6 +626,7 @@ export default function AIAssistantScreen() {
     setVoiceError('')
     setVoiceDraft('')
     voiceDraftRef.current = ''
+    inputBeforeVoiceRef.current = input
     voiceStoppedByLimitRef.current = false
     setVoiceElapsedMs(0)
     setVoiceStatus('requesting')
@@ -620,6 +648,9 @@ export default function AIAssistantScreen() {
 
       recorder.onstop = async () => {
         const rawDurationMs = Date.now() - voiceStartedAtRef.current
+        const limitReached =
+          voiceStoppedByLimitRef.current || rawDurationMs >= AI_VOICE_LIMITS.maxDurationMs - 250
+        voiceStoppedByLimitRef.current = limitReached
         const durationMs = normalizeVoiceRecordingDuration({
           durationMs: rawDurationMs,
           stoppedByLimit: voiceStoppedByLimitRef.current,
@@ -663,7 +694,7 @@ export default function AIAssistantScreen() {
         }
       }
 
-      recorder.start()
+      recorder.start(1000)
       setRecording(true)
       setVoiceStatus('recording')
       startVoiceMeter(stream)
@@ -929,9 +960,6 @@ export default function AIAssistantScreen() {
         {visibleMessages.length === 0 && (
           <div className="ai-empty-state">
             <div className="ai-empty-panel">
-              <div className="ai-empty-panel__avatar">
-                <KorsetAvatar size={34} />
-              </div>
               <div className="ai-empty-panel__content">
                 <div className="ai-empty-panel__eyebrow">{t('ai.empty.eyebrow')}</div>
                 <h1 className="ai-empty-panel__title">{t('ai.empty.title')}</h1>
@@ -945,11 +973,12 @@ export default function AIAssistantScreen() {
             <div className="ai-capability-carousel" aria-label={t('ai.empty.title')}>
               {GENERAL_AI_CAPABILITIES.map((capability) => {
                 const capIcons = {
+                  find_product: SearchIcon,
                   budget_pick: WalletIcon,
                   explain_composition: FlaskIcon,
                   build_shopping_list: CartIcon,
                 }
-                const CapIcon = capIcons[capability.id]
+                const CapIcon = capIcons[capability.id] || SearchIcon
                 return (
                   <button
                     key={capability.id}
@@ -958,15 +987,9 @@ export default function AIAssistantScreen() {
                     onClick={() => sendMessage(t(capability.promptKey))}
                     disabled={loading}
                   >
-                    {CapIcon ? (
-                      <span className="ai-capability-card__icon">
-                        <CapIcon size={20} />
-                      </span>
-                    ) : (
-                      <span className="material-symbols-outlined ai-capability-card__icon">
-                        {capability.icon}
-                      </span>
-                    )}
+                    <span className="ai-capability-card__icon">
+                      <CapIcon size={20} />
+                    </span>
                     <span className="ai-capability-card__content">
                       <span className="ai-capability-card__title">{t(capability.titleKey)}</span>
                       <span className="ai-capability-card__description">

@@ -1,11 +1,12 @@
 import { Component } from 'react'
 import * as Sentry from '@sentry/react'
 import { AlertTriangleIcon } from './icons/index.js'
+import { isChunkLoadError, canAutoReloadNow, markAutoReload } from '../utils/chunkRecovery.js'
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
     super(props)
-    this.state = { hasError: false, error: null, showDetails: false }
+    this.state = { hasError: false, error: null, showDetails: false, reloading: false }
   }
 
   static getDerivedStateFromError(error) {
@@ -20,9 +21,29 @@ export default class ErrorBoundary extends Component {
       scope.setExtra('location', window.location.href)
       Sentry.captureException(error)
     })
+
+    // Stale chunk after deploy → auto-reload once per window; loop-protected by a timestamp.
+    if (isChunkLoadError(error) && canAutoReloadNow(window.sessionStorage, Date.now())) {
+      markAutoReload(window.sessionStorage, Date.now())
+      this.setState({ reloading: true })
+      window.location.reload()
+    }
   }
 
   render() {
+    if (this.state.reloading) {
+      return (
+        <div className="error-boundary-overlay">
+          <div className="error-boundary-card error-boundary-card--reloading">
+            <span className="error-boundary-spinner" aria-hidden="true" />
+            <p className="error-boundary-reloading-text">
+              {this.props.t?.('common.errorReloading') || 'Обновляем приложение…'}
+            </p>
+          </div>
+        </div>
+      )
+    }
+
     if (this.state.hasError) {
       return (
         <div className="error-boundary-overlay">

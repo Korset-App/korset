@@ -74,6 +74,16 @@ if (typeof window !== 'undefined') {
   document.documentElement.classList.toggle('fine-pointer-ui', !touchCapable)
 }
 
+// Register the PWA service worker in production only, after first paint so it never
+// competes with initial rendering.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((err) => {
+      console.warn('[SW] registration failed:', err)
+    })
+  })
+}
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
