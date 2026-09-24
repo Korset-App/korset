@@ -10,7 +10,7 @@ import {
   MenuDotsIcon,
   MenuBarsIcon,
   ExternalLinkIcon,
-  TelegramIcon,
+  HeadphoneIcon,
   CheckCircleIcon,
   ChevronDownIcon,
 } from '../icons/index.js'
@@ -195,6 +195,23 @@ export default function InstallAppSheet({ open, onClose, installPrompt, onPrompt
       ]
     }
 
+    if (context.browser === 'huawei') {
+      return [
+        {
+          text: t('home.installStepHuaweiMenu'),
+          icon: <MenuDotsIcon size={ICON_SIZE} color={ICON_COLOR} />,
+        },
+        {
+          text: t('home.installStepHuaweiHome'),
+          icon: <AddToHomeScreenIcon size={ICON_SIZE} color={ICON_COLOR} />,
+        },
+        {
+          text: t('home.installStepConfirmAdd'),
+          icon: <CheckCircleIcon size={ICON_SIZE} color={ICON_COLOR_OK} />,
+        },
+      ]
+    }
+
     if (!context.isAndroid && !context.isIos) {
       // Desktop Chrome / Edge
       return [
@@ -335,7 +352,7 @@ export default function InstallAppSheet({ open, onClose, installPrompt, onPrompt
                   className="install-sheet__support-btn"
                   onClick={handleSupport}
                 >
-                  <TelegramIcon size={17} color="var(--primary-bright)" />
+                  <HeadphoneIcon size={17} color="var(--primary-bright)" />
                   <span>{t('home.installSupportCta')}</span>
                 </button>
 

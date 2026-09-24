@@ -74,6 +74,9 @@ export function detectBrowserContext(
   } else if (/miuibrowser/i.test(ua) || (/xiaomi/i.test(ua) && /miui/i.test(ua))) {
     browser = 'xiaomi'
     badgeLabel = 'Android · Xiaomi'
+  } else if (/huaweibrowser/i.test(ua) || /huawei.*mobile.*safari/i.test(ua)) {
+    browser = 'huawei'
+    badgeLabel = 'Android · Huawei'
   } else if (/opr\/|opera mini/i.test(ua)) {
     browser = 'opera'
     badgeLabel = `${isIos ? 'iOS' : 'Android'} · Opera`
@@ -111,9 +114,9 @@ export function detectBrowserContext(
     }
   }
 
-  // Browsers that fire beforeinstallprompt on Android:
+  // Browsers that reliably fire beforeinstallprompt on Android:
   // Chrome, Samsung Internet (≥10), Opera (Chromium), Edge Chromium
-  // Firefox, Yandex, Xiaomi, iOS — do NOT fire it
+  // Firefox, Yandex, Xiaomi, Huawei, iOS — unreliable or not supported
   const canNativeInstall =
     !isIos &&
     !isInApp &&

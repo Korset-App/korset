@@ -386,6 +386,8 @@
   "home.installStepDesktopAddress": "Нажмите значок «Установить» в правой части адресной строки.",
   "home.installStepXiaomiMenu": "Нажмите меню (три точки ⋮) в правом верхнем углу браузера.",
   "home.installStepXiaomiHome": "Выберите «Добавить на главный экран».",
+  "home.installStepHuaweiMenu": "Нажмите кнопку меню (три точки ⋮) в правом верхнем углу браузера Huawei.",
+  "home.installStepHuaweiHome": "Выберите «Добавить на экран «Домой»» или «Добавить быстрый доступ».",
   "home.installStepYandexIosMenu": "Нажмите кнопку меню (три точки ⋮) справа от адресной строки.",
   "home.installStepOpenBrowserThen": "Затем нажмите «Установить приложение» или выберите меню браузера.",
   "home.installVisualText": "сканер у полки",
