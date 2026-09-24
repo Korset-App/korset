@@ -1,10 +1,11 @@
 ﻿import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { useI18n } from '../i18n/index.js'
 import { supabase } from '../utils/supabase.js'
 import { buildProfilePath } from '../utils/routes.js'
+import RouteLoader from '../components/RouteLoader.jsx'
 import {
   getOrCreateDeviceId,
   writeCachedProfileAvatar,
@@ -97,8 +98,15 @@ const TOAST_ERR_KEYS = {
 export default function ProfileEditScreen() {
   const navigate = useNavigate()
   const { currentStore } = useStore()
-  const { user, displayName, avatarId, bannerUrl, applyProfileSnapshot, refreshAccountProfile } =
-    useAuth()
+  const {
+    user,
+    loading,
+    displayName,
+    avatarId,
+    bannerUrl,
+    applyProfileSnapshot,
+    refreshAccountProfile,
+  } = useAuth()
   const { lang, t } = useI18n()
   const fileInputRef = useRef(null)
   const avatarFileInputRef = useRef(null)
@@ -142,9 +150,12 @@ export default function ProfileEditScreen() {
     }
   }, [user])
 
+  if (loading) {
+    return <RouteLoader />
+  }
+
   if (!user) {
-    navigate('/auth', { replace: true })
-    return null
+    return <Navigate to="/auth" replace />
   }
 
   const showToast = (msg) => {

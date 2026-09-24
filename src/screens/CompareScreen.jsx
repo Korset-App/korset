@@ -1,7 +1,10 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { checkProductFit } from '../utils/fitCheck.js'
+import { askCompareAI } from '../services/ai.js'
 import { useProfile } from '../contexts/ProfileContext.jsx'
+import { useAuth } from '../contexts/AuthContext.jsx'
+import { recordCompareEvent } from '../domain/product/compareAnalytics.js'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { useI18n } from '../i18n/index.js'
 import { useLocalName } from '../utils/localName.js'
@@ -262,11 +265,13 @@ export default function CompareScreen() {
   const navigate = useNavigate()
   const location = useLocation()
   const { profile } = useProfile()
-  const { currentStore, catalogProducts } = useStore()
+  const { user } = useAuth()
+  const { currentStore, catalogProducts, routes } = useStore()
   const { t, lang } = useI18n()
 
   const [aiText, setAiText] = useState(null)
   const [aiLoading, setAiLoading] = useState(false)
+  const [aiError, setAiError] = useState(false)
   const [fetchedA, setFetchedA] = useState(null)
   const [fetchedB, setFetchedB] = useState(null)
 
@@ -331,51 +336,95 @@ export default function CompareScreen() {
   const winner = comparisonView?.winnerSide || 'draw'
   const barSplit = getComparisonBarSplit(comparisonView)
 
+  // One analytics event per real comparison view. The ref dedupes across the
+  // React 18 StrictMode double-invoke in dev so a single view produces a
+  // single row even if the effect mounts twice. Fire-and-forget on purpose:
+  // the screen never depends on this succeeding.
+  const analyticsRecordedFor = useRef(null)
   useEffect(() => {
-    if (!productA || !productB || !comparisonView) return undefined
-    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') return undefined
+    if (!currentStore?.id || !productA?.ean || !productB?.ean || !comparisonView) return
+    const key = `${productA.ean}|${productB.ean}|${comparisonView.status}`
+    if (analyticsRecordedFor.current === key) return
+    analyticsRecordedFor.current = key
+    recordCompareEvent({
+      storeId: currentStore.id,
+      userId: user?.id || null,
+      eanA: productA.ean,
+      eanB: productB.ean,
+      status: comparisonView.status,
+      winnerSide: comparisonView.winnerSide,
+      primaryReason: comparisonView.reasonKey
+        ? comparisonView.reasonKey.replace(/^compare\.reason\./, '')
+        : null,
+      lang: lang === 'kz' ? 'kz' : 'ru',
+    })
+  }, [
+    currentStore?.id,
+    productA?.ean,
+    productB?.ean,
+    comparisonView?.status,
+    comparisonView?.winnerSide,
+    user?.id,
+    lang,
+  ])
 
-    let mounted = true
-    const ctrl = new AbortController()
+  // AI explanation is on demand: one call per explicit user action, cached per
+  // product pair + language + profile, so repeated views cost nothing.
+  const explanationCacheKey = useMemo(() => {
+    if (!productA?.ean || !productB?.ean) return null
+    const profileKey = JSON.stringify({
+      halal: Boolean(profile?.halal || profile?.halalOnly),
+      allergens: profile?.allergens || [],
+      dietGoals: profile?.dietGoals || [],
+    })
+    return `korset_compare_expl:${productA.ean}:${productB.ean}:${lang}:${profileKey}`
+  }, [productA?.ean, productB?.ean, lang, profile])
 
-    async function loadAiExplanation() {
-      await Promise.resolve()
-      if (!mounted) return
-      setAiText(null)
-      setAiLoading(true)
+  const handleExplain = useCallback(async () => {
+    if (aiLoading || !productA || !productB) return
 
+    if (explanationCacheKey) {
       try {
-        const response = await fetch('/api/ai', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            mode: 'compare',
-            productA,
-            productB,
-            profile,
-            winner,
-            lang: lang === 'kz' ? 'kz' : 'ru',
-            messages: [{ role: 'user', content: t('compare.aiExplainPrompt') }],
-          }),
-          signal: ctrl.signal,
-        })
-        if (!response.ok) throw new Error('API error')
-        const data = await response.json()
-        if (mounted) setAiText(data.reply || '')
-      } catch (error) {
-        if (mounted && error.name !== 'AbortError') setAiText(null)
-      } finally {
-        if (mounted) setAiLoading(false)
+        const cached = window.sessionStorage?.getItem(explanationCacheKey)
+        if (cached) {
+          setAiError(false)
+          setAiText(cached)
+          return
+        }
+      } catch {
+        // sessionStorage unavailable — fall through to a network call
       }
     }
 
-    loadAiExplanation()
+    setAiLoading(true)
+    setAiError(false)
 
-    return () => {
-      mounted = false
-      ctrl.abort()
+    try {
+      const response = await askCompareAI({
+        messages: [{ role: 'user', content: t('compare.aiExplainPrompt') }],
+        productA,
+        productB,
+        profile,
+        winner,
+        lang: lang === 'kz' ? 'kz' : 'ru',
+      })
+      const reply = response?.reply || ''
+      if (!reply) throw new Error('empty reply')
+      setAiText(reply)
+      if (explanationCacheKey) {
+        try {
+          window.sessionStorage?.setItem(explanationCacheKey, reply)
+        } catch {
+          // cache is best-effort only
+        }
+      }
+    } catch {
+      setAiText(null)
+      setAiError(true)
+    } finally {
+      setAiLoading(false)
     }
-  }, [productA, productB, profile, winner, lang, t, comparisonView])
+  }, [aiLoading, productA, productB, profile, winner, lang, t, explanationCacheKey])
 
   if (!productA || !productB || !comparisonView) {
     return (
@@ -400,15 +449,21 @@ export default function CompareScreen() {
         ? localNameB
         : ''
   const isBlocked = comparisonView.status === 'blocked'
+  const isSameProduct = comparisonView.status === 'same_product'
   const actionProduct = winnerProduct || productA
-  const actionLabel = isBlocked ? t(comparisonView.actionKey) : t('compare.askMore')
+  const actionLabel =
+    isBlocked || isSameProduct ? t(comparisonView.actionKey) : t('compare.askMore')
 
   function handlePrimaryAction() {
     if (isBlocked) {
-      navigate(buildProductAlternativesPath(activeSlug, productA.ean))
+      navigate(buildProductAlternativesPath(storeSlug, productA.ean))
       return
     }
-    navigate(buildProductAIPath(activeSlug, actionProduct.ean))
+    if (isSameProduct) {
+      navigate(routes.catalog, { state: { resetCategory: true, resetAll: true } })
+      return
+    }
+    navigate(buildProductAIPath(storeSlug, actionProduct.ean))
   }
 
   return (
@@ -453,7 +508,7 @@ export default function CompareScreen() {
       </header>
 
       <section className="compare-body" aria-live="polite">
-        {comparisonView.dataRows.length > 0 && (
+        {comparisonView.dataRows.length > 0 && !isSameProduct && (
           <section className="compare-data-section" aria-labelledby="compare-data-title">
             <div className="compare-section-heading">
               <span>A</span>
@@ -468,8 +523,13 @@ export default function CompareScreen() {
           </section>
         )}
 
-        {(comparisonView.profileNote || comparisonView.dataNote || isBlocked) && (
+        {(comparisonView.profileNote || comparisonView.dataNote || isBlocked || isSameProduct) && (
           <section className="compare-notes" aria-label={t('compare.section.data')}>
+            {isSameProduct && (
+              <CompareNote tone="blocked" icon="category">
+                {t('compare.sameProduct.text')}
+              </CompareNote>
+            )}
             {isBlocked && (
               <CompareNote tone="blocked" icon="category">
                 {t('compare.reason.different_category')}
@@ -515,6 +575,24 @@ export default function CompareScreen() {
             <span>{t(comparisonView.sections[0]?.titleKey || 'compare.section.decision')}</span>
           </div>
 
+          {(comparisonView.dataNote || comparisonView.sourceNote) && (
+            <div className="compare-verdict-chips">
+              {comparisonView.dataNote && (
+                <span
+                  className="compare-chip compare-chip--data"
+                  title={t(comparisonView.dataNote.messageKey)}
+                >
+                  {t(`compare.chip.data.${comparisonView.dataNote.level}`)}
+                </span>
+              )}
+              {comparisonView.sourceNote?.aiEstimated && (
+                <span className="compare-chip compare-chip--ai" title={t('compare.chip.aiHint')}>
+                  {t('compare.chip.ai')}
+                </span>
+              )}
+            </div>
+          )}
+
           {comparisonView.status === 'winner' ? (
             <div className="compare-rail" aria-hidden="true">
               <span>{localNameA}</span>
@@ -558,18 +636,37 @@ export default function CompareScreen() {
           </div>
         </section>
 
-        {(aiLoading || aiText) && (
-          <section className="compare-ai-card" aria-live="polite" aria-label={t('compare.askMore')}>
-            {aiLoading && !aiText ? (
-              <div className="compare-ai-loading">
-                <span className="compare-spinner" aria-hidden="true" />
-                <span>{t('compare.aiLoading')}</span>
-              </div>
-            ) : (
-              <p>{aiText}</p>
-            )}
-          </section>
-        )}
+        <section className="compare-ai-card" aria-live="polite" aria-label={t('compare.ai.title')}>
+          {!aiText && !aiLoading && !aiError && (
+            <button
+              className="compare-ai-ask"
+              type="button"
+              onClick={handleExplain}
+              disabled={aiLoading}
+            >
+              <Icon name="ai" />
+              {t('compare.ai.ask')}
+            </button>
+          )}
+
+          {aiLoading && (
+            <div className="compare-ai-loading">
+              <span className="compare-spinner" aria-hidden="true" />
+              <span>{t('compare.aiLoading')}</span>
+            </div>
+          )}
+
+          {aiText && <p className="compare-ai-text">{aiText}</p>}
+
+          {aiError && (
+            <div className="compare-ai-error">
+              <p>{t('compare.aiError')}</p>
+              <button className="compare-ai-ask" type="button" onClick={handleExplain}>
+                {t('compare.ai.retry')}
+              </button>
+            </div>
+          )}
+        </section>
 
         <button className="compare-primary-action" type="button" onClick={handlePrimaryAction}>
           <Icon name={isBlocked ? 'explore' : 'ai'} />

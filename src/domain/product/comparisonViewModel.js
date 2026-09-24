@@ -292,8 +292,17 @@ function getStatus(comparison = {}) {
   return 'winner'
 }
 
+// Comparing a product with itself produces a meaningless verdict — the screen
+// shows an explicit state instead of a winner rail.
+function isSameProductPair(productA, productB) {
+  const eanA = productA?.ean != null ? String(productA.ean).trim() : ''
+  const eanB = productB?.ean != null ? String(productB.ean).trim() : ''
+  return Boolean(eanA) && eanA === eanB
+}
+
 function getVerdictKey(status, comparison = {}) {
   if (status === 'blocked') return 'compare.verdict.blocked'
+  if (status === 'same_product') return 'compare.verdict.sameProduct'
   if (status === 'draw') return 'compare.verdict.draw'
   if (comparison.confidence === 'preliminary') return 'compare.verdict.preliminary'
   return 'compare.verdict.winner'
@@ -359,6 +368,12 @@ function buildTopFactors(comparison = {}) {
   return factors
 }
 
+// A verdict built on AI-estimated fields must never look like a verified fact.
+function getSourceNote(productA = {}, productB = {}) {
+  const aiEstimated = Boolean(productA?.sourceMeta?.aiEnriched || productB?.sourceMeta?.aiEnriched)
+  return aiEstimated ? { aiEstimated: true } : null
+}
+
 function getDataNote(comparison = {}) {
   const level = comparison.dataCoverage?.level
   if (!level || level === 'high') return null
@@ -396,23 +411,31 @@ export function buildProductComparisonViewModel({
   profile,
   lang = 'ru',
 } = {}) {
-  const status = getStatus(comparison)
+  const sameProduct = isSameProductPair(productA, productB)
+  const status = sameProduct ? 'same_product' : getStatus(comparison)
   const winnerSide = status === 'winner' ? comparison?.winner || null : null
 
   return {
     status,
+    sameProduct,
     winnerSide,
     loserSide: winnerSide === 'A' ? 'B' : winnerSide === 'B' ? 'A' : null,
     confidence: comparison?.confidence || 'draw',
     verdictKey: getVerdictKey(status, comparison),
     reasonKey: comparison?.summaryKey ? `compare.reason.${comparison.summaryKey}` : null,
-    actionKey: status === 'blocked' ? 'compare.action.findSameCategory' : null,
+    actionKey:
+      status === 'blocked'
+        ? 'compare.action.findSameCategory'
+        : status === 'same_product'
+          ? 'compare.action.chooseAnother'
+          : null,
     productRefs: {
       A: productA?.ean || null,
       B: productB?.ean || null,
     },
     profileNote: getProfileNote(comparison, profile),
     dataNote: getDataNote(comparison),
+    sourceNote: getSourceNote(productA, productB),
     dataRows: buildProductDataRows(productA, productB, { lang }),
     topFactors: buildTopFactors(comparison),
     sections: buildSections(comparison),

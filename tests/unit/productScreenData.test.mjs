@@ -25,6 +25,25 @@ test('getProductScreenBaseProduct prefers catalog product for the route EAN', ()
   )
 })
 
+test('getProductScreenBaseProduct discards catalog product matched only by polluted alias EAN', () => {
+  const wrongProduct = product({ ean: '22222222', alternateEans: ['11111111'], name: 'Wrong' })
+
+  assert.equal(
+    getProductScreenBaseProduct({ catalogProduct: wrongProduct, stateProduct: null, ean: '11111111' }),
+    null
+  )
+})
+
+test('getProductScreenBaseProduct keeps catalog product matched exactly by route EAN', () => {
+  const exactProduct = product({ ean: '11111111', alternateEans: [], name: 'Exact' })
+
+  assert.equal(
+    getProductScreenBaseProduct({ catalogProduct: exactProduct, stateProduct: null, ean: '11111111' })
+      .name,
+    'Exact'
+  )
+})
+
 test('getProductScreenBaseProduct ignores stale route state product', () => {
   const stateProduct = product({ ean: '11111111', name: 'Stale state' })
 

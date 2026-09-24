@@ -15,6 +15,7 @@ import {
   getLostRevenue,
   getScanCoverage,
   getAlternativeEventsSummary,
+  getCompareEventsSummary,
 } from '../utils/retailAnalytics.js'
 import {
   AlertTriangleIcon,
@@ -234,6 +235,71 @@ function MiniSignal({ label, value, loading }) {
         >
           {value}
         </div>
+      )}
+    </div>
+  )
+}
+
+// ── Compare signals card ─────────────────────────────────────────
+function CompareSignalsCard({ summary, loading, error, onRetry, d }) {
+  const topPairText = summary?.topPair ? `${summary.topPair.eanA} ↔ ${summary.topPair.eanB}` : null
+
+  return (
+    <div
+      style={{
+        background: 'rgba(56,189,248,0.07)',
+        border: '1px solid rgba(56,189,248,0.18)',
+        borderRadius: 16,
+        padding: '14px 16px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <SectionHeader icon="compare_arrows" iconColor="#38BDF8" title={d.compareTitle} />
+        {loading ? (
+          <Skel h={28} w={58} r={8} />
+        ) : (
+          <div
+            style={{
+              fontSize: 24,
+              fontWeight: 800,
+              fontFamily: 'var(--font-display)',
+              color: '#38BDF8',
+              lineHeight: 1,
+            }}
+          >
+            {error ? '—' : (summary?.total ?? 0)}
+          </div>
+        )}
+      </div>
+
+      {error ? (
+        <QueryError label={d.loadError} retryLabel={d.retry} onRetry={onRetry} />
+      ) : (
+        <>
+          <div style={{ fontSize: 12, color: 'var(--text-dim)', lineHeight: 1.4 }}>
+            {d.compareSub}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+            <MiniSignal
+              label={d.compareWinner}
+              value={summary?.winnerCount ?? 0}
+              loading={loading}
+            />
+            <MiniSignal label={d.compareDraw} value={summary?.drawCount ?? 0} loading={loading} />
+            <MiniSignal
+              label={d.compareBlocked}
+              value={summary?.blockedCount ?? 0}
+              loading={loading}
+            />
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-dim)' }}>
+            <strong style={{ color: 'var(--text)' }}>{d.compareTopPair}:</strong>{' '}
+            {loading ? '...' : topPairText || d.compareNoPair}
+          </div>
+        </>
       )}
     </div>
   )
@@ -684,6 +750,13 @@ export default function RetailDashboardScreen() {
       alternativesTopScenario: t('retail.dashboard.alternativesTopScenario'),
       alternativesTopSource: t('retail.dashboard.alternativesTopSource'),
       alternativesNoSignal: t('retail.dashboard.alternativesNoSignal'),
+      compareTitle: t('retail.dashboard.compareTitle'),
+      compareSub: t('retail.dashboard.compareSub'),
+      compareWinner: t('retail.dashboard.compareWinner'),
+      compareDraw: t('retail.dashboard.compareDraw'),
+      compareBlocked: t('retail.dashboard.compareBlocked'),
+      compareTopPair: t('retail.dashboard.compareTopPair'),
+      compareNoPair: t('retail.dashboard.compareNoPair'),
     }),
     [t]
   )
@@ -752,6 +825,14 @@ export default function RetailDashboardScreen() {
   const alternativesQ = useQuery({
     queryKey: ['retail-alternatives-summary', storeId, period],
     queryFn: () => getAlternativeEventsSummary(storeId, period),
+    enabled,
+    staleTime: STALE,
+    gcTime: GC,
+  })
+
+  const compareQ = useQuery({
+    queryKey: ['retail-compare-summary', storeId, period],
+    queryFn: () => getCompareEventsSummary(storeId, period),
     enabled,
     staleTime: STALE,
     gcTime: GC,
@@ -1064,6 +1145,14 @@ export default function RetailDashboardScreen() {
         onRetry={() => alternativesQ.refetch()}
         d={d}
         t={t}
+      />
+
+      <CompareSignalsCard
+        summary={compareQ.data}
+        loading={compareQ.isLoading}
+        error={compareQ.isError}
+        onRetry={() => compareQ.refetch()}
+        d={d}
       />
 
       {/* AI insights */}

@@ -1,5 +1,6 @@
 /* global FormData */
 import { normalizeAIResponse } from '../domain/ai/responseShape.js'
+import { supabase } from '../utils/supabase.js'
 
 const AI_ENDPOINT = '/api/ai'
 const AI_TRANSCRIBE_ENDPOINT = '/api/ai-transcribe'
@@ -95,6 +96,40 @@ export async function askGeneralAI(
       storeContext,
       profile,
       catalogContext,
+    })
+  )
+}
+
+/**
+ * Объяснение результата сравнения двух товаров.
+ * Вызывается только по явному действию пользователя (кнопка на экране сравнения).
+ * @returns {Promise<{reply: string}>}
+ */
+export async function askCompareAI({
+  messages,
+  productA,
+  productB,
+  profile = null,
+  winner = null,
+  lang = 'ru',
+} = {}) {
+  return normalizeAIResponse(
+    await callAI({
+      messages,
+      mode: 'compare',
+      productA: compactProduct(productA),
+      productB: compactProduct(productB),
+      profile: profile
+        ? {
+            halal: profile.halal || profile.halalOnly,
+            halalOnly: profile.halalOnly,
+            halalStrict: profile.halalStrict,
+            allergens: profile.allergens,
+            dietGoals: profile.dietGoals,
+          }
+        : null,
+      winner,
+      lang,
     })
   )
 }
@@ -220,15 +255,31 @@ export async function askPackageImageAI({
 
 // ── Internal ──
 
+// Sending the session token moves the caller from the anonymous limit (8/min)
+// to the authenticated one (30/min). Guests keep the anonymous path unchanged.
+async function getAuthToken() {
+  try {
+    const result = await supabase.auth?.getSession?.()
+    return result?.data?.session?.access_token || null
+  } catch {
+    return null
+  }
+}
+
 async function callAI(body) {
   const signal =
     typeof globalThis.AbortSignal?.timeout === 'function'
       ? globalThis.AbortSignal.timeout(REQUEST_TIMEOUT_MS)
       : undefined
 
+  const token = await getAuthToken()
+
   const res = await fetch(AI_ENDPOINT, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     body: JSON.stringify(body),
     signal,
   })

@@ -332,6 +332,7 @@ export default function ScanScreen() {
   const [torchErr, setTorchErr] = useState(false)
   const [searching, setSearching] = useState(false)
   const [scanFlash, setScanFlash] = useState(false)
+  const [detectedEan, setDetectedEan] = useState(null)
   const [notFoundEan, setNotFoundEan] = useState(null)
   const [submissionOpen, setSubmissionOpen] = useState(false)
   const [submissionEan, setSubmissionEan] = useState(null)
@@ -588,6 +589,7 @@ export default function ScanScreen() {
             }
           } else {
             // Normal mode: await fast lookup or navigate immediately with optimistic state
+            setDetectedEan(ean)
             setScanFlash(true)
             setTimeout(() => {
               if (mountedRef.current) setScanFlash(false)
@@ -1066,6 +1068,12 @@ export default function ScanScreen() {
           </div>
           <div className="scan-topbar__spacer" />
         </div>
+
+        {detectedEan && (
+          <div className="scan-detected-banner" role="status" aria-live="polite">
+            <span className="scan-detected-banner__code">{formatManualEan(detectedEan)}</span>
+          </div>
+        )}
 
         {status === 'ready' && !searching && (
           <div className="scan-frame-layer" aria-hidden="true">

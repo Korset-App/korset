@@ -80,13 +80,16 @@ export default function ProductScreen() {
   const activeStoreSlug = storeSlug || currentStore?.slug || null
   const fromScan = location.state?.fromScan === true
   const baseProduct = useMemo(() => {
-    const known = findProductInCatalog(catalogProducts, ean, { allowAlternate: !fromScan })
+    // Route EAN must match exactly: polluted alternate_eans otherwise render a wrong
+    // product at first paint. Alias EANs still resolve via the trusted resolver below.
+    const known = findProductInCatalog(catalogProducts, ean, { allowAlternate: false })
     const stateProduct = coerceProductEntity(location.state?.product)
     return getProductScreenBaseProduct({ catalogProduct: known, stateProduct, ean })
-  }, [catalogProducts, ean, fromScan, location.state])
+  }, [catalogProducts, ean, location.state])
 
   const [fullProduct, setFullProduct] = useState(null)
   const [fetchingFull, setFetchingFull] = useState(false)
+  const [fetchSettledEmpty, setFetchSettledEmpty] = useState(false)
   const [unknownRequestStatus, setUnknownRequestStatus] = useState('idle')
   const [shoppingAdding, setShoppingAdding] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
@@ -116,7 +119,10 @@ export default function ProductScreen() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setFetchingFull(true)
     const timer = setTimeout(() => {
-      if (!aborted) setFetchingFull(false)
+      if (!aborted) {
+        setFetchingFull(false)
+        setFetchSettledEmpty(true)
+      }
     }, 8000)
 
     resolveProductByEan(ean, storeId, { logScan: false })
@@ -125,12 +131,14 @@ export default function ProductScreen() {
           clearTimeout(timer)
           setFetchingFull(false)
           if (p) setFullProduct(p)
+          else setFetchSettledEmpty(true)
         }
       })
       .catch(() => {
         if (!aborted) {
           clearTimeout(timer)
           setFetchingFull(false)
+          setFetchSettledEmpty(true)
         }
       })
     return () => {
@@ -144,8 +152,12 @@ export default function ProductScreen() {
     let aborted = false
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setFetchingFull(true)
+    setFetchSettledEmpty(false)
     const timer = setTimeout(() => {
-      if (!aborted) setFetchingFull(false)
+      if (!aborted) {
+        setFetchingFull(false)
+        setFetchSettledEmpty(true)
+      }
     }, 8000)
 
     const fetchPromise = storeId ? fetchFullProduct(storeId, ean) : Promise.resolve(null)
@@ -166,11 +178,13 @@ export default function ProductScreen() {
             clearTimeout(timer)
             setFetchingFull(false)
             if (gp) setFullProduct(gp)
+            else setFetchSettledEmpty(true)
           }
         } catch {
           if (!aborted) {
             clearTimeout(timer)
             setFetchingFull(false)
+            setFetchSettledEmpty(true)
           }
         }
       })
@@ -178,6 +192,7 @@ export default function ProductScreen() {
         if (!aborted) {
           clearTimeout(timer)
           setFetchingFull(false)
+          setFetchSettledEmpty(true)
         }
       })
     return () => {
@@ -262,7 +277,9 @@ export default function ProductScreen() {
     }
   }
 
-  if (!product && fetchingFull) {
+  const showLoadingSkeleton =
+    !product && (fetchingFull || ((needsFullFetch || needsResolve) && !fetchSettledEmpty))
+  if (showLoadingSkeleton) {
     return (
       <div className="screen" style={{ padding: '0 20px 120px', overflowY: 'auto' }}>
         <Helmet>

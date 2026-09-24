@@ -1,4 +1,4 @@
-import { DietIcon } from '../../screens/ProfileScreen.jsx'
+import { DietIcon } from '../icons/DietIcon.jsx'
 import { DIET_PREFERENCES } from '../../constants/dietGoals.js'
 
 const DIET_BADGE_COLORS = {

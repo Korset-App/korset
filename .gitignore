@@ -22,3 +22,5 @@ vite.config.js.timestamp-*
 public/profile-bgs/raw/
 public/profile-bgs/thumbs/
 scratch/
+.workbuddy-ai/
+screenshots/

@@ -73,5 +73,15 @@
   "compare.section.profile": "Профиліңіз",
   "compare.section.data": "Дерек сапасы",
   "compare.action.findSameCategory": "Осы санаттағы баламаларды табу",
-  "compare.aiError": "AI салыстыруын алу мүмкін болмады"
+  "compare.aiError": "AI салыстыруын алу мүмкін болмады",
+  "compare.verdict.sameProduct": "Бұл бір тауар",
+  "compare.sameProduct.text": "Сіз тауарды өзімен салыстырып жатырсыз — басқа тауарды таңдаңыз.",
+  "compare.action.chooseAnother": "Басқа тауарды таңдау",
+  "compare.ai.title": "AI түсіндірмесі",
+  "compare.ai.ask": "Таңдауды түсіндір",
+  "compare.ai.retry": "Қайталап көру",
+  "compare.chip.data.low": "Дерек аз",
+  "compare.chip.data.medium": "Деректер толық емес",
+  "compare.chip.ai": "AI бағасы бар",
+  "compare.chip.aiHint": "Кей өрістер AI арқылы алынған, қаптамада тексеру қажет"
 }

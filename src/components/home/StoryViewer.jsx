@@ -8,91 +8,25 @@ import {
   CloseIcon,
   ArrowForwardIcon,
 } from '../icons/index.js'
+import { getStorySlideMedia } from '../../domain/home/homeScreenModel.js'
 import './StoryViewer.css'
 
-function StoryArt({ story, store, catalogProducts, t }) {
-  const storeName = store?.name || 'Körset'
-  const count = catalogProducts?.length || 10240
-  const storyKey = story?.key
-
-  if (story?.image) {
-    return (
-      <div className="story-art-cover-wrap">
-        <img src={story.image} alt="" className="story-art-cover" />
-      </div>
-    )
+function StoryHeaderIcon({ icon, size = 14 }) {
+  switch (icon) {
+    case 'storefront':
+      return <StorefrontIcon size={size} />
+    case 'auto_stories':
+      return <InventoryIcon size={size} strokeWidth={1.8} />
+    case 'barcode_scanner':
+      return <BarcodeScannerIcon size={size} strokeWidth={1.8} />
+    case 'shield_with_heart':
+      return <VerifiedBadgeIcon size={size} />
+    case 'auto_awesome':
+    case 'sparkles':
+      return <SparklesIcon size={size} />
+    default:
+      return <StorefrontIcon size={size} />
   }
-
-  if (story?.key === 'store') {
-    return (
-      <div className="story-art-store">
-        <div className="story-art-store__emblem">
-          <StorefrontIcon size={44} />
-        </div>
-        <div className="story-art-store__pill">
-          <InventoryIcon size={16} color="#34d399" />
-          <span>{count} товаров онлайн</span>
-        </div>
-      </div>
-    )
-  }
-
-  if (storyKey === 'scan') {
-    return (
-      <div className="story-art-scan">
-        <BarcodeScannerIcon size={48} color="rgba(255,255,255,0.7)" />
-        <div className="story-art-scan__laser" />
-        <div className="story-art-scan__tag">0.3 сек</div>
-      </div>
-    )
-  }
-
-  if (storyKey === 'halal') {
-    return (
-      <div className="story-art-halal">
-        <div className="story-art-halal__stamp">
-          <VerifiedBadgeIcon size={44} />
-        </div>
-        <div className="story-art-halal__verified">Халал Даму · 100%</div>
-      </div>
-    )
-  }
-
-  if (storyKey === 'safety') {
-    return (
-      <div className="story-art-safety">
-        <div className="story-art-safety__shield">
-          <span className="material-symbols-outlined" style={{ fontSize: 42 }}>
-            shield_with_heart
-          </span>
-        </div>
-        <div className="story-art-safety__badge-list">
-          <span className="story-art-safety__badge">Без глютена</span>
-          <span className="story-art-safety__badge">Без сахара</span>
-          <span className="story-art-safety__badge">Без лактозы</span>
-        </div>
-      </div>
-    )
-  }
-
-  if (storyKey === 'ai') {
-    return (
-      <div className="story-art-ai">
-        <div className="story-art-ai__user-msg">Что приготовить из курицы и риса?</div>
-        <div className="story-art-ai__bot-msg">
-          👨‍🍳 Ингредиенты на полке {storeName}: филе цыпленка, рис для плова, морковь и зира!
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="story-art-store">
-      <div className="story-art-store__emblem">
-        <SparklesIcon size={44} />
-      </div>
-    </div>
-  )
 }
 
 export default function StoryViewer({
@@ -110,6 +44,7 @@ export default function StoryViewer({
   const [isPaused, setIsPaused] = useState(false)
   const touchStartYRef = useRef(0)
   const slideKey = story?.slides?.[slideIndex] || `${story?.key}.0`
+  const currentMedia = getStorySlideMedia(story, slideIndex)
 
   const vars = {
     storeName: store?.name || 'Körset',
@@ -165,6 +100,8 @@ export default function StoryViewer({
 
   if (!story) return null
 
+  const kickerText = t(`home.stories.${story.key}.kicker`, vars)
+
   return (
     <div
       className="story-viewer-dialog"
@@ -185,7 +122,25 @@ export default function StoryViewer({
       />
 
       <article className={`story-viewer__frame story-tone--${story.tone || 'emerald'}`}>
-        <div className="story-viewer__bg" />
+        {/* Full-bleed Media Stage */}
+        <div className="story-viewer__media-stage" aria-hidden="true">
+          {currentMedia && (
+            <img
+              key={`${story.key}_${slideIndex}`}
+              src={currentMedia}
+              alt=""
+              className="story-viewer__media-img"
+              style={{ animationPlayState: isPaused ? 'paused' : 'running' }}
+              onError={(e) => {
+                if (story?.image && !e.currentTarget.src.endsWith(story.image)) {
+                  e.currentTarget.src = story.image
+                }
+              }}
+            />
+          )}
+          <div className="story-viewer__scrim story-viewer__scrim--top" />
+          <div className="story-viewer__scrim story-viewer__scrim--bottom" />
+        </div>
 
         {/* Top Progress Bars */}
         <div className="story-viewer__progress-wrap" aria-hidden="true">
@@ -211,13 +166,11 @@ export default function StoryViewer({
           })}
         </div>
 
-        {/* Header with store badge & close */}
+        {/* Header with store badge & close button */}
         <header className="story-viewer__top">
           <div className="story-viewer__store-badge">
             <div className="story-viewer__store-icon">
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                {story.icon || 'storefront'}
-              </span>
+              <StoryHeaderIcon icon={story.icon} size={14} />
             </div>
             <span className="story-viewer__store-name">{vars.storeName}</span>
           </div>
@@ -231,11 +184,6 @@ export default function StoryViewer({
             <CloseIcon size={20} />
           </button>
         </header>
-
-        {/* Center Visual Art */}
-        <div className="story-viewer__visual">
-          <StoryArt story={story} store={store} catalogProducts={catalogProducts} t={t} />
-        </div>
 
         {/* Left / Right Tap Zones for navigation */}
         <div
@@ -255,15 +203,15 @@ export default function StoryViewer({
 
         {/* Bottom Card Content & CTA */}
         <div className="story-viewer__bottom">
-          <div className="story-viewer__content-card">
-            <p className="story-viewer__kicker">{t(`home.stories.${story.key}.kicker`, vars)}</p>
+          <div className="story-viewer__content">
+            {kickerText ? <p className="story-viewer__kicker">{kickerText}</p> : null}
             <h2 className="story-viewer__title">{t(`home.storySlides.${slideKey}.title`, vars)}</h2>
             <p className="story-viewer__text">{t(`home.storySlides.${slideKey}.text`, vars)}</p>
           </div>
 
           <button className="story-viewer__cta" type="button" onClick={onCta}>
             <span>{t(`home.stories.${story.key}.cta`, vars)}</span>
-            <ArrowForwardIcon size={20} />
+            <ArrowForwardIcon size={18} />
           </button>
         </div>
       </article>

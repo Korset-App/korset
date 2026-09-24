@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 import { CompareIcon } from '../icons/CompareIcon.jsx'
-import { DietIcon } from '../../screens/ProfileScreen.jsx'
+import { DietIcon } from '../icons/DietIcon.jsx'
 import './CatalogProductCard.css'
 
 function ProductThumb({ product }) {

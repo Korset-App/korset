@@ -37,8 +37,16 @@ import {
   StorefrontIcon,
   CloseIcon,
   BarcodeScannerIcon,
+  ChevronDownIcon,
   ExploreIcon,
+  FilterIcon,
+  FilterIconActive,
   InventoryIcon,
+  SortFitIcon,
+  SortCheapIcon,
+  SortPriceyIcon,
+  SortProteinIcon,
+  SortSugarIcon,
 } from '../components/icons/index.js'
 import {
   sortCatalogSearchProducts,
@@ -74,100 +82,13 @@ const IconHistory = (
   </svg>
 )
 
-const IconFilterActive = (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M20.72 18.24l-.94-.94c.49-.74.78-1.63.78-2.59A4.71 4.71 0 0 0 15.85 10a4.71 4.71 0 0 0-4.71 4.71c0 2.6 2.11 4.71 4.71 4.71.96 0 1.84-.29 2.59-.78l.94.94c.19.19.43.28.68.28s.49-.09.68-.28a.95.95 0 0 0 0-1.34z" />
-    <path d="M19.58 4.02v2.22c0 .81-.5 1.82-1 2.33l-.18.16c-.14.13-.35.16-.53.1l-.6-.17c-.44-.11-.91-.16-1.39-.16-3.45 0-6.25 2.8-6.25 6.25 0 1.14.31 2.26.9 3.22.5.84 1.2 1.54 1.96 2.01.23.15.32.47.12.65l-.21.16-1.4.91c-1.3.81-3.09-.1-3.09-1.72v-5.35c0-.71-.4-1.62-.8-2.12l-3.79-4.04c-.5-.51-.9-1.42-.9-2.02V4.12c0-1.21.9-2.12 1.99-2.12h13.18c1.09 0 1.99.91 1.99 2.02z" />
-  </svg>
-)
-
-const IconFilter = (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M14.32 19.07c0 .61-.4 1.41-.91 1.72l-1.41.91c-1.31.81-3.13-.1-3.13-1.72v-5.35c0-.71-.4-1.62-.81-2.12L4.22 8.47A2.09 2.09 0 0 1 3.31 6.45V4.13c0-1.21.91-2.12 2.02-2.12h13.34c1.11 0 2.02.91 2.02 2.02V6.25c0 .81-.51 1.82-1.01 2.32" />
-    <circle cx="16.07" cy="13.32" r="3.2" />
-    <path d="M19.87 17.12l-1-1" />
-  </svg>
-)
-
-const IconSortFit = (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-  >
-    <path d="M22 7H9M2 7h3" />
-    <path d="M19 12h-3M5 12h7" />
-    <path d="M16 17H8" />
-  </svg>
-)
-
-const IconSortCheap = (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M13 12h8M13 8h8M13 16h8M6 7v10M6 17l-3-3M6 17l3-3" />
-  </svg>
-)
-
-const IconSortPricey = (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M13 12h8M13 8h8M13 16h8M6 7v10M6 7l-3 3M6 7l3 3" />
-  </svg>
-)
-
-const IconSortProtein = (
-  <svg width="16" height="16" viewBox="0 0 512 512" fill="currentColor">
-    <g transform="translate(0,512) scale(0.1,-0.1)">
-      <path d="M1080 4729c-122 -94 -290 -257 -393 -381 -752 -907 -693 -2088 148 -2934 71 -72 155 -152 185 -177l55 -46 -377 -378c-343 -343 -378 -382 -378 -411 0 -22 9 -41 25 -57 24 -25 27 -25 192 -25 200 0 274 14 388 70 94 47 176 115 230 194 21 31 41 56 45 56 3 0 25 -27 48 -60 82 -116 234 -214 379 -245 44 -9 128 -15 236 -15 165 0 168 0 192 25 16 16 25 35 25 57 0 29 -35 68 -377 411l-378 378 50 41c103 85 324 317 412 435 141 187 231 347 313 556l46 118 60 -78c248 -322 354 -633 354 -1043 0 -250 89 -470 260 -640 178 -179 416 -271 665 -257 55 4 134 16 175 27 95 27 99 27 195 1 489 -134 1002 193 1090 694 26 151 16 291 -35 496 -97 389 -316 764 -535 914l-53 37 -5 447c-5 488 -7 509 -72 691 -110 304 -349 572 -640 718 -401 200 -902 166 -1277 -85 -103 -69 -254 -213 -321 -307 -12 -17 -19 -10 -76 85 -34 57 -101 155 -149 219 -162 215 -511 540 -582 540 -19 0 -56 -22 -120 -71z m2130 -424c235 -35 449 -144 620 -315 175 -176 284 -395 320 -645 5 -38 10 -232 10 -430l0 -360 -79 0 -80 0 -3 400c-4 370 -6 406 -25 476 -51 184 -130 319 -262 449 -196 195 -445 291 -716 277 -252 -14 -450 -102 -630 -282 -94 -94 -179 -214 -200 -282 -7 -24 -25 -31 -25 -10 -1 6 -15 51 -34 98l-32 87 42 64c235 351 667 538 1094 473z m-1944 -81c103 -49 125 -175 45 -255 -66 -66 -159 -65 -223 2 -122 128 19 328 178 253z m-681 -581c369 -278 900 -267 1267 28 73 59 65 65 121 -97 247 -709 58 -1450 -522 -2047 -53 -55 -131 -128 -174 -164l-77 -65 -48 38c-86 70 -244 228 -329 329 -497 590 -631 1304 -372 1976 28 73 33 79 48 67 10 -7 49 -36 86 -65z m2289 -135c86 -26 166 -136 166 -228 0 -124 -116 -240 -240 -240 -124 0 -240 116 -240 240 0 63 23 114 75 165 70 71 145 90 239 63z m-498 -943c362 -453 475 -746 503 -1297 6 -125 15 -199 26 -233 67 -197 223 -339 420 -380 66 -14 74 -19 148 -89l78 -75 -37 -7c-110 -21 -313 23 -434 93 -83 49 -214 180 -263 263 -68 117 -87 200 -97 412 -25 511 -122 776 -425 1157l-98 124 12 76c19 118 22 134 31 124 4 -4 65 -80 136 -168z m1789 -179c221 -67 473 -436 584 -857 72 -274 65 -462 -25 -643 -72 -143 -190 -262 -328 -330 -113 -56 -183 -71 -326 -70 -107 1 -137 5 -205 27 -157 52 -297 158 -386 295 -131 200 -151 407 -68 721 109 415 352 776 574 853 61 21 117 22 180 4z" />
-    </g>
-  </svg>
-)
-
-const IconSortSugar = (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.8"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M12 4l7 3.5v7l-7 3.5-7-3.5v-7l7-3.5z" />
-    <path d="M12 10.5l7-3.5M12 10.5l-7-3.5M12 10.5v7" />
-    <line x1="2" y1="22" x2="22" y2="2" stroke="currentColor" />
-  </svg>
-)
+const CATALOG_SORT_OPTIONS = [
+  { id: 'fit', labelKey: 'catalog.sort.fit', Icon: SortFitIcon },
+  { id: 'cheap', labelKey: 'catalog.sort.cheap', Icon: SortCheapIcon },
+  { id: 'pricey', labelKey: 'catalog.sort.pricey', Icon: SortPriceyIcon },
+  { id: 'protein', labelKey: 'catalog.sort.protein', Icon: SortProteinIcon },
+  { id: 'sugar', labelKey: 'catalog.sort.sugar', Icon: SortSugarIcon },
+]
 
 const IconListActive = (
   <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
@@ -1055,7 +976,11 @@ export default function CatalogScreen() {
                   setIsSortMenuOpen(false)
                 }}
               >
-                {isSubMenuOpen || selectedSubcategories.length > 0 ? IconFilterActive : IconFilter}
+                {isSubMenuOpen || selectedSubcategories.length > 0 ? (
+                  <FilterIconActive size={16} />
+                ) : (
+                  <FilterIcon size={16} />
+                )}
                 <span
                   style={{
                     flex: 1,
@@ -1071,16 +996,13 @@ export default function CatalogScreen() {
                       ? getSubcategoryLabel(selectedCategory, selectedSubcategories[0], lang)
                       : t('catalog.selectedCount', { count: selectedSubcategories.length })}
                 </span>
-                <span
-                  className="material-symbols-outlined"
+                <ChevronDownIcon
+                  size={18}
                   style={{
                     transition: 'transform 0.2s',
                     transform: isSubMenuOpen ? 'rotate(180deg)' : 'none',
-                    fontSize: 18,
                   }}
-                >
-                  expand_more
-                </span>
+                />
               </button>
             )}
             <button
@@ -1091,15 +1013,12 @@ export default function CatalogScreen() {
               }}
               style={{ flex: activeSubcategoryKeys.length > 1 ? '1' : '1 0 100%' }}
             >
-              {sort === 'fit'
-                ? IconSortFit
-                : sort === 'cheap'
-                  ? IconSortCheap
-                  : sort === 'pricey'
-                    ? IconSortPricey
-                    : sort === 'protein'
-                      ? IconSortProtein
-                      : IconSortSugar}
+              {(() => {
+                const activeOption =
+                  CATALOG_SORT_OPTIONS.find((o) => o.id === sort) || CATALOG_SORT_OPTIONS[0]
+                const ActiveSortIcon = activeOption.Icon
+                return <ActiveSortIcon size={16} />
+              })()}
               <span
                 style={{
                   flex: 1,
@@ -1109,24 +1028,18 @@ export default function CatalogScreen() {
                   whiteSpace: 'nowrap',
                 }}
               >
-                {[
-                  { id: 'fit', label: t('catalog.sort.fit') },
-                  { id: 'cheap', label: t('catalog.sort.cheap') },
-                  { id: 'pricey', label: t('catalog.sort.pricey') },
-                  { id: 'protein', label: t('catalog.sort.protein') },
-                  { id: 'sugar', label: t('catalog.sort.sugar') },
-                ].find((o) => o.id === sort)?.label || t('catalog.sort.fit')}
+                {t(
+                  (CATALOG_SORT_OPTIONS.find((o) => o.id === sort) || CATALOG_SORT_OPTIONS[0])
+                    .labelKey
+                )}
               </span>
-              <span
-                className="material-symbols-outlined"
+              <ChevronDownIcon
+                size={18}
                 style={{
                   transition: 'transform 0.2s',
                   transform: isSortMenuOpen ? 'rotate(180deg)' : 'none',
-                  fontSize: 18,
                 }}
-              >
-                expand_more
-              </span>
+              />
             </button>
           </div>
         )}
@@ -1170,23 +1083,17 @@ export default function CatalogScreen() {
             className="catalog-chips-row"
             style={{ marginBottom: 12, animation: 'expandDropdown 0.2s ease-out' }}
           >
-            {[
-              { id: 'fit', label: t('catalog.sort.fit'), icon: IconSortFit },
-              { id: 'cheap', label: t('catalog.sort.cheap'), icon: IconSortCheap },
-              { id: 'pricey', label: t('catalog.sort.pricey'), icon: IconSortPricey },
-              { id: 'protein', label: t('catalog.sort.protein'), icon: IconSortProtein },
-              { id: 'sugar', label: t('catalog.sort.sugar'), icon: IconSortSugar },
-            ].map((option) => (
+            {CATALOG_SORT_OPTIONS.map(({ id, labelKey, Icon }) => (
               <button
-                key={option.id}
-                className={`catalog-sort-chip${sort === option.id ? ' active' : ''}`}
+                key={id}
+                className={`catalog-sort-chip${sort === id ? ' active' : ''}`}
                 onClick={() => {
-                  setSort(option.id)
+                  setSort(id)
                   setIsSortMenuOpen(false)
                 }}
               >
-                {option.icon}
-                {option.label}
+                <Icon size={16} />
+                {t(labelKey)}
               </button>
             ))}
           </div>
@@ -1249,12 +1156,7 @@ export default function CatalogScreen() {
             }}
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
           >
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: 20, color: 'var(--primary-bright)' }}
-            >
-              close
-            </span>
+            <CloseIcon size={20} color="var(--primary-bright)" />
           </button>
         </div>
       )}

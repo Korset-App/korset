@@ -83,7 +83,7 @@ export async function queryNpc(query, size = 10) {
     const res = await httpPost(
       'https://nationalcatalog.kz/gw/search/api/v1/search',
       { 'X-API-KEY': NPC_API_KEY },
-      { query: String(query).slice(0, 90), page: 1, size }
+      { query: String(query).slice(0, 90), page: 0, size }
     );
     if (res.status !== 200 || !res.body?.items) return [];
 

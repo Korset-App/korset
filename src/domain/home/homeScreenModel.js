@@ -18,7 +18,8 @@ export const HOME_STORY_KEYS = [
     tone: 'emerald',
     image: '/stories/store.webp',
     cta: 'catalog',
-    slides: ['store.0', 'store.1', 'store.2', 'store.3'],
+    slides: ['store.0', 'store.1', 'store.2'],
+    slideImages: ['/stories/store-0.webp', '/stories/store-1.webp', '/stories/store-2.webp'],
   },
   {
     key: 'catalog',
@@ -53,6 +54,14 @@ export const HOME_STORY_KEYS = [
     slides: ['ai.0', 'ai.1', 'ai.2', 'ai.3'],
   },
 ]
+
+export function getStorySlideMedia(story, slideIndex = 0) {
+  if (!story) return null
+  if (Array.isArray(story.slideImages) && story.slideImages[slideIndex]) {
+    return story.slideImages[slideIndex]
+  }
+  return story.image || null
+}
 
 export const HOME_DEPT_SHORT_LABELS = {
   dairy_eggs: { ru: 'Молочные продукты', kz: 'Сүт өнімдері' },

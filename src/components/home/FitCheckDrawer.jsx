@@ -4,34 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useI18n } from '../../i18n/index.js'
 import { ALLERGENS } from '../../constants/allergens.js'
 import { DIET_PREFERENCES } from '../../constants/dietGoals.js'
-import { DietIcon } from '../../screens/ProfileScreen.jsx'
-import { CloseIcon, CheckCircleIcon } from '../../components/icons/index.js'
+import { CloseIcon, CheckCircleIcon, DietIcon, SlidersIcon } from '../../components/icons/index.js'
 import './FitCheckDrawer.css'
-
-function PreferenceSlidersIcon({ size = 20, color = 'currentColor' }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      aria-hidden="true"
-    >
-      <line x1="4" y1="21" x2="4" y2="14" />
-      <line x1="4" y1="10" x2="4" y2="3" />
-      <line x1="12" y1="21" x2="12" y2="12" />
-      <line x1="12" y1="8" x2="12" y2="3" />
-      <line x1="20" y1="21" x2="20" y2="16" />
-      <line x1="20" y1="12" x2="20" y2="3" />
-      <line x1="1" y1="14" x2="7" y2="14" />
-      <line x1="9" y1="8" x2="15" y2="8" />
-      <line x1="17" y1="16" x2="23" y2="16" />
-    </svg>
-  )
-}
 
 const PRIMARY_ALLERGEN_IDS = ['milk', 'eggs', 'gluten', 'peanuts', 'tree_nuts', 'soy']
 
@@ -181,7 +155,7 @@ export default function FitCheckDrawer({
             <div className="fitcheck-drawer__header">
               <div className="fitcheck-drawer__title-wrap">
                 <div className="fitcheck-drawer__icon">
-                  <PreferenceSlidersIcon size={20} color="var(--primary-bright)" />
+                  <SlidersIcon size={20} color="var(--primary-bright)" />
                 </div>
                 <div className="fitcheck-drawer__titles">
                   <h3 className="fitcheck-drawer__title">

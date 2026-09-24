@@ -73,5 +73,15 @@
   "compare.section.profile": "Ваш профиль",
   "compare.section.data": "Качество данных",
   "compare.action.findSameCategory": "Найти альтернативы в этой категории",
-  "compare.aiError": "Не удалось получить сравнение от AI"
+  "compare.aiError": "Не удалось получить сравнение от AI",
+  "compare.verdict.sameProduct": "Это один и тот же товар",
+  "compare.sameProduct.text": "Вы сравниваете товар с самим собой — выберите другой товар для сравнения.",
+  "compare.action.chooseAnother": "Выбрать другой товар",
+  "compare.ai.title": "Объяснение от AI",
+  "compare.ai.ask": "Объяснить выбор",
+  "compare.ai.retry": "Попробовать снова",
+  "compare.chip.data.low": "Данных мало",
+  "compare.chip.data.medium": "Часть данных отсутствует",
+  "compare.chip.ai": "Есть AI-оценка",
+  "compare.chip.aiHint": "Часть полей получена от AI и требует проверки на упаковке"
 }

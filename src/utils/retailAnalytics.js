@@ -150,6 +150,40 @@ export async function getAlternativeEventsSummary(storeId, days) {
   return mapAlternativeEventsSummaryRpcRow(Array.isArray(data) ? data[0] : data)
 }
 
+export async function getCompareEventsSummary(storeId, days) {
+  const { data, error } = await supabase
+    .from('compare_events')
+    .select('status, winner_side, primary_reason, ean_a, ean_b')
+    .eq('store_id', storeId)
+    .gte('created_at', cutoffISO(days))
+
+  if (error) throw new Error(error.message ?? error)
+
+  const list = Array.isArray(data) ? data : []
+  const winnerCount = list.filter((e) => e.status === 'winner').length
+  const drawCount = list.filter((e) => e.status === 'draw').length
+  const blockedCount = list.filter((e) => e.status === 'blocked').length
+
+  const pairCounts = new Map()
+  for (const e of list) {
+    const pairKey = [e.ean_a, e.ean_b].sort().join('|')
+    pairCounts.set(pairKey, (pairCounts.get(pairKey) || 0) + 1)
+  }
+  let topPair = null
+  for (const [key, count] of pairCounts.entries()) {
+    if (!topPair || count > topPair.count)
+      topPair = { eanA: key.split('|')[0], eanB: key.split('|')[1], count }
+  }
+
+  return {
+    total: list.length,
+    winnerCount,
+    drawCount,
+    blockedCount,
+    topPair,
+  }
+}
+
 const PRODUCTS_PAGE_SIZE = 40
 
 export async function getStoreCatalogProducts(storeId, { page = 0, search = '' } = {}) {

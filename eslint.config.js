@@ -58,7 +58,8 @@ export default [
       ...reactHooks.configs.recommended.rules,
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       'no-console': 'off',
-      'no-undef': 'warn',
+      // Undefined identifiers throw at runtime — must fail CI, not warn.
+      'no-undef': 'error',
       'react-hooks/set-state-in-effect': 'warn',
       'react-hooks/no-deriving-state-in-effects': 'warn',
     },

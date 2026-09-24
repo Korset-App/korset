@@ -7,6 +7,7 @@ import KorsetAvatar from '../components/KorsetAvatar.jsx'
 import SegmentedToggle from '../components/SegmentedToggle.jsx'
 import StoryViewer from '../components/home/StoryViewer.jsx'
 import FitCheckDrawer from '../components/home/FitCheckDrawer.jsx'
+import InstallAppSheet from '../components/home/InstallAppSheet.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useProfile } from '../contexts/ProfileContext.jsx'
 import { useStore } from '../contexts/StoreContext.jsx'
@@ -31,7 +32,7 @@ import {
 import { parseStoreSchedule } from '../domain/stores/schedule.js'
 import { setLang, useI18n } from '../i18n/index.js'
 import { useTheme } from '../utils/theme.js'
-import { buildProductPath } from '../utils/routes.js'
+import { buildProductPath, buildProfileEditPath } from '../utils/routes.js'
 import { WalletIcon } from '../components/icons/WalletIcon.jsx'
 import { IconGallery } from '../components/icons/IconGallery.jsx'
 import {
@@ -40,8 +41,10 @@ import {
   InventoryIcon,
   SparklesIcon,
   SyncIcon,
+  DietIcon,
+  SlidersIcon,
+  InstallIcon,
 } from '../components/icons/index.js'
-import { DietIcon } from './ProfileScreen.jsx'
 import LandingScreen from './LandingScreen.jsx'
 import './HomeScreen.css'
 
@@ -96,33 +99,6 @@ function HomeIcon({ name, className = '' }) {
     <span className={`material-symbols-outlined ${className}`} aria-hidden="true">
       {name}
     </span>
-  )
-}
-
-function PreferenceSlidersIcon({ size = 18, color = 'currentColor', className = '' }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <line x1="4" y1="21" x2="4" y2="14" />
-      <line x1="4" y1="10" x2="4" y2="3" />
-      <line x1="12" y1="21" x2="12" y2="12" />
-      <line x1="12" y1="8" x2="12" y2="3" />
-      <line x1="20" y1="21" x2="20" y2="16" />
-      <line x1="20" y1="12" x2="20" y2="3" />
-      <line x1="1" y1="14" x2="7" y2="14" />
-      <line x1="9" y1="8" x2="15" y2="8" />
-      <line x1="17" y1="16" x2="23" y2="16" />
-    </svg>
   )
 }
 
@@ -519,6 +495,7 @@ export default function HomeScreen() {
   const [fitDrawerOpen, setFitDrawerOpen] = useState(false)
   const [installPrompt, setInstallPrompt] = useState(null)
   const [isInstalled, setIsInstalled] = useState(isStandalonePwa)
+  const [installSheetOpen, setInstallSheetOpen] = useState(false)
   const [failedImageEans, setFailedImageEans] = useState(() => new Set())
   const [isShoppingListExpanded, setIsShoppingListExpanded] = useState(false)
   const [isStoreDetailsExpanded, setIsStoreDetailsExpanded] = useState(false)
@@ -585,6 +562,7 @@ export default function HomeScreen() {
     const handleInstalled = () => {
       setIsInstalled(true)
       setInstallPrompt(null)
+      setInstallSheetOpen(false)
     }
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
     window.addEventListener('appinstalled', handleInstalled)
@@ -961,7 +939,9 @@ export default function HomeScreen() {
       installPrompt.prompt()
       await installPrompt.userChoice.catch(() => null)
       setInstallPrompt(null)
+      return
     }
+    setInstallSheetOpen(true)
   }
 
   const handleResetSeenStories = () => {
@@ -1107,17 +1087,19 @@ export default function HomeScreen() {
                       <strong>{profileName}</strong>
                       <span>{t('home.menuAccountHint')}</span>
                     </div>
-                    <button
-                      className="home-avatar-menu__edit"
-                      type="button"
-                      aria-label={t('home.menuEditProfile')}
-                      onClick={() => {
-                        setAvatarMenuOpen(false)
-                        navigate(`${routes.profile}/edit`)
-                      }}
-                    >
-                      <HomeIcon name="edit" />
-                    </button>
+                    {user && (
+                      <button
+                        className="home-avatar-menu__edit"
+                        type="button"
+                        aria-label={t('home.menuEditProfile')}
+                        onClick={() => {
+                          setAvatarMenuOpen(false)
+                          navigate(buildProfileEditPath(currentStore?.slug || null))
+                        }}
+                      >
+                        <HomeIcon name="edit" />
+                      </button>
+                    )}
                   </div>
 
                   <button
@@ -1209,7 +1191,9 @@ export default function HomeScreen() {
                       type="button"
                       onClick={handleInstallApp}
                     >
-                      <HomeIcon name="install_mobile" />
+                      <span className="home-avatar-menu__install-icon" aria-hidden="true">
+                        <InstallIcon size={17} color="currentColor" />
+                      </span>
                       <span>{t('home.menuInstall')}</span>
                     </button>
                   )}
@@ -1313,7 +1297,7 @@ export default function HomeScreen() {
           <div className="home-filter-panel__header">
             <div className="home-filter-panel__title-row">
               <div className="home-filter-panel__emblem" aria-hidden="true">
-                <PreferenceSlidersIcon size={18} color="currentColor" />
+                <SlidersIcon size={18} color="currentColor" />
               </div>
               <div className="home-filter-panel__titles">
                 <h3 className="home-filter-panel__heading">{t('home.filterTitle')}</h3>
@@ -1369,7 +1353,7 @@ export default function HomeScreen() {
               onClick={() => setFitDrawerOpen(true)}
             >
               <span className="home-filter-toggle__icon">
-                <PreferenceSlidersIcon size={13} color="currentColor" />
+                <SlidersIcon size={13} color="currentColor" />
               </span>
               <span className="home-filter-toggle__label">{t('home.filterMore') || 'Ещё'}</span>
             </button>
@@ -2142,6 +2126,14 @@ export default function HomeScreen() {
         profile={profile}
         updateProfile={updateProfile}
         onOpenFullPreferences={() => navigate(`${routes.profile}?tab=preferences`)}
+      />
+
+      {/* MODAL / SHEET: Install App Guide */}
+      <InstallAppSheet
+        open={installSheetOpen}
+        onClose={() => setInstallSheetOpen(false)}
+        installPrompt={installPrompt}
+        onPromptUsed={() => setInstallPrompt(null)}
       />
 
       {/* MODAL: Standalone Cinematic Story Viewer */}

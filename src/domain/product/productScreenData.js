@@ -62,7 +62,8 @@ export function getProductScreenProduct({ baseProduct, fullProduct, ean }) {
 }
 
 export function getProductScreenBaseProduct({ catalogProduct, stateProduct, ean }) {
-  if (catalogProduct) return catalogProduct
+  if (catalogProduct && normalizeEan(catalogProduct.ean) === normalizeEan(ean))
+    return catalogProduct
   if (productMatchesRouteEan(stateProduct, ean)) return stateProduct
   return null
 }
