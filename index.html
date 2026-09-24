@@ -40,6 +40,22 @@
           document.documentElement.dataset.theme = 'dark'
         }
       })()
+      ;(() => {
+        try {
+          window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault()
+            window.__korset_install_prompt = e
+            window.dispatchEvent(new CustomEvent('korset:install-prompt-ready', { detail: e }))
+          })
+          window.addEventListener('appinstalled', () => {
+            window.__korset_install_prompt = null
+            try {
+              localStorage.setItem('korset:pwa-installed', 'true')
+            } catch {}
+            window.dispatchEvent(new CustomEvent('korset:pwa-installed'))
+          })
+        } catch {}
+      })()
     </script>
     <title>Körset — Умный помощник у полки</title>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>

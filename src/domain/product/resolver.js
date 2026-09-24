@@ -102,23 +102,6 @@ async function findGlobalProductByEan(ean) {
       .maybeSingle()
 
     if (data) return normalizeGlobalProduct(data)
-
-    // Fallback to clean_products_v3 as extra safety net
-    const { data: v3Data } = await supabase
-      .from('clean_products_v3')
-      .select('*')
-      .eq('ean', ean)
-      .maybeSingle()
-
-    if (v3Data) {
-      return normalizeGlobalProduct({
-        ...v3Data,
-        manufacturer: v3Data.producer_name,
-        packaging_type: v3Data.package_type,
-        is_active: true,
-      })
-    }
-
     return null
   } catch {
     return null

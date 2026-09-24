@@ -752,7 +752,7 @@ export default function ProductScreen() {
         <DietBadges product={product} lang={lang} />
 
         {/* 6. Nutrition (5 СЏС‡РµРµРє + sugar/salt bars) */}
-        <NutritionUnified nutrition={product.nutritionPer100} />
+        <NutritionUnified nutrition={product.nutritionPer100} product={product} />
 
         {/* 7. Ingredients */}
         {product.ingredients && (

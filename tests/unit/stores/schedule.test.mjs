@@ -30,3 +30,20 @@ test('parseStoreSchedule parses normal day hours correctly', () => {
   assert.equal(resultNight.isConfigured, true)
   assert.equal(resultNight.isOpen, false)
 })
+
+test('parseStoreSchedule handles Sunday day-off and weekly breakdown', () => {
+  // 2026-09-20 is Sunday
+  const sundayNoon = new Date('2026-09-20T07:00:00Z') // 12:00 in KZ
+  const result = parseStoreSchedule('Пн-Сб: 09:00 - 22:00; Вс: выходной', sundayNoon)
+  assert.equal(result.isConfigured, true)
+  assert.equal(result.isTodayDayOff, true)
+  assert.equal(result.isOpen, false)
+  assert.equal(result.weeklySchedule.length, 7)
+  assert.equal(result.weeklySchedule[6].isDayOff, true)
+})
+
+test('parseStoreSchedule extracts special notice and revision day', () => {
+  const result = parseStoreSchedule('09:00 - 23:00 | 28 сентября — санитарный день (с 14:00)')
+  assert.equal(result.isConfigured, true)
+  assert.equal(result.specialNotice, '28 сентября — санитарный день (с 14:00)')
+})

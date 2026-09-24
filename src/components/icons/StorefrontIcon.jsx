@@ -10,30 +10,8 @@ export function StorefrontIcon({ size = 22, color = 'currentColor', className, s
       style={{ display: 'block', flexShrink: 0, ...style }}
     >
       <path
-        d="M3 9.5L4.44 4.47A2 2 0 0 1 6.37 3h11.26a2 2 0 0 1 1.93 1.47L21 9.5"
-        stroke={color}
-        strokeWidth="1.1"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M3 9.5v10.5a1.5 1.5 0 0 0 1.5 1.5h15a1.5 1.5 0 0 0 1.5-1.5V9.5"
-        stroke={color}
-        strokeWidth="1.1"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M3 9.5c0 1.38 1.12 2.5 2.5 2.5S8 10.88 8 9.5c0 1.38 1.12 2.5 2.5 2.5S13 10.88 13 9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5"
-        stroke={color}
-        strokeWidth="1.0"
-        strokeLinecap="round"
-      />
-      <path
-        d="M9.5 21.5v-6a1.5 1.5 0 0 1 1.5-1.5h2a1.5 1.5 0 0 1 1.5 1.5v6"
-        stroke={color}
-        strokeWidth="1.1"
-        strokeLinecap="round"
+        d="M20,14.81V20a2,2,0,0,1-2,2H6a2,2,0,0,1-2-2V14.81A4.25,4.25,0,0,0,5.25,15a4.3,4.3,0,0,0,2.25-.64,4.28,4.28,0,0,0,4.5,0,4.28,4.28,0,0,0,4.5,0,4.3,4.3,0,0,0,2.25.64A4.25,4.25,0,0,0,20,14.81ZM21.76,9,20.17,3.45A2,2,0,0,0,18.25,2H5.75A2,2,0,0,0,3.83,3.45L2.24,9A6.48,6.48,0,0,0,2,10.75a3.25,3.25,0,0,0,5.5,2.34,3.24,3.24,0,0,0,4.5,0,3.24,3.24,0,0,0,4.5,0A3.25,3.25,0,0,0,22,10.75,6.48,6.48,0,0,0,21.76,9Z"
+        fill={color}
       />
     </svg>
   )

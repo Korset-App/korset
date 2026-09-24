@@ -26,6 +26,7 @@ export { EditIcon } from './EditIcon.jsx'
 export { LocationPinIcon } from './LocationPinIcon.jsx'
 export { LockIcon } from './LockIcon.jsx'
 export { SyncIcon } from './SyncIcon.jsx'
+export { ResetArrowIcon } from './ResetArrowIcon.jsx'
 export { ShareIcon } from './ShareIcon.jsx'
 export { EyeIcon } from './EyeIcon.jsx'
 export { UploadFileIcon } from './UploadFileIcon.jsx'
@@ -43,3 +44,41 @@ export { SortProteinIcon } from './SortProteinIcon.jsx'
 export { SortSugarIcon } from './SortSugarIcon.jsx'
 export { SlidersIcon } from './SlidersIcon.jsx'
 export { InstallIcon } from './InstallIcon.jsx'
+export { AddToHomeScreenIcon } from './AddToHomeScreenIcon.jsx'
+export { MenuDotsIcon } from './MenuDotsIcon.jsx'
+export { MenuBarsIcon } from './MenuBarsIcon.jsx'
+export { ExternalLinkIcon } from './ExternalLinkIcon.jsx'
+export { SupportIcon } from './SupportIcon.jsx'
+export { TwoGisIcon } from './TwoGisIcon.jsx'
+export { WhatsAppIcon } from './WhatsAppIcon.jsx'
+export { InstagramIcon } from './InstagramIcon.jsx'
+export { PhoneCallIcon } from './PhoneCallIcon.jsx'
+export { ParkingIcon } from './ParkingIcon.jsx'
+export { ClockIcon } from './ClockIcon.jsx'
+export { AdvantagesIcon } from './AdvantagesIcon.jsx'
+export {
+  KaspiQrIcon,
+  KaspiAlaqanIcon,
+  HalykIcon,
+  FreedomIcon,
+  BankCardIcon,
+  NfcPaymentIcon,
+  CashPaymentIcon,
+} from './PaymentIcons.jsx'
+export {
+  BakeryTandyrIcon,
+  AccessibleRampIcon,
+  CookeryIcon,
+  CoffeeToGoIcon,
+  SelfCheckoutIcon,
+  AtmTerminalIcon,
+  PharmacyPointIcon,
+  MeatCuttingIcon,
+  FreshBarIcon,
+  ScalesIcon,
+  MicrowaveIcon,
+  KidsCartIcon,
+  LockerIcon,
+  WifiIcon,
+  OrderPickupIcon,
+} from './StoreAmenityIcons.jsx'

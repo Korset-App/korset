@@ -43,6 +43,9 @@ function preserveBaseFactsWhenFullIsSparse(baseProduct, fullProduct) {
     'description',
     'image',
     'images',
+    'quantity',
+    'quantityParsed',
+    'specs',
   ]
 
   for (const key of factKeys) {

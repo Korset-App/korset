@@ -33,17 +33,55 @@ import { parseStoreSchedule } from '../domain/stores/schedule.js'
 import { setLang, useI18n } from '../i18n/index.js'
 import { useTheme } from '../utils/theme.js'
 import { buildProductPath, buildProfileEditPath } from '../utils/routes.js'
-import { WalletIcon } from '../components/icons/WalletIcon.jsx'
-import { IconGallery } from '../components/icons/IconGallery.jsx'
 import {
   StorefrontIcon,
   BarcodeScannerIcon,
   InventoryIcon,
   SparklesIcon,
   SyncIcon,
+  ResetArrowIcon,
   DietIcon,
   SlidersIcon,
   InstallIcon,
+  CameraIcon,
+  CartIcon,
+  LocationPinIcon,
+  ChevronDownIcon,
+  CloseIcon,
+  ArrowBackIcon,
+  ArrowForwardIcon,
+  WalletIcon,
+  IconGallery,
+  TwoGisIcon,
+  WhatsAppIcon,
+  InstagramIcon,
+  PhoneCallIcon,
+  ParkingIcon,
+  ClockIcon,
+  AdvantagesIcon,
+  KaspiQrIcon,
+  KaspiAlaqanIcon,
+  HalykIcon,
+  FreedomIcon,
+  BankCardIcon,
+  NfcPaymentIcon,
+  MicrophoneIcon,
+  SendIcon,
+  BakeryTandyrIcon,
+  AccessibleRampIcon,
+  CookeryIcon,
+  CoffeeToGoIcon,
+  SelfCheckoutIcon,
+  AtmTerminalIcon,
+  PharmacyPointIcon,
+  MeatCuttingIcon,
+  FreshBarIcon,
+  ScalesIcon,
+  MicrowaveIcon,
+  KidsCartIcon,
+  LockerIcon,
+  WifiIcon,
+  OrderPickupIcon,
 } from '../components/icons/index.js'
 import LandingScreen from './LandingScreen.jsx'
 import './HomeScreen.css'
@@ -60,23 +98,117 @@ const STORE_HOURS_FALLBACKS = {
 
 const STORE_PHOTO_FALLBACKS = {
   mars: [
-    'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?auto=format&fit=crop&w=800&q=80',
+    {
+      url: 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=1200&q=80',
+      label: 'Фасад и главный вход',
+      category: 'facade',
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=80',
+      label: 'Торговый зал и ряды',
+      category: 'interior',
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?auto=format&fit=crop&w=1200&q=80',
+      label: 'Отдел свежих овощей и фруктов',
+      category: 'produce',
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80',
+      label: 'Бакалея и напитки',
+      category: 'drinks',
+    },
   ],
   nurly: [
-    'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=800&q=80',
+    {
+      url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=80',
+      label: 'Фасад и вход',
+      category: 'facade',
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=1200&q=80',
+      label: 'Торговый зал',
+      category: 'interior',
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80',
+      label: 'Бакалея и напитки',
+      category: 'drinks',
+    },
   ],
   kalina: [
-    'https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=800&q=80',
+    {
+      url: 'https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?auto=format&fit=crop&w=1200&q=80',
+      label: 'Главный вход',
+      category: 'facade',
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=1200&q=80',
+      label: 'Торговый зал',
+      category: 'interior',
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80',
+      label: 'Бакалея и напитки',
+      category: 'drinks',
+    },
   ],
   default: [
-    'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?auto=format&fit=crop&w=800&q=80',
+    {
+      url: 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=1200&q=80',
+      label: 'Фасад и главный вход',
+      category: 'facade',
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=80',
+      label: 'Торговый зал',
+      category: 'interior',
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?auto=format&fit=crop&w=1200&q=80',
+      label: 'Свежие продукты',
+      category: 'produce',
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80',
+      label: 'Бакалея и напитки',
+      category: 'drinks',
+    },
   ],
+}
+
+function normalizeStorePhotoItem(item, index, t) {
+  if (!item) return null
+  if (typeof item === 'string') {
+    const defaultLabels = [
+      t('home.photoTypeFacade') || 'Фасад и вход',
+      t('home.photoTypeInterior') || 'Торговый зал',
+      t('home.photoTypeProduce') || 'Овощи и фрукты',
+      t('home.photoTypeDrinks') || 'Напитки и бакалея',
+    ]
+    return {
+      url: item,
+      label: defaultLabels[index] || t('home.photoTypeGeneral') || 'Фото магазина',
+      category:
+        index === 0 ? 'facade' : index === 1 ? 'interior' : index === 2 ? 'produce' : 'drinks',
+      isPlan: false,
+    }
+  }
+
+  const isPlan = item.category === 'plan' || item.isPlan === true
+
+  return {
+    url: item.url || item.image || item.src,
+    label:
+      item.label ||
+      item.title ||
+      item.name ||
+      (isPlan
+        ? t('home.photoTypePlan') || 'Схема отделов и полок'
+        : t('home.photoTypeGeneral') || 'Фото магазина'),
+    category: item.category || (isPlan ? 'plan' : 'general'),
+    isPlan,
+  }
 }
 
 function SearchIcon({ className = '', width = 20, height = 20 }) {
@@ -262,88 +394,6 @@ function SaladIcon({ size = 18, className = '' }) {
   )
 }
 
-function AiArrowRightIcon({ size = 14, className = '' }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <line x1="5" y1="12" x2="19" y2="12" />
-      <polyline points="12 5 19 12 12 19" />
-    </svg>
-  )
-}
-
-function AiShuffleIcon({ size = 13, className = '' }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <polyline points="23 4 23 10 17 10" />
-      <polyline points="1 20 1 14 7 14" />
-      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-    </svg>
-  )
-}
-
-function MicIcon({ size = 18, className = '' }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-      <line x1="12" y1="19" x2="12" y2="23" />
-      <line x1="8" y1="23" x2="16" y2="23" />
-    </svg>
-  )
-}
-
-function AiArrowUpIcon({ size = 16, className = '' }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <path d="M12 19V5M5 12l7-7 7 7" />
-    </svg>
-  )
-}
-
 function getAiScenarioIcon(iconKey, size = 16) {
   switch (iconKey) {
     case 'burger':
@@ -394,7 +444,17 @@ function StoreLogo({ store, className = '' }) {
 
 function isStandalonePwa() {
   if (typeof window === 'undefined') return false
-  return window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone
+  try {
+    if (window.localStorage?.getItem('korset:pwa-installed') === 'true') {
+      return true
+    }
+  } catch {
+    /* ignore storage error */
+  }
+  return (
+    window.matchMedia?.('(display-mode: standalone)').matches ||
+    Boolean(window.navigator?.standalone)
+  )
 }
 
 function getStoreName(store) {
@@ -491,14 +551,65 @@ export default function HomeScreen() {
   const seenStoreRef = useRef(null)
 
   const [activePhotoIndex, setActivePhotoIndex] = useState(null)
+  const [heroPhotoIndex, setHeroPhotoIndex] = useState(0)
+  const [isHeroPaused, setIsHeroPaused] = useState(false)
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false)
   const [fitDrawerOpen, setFitDrawerOpen] = useState(false)
-  const [installPrompt, setInstallPrompt] = useState(null)
+  const [installPrompt, setInstallPrompt] = useState(() => {
+    if (typeof window !== 'undefined' && window.__korset_install_prompt) {
+      return window.__korset_install_prompt
+    }
+    return null
+  })
   const [isInstalled, setIsInstalled] = useState(isStandalonePwa)
   const [installSheetOpen, setInstallSheetOpen] = useState(false)
   const [failedImageEans, setFailedImageEans] = useState(() => new Set())
   const [isShoppingListExpanded, setIsShoppingListExpanded] = useState(false)
   const [isStoreDetailsExpanded, setIsStoreDetailsExpanded] = useState(false)
+
+  const handleCollapseStoreDetails = useCallback((e) => {
+    e?.preventDefault?.()
+    e?.stopPropagation?.()
+    if (e?.currentTarget) {
+      e.currentTarget.blur()
+    }
+
+    const target = storeInfoRef.current
+    const container = screenRef.current
+
+    setIsStoreDetailsExpanded(false)
+
+    if (typeof window !== 'undefined' && window.requestAnimationFrame) {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          if (!target) return
+          const targetRect = target.getBoundingClientRect()
+
+          // 1. If screenRef (.home-screen) is scrolling:
+          if (container && container.scrollHeight > container.clientHeight) {
+            const containerRect = container.getBoundingClientRect()
+            const targetScrollTop = container.scrollTop + (targetRect.top - containerRect.top) - 12
+            container.scrollTo({
+              top: Math.max(0, targetScrollTop),
+              behavior: 'smooth',
+            })
+          } else if (
+            window.scrollY > 0 ||
+            (document.documentElement && document.documentElement.scrollHeight > window.innerHeight)
+          ) {
+            // 2. If window / document is scrolling:
+            const windowTarget = (window.scrollY || window.pageYOffset || 0) + targetRect.top - 12
+            window.scrollTo({
+              top: Math.max(0, windowTarget),
+              behavior: 'smooth',
+            })
+          } else {
+            target.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+          }
+        })
+      })
+    }
+  }, [])
 
   // Home search bar state & submission
   const [homeSearchQuery, setHomeSearchQuery] = useState('')
@@ -555,20 +666,46 @@ export default function HomeScreen() {
 
   // PWA install prompt handler
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.__korset_install_prompt) {
+      setInstallPrompt(window.__korset_install_prompt)
+    }
+
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault()
+      window.__korset_install_prompt = e
       setInstallPrompt(e)
+    }
+    const handlePromptReady = (e) => {
+      if (e?.detail) {
+        setInstallPrompt(e.detail)
+      } else if (window.__korset_install_prompt) {
+        setInstallPrompt(window.__korset_install_prompt)
+      }
     }
     const handleInstalled = () => {
       setIsInstalled(true)
       setInstallPrompt(null)
+      if (typeof window !== 'undefined') {
+        window.__korset_install_prompt = null
+      }
       setInstallSheetOpen(false)
+      try {
+        localStorage.setItem('korset:pwa-installed', 'true')
+      } catch {
+        /* ignore storage error */
+      }
     }
+
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+    window.addEventListener('korset:install-prompt-ready', handlePromptReady)
     window.addEventListener('appinstalled', handleInstalled)
+    window.addEventListener('korset:pwa-installed', handleInstalled)
+
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+      window.removeEventListener('korset:install-prompt-ready', handlePromptReady)
       window.removeEventListener('appinstalled', handleInstalled)
+      window.removeEventListener('korset:pwa-installed', handleInstalled)
     }
   }, [])
 
@@ -765,34 +902,45 @@ export default function HomeScreen() {
     return count
   }, [profile])
 
-  const storePhotos = useMemo(() => {
-    if (Array.isArray(currentStore?.images) && currentStore.images.length > 0) {
-      return currentStore.images
-    }
-    const slug = currentStore?.slug || currentStore?.code
-    return (slug && STORE_PHOTO_FALLBACKS[slug]) || STORE_PHOTO_FALLBACKS.default || []
-  }, [currentStore])
+  const normalizedPhotos = useMemo(() => {
+    const rawList =
+      Array.isArray(currentStore?.images) && currentStore.images.length > 0
+        ? currentStore.images
+        : (currentStore?.slug && STORE_PHOTO_FALLBACKS[currentStore.slug]) ||
+          STORE_PHOTO_FALLBACKS.default ||
+          []
+    return rawList.map((item, idx) => normalizeStorePhotoItem(item, idx, t)).filter(Boolean)
+  }, [currentStore, t])
+
+  // Auto-cycle hero banner photos every 3 seconds; paused on hover / touch
+  useEffect(() => {
+    if (!normalizedPhotos.length || normalizedPhotos.length <= 1 || isHeroPaused) return
+    const timer = setInterval(() => {
+      setHeroPhotoIndex((prev) => (prev + 1) % normalizedPhotos.length)
+    }, 3000)
+    return () => clearInterval(timer)
+  }, [normalizedPhotos.length, isHeroPaused])
 
   const touchStartXRef = useRef(null)
 
   const handleNextPhoto = useCallback(
     (e) => {
       if (e) e.stopPropagation()
-      if (!storePhotos.length) return
-      setActivePhotoIndex((prev) => (prev === null ? 0 : (prev + 1) % storePhotos.length))
+      if (!normalizedPhotos.length) return
+      setActivePhotoIndex((prev) => (prev === null ? 0 : (prev + 1) % normalizedPhotos.length))
     },
-    [storePhotos.length]
+    [normalizedPhotos.length]
   )
 
   const handlePrevPhoto = useCallback(
     (e) => {
       if (e) e.stopPropagation()
-      if (!storePhotos.length) return
+      if (!normalizedPhotos.length) return
       setActivePhotoIndex((prev) =>
-        prev === null ? 0 : (prev - 1 + storePhotos.length) % storePhotos.length
+        prev === null ? 0 : (prev - 1 + normalizedPhotos.length) % normalizedPhotos.length
       )
     },
-    [storePhotos.length]
+    [normalizedPhotos.length]
   )
 
   const handleTouchStart = (e) => {
@@ -867,12 +1015,18 @@ export default function HomeScreen() {
 
   const profileName = displayName || user?.email || t('profile.title')
 
+  const store2GisUrl =
+    currentStore?.twogis_url ||
+    (storeAddress
+      ? `https://2gis.kz/search/${encodeURIComponent([currentStore?.city || 'Усть-Каменогорск', storeAddress].filter(Boolean).join(' '))}`
+      : `https://2gis.kz/search/${encodeURIComponent(storeName || 'Магазин')}`)
+
   const hasContacts = Boolean(
-    currentStore.phone ||
-    currentStore.whatsapp_number ||
-    currentStore.instagram_url ||
-    currentStore.instagram ||
-    currentStore.twogis_url
+    store2GisUrl ||
+    currentStore?.whatsapp_number ||
+    currentStore?.instagram_url ||
+    currentStore?.instagram ||
+    currentStore?.phone
   )
 
   const activeStory = activeStoryKey
@@ -935,10 +1089,27 @@ export default function HomeScreen() {
 
   async function handleInstallApp() {
     setAvatarMenuOpen(false)
-    if (installPrompt) {
-      installPrompt.prompt()
-      await installPrompt.userChoice.catch(() => null)
+    const prompt =
+      installPrompt || (typeof window !== 'undefined' ? window.__korset_install_prompt : null)
+    if (prompt) {
+      try {
+        prompt.prompt()
+        const choice = await prompt.userChoice.catch(() => null)
+        if (choice?.outcome === 'accepted') {
+          setIsInstalled(true)
+          try {
+            localStorage.setItem('korset:pwa-installed', 'true')
+          } catch {
+            /* ignore storage error */
+          }
+        }
+      } catch {
+        setInstallSheetOpen(true)
+      }
       setInstallPrompt(null)
+      if (typeof window !== 'undefined') {
+        window.__korset_install_prompt = null
+      }
       return
     }
     setInstallSheetOpen(true)
@@ -1595,7 +1766,6 @@ export default function HomeScreen() {
 
       {/* 7. AMBIENT AI COPILOT ISLAND (HIGH-END STORE CONVERSATIONAL MODULE) */}
       <section className="home-ai-island" aria-labelledby="home-ai-island-title">
-        <div className="home-ai-island__ambient-glow" aria-hidden="true" />
         <div className="home-ai-island__container">
           <div className="home-ai-island__header">
             <div className="home-ai-island__brand">
@@ -1608,7 +1778,6 @@ export default function HomeScreen() {
                   {t('home.aiAssistantTitle') || 'ИИ-помощник'}
                 </h3>
                 <div className="home-ai-island__status">
-                  <span className="home-ai-island__status-dot" aria-hidden="true" />
                   <span className="home-ai-island__status-label">
                     {t('home.aiOnlineStatus') || 'В сети'} · {storeName}
                   </span>
@@ -1629,7 +1798,7 @@ export default function HomeScreen() {
                 title={t('home.aiShufflePrompt') || 'Другие варианты'}
                 aria-label={t('home.aiShufflePrompt') || 'Другие варианты'}
               >
-                <AiShuffleIcon size={14} />
+                <ResetArrowIcon size={14} />
               </button>
             </div>
 
@@ -1648,7 +1817,7 @@ export default function HomeScreen() {
                     </div>
                     <span className="home-ai-bento-card__query">{prompt}</span>
                     <div className="home-ai-bento-card__arrow" aria-hidden="true">
-                      <AiArrowRightIcon size={12} />
+                      <ArrowForwardIcon size={12} strokeWidth={1.8} />
                     </div>
                   </button>
                 )
@@ -1683,7 +1852,7 @@ export default function HomeScreen() {
                   title={t('ai.voice.start') || 'Голосовой ввод'}
                   aria-label={t('ai.voice.start') || 'Голосовой ввод'}
                 >
-                  <MicIcon size={15} />
+                  <MicrophoneIcon size={18} />
                 </button>
                 <button
                   type="submit"
@@ -1691,7 +1860,7 @@ export default function HomeScreen() {
                   aria-label={t('home.aiInputSubmit') || 'Спросить'}
                   disabled={!aiQuery.trim()}
                 >
-                  <AiArrowUpIcon size={14} />
+                  <SendIcon size={16} />
                 </button>
               </div>
             </div>
@@ -1727,8 +1896,8 @@ export default function HomeScreen() {
                 </p>
               </div>
               <div className="home-shopping-card__header-actions">
-                <HomeIcon
-                  name="expand_more"
+                <ChevronDownIcon
+                  size={18}
                   className={`home-shopping-card__chevron${isShoppingListExpanded ? ' is-open' : ''}`}
                 />
               </div>
@@ -1792,133 +1961,169 @@ export default function HomeScreen() {
         </section>
       )}
 
-      {/* 9. STORE UNIFIED PROFILE & GALLERY (2GIS / Krisha.kz style) */}
+      {/* 9. STORE COMPACT PROFILE & STORE GUIDE */}
       <section ref={storeInfoRef} className="home-store-details-section">
-        <div className="home-section-header">
-          <h2>{t('home.storeAboutTitle', { storeName }) || `О магазине ${storeName}`}</h2>
+        <div className="home-section-header home-store-header">
+          <div className="home-section-header__titles">
+            <h2>{t('home.storeAbout') || 'О магазине'}</h2>
+          </div>
         </div>
 
-        <div className="home-store-unified-card">
-          {/* A. Hero Media Banner with Photo Counter & Strip */}
-          {storePhotos && storePhotos.length > 0 && (
-            <div className="home-store-media-block">
-              <div
-                className="home-store-media-hero"
-                onClick={() => setActivePhotoIndex(0)}
-                role="button"
-                tabIndex={0}
-                aria-label={t('home.storeOpenPhoto', { storeName })}
-              >
-                <img src={storePhotos[0]} alt={storeName} loading="lazy" />
-                <div className="home-store-photo-badge">
-                  <HomeIcon name="photo_camera" />
-                  <span>{t('home.photoCount', { n: storePhotos.length })}</span>
-                </div>
-              </div>
-
-              {storePhotos.length > 1 && (
-                <div className="home-store-media-strip">
-                  {storePhotos.slice(1, 5).map((url, idx) => (
-                    <button
-                      key={url}
-                      type="button"
-                      className="home-store-media-strip__thumb"
-                      onClick={() => setActivePhotoIndex(idx + 1)}
-                      aria-label={t('home.photoOf', { n: idx + 2 })}
-                    >
-                      <img src={url} alt={`${storeName} ${idx + 2}`} loading="lazy" />
-                      {idx === 3 && storePhotos.length > 5 && (
-                        <span className="home-store-media-strip__more">
-                          +{storePhotos.length - 5}
-                        </span>
-                      )}
-                    </button>
+        <div className={`home-store-compact-card${isStoreDetailsExpanded ? ' is-expanded' : ''}`}>
+          {/* Hero Photo Banner with 3s progress ticker */}
+          {normalizedPhotos.length > 0 && (
+            <div
+              className="home-store-hero-banner"
+              onMouseEnter={() => setIsHeroPaused(true)}
+              onMouseLeave={() => setIsHeroPaused(false)}
+              onTouchStart={() => setIsHeroPaused(true)}
+              onTouchEnd={() => setIsHeroPaused(false)}
+              onClick={() => setActivePhotoIndex(heroPhotoIndex)}
+              role="button"
+              tabIndex={0}
+              aria-label={t('home.storeOpenPhoto', { storeName }) || 'Открыть фото магазина'}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setActivePhotoIndex(heroPhotoIndex)
+                }
+              }}
+            >
+              <img
+                src={(normalizedPhotos[heroPhotoIndex] || normalizedPhotos[0]).url}
+                alt={(normalizedPhotos[heroPhotoIndex] || normalizedPhotos[0]).label || storeName}
+                className="home-store-hero-banner__img"
+                loading="lazy"
+              />
+              <div className="home-store-hero-banner__overlay" />
+              {normalizedPhotos.length > 1 && (
+                <div className="home-store-hero-ticker" aria-hidden="true">
+                  {normalizedPhotos.map((_, idx) => (
+                    <div
+                      key={idx}
+                      className={`home-store-hero-ticker__bar${
+                        idx === heroPhotoIndex
+                          ? ' is-active'
+                          : idx < heroPhotoIndex
+                            ? ' is-passed'
+                            : ''
+                      }`}
+                    />
                   ))}
                 </div>
               )}
+              <div className="home-store-hero-banner__badges">
+                <span className="home-store-hero-badge">
+                  <CameraIcon size={12} />
+                  <span>
+                    {(normalizedPhotos[heroPhotoIndex] || normalizedPhotos[0]).label ||
+                      t('home.photoTypeGeneral')}
+                  </span>
+                </span>
+                {normalizedPhotos.length > 1 && (
+                  <span className="home-store-hero-count">
+                    {heroPhotoIndex + 1} / {normalizedPhotos.length}
+                  </span>
+                )}
+              </div>
             </div>
           )}
 
-          {/* B. Core Store Info */}
-          <div
-            className="home-store-card__content"
-            onClick={() => setIsStoreDetailsExpanded((prev) => !prev)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                setIsStoreDetailsExpanded((prev) => !prev)
-              }
-            }}
-          >
-            <div className="home-store-card__header-row">
-              <div className="home-store-card__title-wrap">
-                <h3 className="home-store-card__name">{storeName}</h3>
-                <div className="home-store-card__status-row">
-                  <span className="home-store-status-dot" />
-                  <span className="home-store-status-text">{storeHours}</span>
-                </div>
-              </div>
-              <StoreLogo store={currentStore} className="home-store-logo--inline" />
-            </div>
-
-            {storeAddress && (
-              <div className="home-store-fact-row">
-                <HomeIcon name="location_on" />
-                <span>
-                  {storeCity} · {storeAddress}
+          <div className="home-store-card__content">
+            {/* Advance Notice / Temporary Closure Banner (Санитарный день, Ревизия и т.д.) */}
+            {schedule.specialNotice && (
+              <div className="home-store-notice-bar">
+                <span className="home-store-notice-bar__icon" aria-hidden="true">
+                  ⚠️
                 </span>
+                <span className="home-store-notice-bar__text">{schedule.specialNotice}</span>
               </div>
             )}
 
-            {/* Features Tags Preview */}
-            <div className="home-store-features">
-              <span className="home-store-feature-chip">
-                <DietIcon name="halal" size={13} />
-                <span>{t('home.featureHalal')}</span>
-              </span>
-              <span className="home-store-feature-chip">
-                <HomeIcon name="bakery_dining" />
-                <span>{t('home.featureBakery')}</span>
-              </span>
-              <span className="home-store-feature-chip">
-                <HomeIcon name="credit_card" />
-                <span>{t('home.featurePayment')}</span>
-              </span>
-              <span className="home-store-feature-chip">
-                <HomeIcon name="local_parking" />
-                <span>{t('home.featureParking')}</span>
-              </span>
+            {/* Header Block: Top Line (Name + Status Pill), Sub Line (Hours + Address) */}
+            <div className="home-store-card__header-block">
+              <div className="home-store-card__top-line">
+                <h3 className="home-store-card__name">{storeName}</h3>
+                {schedule.isConfigured && (
+                  <span
+                    className={`home-store-status-pill${schedule.isOpen ? ' is-open' : ' is-closed'}`}
+                  >
+                    <span className="home-store-status-dot" />
+                    <span>
+                      {schedule.isOpen
+                        ? t('home.storeOpenNow') || 'Открыто'
+                        : t('home.storeClosedNow') || 'Закрыто'}
+                    </span>
+                  </span>
+                )}
+              </div>
+
+              {/* Sub Line: Hours on left, Address on right */}
+              {(storeHours || storeAddress) && (
+                <div className="home-store-card__sub-line">
+                  {storeHours && (
+                    <div className="home-store-card__meta-item home-store-card__hours-col">
+                      <ClockIcon size={13} className="home-store-card__meta-icon" />
+                      <span className="home-store-card__hours-text">
+                        {schedule.isTodayDayOff
+                          ? t('home.storeDayOff') || 'Выходной'
+                          : `${schedule.todayHours || storeHours}, ${t('home.storeScheduleDaily') || 'ежедневно'}`}
+                      </span>
+                    </div>
+                  )}
+                  {storeAddress && (
+                    <div
+                      className="home-store-card__meta-item home-store-card__address-col"
+                      title={storeAddress}
+                    >
+                      <LocationPinIcon size={13} className="home-store-card__meta-icon" />
+                      <span className="home-store-card__address-text">{storeAddress}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            {/* Quick Action Contacts */}
+            {/* Quick Action Contact Pills (2GIS, WhatsApp, Instagram, Телефон) */}
             {hasContacts && (
-              <div className="home-store-contact-buttons" onClick={(e) => e.stopPropagation()}>
-                {currentStore.twogis_url && (
+              <div
+                className={`home-store-contact-row${
+                  [
+                    store2GisUrl,
+                    currentStore?.whatsapp_number,
+                    currentStore?.instagram_url || currentStore?.instagram,
+                    currentStore?.phone,
+                  ].filter(Boolean).length >= 4
+                    ? ' home-store-contact-row--scrollable'
+                    : ''
+                }`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {store2GisUrl && (
                   <a
-                    href={currentStore.twogis_url}
+                    href={store2GisUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="home-store-contact-btn home-store-contact-btn--2gis"
-                    onClick={(e) => e.stopPropagation()}
+                    className="home-store-action-pill"
+                    aria-label={t('home.storeRoute2Gis') || '2GIS'}
                   >
-                    <span className="home-btn-glyph">2G</span>
-                    <span>{t('home.storeRoute2Gis') || '2GIS'}</span>
+                    <TwoGisIcon size={14} />
+                    <span>2GIS</span>
                   </a>
                 )}
-                {currentStore.whatsapp_number && (
+                {currentStore?.whatsapp_number && (
                   <a
-                    href={`https://wa.me/${currentStore.whatsapp_number.replace(/\D/g, '')}`}
+                    href={`https://wa.me/${currentStore.whatsapp_number.replace(/\D/g, '').replace(/^8(?=\d{10}$)/, '7')}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="home-store-contact-btn home-store-contact-btn--wa"
-                    onClick={(e) => e.stopPropagation()}
+                    className="home-store-action-pill"
+                    aria-label="WhatsApp"
                   >
-                    <span className="home-btn-glyph">WA</span>
+                    <WhatsAppIcon size={14} />
                     <span>WhatsApp</span>
                   </a>
                 )}
-                {(currentStore.instagram_url || currentStore.instagram) && (
+                {(currentStore?.instagram_url || currentStore?.instagram) && (
                   <a
                     href={
                       currentStore.instagram_url ||
@@ -1926,113 +2131,383 @@ export default function HomeScreen() {
                     }
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="home-store-contact-btn home-store-contact-btn--insta"
-                    onClick={(e) => e.stopPropagation()}
+                    className="home-store-action-pill"
+                    aria-label="Instagram"
                   >
-                    <span className="home-btn-glyph">IG</span>
+                    <InstagramIcon size={14} />
                     <span>Instagram</span>
                   </a>
                 )}
-                {currentStore.phone && (
+                {currentStore?.phone && (
                   <a
                     href={`tel:${currentStore.phone.replace(/[^\d+]/g, '')}`}
-                    className="home-store-contact-btn home-store-contact-btn--call"
-                    onClick={(e) => e.stopPropagation()}
+                    className="home-store-action-pill"
+                    aria-label={t('home.storeCall') || 'Позвонить'}
                   >
-                    <HomeIcon name="call" />
-                    <span>{t('home.storeCall') || 'Звонок'}</span>
+                    <PhoneCallIcon size={14} />
+                    <span>{t('home.storeCall') || 'Позвонить'}</span>
                   </a>
                 )}
               </div>
             )}
 
-            {/* Expandable Details Accordion */}
-            <div className="home-store-accordion">
-              <button
-                type="button"
-                className={`home-store-accordion__trigger${isStoreDetailsExpanded ? ' is-open' : ''}`}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setIsStoreDetailsExpanded((prev) => !prev)
-                }}
-                aria-expanded={isStoreDetailsExpanded}
-              >
+            {/* Expand Trigger Button */}
+            <button
+              type="button"
+              className={`home-store-expand-btn${isStoreDetailsExpanded ? ' is-open' : ''}`}
+              onClick={(e) => {
+                if (isStoreDetailsExpanded) {
+                  handleCollapseStoreDetails(e)
+                } else {
+                  setIsStoreDetailsExpanded(true)
+                }
+              }}
+              aria-expanded={isStoreDetailsExpanded}
+            >
+              <div className="home-store-expand-btn__left">
                 <span>
                   {isStoreDetailsExpanded ? t('home.storeDetailsLess') : t('home.storeDetailsMore')}
                 </span>
-                <HomeIcon name={isStoreDetailsExpanded ? 'expand_less' : 'expand_more'} />
-              </button>
-
-              {isStoreDetailsExpanded && (
-                <div className="home-store-accordion__body">
-                  <div className="home-store-accordion__section">
-                    <h4>{t('home.storeAbout')}</h4>
-                    <p className="home-store-accordion__desc">
-                      {currentStore.description || t('home.storeAboutFallback', { storeName })}
-                    </p>
-                  </div>
-
-                  <div className="home-store-accordion__section">
-                    <h4>{t('home.storeServicesTitle')}</h4>
-                    <ul className="home-store-services-list">
-                      <li>
-                        <HomeIcon name="verified" />
-                        <div>
-                          <strong>{t('home.featureHalal')}</strong>
-                          <span>{t('home.serviceHalalDesc')}</span>
-                        </div>
-                      </li>
-                      <li>
-                        <HomeIcon name="bakery_dining" />
-                        <div>
-                          <strong>{t('home.featureBakery')}</strong>
-                          <span>{t('home.serviceBakeryDesc')}</span>
-                        </div>
-                      </li>
-                      <li>
-                        <HomeIcon name="qr_code_2" />
-                        <div>
-                          <strong>{t('home.featurePayment')}</strong>
-                          <span>{t('home.servicePaymentDesc')}</span>
-                        </div>
-                      </li>
-                      <li>
-                        <HomeIcon name="local_parking" />
-                        <div>
-                          <strong>{t('home.featureParking')}</strong>
-                          <span>{t('home.serviceParkingDesc')}</span>
-                        </div>
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div className="home-store-accordion__section">
-                    <h4>{t('home.storeScheduleTitle')}</h4>
-                    <div className="home-store-schedule-table">
-                      {schedule.isConfigured && (
-                        <div className="home-store-schedule-row home-store-schedule-row--status">
-                          <span className="home-store-schedule-status">
-                            <span
-                              className={`home-status-dot${schedule.isOpen ? ' is-open' : ' is-closed'}`}
-                            />
-                            {schedule.isOpen ? t('home.storeOpenNow') : t('home.storeClosedNow')}
-                          </span>
-                          <strong>
-                            {schedule.isOpen
-                              ? t('home.storeClosesAt', { time: schedule.closes })
-                              : t('home.storeOpensAt', { time: schedule.opens })}
-                          </strong>
-                        </div>
+                {normalizedPhotos.length > 0 && !isStoreDetailsExpanded && (
+                  <span className="home-store-photos-badge">
+                    <CameraIcon size={12} />
+                    <span>
+                      {(t('home.storePhotosAndInfo') || '{n} фото · инфо').replace(
+                        '{n}',
+                        normalizedPhotos.length
                       )}
-                      <div className="home-store-schedule-row">
-                        <span>{t('home.storeScheduleAllDays')}</span>
-                        <strong>{storeHours}</strong>
-                      </div>
+                    </span>
+                  </span>
+                )}
+              </div>
+              <ChevronDownIcon
+                size={18}
+                className={`home-store-expand-chevron${isStoreDetailsExpanded ? ' is-open' : ''}`}
+              />
+            </button>
+
+            {/* EXPANDED CONTENT ACCORDION */}
+            {isStoreDetailsExpanded && (
+              <div className="home-store-expanded-body">
+                {/* 1. Categorized Store Photos Carousel */}
+                {normalizedPhotos.length > 0 && (
+                  <div className="home-store-gallery-section">
+                    <div className="home-store-subhead">
+                      <CameraIcon size={14} />
+                      <h4>{t('home.storeGalleryTitle') || 'Фотографии магазина'}</h4>
+                    </div>
+
+                    <div className="home-store-gallery-scroll">
+                      {normalizedPhotos.map((photo, idx) => (
+                        <button
+                          key={`${photo.url}-${idx}`}
+                          type="button"
+                          className="home-store-gallery-item"
+                          onClick={() => setActivePhotoIndex(idx)}
+                          aria-label={`${photo.label} (${idx + 1}/${normalizedPhotos.length})`}
+                        >
+                          <div className="home-store-gallery-thumb">
+                            <img src={photo.url} alt={photo.label} loading="lazy" />
+                            <span className="home-store-gallery-tag">
+                              <span>{photo.label}</span>
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                      {normalizedPhotos.length > 1 && (
+                        <button
+                          type="button"
+                          className="home-store-gallery-all-tile"
+                          onClick={() => setActivePhotoIndex(0)}
+                          aria-label={(t('home.storeAllPhotosBtn') || 'Все фото ({n})').replace(
+                            '{n}',
+                            normalizedPhotos.length
+                          )}
+                        >
+                          <IconGallery size={20} />
+                          <span>
+                            {(t('home.storeAllPhotosBtn') || 'Все фото ({n})').replace(
+                              '{n}',
+                              normalizedPhotos.length
+                            )}
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. Description */}
+                <div className="home-store-info-section">
+                  <div className="home-store-subhead">
+                    <StorefrontIcon size={14} />
+                    <h4>{t('home.storeAbout')}</h4>
+                  </div>
+                  <p className="home-store-desc-text">
+                    {currentStore.description || t('home.storeAboutFallback', { storeName })}
+                  </p>
+                </div>
+
+                {/* 3. Payment Methods */}
+                <div className="home-store-payments-section">
+                  <div className="home-store-subhead">
+                    <WalletIcon size={14} />
+                    <h4>{t('home.storePaymentTitle') || 'Способы оплаты'}</h4>
+                  </div>
+                  <div className="home-store-payment-grid">
+                    <div
+                      className="home-store-payment-badge home-store-payment-badge--kaspi-qr"
+                      aria-label="Kaspi QR"
+                      title="Kaspi QR"
+                    >
+                      <KaspiQrIcon size={20} />
+                    </div>
+                    <div className="home-store-payment-badge">
+                      <span className="home-store-payment-badge__icon">
+                        <KaspiAlaqanIcon size={16} />
+                      </span>
+                      <span>{t('home.payKaspiAlaqan') || 'Kaspi Alaqan'}</span>
+                    </div>
+                    <div className="home-store-payment-badge">
+                      <span className="home-store-payment-badge__icon">
+                        <HalykIcon size={16} />
+                      </span>
+                      <span>{t('home.payHalyk') || 'Halyk QR'}</span>
+                    </div>
+                    <div className="home-store-payment-badge">
+                      <span className="home-store-payment-badge__icon">
+                        <FreedomIcon size={16} />
+                      </span>
+                      <span>{t('home.payFreedom') || 'Freedom QR'}</span>
+                    </div>
+                    <div className="home-store-payment-badge">
+                      <span className="home-store-payment-badge__icon">
+                        <BankCardIcon size={16} />
+                      </span>
+                      <span>{t('home.payCards') || 'Банковские карты'}</span>
+                    </div>
+                    <div className="home-store-payment-badge">
+                      <span className="home-store-payment-badge__icon">
+                        <NfcPaymentIcon size={16} />
+                      </span>
+                      <span>{t('home.payNfc') || 'Бесконтактная оплата'}</span>
+                    </div>
+                    <div className="home-store-payment-badge">
+                      <span className="home-store-payment-badge__icon">
+                        <WalletIcon size={16} />
+                      </span>
+                      <span>{t('home.payCash') || 'Наличные'}</span>
                     </div>
                   </div>
                 </div>
-              )}
-            </div>
+
+                {/* 4. Amenities & Services */}
+                <div className="home-store-amenities-section">
+                  <div className="home-store-subhead">
+                    <AdvantagesIcon size={14} />
+                    <h4>{t('home.storeAmenitiesTitle') || 'Особенности и сервис'}</h4>
+                  </div>
+                  <div className="home-store-amenities-grid">
+                    <div className="home-store-amenity-chip">
+                      <span className="home-store-amenity-chip__icon">
+                        <DietIcon name="halal" size={15} />
+                      </span>
+                      <span>{t('home.amenityHalal') || 'Халал-отдел'}</span>
+                    </div>
+                    <div className="home-store-amenity-chip">
+                      <span className="home-store-amenity-chip__icon">
+                        <BakeryTandyrIcon size={15} />
+                      </span>
+                      <span>{t('home.amenityBakery') || 'Свежая выпечка'}</span>
+                    </div>
+                    <div className="home-store-amenity-chip">
+                      <span className="home-store-amenity-chip__icon">
+                        <CookeryIcon size={15} />
+                      </span>
+                      <span>{t('home.amenityCookery') || 'Кулинария и готовая еда'}</span>
+                    </div>
+                    <div className="home-store-amenity-chip">
+                      <span className="home-store-amenity-chip__icon">
+                        <CoffeeToGoIcon size={15} />
+                      </span>
+                      <span>{t('home.amenityCoffee') || 'Кофе с собой'}</span>
+                    </div>
+                    <div className="home-store-amenity-chip">
+                      <span className="home-store-amenity-chip__icon">
+                        <SelfCheckoutIcon size={15} />
+                      </span>
+                      <span>{t('home.amenitySelfCheckout') || 'Кассы самообслуживания'}</span>
+                    </div>
+                    <div className="home-store-amenity-chip">
+                      <span className="home-store-amenity-chip__icon">
+                        <AtmTerminalIcon size={15} />
+                      </span>
+                      <span>{t('home.amenityAtm') || 'Терминалы и банкоматы'}</span>
+                    </div>
+                    <div className="home-store-amenity-chip">
+                      <span className="home-store-amenity-chip__icon">
+                        <ParkingIcon size={15} />
+                      </span>
+                      <span>{t('home.amenityParking') || 'Удобная парковка'}</span>
+                    </div>
+                    <div className="home-store-amenity-chip">
+                      <span className="home-store-amenity-chip__icon">
+                        <CartIcon size={15} />
+                      </span>
+                      <span>{t('home.amenityCarts') || 'Корзины и тележки'}</span>
+                    </div>
+                    <div className="home-store-amenity-chip">
+                      <span className="home-store-amenity-chip__icon">
+                        <AccessibleRampIcon size={15} />
+                      </span>
+                      <span>{t('home.amenityRamp') || 'Пандус и доступная среда'}</span>
+                    </div>
+                    <div className="home-store-amenity-chip">
+                      <span className="home-store-amenity-chip__icon">
+                        <PharmacyPointIcon size={15} />
+                      </span>
+                      <span>{t('home.amenityPharmacy') || 'Аптечный пункт'}</span>
+                    </div>
+                    <div className="home-store-amenity-chip">
+                      <span className="home-store-amenity-chip__icon">
+                        <MeatCuttingIcon size={15} />
+                      </span>
+                      <span>{t('home.amenityMeatCutting') || 'Мясной цех и разделка'}</span>
+                    </div>
+                    <div className="home-store-amenity-chip">
+                      <span className="home-store-amenity-chip__icon">
+                        <FreshBarIcon size={15} />
+                      </span>
+                      <span>{t('home.amenityFreshBar') || 'Фреш и свежие соки'}</span>
+                    </div>
+                    <div className="home-store-amenity-chip">
+                      <span className="home-store-amenity-chip__icon">
+                        <ScalesIcon size={15} />
+                      </span>
+                      <span>{t('home.amenityScales') || 'Контрольные весы'}</span>
+                    </div>
+                    <div className="home-store-amenity-chip">
+                      <span className="home-store-amenity-chip__icon">
+                        <MicrowaveIcon size={15} />
+                      </span>
+                      <span>{t('home.amenityMicrowave') || 'Зона разогрева еды'}</span>
+                    </div>
+                    <div className="home-store-amenity-chip">
+                      <span className="home-store-amenity-chip__icon">
+                        <KidsCartIcon size={15} />
+                      </span>
+                      <span>{t('home.amenityKidsCarts') || 'Детские тележки'}</span>
+                    </div>
+                    <div className="home-store-amenity-chip">
+                      <span className="home-store-amenity-chip__icon">
+                        <LockerIcon size={15} />
+                      </span>
+                      <span>{t('home.amenityLockers') || 'Камера хранения'}</span>
+                    </div>
+                    <div className="home-store-amenity-chip">
+                      <span className="home-store-amenity-chip__icon">
+                        <WifiIcon size={15} />
+                      </span>
+                      <span>{t('home.amenityWifi') || 'Бесплатный Wi-Fi'}</span>
+                    </div>
+                    <div className="home-store-amenity-chip">
+                      <span className="home-store-amenity-chip__icon">
+                        <OrderPickupIcon size={15} />
+                      </span>
+                      <span>{t('home.amenityPickup') || 'Самовывоз интернет-заказов'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 5. 7-Day Schedule Table */}
+                <div className="home-store-schedule-section">
+                  <div className="home-store-subhead">
+                    <ClockIcon size={14} />
+                    <h4>{t('home.storeScheduleTitle') || 'График работы'}</h4>
+                  </div>
+                  <div className="home-store-schedule-card">
+                    {schedule.isConfigured && (
+                      <div className="home-store-schedule-today-banner">
+                        <span className="home-store-schedule-badge">
+                          <span
+                            className={`home-status-dot${schedule.isOpen ? ' is-open' : ' is-closed'}`}
+                          />
+                          <span>
+                            {schedule.isOpen ? t('home.storeOpenNow') : t('home.storeClosedNow')}
+                          </span>
+                        </span>
+                        <strong className="home-store-schedule-today-time">
+                          {schedule.isTodayDayOff
+                            ? t('home.storeDayOff') || 'Выходной'
+                            : schedule.isOpen
+                              ? t('home.storeClosesAt', { time: schedule.closes }) ||
+                                `до ${schedule.closes}`
+                              : t('home.storeOpensAt', { time: schedule.opens }) ||
+                                `в ${schedule.opens}`}
+                        </strong>
+                      </div>
+                    )}
+                    {Array.isArray(schedule.weeklySchedule) &&
+                    schedule.weeklySchedule.length > 0 ? (
+                      <div className="home-store-schedule-table">
+                        {schedule.weeklySchedule.map((dayItem) => {
+                          const dayName = lang === 'kz' ? dayItem.dayKz : dayItem.dayRu
+                          const shortName = lang === 'kz' ? dayItem.shortKz : dayItem.shortRu
+                          return (
+                            <div
+                              key={dayItem.dayKey}
+                              className={`home-store-schedule-row${dayItem.isToday ? ' is-today' : ''}${dayItem.isDayOff ? ' is-dayoff' : ''}`}
+                            >
+                              <div className="home-store-schedule-col-day">
+                                {dayItem.isToday && (
+                                  <span
+                                    className="home-store-schedule-today-dot"
+                                    aria-hidden="true"
+                                  />
+                                )}
+                                <span className="home-store-schedule-dayname">{dayName}</span>
+                                <span className="home-store-schedule-shortname">{shortName}</span>
+                                {dayItem.isToday && (
+                                  <span className="home-store-schedule-today-tag">
+                                    {t('home.storeToday') || 'Сегодня'}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="home-store-schedule-col-time">
+                                {dayItem.isDayOff ? (
+                                  <span className="home-store-schedule-off-badge">
+                                    {t('home.storeDayOff') || 'Выходной'}
+                                  </span>
+                                ) : (
+                                  <span>{dayItem.hours}</span>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <div className="home-store-schedule-row">
+                        <span className="home-store-schedule-days">
+                          {t('home.storeScheduleAllDays')}
+                        </span>
+                        <span className="home-store-schedule-time">{storeHours}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Collapse Bottom Button */}
+                <button
+                  type="button"
+                  className="home-store-collapse-bottom-btn"
+                  onClick={handleCollapseStoreDetails}
+                >
+                  <span>{t('home.storeDetailsLess')}</span>
+                  <ChevronDownIcon size={16} className="is-rotated" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -2041,7 +2516,7 @@ export default function HomeScreen() {
       {/* Portaled to body: pageEnter animation leaves a transform on .screen, which would
           turn it into the containing block for position:fixed and clip the modal */}
       {activePhotoIndex !== null &&
-        storePhotos?.[activePhotoIndex] &&
+        normalizedPhotos?.[activePhotoIndex] &&
         createPortal(
           <div
             className="home-lightbox-modal"
@@ -2053,68 +2528,84 @@ export default function HomeScreen() {
           >
             {/* Top Bar: Counter & Close */}
             <div className="home-lightbox-topbar" onClick={(e) => e.stopPropagation()}>
-              <span className="home-lightbox-counter">
-                {activePhotoIndex + 1} / {storePhotos.length}
-              </span>
+              <div className="home-lightbox-pill">
+                <CameraIcon size={14} />
+                <span>
+                  {activePhotoIndex + 1} / {normalizedPhotos.length}
+                </span>
+              </div>
               <button
                 type="button"
                 className="home-lightbox-close"
                 onClick={() => setActivePhotoIndex(null)}
                 aria-label={t('common.close')}
               >
-                <HomeIcon name="close" />
+                <CloseIcon size={20} />
               </button>
             </div>
 
             {/* Main Stage with Navigation Arrows */}
             <div className="home-lightbox-stage" onClick={(e) => e.stopPropagation()}>
-              {storePhotos.length > 1 && (
+              {normalizedPhotos.length > 1 && (
                 <button
                   type="button"
                   className="home-lightbox-nav home-lightbox-nav--prev"
                   onClick={handlePrevPhoto}
                   aria-label={t('home.photoPrev')}
                 >
-                  <HomeIcon name="chevron_left" />
+                  <ArrowBackIcon size={20} />
                 </button>
               )}
 
               <div className="home-lightbox-img-wrap">
                 <img
-                  src={storePhotos[activePhotoIndex]}
-                  alt={`${storeName} ${activePhotoIndex + 1}`}
+                  src={normalizedPhotos[activePhotoIndex].url}
+                  alt={
+                    normalizedPhotos[activePhotoIndex].label ||
+                    `${storeName} ${activePhotoIndex + 1}`
+                  }
                   className="home-lightbox-img"
                 />
               </div>
 
-              {storePhotos.length > 1 && (
+              {normalizedPhotos.length > 1 && (
                 <button
                   type="button"
                   className="home-lightbox-nav home-lightbox-nav--next"
                   onClick={handleNextPhoto}
                   aria-label={t('home.photoNext')}
                 >
-                  <HomeIcon name="chevron_right" />
+                  <ArrowForwardIcon size={20} />
                 </button>
               )}
             </div>
 
-            {/* Bottom Thumbnails Strip */}
-            {storePhotos.length > 1 && (
-              <div className="home-lightbox-thumbs" onClick={(e) => e.stopPropagation()}>
-                {storePhotos.map((url, idx) => (
-                  <button
-                    key={url}
-                    type="button"
-                    className={`home-lightbox-thumb-btn${idx === activePhotoIndex ? ' is-active' : ''}`}
-                    onClick={() => setActivePhotoIndex(idx)}
-                    aria-label={t('home.photoOf', { n: idx + 1 })}
-                  >
-                    <img src={url} alt="" />
-                  </button>
-                ))}
+            {/* Bottom Caption Bar */}
+            <div className="home-lightbox-footer" onClick={(e) => e.stopPropagation()}>
+              <div className="home-lightbox-caption">
+                <span className="home-lightbox-badge">
+                  <CameraIcon size={12} />
+                  <span>{normalizedPhotos[activePhotoIndex].label}</span>
+                </span>
               </div>
-            )}
+
+              {/* Thumbnails */}
+              {normalizedPhotos.length > 1 && (
+                <div className="home-lightbox-thumbs">
+                  {normalizedPhotos.map((photo, idx) => (
+                    <button
+                      key={`${photo.url}-${idx}`}
+                      type="button"
+                      className={`home-lightbox-thumb-btn${idx === activePhotoIndex ? ' is-active' : ''}`}
+                      onClick={() => setActivePhotoIndex(idx)}
+                      aria-label={t('home.photoOf', { n: idx + 1 })}
+                    >
+                      <img src={photo.url} alt="" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>,
           document.body
         )}

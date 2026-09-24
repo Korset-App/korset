@@ -1,7 +1,7 @@
-export function InstallIcon({
-  size = 18,
+export function MenuBarsIcon({
+  size = 20,
   color = 'currentColor',
-  strokeWidth = 1.6,
+  strokeWidth = 2,
   className,
   style,
 }) {
@@ -19,8 +19,7 @@ export function InstallIcon({
       className={className}
       style={{ display: 'block', flexShrink: 0, ...style }}
     >
-      <path d="M8 22H16c2.828 0 4.243 0 5.121-.879C22 20.243 22 18.829 22 16v-1c0-2.828 0-4.243-.879-5.121C20.353 9.11 19.175 9.014 17 9M7 9C4.825 9.014 3.647 9.11 2.879 9.879 2 10.758 2 12.172 2 15v1c0 2.828 0 4.243.879 5.121.3.3.662.498 1.121.628" />
-      <path d="M12 2v13m0 0-3-3.5m3 3.5 3-3.5" />
+      <path d="M4 6H20M4 12H20M4 18H20" />
     </svg>
   )
 }
