@@ -24,6 +24,10 @@ export default defineConfig({
         globPatterns: [
           '**/*.{js,css,html}',
           'favicon.png',
+          'pwa-192x192.png',
+          'pwa-512x512.png',
+          'maskable-icon-512x512.png',
+          'apple-touch-icon.png',
           'logo.png',
           'manifest.webmanifest',
           'brand/**',
@@ -43,15 +47,37 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
       },
       manifest: {
-        name: 'Körset',
+        id: '/',
+        name: 'Körset — Умный помощник у полки',
         short_name: 'Körset',
+        description:
+          'Сканируйте товар в магазине и получайте понятный Fit-Check по аллергенам, халал, диетам и КБЖУ.',
+        lang: 'ru',
         start_url: '/',
+        scope: '/',
         display: 'standalone',
+        orientation: 'portrait',
         background_color: '#070712',
         theme_color: '#7C3AED',
         icons: [
-          { src: '/favicon.png', sizes: '192x192', type: 'image/png' },
-          { src: '/logo.png', sizes: '512x512', type: 'image/png' },
+          {
+            src: '/pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: '/pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: '/maskable-icon-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
         ],
       },
       workbox: {

@@ -135,3 +135,16 @@ test('detectBrowserContext detects Xiaomi MIUI browser', () => {
   assert.equal(res.browser, 'xiaomi')
   assert.equal(res.canNativeInstall, false)
 })
+
+test('detectBrowserContext detects Huawei browser', () => {
+  const nav = {
+    userAgent:
+      'Mozilla/5.0 (Linux; Android 12; NOH-AN00) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.88 Mobile Safari/537.36 HuaweiBrowser/14.0.0.322',
+  }
+  const res = detectBrowserContext(nav)
+  assert.equal(res.platform, 'android')
+  assert.equal(res.browser, 'huawei')
+  assert.equal(res.badgeLabel, 'Android · Huawei')
+  assert.equal(res.canNativeInstall, false)
+})
+

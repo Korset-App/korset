@@ -212,6 +212,23 @@ export default function InstallAppSheet({ open, onClose, installPrompt, onPrompt
       ]
     }
 
+    if (context.browser === 'samsung') {
+      return [
+        {
+          text: t('home.installStepSamsungMenu'),
+          icon: <MenuBarsIcon size={ICON_SIZE} color={ICON_COLOR} />,
+        },
+        {
+          text: t('home.installStepSamsungHome'),
+          icon: <AddToHomeScreenIcon size={ICON_SIZE} color={ICON_COLOR} />,
+        },
+        {
+          text: t('home.installStepConfirmAdd'),
+          icon: <CheckCircleIcon size={ICON_SIZE} color={ICON_COLOR_OK} />,
+        },
+      ]
+    }
+
     if (!context.isAndroid && !context.isIos) {
       // Desktop Chrome / Edge
       return [
@@ -245,8 +262,12 @@ export default function InstallAppSheet({ open, onClose, installPrompt, onPrompt
   }, [context, t])
 
   // On Android browsers that support beforeinstallprompt: show only the CTA button, no steps.
-  // On browsers that don't (iOS, Firefox, Yandex, Xiaomi, In-App): always show steps.
-  const showSteps = !hasNativePrompt || !context.canNativeInstall || context.isInApp
+  // On browsers that don't (iOS, Firefox, Yandex, Xiaomi, In-App) or Samsung (where WebAPK may warn): show steps.
+  const showSteps =
+    !hasNativePrompt ||
+    !context.canNativeInstall ||
+    context.isInApp ||
+    context.browser === 'samsung'
 
   if (typeof document === 'undefined') return null
 
@@ -316,6 +337,13 @@ export default function InstallAppSheet({ open, onClose, installPrompt, onPrompt
                   <InstallIcon size={19} color="currentColor" />
                   <span>{t('home.installNativeCta')}</span>
                 </button>
+              )}
+
+              {/* Samsung WebAPK advisory notice */}
+              {context.browser === 'samsung' && (
+                <div className="install-sheet__notice">
+                  <p className="install-sheet__notice-text">{t('home.installSamsungNotice')}</p>
+                </div>
               )}
 
               {/* In-App Browser Warning */}

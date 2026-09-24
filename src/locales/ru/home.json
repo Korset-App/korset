@@ -377,6 +377,7 @@
   "home.installStepConfirmInstall": "В появившемся окне нажмите «Установить».",
   "home.installStepSamsungMenu": "Нажмите меню (три полоски ☰) в нижнем правом углу.",
   "home.installStepSamsungHome": "Нажмите «Добавить страницу в» → «Главный экран».",
+  "home.installSamsungNotice": "В Samsung Internet система безопасности Android может показать предупреждение о версии защиты. Нажмите «Подробнее» → «Всё равно установить», либо установите через меню: ☰ внизу → «Главный экран».",
   "home.installStepYandexMenu": "Нажмите меню (три точки ⋮) в строке поиска или внизу экрана.",
   "home.installStepYandexHome": "Выберите «Добавить на домашний экран».",
   "home.installStepFirefoxMenu": "Нажмите кнопку меню (три точки ⋮) в правом углу адресной строки.",

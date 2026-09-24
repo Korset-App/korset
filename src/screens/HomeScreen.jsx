@@ -1087,31 +1087,8 @@ export default function HomeScreen() {
     setTheme(nextTheme)
   }
 
-  async function handleInstallApp() {
+  function handleInstallApp() {
     setAvatarMenuOpen(false)
-    const prompt =
-      installPrompt || (typeof window !== 'undefined' ? window.__korset_install_prompt : null)
-    if (prompt) {
-      try {
-        prompt.prompt()
-        const choice = await prompt.userChoice.catch(() => null)
-        if (choice?.outcome === 'accepted') {
-          setIsInstalled(true)
-          try {
-            localStorage.setItem('korset:pwa-installed', 'true')
-          } catch {
-            /* ignore storage error */
-          }
-        }
-      } catch {
-        setInstallSheetOpen(true)
-      }
-      setInstallPrompt(null)
-      if (typeof window !== 'undefined') {
-        window.__korset_install_prompt = null
-      }
-      return
-    }
     setInstallSheetOpen(true)
   }
 
