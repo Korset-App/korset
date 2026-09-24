@@ -507,7 +507,7 @@ export default function CompareScreen() {
         </div>
       </header>
 
-      <section className="compare-body" aria-live="polite">
+      <section className="compare-body">
         {comparisonView.dataRows.length > 0 && !isSameProduct && (
           <section className="compare-data-section" aria-labelledby="compare-data-title">
             <div className="compare-section-heading">
@@ -636,7 +636,12 @@ export default function CompareScreen() {
           </div>
         </section>
 
-        <section className="compare-ai-card" aria-live="polite" aria-label={t('compare.ai.title')}>
+        <section
+          className="compare-ai-card"
+          role="status"
+          aria-live="polite"
+          aria-label={t('compare.ai.title')}
+        >
           {!aiText && !aiLoading && !aiError && (
             <button
               className="compare-ai-ask"

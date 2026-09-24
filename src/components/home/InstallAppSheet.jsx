@@ -10,7 +10,7 @@ import {
   MenuDotsIcon,
   MenuBarsIcon,
   ExternalLinkIcon,
-  SupportIcon,
+  TelegramIcon,
   CheckCircleIcon,
   ChevronDownIcon,
 } from '../icons/index.js'
@@ -18,6 +18,12 @@ import { detectBrowserContext } from '../../utils/browserDetection.js'
 import './InstallAppSheet.css'
 
 const TELEGRAM_URL = 'https://t.me/korset_support_bot'
+
+// All step icons share the same style: stroke-based, var(--primary-bright) color
+// The final "confirm" step always uses CheckCircleIcon with var(--success) color
+const ICON_SIZE = 18
+const ICON_COLOR = 'var(--primary-bright)'
+const ICON_COLOR_OK = 'var(--success, #16a34a)'
 
 export default function InstallAppSheet({ open, onClose, installPrompt, onPromptUsed }) {
   const { t } = useI18n()
@@ -57,12 +63,24 @@ export default function InstallAppSheet({ open, onClose, installPrompt, onPrompt
     window.open(TELEGRAM_URL, '_blank', 'noopener,noreferrer')
   }
 
+  // Step definitions per browser context.
+  // Rules:
+  //  - If hasNativePrompt: show the native CTA button instead of manual steps
+  //    (Chrome, Samsung, Opera, Edge on Android all fire beforeinstallprompt)
+  //  - iOS: always manual (OS-level restriction)
+  //  - Firefox Android: manual steps — accurate as of Firefox 120+
+  //  - Yandex, Xiaomi: manual steps with their menu patterns
+  //  - In-App WebView: guide to open in real browser first
   const steps = useMemo(() => {
     if (context.isInApp) {
       return [
         {
           text: t('home.installStepOpenBrowser'),
-          icon: <ExternalLinkIcon size={18} color="var(--primary-bright)" />,
+          icon: <ExternalLinkIcon size={ICON_SIZE} color={ICON_COLOR} />,
+        },
+        {
+          text: t('home.installStepOpenBrowserThen'),
+          icon: <InstallIcon size={ICON_SIZE} color={ICON_COLOR} />,
         },
       ]
     }
@@ -72,65 +90,73 @@ export default function InstallAppSheet({ open, onClose, installPrompt, onPrompt
         return [
           {
             text: t('home.installStepChromeIosShare'),
-            icon: <ShareIcon size={18} color="var(--primary-bright)" />,
+            icon: <ShareIcon size={ICON_SIZE} color={ICON_COLOR} />,
           },
           {
             text: t('home.installStepSafariHome'),
-            icon: <AddToHomeScreenIcon size={18} color="var(--primary-bright)" />,
+            icon: <AddToHomeScreenIcon size={ICON_SIZE} color={ICON_COLOR} />,
           },
           {
             text: t('home.installStepConfirmAdd'),
-            icon: <CheckCircleIcon size={17} color="#10B981" />,
+            icon: <CheckCircleIcon size={ICON_SIZE} color={ICON_COLOR_OK} />,
           },
         ]
       }
       if (context.browser === 'yandex') {
         return [
           {
-            text: t('home.installStepYandexMenu'),
-            icon: <MenuDotsIcon size={18} color="var(--primary-bright)" />,
+            text: t('home.installStepYandexIosMenu'),
+            icon: <MenuDotsIcon size={ICON_SIZE} color={ICON_COLOR} />,
           },
           {
             text: t('home.installStepYandexHome'),
-            icon: <AddToHomeScreenIcon size={18} color="var(--primary-bright)" />,
+            icon: <AddToHomeScreenIcon size={ICON_SIZE} color={ICON_COLOR} />,
           },
           {
             text: t('home.installStepConfirmAdd'),
-            icon: <CheckCircleIcon size={17} color="#10B981" />,
+            icon: <CheckCircleIcon size={ICON_SIZE} color={ICON_COLOR_OK} />,
           },
         ]
       }
-      // Safari default
+      // iOS Safari (default)
       return [
         {
           text: t('home.installStepSafariShare'),
-          icon: <ShareIcon size={18} color="var(--primary-bright)" />,
+          icon: <ShareIcon size={ICON_SIZE} color={ICON_COLOR} />,
         },
         {
           text: t('home.installStepSafariHome'),
-          icon: <AddToHomeScreenIcon size={18} color="var(--primary-bright)" />,
+          icon: <AddToHomeScreenIcon size={ICON_SIZE} color={ICON_COLOR} />,
         },
         {
           text: t('home.installStepConfirmAdd'),
-          icon: <CheckCircleIcon size={17} color="#10B981" />,
+          icon: <CheckCircleIcon size={ICON_SIZE} color={ICON_COLOR_OK} />,
         },
       ]
     }
 
-    // Android / other browsers
-    if (context.browser === 'samsung') {
+    // Android / Desktop — if we have the native prompt we'll show the CTA button above,
+    // but still build fallback steps for browsers that don't fire beforeinstallprompt.
+    if (context.browser === 'firefox') {
+      // Firefox for Android: does NOT fire beforeinstallprompt.
+      // Menu path: ⋮ → Ещё → «Добавить на главный экран» / «Добавить приложение»
+      // Last step: browser shows a permission dialog — tap «Разрешить»
       return [
         {
-          text: t('home.installStepSamsungMenu'),
-          icon: <MenuBarsIcon size={18} color="var(--primary-bright)" />,
+          text: t('home.installStepFirefoxMenu'),
+          icon: <MenuDotsIcon size={ICON_SIZE} color={ICON_COLOR} />,
         },
         {
-          text: t('home.installStepSamsungHome'),
-          icon: <AddToHomeScreenIcon size={18} color="var(--primary-bright)" />,
+          text: t('home.installStepFirefoxMore'),
+          icon: <MenuDotsIcon size={ICON_SIZE} color={ICON_COLOR} />,
         },
         {
-          text: t('home.installStepConfirmAdd'),
-          icon: <CheckCircleIcon size={17} color="#10B981" />,
+          text: t('home.installStepFirefoxAdd'),
+          icon: <AddToHomeScreenIcon size={ICON_SIZE} color={ICON_COLOR} />,
+        },
+        {
+          text: t('home.installStepFirefoxAllow'),
+          icon: <CheckCircleIcon size={ICON_SIZE} color={ICON_COLOR_OK} />,
         },
       ]
     }
@@ -139,66 +165,71 @@ export default function InstallAppSheet({ open, onClose, installPrompt, onPrompt
       return [
         {
           text: t('home.installStepYandexMenu'),
-          icon: <MenuDotsIcon size={18} color="var(--primary-bright)" />,
+          icon: <MenuDotsIcon size={ICON_SIZE} color={ICON_COLOR} />,
         },
         {
           text: t('home.installStepYandexHome'),
-          icon: <AddToHomeScreenIcon size={18} color="var(--primary-bright)" />,
+          icon: <AddToHomeScreenIcon size={ICON_SIZE} color={ICON_COLOR} />,
         },
         {
           text: t('home.installStepConfirmAdd'),
-          icon: <CheckCircleIcon size={17} color="#10B981" />,
+          icon: <CheckCircleIcon size={ICON_SIZE} color={ICON_COLOR_OK} />,
         },
       ]
     }
 
-    if (context.browser === 'firefox') {
+    if (context.browser === 'xiaomi') {
       return [
         {
-          text: t('home.installStepFirefoxMenu'),
-          icon: <MenuDotsIcon size={18} color="var(--primary-bright)" />,
+          text: t('home.installStepXiaomiMenu'),
+          icon: <MenuDotsIcon size={ICON_SIZE} color={ICON_COLOR} />,
         },
         {
-          text: t('home.installStepFirefoxInstall'),
-          icon: <InstallIcon size={18} color="var(--primary-bright)" />,
+          text: t('home.installStepXiaomiHome'),
+          icon: <AddToHomeScreenIcon size={ICON_SIZE} color={ICON_COLOR} />,
         },
         {
-          text: t('home.installStepConfirmInstall'),
-          icon: <CheckCircleIcon size={17} color="#10B981" />,
+          text: t('home.installStepConfirmAdd'),
+          icon: <CheckCircleIcon size={ICON_SIZE} color={ICON_COLOR_OK} />,
         },
       ]
     }
 
     if (!context.isAndroid && !context.isIos) {
-      // Desktop
+      // Desktop Chrome / Edge
       return [
         {
           text: t('home.installStepDesktopAddress'),
-          icon: <InstallIcon size={18} color="var(--primary-bright)" />,
+          icon: <InstallIcon size={ICON_SIZE} color={ICON_COLOR} />,
         },
         {
           text: t('home.installStepConfirmInstall'),
-          icon: <CheckCircleIcon size={17} color="#10B981" />,
+          icon: <CheckCircleIcon size={ICON_SIZE} color={ICON_COLOR_OK} />,
         },
       ]
     }
 
-    // Android Chrome default
+    // Android Chrome, Samsung, Opera, Edge — these fire beforeinstallprompt,
+    // but we show manual steps as fallback if the prompt wasn't captured.
     return [
       {
         text: t('home.installStepChromeMenu'),
-        icon: <MenuDotsIcon size={18} color="var(--primary-bright)" />,
+        icon: <MenuDotsIcon size={ICON_SIZE} color={ICON_COLOR} />,
       },
       {
         text: t('home.installStepChromeInstall'),
-        icon: <InstallIcon size={18} color="var(--primary-bright)" />,
+        icon: <AddToHomeScreenIcon size={ICON_SIZE} color={ICON_COLOR} />,
       },
       {
         text: t('home.installStepConfirmInstall'),
-        icon: <CheckCircleIcon size={17} color="#10B981" />,
+        icon: <CheckCircleIcon size={ICON_SIZE} color={ICON_COLOR_OK} />,
       },
     ]
   }, [context, t])
+
+  // On Android browsers that support beforeinstallprompt: show only the CTA button, no steps.
+  // On browsers that don't (iOS, Firefox, Yandex, Xiaomi, In-App): always show steps.
+  const showSteps = !hasNativePrompt || !context.canNativeInstall || context.isInApp
 
   if (typeof document === 'undefined') return null
 
@@ -240,7 +271,7 @@ export default function InstallAppSheet({ open, onClose, installPrompt, onPrompt
               <div className="install-sheet__handle" />
             </div>
 
-            {/* Minimalist Apple-style Header */}
+            {/* Header: title + browser badge + close */}
             <div className="install-sheet__header">
               <div className="install-sheet__title-row">
                 <h3 className="install-sheet__title">{t('home.installGuideTitle')}</h3>
@@ -257,7 +288,7 @@ export default function InstallAppSheet({ open, onClose, installPrompt, onPrompt
             </div>
 
             <div className="install-sheet__body">
-              {/* Native 1-Click Install CTA when available on Android / Desktop */}
+              {/* Native 1-Click Install CTA */}
               {hasNativePrompt && !context.isIos && !context.isInApp && (
                 <button
                   type="button"
@@ -270,7 +301,7 @@ export default function InstallAppSheet({ open, onClose, installPrompt, onPrompt
                 </button>
               )}
 
-              {/* In-App Browser Notice */}
+              {/* In-App Browser Warning */}
               {context.isInApp && (
                 <div className="install-sheet__inapp-notice">
                   <span className="install-sheet__inapp-tag">{context.inAppName || 'In-App'}</span>
@@ -278,31 +309,33 @@ export default function InstallAppSheet({ open, onClose, installPrompt, onPrompt
                 </div>
               )}
 
-              {/* Step by Step Guide with SVG icons */}
-              <div className="install-sheet__steps-container">
-                <ol className="install-sheet__steps">
-                  {steps.map((step, i) => (
-                    <li key={i} className="install-sheet__step">
-                      <span className="install-sheet__step-num" aria-hidden="true">
-                        {i + 1}
-                      </span>
-                      <span className="install-sheet__step-text">{step.text}</span>
-                      <div className="install-sheet__step-icon" aria-hidden="true">
-                        {step.icon}
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-              </div>
+              {/* Step-by-Step Guide */}
+              {showSteps && (
+                <div className="install-sheet__steps-container">
+                  <ol className="install-sheet__steps">
+                    {steps.map((step, i) => (
+                      <li key={i} className="install-sheet__step">
+                        <span className="install-sheet__step-num" aria-hidden="true">
+                          {i + 1}
+                        </span>
+                        <span className="install-sheet__step-text">{step.text}</span>
+                        <div className="install-sheet__step-icon" aria-hidden="true">
+                          {step.icon}
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
 
-              {/* Footer Section: Support & FAQ */}
+              {/* Footer: Telegram Support + FAQ */}
               <div className="install-sheet__footer">
                 <button
                   type="button"
                   className="install-sheet__support-btn"
                   onClick={handleSupport}
                 >
-                  <SupportIcon size={17} color="var(--primary-bright)" />
+                  <TelegramIcon size={17} color="var(--primary-bright)" />
                   <span>{t('home.installSupportCta')}</span>
                 </button>
 

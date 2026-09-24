@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Allow: /stores
+Allow: /s/*
+Disallow: /s/*/product/*
+Disallow: /retail/*
+Disallow: /korset-admin/*
+
+Sitemap: https://korset.app/api/sitemap

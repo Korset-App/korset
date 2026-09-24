@@ -2,15 +2,16 @@
 domain: plans
 subdomain: compare-feature
 created: 2026-09-23
-updated: 2026-09-23
-status: draft-for-approval
+updated: 2026-09-24
+status: completed
 baseline: git HEAD 90b07e4
 ---
 
 # Функция сравнения товаров — разбор от А до Я и план работ
 
-> Статус: **черновик для утверждения**. Правок кода по этому плану не делалось, кроме
-> выполненного Stage 0. После утверждения — работа этап за этапом с приёмкой каждого.
+> Статус: **выполнено** (Stages 0–6 завершены 2026-09-24). Миграция
+> `supabase/migrations/058_compare_events.sql` создана, но **не применена** —
+> владелец применяет через стандартный flow GitHub → Supabase.
 
 ---
 

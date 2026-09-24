@@ -88,7 +88,7 @@ Consumer:
 - **HomeScreen** — store entry: header + logo (с бейджем Черновик для владельца, если `is_published = false`), stories, карусель фотографий магазина (с Lightbox), разметка Schema.org с геокоординатами, scan CTA, Fit-Check setup. `src/screens/HomeScreen.jsx`
 - **Scanner** — barcode + ручной ввод EAN.
 - **ProductScreen** — Fit-Check, факты, цена, интерактивный состав с цветовыми маркерами. Кнопки «Поделиться» (Web Share API) и «Копировать ссылку» в углу карусели изображения. `src/screens/ProductScreen.jsx`
-- **CompareScreen** — сравнение товаров с human-readable вердиктами.
+- **CompareScreen** — сравнение товаров с weighted scoring (safety 45, nutrition 28, halal/profile/availability/value/price 18, composition 12, data 6). On-demand AI explanation (sessionStorage cache, auth token for higher rate limit). Data confidence + AI-source chips. Analytics: `compare_events` table (migration 058, RLS: insert for published stores only, select for owner/superadmin). `src/screens/CompareScreen.jsx`
 - **AI Assistant** — store-scoped chat: text + voice (MediaRecorder, 30s) + photo (одно изображение, без сохранения). Локальная история IndexedDB. `/api/ai.js`, `/api/ai-image`, `/api/ai-transcribe`.
 - **CatalogScreen** — 18 категорий, bento, RPC v2 поиск, фильтры/сортировка. ProductCard: `src/components/catalog/CatalogProductCard.jsx`
 - History, favorites (поддержка гостевого чек-листа в localStorage с авто-миграцией при логине), profile, account, сервисные экраны.
@@ -123,7 +123,7 @@ Infrastructure: RLS + JWT. Sentry + Telegram alerts. Offline (SW + IndexedDB). R
 
 **Halal:** Mustakshif (822 YES/11,862), HalalDamu (1,130), AHIK (668), OFF (0.2%). Ingredient-based анализ: 9,532 продукта. Helper: `src/domain/product/halalEvidence.js`. Покрытие частичное, авто-matching ненадёжен.
 
-**Product Normalization:** 9 stages + Compare rebuild 5 stages. Nutrition mapping, specs, flavor, unit prices. ProductScreen now preserves known catalog ingredients/nutrition when a later full fetch is sparse. Детали: `docs/vault/changelog/2026-06-08-compare-stage5-visual-ux.md`, `docs/vault/changelog/2026-06-14-productscreen-sparse-full-fetch-merge-fix.md`.
+**Product Normalization:** 9 stages + Compare rebuild 2026-09-24 (6 stages: P0 fix, edge cases + AI cost control, verdict clarity + data confidence chips, "Compare with…" entry, analytics + dashboard metric, a11y). Nutrition mapping, specs, flavor, unit prices. ProductScreen preserves known catalog ingredients/nutrition when a later full fetch is sparse. Compare analytics: `compare_events` table (migration 058, not yet applied). Детали: `docs/vault/plans/2026-09-23-compare-feature-master-plan.md`.
 
 **EAN Integrity:** КРИТИЧНО: загрязнённые `alternate_eans` (146,805 alias, 81.4% critical). Recovery (8 stages): 1-7D завершены — containment, trusted model (migration 047-049), quarantine (144,856 rows), resolver, parser hardening, correction UI. Trusted=0 (нужна ручная promotion). План: `docs/vault/plans/2026-06-01-product-ean-integrity-recovery-plan.md`.
 **Catalog Golden Master (2026-09-24):** Золотой каталог Казахстана развернут: 58 648 товаров FMCG в `global_products`, 3 287 проверенных альтернативных штрихкодов в `product_ean_aliases`, 35 000 позиций на витринах 4 демо-магазинов (`store_products`). 71 971 пакшот (100%) загружены на Cloudflare R2 WebP (`https://cdn.korset.app`). Полнотекстовый поиск и EAN-резолвер оптимизированы (миграции 059–060, <50ms отклик). Документ: `docs/vault/knowledge/2026-09-24-golden-catalog-v4-deployment-report.md`.
