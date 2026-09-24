@@ -26,6 +26,13 @@ alcohol/tobacco, or generic marketplace flows unless the user explicitly changes
 
 EAN / Barcode accuracy is mission-critical: never guess, approximate, or typo barcode digits. Always double-check exact EAN strings against database records or scan events.
 
+## Catalog & Data Invariants
+
+- **Barcode source:** Use stores with exposed GS1 EAN-13 (e.g. Semeiniy.kz). Multiple EANs separated by semicolons are valid packaging variants (keep all). Never guess or hallucinate barcodes.
+- **Multi-source enrichment:** Enrich the catalog using multi-store consensus across the 8 core Kazakhstan retail sources (Arbuz, Vkusmart, Astykzhan, Clevermarket, Galmart, Interfood, Dina/Korzina, Semeiniy) plus Open Food Facts & KDV. Never pollute with legacy `clean_catalog_v2` without strict verification.
+- **Scale:** Never artificially cap catalog size (support 40,000–60,000+ items).
+- **Fault-tolerance:** All scraping and ingestion pipelines must be append-only (JSONL), checkpointed, and 100% resumable upon internet or power interruptions.
+
 ## Stack — do not substitute
 
 React 18 + Vite · JavaScript, **not** TypeScript · vanilla CSS, **not** Tailwind ·
