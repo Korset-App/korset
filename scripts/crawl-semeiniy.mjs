@@ -23,16 +23,16 @@ const { classifyBarcode } = require('./validate-ean.cjs')
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-const URLS_PATH = path.join(__dirname, '..', 'data', 'semeiniy_product_urls.json')
+const URLS_PATH = path.join(__dirname, '..', 'data', 'semeiniy_clean_master_urls.json')
 const OUT_JSONL = path.join(__dirname, '..', 'data', 'semeiniy_raw_products.jsonl')
 const CHECKPOINT_PATH = path.join(__dirname, '..', 'data', 'semeiniy_checkpoint.json')
 
 // Concurrency & network settings
-const CONCURRENCY = 6
+const CONCURRENCY = 8
 const REQUEST_TIMEOUT_MS = 15000
 const RETRY_ATTEMPTS = 3
-const MIN_JITTER_MS = 80
-const MAX_JITTER_MS = 150
+const MIN_JITTER_MS = 40
+const MAX_JITTER_MS = 80
 
 // Category Blacklists (Alcohol, Tobacco, Non-FMCG)
 const ALCOHOL_REGEX = /\b(алкогол|пиво|вино|водка|коньяк|виски|ликер|ликёр|сидр|ром|джин|текила|настойка|бальзам алк|чача|бренди|шампанское|игристое вино|вермут|абсент)\b/i
@@ -339,17 +339,28 @@ function parsePageHtml(html, url) {
     }
   }
 
-  // Studio packshots 700x700 (strictly from product gallery template)
-  const galleryTemplateMatch = html.match(/<!--\s*app:\s*shop;\s*template:\s*html\/products\/images\s*-->([\s\S]*?)<!--\/\s*app:\s*shop;\s*template:\s*html\/products\/images\s*-->/i)
-  const galleryHtml = galleryTemplateMatch ? galleryTemplateMatch[1] : html.split(/class=["'][^"']*(?:s-products-list--swiper|s-related-products|s-recommended)/i)[0]
+  // Product ID in Webasyst (e.g. data-product-id="117759" or id="product-form-117759")
+  const idMatch = html.match(/data-product-id=["'](\d+)["']/i) || html.match(/id=["']product-form-(\d+)["']/i) || html.match(/s-product-(\d+)/i)
+  const productId = idMatch ? idMatch[1] : null
 
-  const imgMatches = [...galleryHtml.matchAll(/(?:\/wa-data\/public\/shop\/products\/[^\s"']+\.700\.[a-z0-9]+)/gi)]
-    .map(m => m[0].startsWith('http') ? m[0] : 'https://semeiniy.kz' + m[0])
-  const uniqueImages = [...new Set(imgMatches)]
+  // Studio packshots 700x700 (strictly from singular hero gallery template)
+  const galleryTemplateMatch = html.match(/<!--\s*app:\s*shop;\s*template:\s*html\/product\/images\s*-->([\s\S]*?)<!--\/\s*app:\s*shop;\s*template:\s*html\/product\/images\s*-->/i)
+  let uniqueImages = []
+  if (galleryTemplateMatch) {
+    const galleryHtml = galleryTemplateMatch[1]
+    if (!galleryHtml.includes('empty_photo.svg')) {
+      const imgMatches = [...galleryHtml.matchAll(/(?:\/wa-data\/public\/shop\/products\/[^\s"']+\.700\.[a-z0-9]+)/gi)]
+        .map(m => m[0].startsWith('http') ? m[0] : 'https://semeiniy.kz' + m[0])
+      uniqueImages = [...new Set(imgMatches)]
+      if (productId && uniqueImages.length > 0) {
+        uniqueImages = uniqueImages.filter(img => img.includes(`/${productId}/`))
+      }
+    }
+  }
 
   return {
     ean: validEans[0],
-    alternate_eans: validEans,
+    alternate_eans: validEans.length > 1 ? validEans.slice(1) : [],
     name: title,
     category: catResult.category,
     subcategory: catResult.subcategory,

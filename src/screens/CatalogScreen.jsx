@@ -20,7 +20,7 @@ import {
   buildProductPath,
   buildComparePath,
   buildScanPath,
-  buildStorePublicPath,
+  buildProfilePath,
 } from '../utils/routes.js'
 import { getDisplayQuantity } from '../utils/parseQuantity.js'
 import { CATEGORY_SHOWCASE_ORDER, getCategoryShowcase } from '../domain/product/catalogShowcase.js'
@@ -31,17 +31,21 @@ import {
   getCatalogProductCardKcal,
 } from '../domain/catalog/catalogProductCardModel.js'
 import CatalogProductCard from '../components/catalog/CatalogProductCard.jsx'
+import FitCheckDrawer from '../components/home/FitCheckDrawer.jsx'
+import { DIET_PREFERENCES } from '../constants/dietGoals.js'
+import { ALLERGENS } from '../constants/allergens.js'
 import { CompareIcon } from '../components/icons/CompareIcon.jsx'
 import {
   ArrowBackIcon,
-  StorefrontIcon,
   CloseIcon,
   BarcodeScannerIcon,
   ChevronDownIcon,
+  DietIcon,
   ExploreIcon,
   FilterIcon,
   FilterIconActive,
   InventoryIcon,
+  SlidersIcon,
   SortFitIcon,
   SortCheapIcon,
   SortPriceyIcon,
@@ -141,6 +145,10 @@ function getVerdictConfig(fit, t) {
   return { cls: 'safe', icon: 'check_circle', label: t('catalog.verdict.safe') }
 }
 
+function formatCatalogCount(value) {
+  return new Intl.NumberFormat('ru-RU').format(value)
+}
+
 const GridList = forwardRef(({ style, children, ...props }, ref) => (
   <div
     ref={ref}
@@ -152,7 +160,7 @@ const GridList = forwardRef(({ style, children, ...props }, ref) => (
       gap: 10,
       paddingLeft: 20,
       paddingRight: 20,
-      paddingBottom: 100,
+      paddingBottom: 84,
     }}
   >
     {children}
@@ -314,7 +322,7 @@ function buildSearchSuggestions(query) {
 }
 
 const ListFooter = forwardRef(({ style, ...props }, ref) => (
-  <div ref={ref} style={{ ...style, height: 100 }} {...props} />
+  <div ref={ref} style={{ ...style, height: 84 }} {...props} />
 ))
 
 function CategoryShowcaseCard({ categoryKey, label, onSelect, index, isActive, lang }) {
@@ -355,7 +363,7 @@ export default function CatalogScreen() {
   const navigate = useNavigate()
   const { storeSlug } = useParams()
   const { t, lang } = useI18n()
-  const { profile } = useProfile()
+  const { profile, updateProfile } = useProfile()
   const { storeId, currentStore, catalogProducts, isCatalogReady, isCatalogLoading } = useStore()
   const { isOnline } = useOffline()
   const [q, setQ] = useState(() => sessionStorage.getItem('korset_catalog_q') || '')
@@ -480,6 +488,58 @@ export default function CatalogScreen() {
     }
     return []
   }, [storeId, catalogProducts, isOnline, offlineCatalog])
+
+  const [fitDrawerOpen, setFitDrawerOpen] = useState(false)
+
+  const isFitConfigured = useMemo(() => {
+    if (!profile) return false
+    const hasDiet = Boolean(profile.halal || profile.halalOnly || profile.dietGoals?.length)
+    const hasAllergen = Boolean(profile.allergens?.length || profile.customAllergens?.length)
+    const hasExplicitNo = Boolean(profile.noDietPreferences && profile.noAllergies)
+    return hasDiet || hasAllergen || hasExplicitNo
+  }, [profile])
+
+  const fitChips = useMemo(() => {
+    if (!isFitConfigured || !profile) return []
+    const chips = []
+    if (profile.halal || profile.halalOnly) {
+      chips.push({ key: 'halal', icon: 'halal', label: t('home.filterHalal') })
+    }
+    for (const goal of profile.dietGoals || []) {
+      const pref = DIET_PREFERENCES.find((d) => d.id === goal)
+      if (pref) chips.push({ key: goal, icon: pref.icon, label: pref.label[lang] || pref.label.ru })
+    }
+    for (const allergen of profile.allergens || []) {
+      const meta = ALLERGENS.find((a) => a.id === allergen)
+      if (meta)
+        chips.push({ key: allergen, icon: meta.icon, label: meta.label[lang] || meta.label.ru })
+    }
+    for (const custom of profile.customAllergens || []) {
+      chips.push({ key: `custom:${custom}`, icon: null, label: custom })
+    }
+    return chips
+  }, [isFitConfigured, profile, lang, t])
+
+  const [fitCount, setFitCount] = useState(null)
+
+  useEffect(() => {
+    if (!isFitConfigured || baseProducts.length === 0) {
+      setFitCount(null)
+      return undefined
+    }
+    let cancelled = false
+    const timer = setTimeout(() => {
+      let matches = 0
+      for (const product of baseProducts) {
+        if (checkProductFit(product, profile).fits) matches += 1
+      }
+      if (!cancelled) setFitCount(matches)
+    }, 400)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [isFitConfigured, baseProducts, profile])
 
   const categoryCountMap = useMemo(() => {
     const map = {}
@@ -645,10 +705,6 @@ export default function CatalogScreen() {
 
   const activeStoreSlug = currentStore?.slug || storeSlug || null
 
-  const handleStoreInfoClick = useCallback(() => {
-    navigate(activeStoreSlug ? buildStorePublicPath(activeStoreSlug) : '/stores')
-  }, [activeStoreSlug, navigate])
-
   const handleScanClick = useCallback(() => {
     navigate(buildScanPath(activeStoreSlug))
   }, [activeStoreSlug, navigate])
@@ -686,11 +742,7 @@ export default function CatalogScreen() {
     setIsSortMenuOpen(false)
   }, [setSelectedSubcategories])
 
-  const storeTitle =
-    currentStore?.name || (storeSlug ? `${storeSlug[0].toUpperCase()}${storeSlug.slice(1)}` : '')
-
   const searchHint = !isCatalogReady && q.trim() ? t('catalog.loadingSearch') : null
-  const showCatalogMeta = false
   const showCategories = !hasQuery && !selectedCategory
   const showSubcategories = !hasQuery && selectedCategory
 
@@ -772,11 +824,14 @@ export default function CatalogScreen() {
   )
 
   return (
-    <div className="screen" style={{ display: 'flex', flexDirection: 'column', height: '100dvh' }}>
+    <div
+      className="screen"
+      style={{ display: 'flex', flexDirection: 'column', height: '100dvh', paddingBottom: 0 }}
+    >
       <div style={{ padding: '14px 20px 0', flexShrink: 0 }}>
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {showSubcategories && (
+        {showSubcategories && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <button
                 onClick={handleBackToCategories}
                 style={{
@@ -795,21 +850,11 @@ export default function CatalogScreen() {
               >
                 <ArrowBackIcon size={20} />
               </button>
-            )}
-            <div
-              style={{
-                flex: 1,
-                display: 'flex',
-                alignItems: 'baseline',
-                justifyContent: 'space-between',
-                gap: 14,
-                minWidth: 0,
-              }}
-            >
               <div
                 style={{
+                  flex: 1,
                   fontFamily: 'var(--font-display)',
-                  fontSize: showSubcategories ? 'clamp(19px, 5vw, 25px)' : 'clamp(24px, 6vw, 30px)',
+                  fontSize: 'clamp(19px, 5vw, 25px)',
                   fontWeight: 500,
                   color: 'var(--text)',
                   margin: 0,
@@ -821,50 +866,17 @@ export default function CatalogScreen() {
                   whiteSpace: 'nowrap',
                 }}
               >
-                {showSubcategories ? getCategoryLabel(selectedCategory, lang) : t('catalog.title')}
+                {getCategoryLabel(selectedCategory, lang)}
               </div>
-              <button
-                type="button"
-                className="catalog-store-pill"
-                onClick={handleStoreInfoClick}
-                aria-label={t('catalog.storeInfo', { storeName: storeTitle })}
-              >
-                <StorefrontIcon size={16} />
-                <span>{storeTitle}</span>
-                {showCatalogMeta && !hasQuery && showSubcategories && (
-                  <>
-                    {' '}
-                    · {categoryCountMap[selectedCategory] || 0} {t('catalog.productsIn')}
-                  </>
-                )}
-                {showCatalogMeta && !hasQuery && showCategories && (
-                  <>
-                    {' '}
-                    ·{' '}
-                    {!isCatalogReady && catalogProducts.length === 0
-                      ? t('catalog.loading')
-                      : `${baseProducts.length} ${t('catalog.productsCount')}${!isCatalogReady ? ' · ' + t('catalog.loadingMore') : ''}`}
-                  </>
-                )}
-                {showCatalogMeta && hasQuery && (
-                  <>
-                    {' '}
-                    ·{' '}
-                    {isSearchPending
-                      ? t('catalog.searchingServer')
-                      : `${displayList.length} ${t('catalog.productsCount')}`}
-                  </>
-                )}
-              </button>
             </div>
           </div>
-        </div>
+        )}
 
         <div
           style={{
             display: 'flex',
             gap: 10,
-            marginBottom: showCategories ? 8 : 14,
+            marginBottom: showCategories ? 6 : 14,
             alignItems: 'center',
           }}
         >
@@ -939,8 +951,6 @@ export default function CatalogScreen() {
             </div>
           )}
         </div>
-
-        {showCategories && <p className="catalog-search-guide">{t('catalog.searchGuide')}</p>}
 
         {showRecentSearches && (
           <div
@@ -1163,6 +1173,60 @@ export default function CatalogScreen() {
 
       {showCategories && (
         <div className={`catalog-showcase-scroll${pendingCategory ? ' is-exiting' : ''}`}>
+          <div className="catalog-section-head">
+            <h1 className="catalog-section-title">{t('catalog.categoriesTitle')}</h1>
+            <p className="catalog-section-sub">
+              {baseProducts.length > 0 || (isCatalogReady && !isCatalogLoading)
+                ? t('catalog.categoriesSub', {
+                    count: formatCatalogCount(baseProducts.length),
+                    storeName:
+                      currentStore?.name ||
+                      (storeSlug
+                        ? `${storeSlug.charAt(0).toUpperCase()}${storeSlug.slice(1)}`
+                        : 'Körset'),
+                  })
+                : t('catalog.loading')}
+            </p>
+          </div>
+          <div className="catalog-fit-row">
+            {isFitConfigured ? (
+              <>
+                {fitChips.slice(0, 4).map((chip) => (
+                  <button
+                    key={chip.key}
+                    type="button"
+                    className="catalog-fit-chip"
+                    onClick={() => setFitDrawerOpen(true)}
+                  >
+                    {chip.icon && <DietIcon name={chip.icon} size={14} />}
+                    <span>{chip.label}</span>
+                  </button>
+                ))}
+                {fitChips.length > 4 && (
+                  <span className="catalog-fit-chip is-static">+{fitChips.length - 4}</span>
+                )}
+                {fitCount != null && (
+                  <span className="catalog-fit-count">
+                    {t('catalog.fitFitCount', { count: formatCatalogCount(fitCount) })}
+                  </span>
+                )}
+              </>
+            ) : (
+              <button
+                type="button"
+                className="catalog-fit-cta"
+                onClick={() => setFitDrawerOpen(true)}
+              >
+                <span className="catalog-fit-cta-icon">
+                  <SlidersIcon size={16} />
+                </span>
+                <span className="catalog-fit-cta-copy">
+                  <span className="catalog-fit-cta-title">{t('catalog.fitSetupTitle')}</span>
+                  <span className="catalog-fit-cta-hint">{t('catalog.fitSetupHint')}</span>
+                </span>
+              </button>
+            )}
+          </div>
           <div className="catalog-showcase-grid">
             {activeCategoryKeys.map((catKey, index) => {
               const label = getCategoryLabel(catKey, lang)
@@ -1271,6 +1335,16 @@ export default function CatalogScreen() {
           )}
         </div>
       )}
+
+      <FitCheckDrawer
+        open={fitDrawerOpen}
+        onClose={() => setFitDrawerOpen(false)}
+        profile={profile || {}}
+        updateProfile={updateProfile}
+        onOpenFullPreferences={() =>
+          navigate(`${buildProfilePath(activeStoreSlug)}?tab=preferences`)
+        }
+      />
     </div>
   )
 }

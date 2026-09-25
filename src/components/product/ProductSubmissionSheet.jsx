@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useI18n } from '../../i18n/index.js'
+import { useOverlayLock } from '../../hooks/useOverlayLock.js'
 import { CameraIcon } from '../icons/CameraIcon.jsx'
 import { GalleryIcon } from '../icons/GalleryIcon.jsx'
 import { CloseIcon } from '../icons/CloseIcon.jsx'
@@ -372,16 +373,7 @@ export default function ProductSubmissionSheet({
   playSuccessSound = null,
 }) {
   // Prevent background scroll when open
-  useEffect(() => {
-    if (open) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-    return () => {
-      document.body.style.overflow = ''
-    }
-  }, [open])
+  useOverlayLock(open)
 
   return createPortal(
     <AnimatePresence>

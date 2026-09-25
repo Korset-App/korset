@@ -2,7 +2,24 @@
 // Stored as `preset:<id>` in users.banner_url. URLs are public assets in /public/profile-bgs/.
 
 export const BANNER_PRESETS = [
-  /* ── Photo banners (WebP, 1200×450, optimized via optimize:banners) ── */
+  /* ── Modern luminous mesh gradient banners (Sapphire, Mint, Titanium Gold) ── */
+  {
+    id: 'neutral-slate',
+    src: '/profile-bgs/neutral-slate.webp',
+    label: { ru: 'Королевский Сапфир', kz: 'Сапфир көк' },
+  },
+  {
+    id: 'neutral-indigo',
+    src: '/profile-bgs/neutral-indigo.webp',
+    label: { ru: 'Северная Мята', kz: 'Солтүстік Жалбыз' },
+  },
+  {
+    id: 'neutral-warm',
+    src: '/profile-bgs/neutral-warm.webp',
+    label: { ru: 'Титан и Золото', kz: 'Титан және Алтын' },
+  },
+
+  /* ── Illustrated artistic banners (archive collection) ── */
   {
     id: 'golden-samurai',
     src: '/profile-bgs/golden-samurai.webp',
@@ -40,7 +57,7 @@ export const BANNER_PRESETS = [
   },
 ]
 
-export const DEFAULT_BANNER_ID = 'golden-samurai'
+export const DEFAULT_BANNER_ID = 'neutral-slate'
 
 /**
  * Resolve a stored banner value (preset id or full URL) to an image src.

@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useI18n } from '../../i18n/index.js'
+import { useOverlayLock } from '../../hooks/useOverlayLock.js'
 import { ShareIcon, CloseIcon } from '../icons/index.js'
 
 function LightboxModal({ images, initialIndex = 0, onClose }) {
@@ -12,12 +13,7 @@ function LightboxModal({ images, initialIndex = 0, onClose }) {
   const startPosRef = useRef(null)
   const swipeStartRef = useRef(null)
 
-  useEffect(() => {
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = ''
-    }
-  }, [])
+  useOverlayLock(true)
 
   const [isDragging, setIsDragging] = useState(false)
 

@@ -128,9 +128,9 @@ export function AuthProvider({ children }) {
       writeCachedProfileName(authId, snapshot.name)
       setDisplayName(snapshot.name)
     }
-    if (snapshot.avatarId) {
-      writeCachedProfileAvatar(authId, snapshot.avatarId)
-      setAvatarId(snapshot.avatarId)
+    if (Object.prototype.hasOwnProperty.call(snapshot, 'avatarId')) {
+      writeCachedProfileAvatar(authId, snapshot.avatarId || null)
+      setAvatarId(snapshot.avatarId || null)
     }
     if (Object.prototype.hasOwnProperty.call(snapshot, 'bannerUrl')) {
       writeCachedProfileBanner(authId, snapshot.bannerUrl)
@@ -163,8 +163,8 @@ export function AuthProvider({ children }) {
 
     if (mountedRef.current) {
       setDisplayName((prev) => prev || optimisticName)
-      setAvatarId((prev) => prev || optimisticAvatar)
-      setBannerUrl((prev) => prev || optimisticBanner)
+      setAvatarId((prev) => (prev !== undefined ? prev : optimisticAvatar))
+      setBannerUrl((prev) => (prev !== undefined ? prev : optimisticBanner))
     }
 
     try {
@@ -172,16 +172,22 @@ export function AuthProvider({ children }) {
       if (!mountedRef.current || seq !== refreshSeqRef.current) return row
 
       const resolvedName = row?.name || optimisticName
-      const resolvedAvatar = row?.avatar_id || optimisticAvatar
-      const resolvedBanner = row?.banner_url || optimisticBanner
+      const resolvedAvatar =
+        row && Object.prototype.hasOwnProperty.call(row, 'avatar_id')
+          ? row.avatar_id
+          : optimisticAvatar
+      const resolvedBanner =
+        row && Object.prototype.hasOwnProperty.call(row, 'banner_url')
+          ? row.banner_url
+          : optimisticBanner
 
       setInternalUserId(row?.id || null)
       setDisplayName(resolvedName)
       setAvatarId(resolvedAvatar)
       setBannerUrl(resolvedBanner)
       writeCachedProfileName(authUser.id, resolvedName)
-      if (resolvedAvatar) writeCachedProfileAvatar(authUser.id, resolvedAvatar)
-      if (resolvedBanner) writeCachedProfileBanner(authUser.id, resolvedBanner)
+      writeCachedProfileAvatar(authUser.id, resolvedAvatar)
+      writeCachedProfileBanner(authUser.id, resolvedBanner)
 
       return row
     } catch (err) {

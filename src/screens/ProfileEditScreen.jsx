@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useStore } from '../contexts/StoreContext.jsx'
@@ -20,7 +20,11 @@ import {
   updateAuthUserWithRetry,
 } from '../utils/profileHelpers.js'
 import ProfileAvatar from '../components/ProfileAvatar.jsx'
-import { AVATAR_PRESETS } from '../constants/avatarPresets.js'
+import {
+  AVATAR_PRESETS,
+  DEFAULT_AVATAR_ID,
+  SILHOUETTE_PRESETS,
+} from '../constants/avatarPresets.js'
 import { BANNER_PRESETS, resolveBannerSrc } from '../constants/bannerPresets.js'
 
 function isPresetBanner(value) {
@@ -115,7 +119,7 @@ export default function ProfileEditScreen() {
 
   const [name, setName] = useState('')
   const [nameError, setNameError] = useState('')
-  const [selectedAvatarId, setSelectedAvatarId] = useState(AVATAR_PRESETS[0].id)
+  const [selectedAvatarId, setSelectedAvatarId] = useState(DEFAULT_AVATAR_ID)
   const [bannerSelection, setBannerSelection] = useState({
     type: 'preset',
     id: BANNER_PRESETS[0].id,
@@ -131,12 +135,13 @@ export default function ProfileEditScreen() {
     if (!user || initializedRef.current) return
     initializedRef.current = true
     setName(displayName || user.user_metadata?.full_name || '')
-    const initialAvatar = avatarId || user.user_metadata?.avatar_id || AVATAR_PRESETS[0].id
+    const initialAvatar = avatarId || user.user_metadata?.avatar_id || DEFAULT_AVATAR_ID
     if (typeof initialAvatar === 'string' && /^https?:/i.test(initialAvatar)) {
       setCustomAvatarUrl(initialAvatar)
       setSelectedAvatarId('custom')
     } else {
-      setSelectedAvatarId(initialAvatar || AVATAR_PRESETS[0].id)
+      setCustomAvatarUrl(null)
+      setSelectedAvatarId(initialAvatar || DEFAULT_AVATAR_ID)
     }
     const bannerValue = bannerUrl || user.user_metadata?.banner_url || null
     if (!bannerValue) {
@@ -252,7 +257,12 @@ export default function ProfileEditScreen() {
   const handleSave = async () => {
     if (!canSave) return
     setSaving(true)
-    const avatarValue = selectedAvatarId === 'custom' ? customAvatarUrl : selectedAvatarId
+    const avatarValue =
+      selectedAvatarId === 'custom'
+        ? customAvatarUrl
+        : selectedAvatarId === 'initial'
+          ? null
+          : selectedAvatarId
     const bannerValue = bannerToStoredValue(bannerSelection)
     const deviceId = getOrCreateDeviceId()
 
@@ -284,6 +294,8 @@ export default function ProfileEditScreen() {
         updateAuthUserWithRetry({
           full_name: trimmedName,
           avatar_id: avatarValue,
+          avatar_url: avatarValue && /^https?:/i.test(avatarValue) ? avatarValue : null,
+          picture: avatarValue && /^https?:/i.test(avatarValue) ? avatarValue : null,
           banner_url: bannerValue,
         }),
         8000
@@ -674,6 +686,91 @@ export default function ProfileEditScreen() {
                 </button>
                 {selectedAvatarId === 'custom' && customAvatarUrl && <SelectedDot />}
               </div>
+
+              {/* Silhouette Color Presets (av20, av21, av22, av23, av24) */}
+              {SILHOUETTE_PRESETS.map((preset) => {
+                const selected = selectedAvatarId === preset.id
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => setSelectedAvatarId(preset.id)}
+                    aria-pressed={selected}
+                    style={{
+                      appearance: 'none',
+                      background: 'transparent',
+                      border: 'none',
+                      padding: 0,
+                      width: '100%',
+                      cursor: 'pointer',
+                      position: 'relative',
+                      display: 'block',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '100%',
+                        paddingTop: '100%',
+                        position: 'relative',
+                        borderRadius: 18,
+                        overflow: 'hidden',
+                        border: '2px solid',
+                        borderColor: selected ? 'var(--primary-mid)' : 'var(--glass-border)',
+                        boxShadow: selected ? '0 6px 18px var(--primary-glow)' : 'none',
+                        transition: 'border-color 0.15s, box-shadow 0.15s',
+                      }}
+                    >
+                      <div style={{ position: 'absolute', inset: 0 }}>
+                        <ProfileAvatar avatarId={preset.id} rounded="square" />
+                      </div>
+                    </div>
+                    {selected && <SelectedDot />}
+                  </button>
+                )
+              })}
+
+              {/* Initial / Letter Avatar Option */}
+              <button
+                type="button"
+                onClick={() => setSelectedAvatarId('initial')}
+                aria-pressed={selectedAvatarId === 'initial'}
+                style={{
+                  appearance: 'none',
+                  background: 'transparent',
+                  border: 'none',
+                  padding: 0,
+                  width: '100%',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  display: 'block',
+                }}
+              >
+                <div
+                  style={{
+                    width: '100%',
+                    paddingTop: '100%',
+                    position: 'relative',
+                    borderRadius: 18,
+                    overflow: 'hidden',
+                    border: '2px solid',
+                    borderColor:
+                      selectedAvatarId === 'initial' ? 'var(--primary-mid)' : 'var(--glass-border)',
+                    boxShadow:
+                      selectedAvatarId === 'initial' ? '0 6px 18px var(--primary-glow)' : 'none',
+                    transition: 'border-color 0.15s, box-shadow 0.15s',
+                  }}
+                >
+                  <div style={{ position: 'absolute', inset: 0 }}>
+                    <ProfileAvatar
+                      avatarId="initial"
+                      name={trimmedName || displayName || 'A'}
+                      rounded="square"
+                    />
+                  </div>
+                </div>
+                {selectedAvatarId === 'initial' && <SelectedDot />}
+              </button>
+
               {AVATAR_PRESETS.map((preset) => {
                 const selected = selectedAvatarId === preset.id
                 return (

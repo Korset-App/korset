@@ -5,6 +5,7 @@ import { useTheme } from '../utils/theme.js'
 import './LandingScreen.css'
 import { useI18n } from '../i18n/index.js'
 import useReveal from '../hooks/useReveal.js'
+import { useOverlayLock } from '../hooks/useOverlayLock.js'
 import Phone3D from '../components/landing/Phone3D.jsx'
 
 function collectStrArr(t, exists, prefix) {
@@ -768,12 +769,7 @@ export default function LandingScreen() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  useEffect(() => {
-    document.body.style.overflow = menuOpen ? 'hidden' : ''
-    return () => {
-      document.body.style.overflow = ''
-    }
-  }, [menuOpen])
+  useOverlayLock(menuOpen)
 
   const [activeFaq, setActiveFaq] = useState(null)
   const { theme, toggleTheme } = useTheme()

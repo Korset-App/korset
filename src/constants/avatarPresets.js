@@ -11,6 +11,19 @@ export const AVATAR_PRESETS = [
   { id: 'av10', src: '/avatars/avatar-grove-keeper.webp' },
 ]
 
+export const SILHOUETTE_PRESETS = [
+  { id: 'av20', color: 'blue', label: { ru: 'Сапфир', kz: 'Сапфир' } },
+  { id: 'av21', color: 'emerald', label: { ru: 'Изумруд', kz: 'Зүбаржат' } },
+  { id: 'av22', color: 'indigo', label: { ru: 'Индиго', kz: 'Индиго' } },
+  { id: 'av23', color: 'slate', label: { ru: 'Титан', kz: 'Титан' } },
+  { id: 'av24', color: 'cyan', label: { ru: 'Бирюза', kz: 'Көгілдір' } },
+]
+
+export const DEFAULT_AVATAR_ID = 'av20'
+
 export function getAvatarPresetById(id) {
+  if (!id) return null
+  const sil = SILHOUETTE_PRESETS.find((item) => item.id === id)
+  if (sil) return sil
   return AVATAR_PRESETS.find((item) => item.id === id) || null
 }

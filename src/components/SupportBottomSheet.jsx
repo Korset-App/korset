@@ -1,28 +1,16 @@
 // SupportBottomSheet — минималистичная стильная шторка с кнопкой Telegram.
 // Telegram-ссылка: заглушка, замените на реальный бот-адрес.
-import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useI18n } from '../i18n/index.js'
+import { useOverlayLock } from '../hooks/useOverlayLock.js'
 
 const TELEGRAM_URL = 'https://t.me/korset_support_bot'
 
 export default function SupportBottomSheet({ open, onClose }) {
   const { t } = useI18n()
-  const [mounted, setMounted] = useState(false)
 
   // Prevent background scrolling when sheet is open
-  useEffect(() => {
-    if (open) {
-      document.body.style.overflow = 'hidden'
-      setMounted(true)
-    } else {
-      document.body.style.overflow = ''
-      setMounted(false)
-    }
-    return () => {
-      document.body.style.overflow = ''
-    }
-  }, [open])
+  useOverlayLock(open)
 
   const handleTelegram = () => {
     window.open(TELEGRAM_URL, '_blank', 'noopener,noreferrer')

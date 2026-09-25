@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useI18n } from '../i18n/index.js'
+import { useOverlayLock } from '../hooks/useOverlayLock.js'
 import KorsetAvatar from '../components/KorsetAvatar.jsx'
 import { HistoryIcon } from '../components/icons/HistoryIcon.jsx'
 import { TrashIcon } from '../components/icons/TrashIcon.jsx'
@@ -404,17 +405,16 @@ export default function AIAssistantScreen() {
     }
   }, [activeConversationId, activeStoreSlug, chatKey, historyOpen, messages, messagesStoreSlug])
 
+  useOverlayLock(historyOpen)
+
   useEffect(() => {
     if (historyOpen) {
       document.body.classList.add('ai-history-open')
-      document.body.style.overflow = 'hidden'
     } else {
       document.body.classList.remove('ai-history-open')
-      document.body.style.overflow = ''
     }
     return () => {
       document.body.classList.remove('ai-history-open')
-      document.body.style.overflow = ''
     }
   }, [historyOpen])
 

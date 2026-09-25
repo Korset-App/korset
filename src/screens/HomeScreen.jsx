@@ -5,6 +5,7 @@ import { Helmet } from 'react-helmet-async'
 import ProfileAvatar from '../components/ProfileAvatar.jsx'
 import KorsetAvatar from '../components/KorsetAvatar.jsx'
 import SegmentedToggle from '../components/SegmentedToggle.jsx'
+import { useOverlayLock } from '../hooks/useOverlayLock.js'
 import StoryViewer from '../components/home/StoryViewer.jsx'
 import FitCheckDrawer from '../components/home/FitCheckDrawer.jsx'
 import InstallAppSheet from '../components/home/InstallAppSheet.jsx'
@@ -566,6 +567,35 @@ export default function HomeScreen() {
   const [failedImageEans, setFailedImageEans] = useState(() => new Set())
   const [isShoppingListExpanded, setIsShoppingListExpanded] = useState(false)
   const [isStoreDetailsExpanded, setIsStoreDetailsExpanded] = useState(false)
+  const [avatarMenuPos, setAvatarMenuPos] = useState(null)
+
+  useOverlayLock(avatarMenuOpen)
+
+  const measureAvatarMenuPos = useCallback(() => {
+    const rect = avatarButtonRef.current?.getBoundingClientRect()
+    if (!rect) return null
+    return {
+      top: rect.bottom + 10,
+      right: window.innerWidth - rect.right,
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!avatarMenuOpen) return undefined
+    const updatePos = () => {
+      const pos = measureAvatarMenuPos()
+      if (pos) setAvatarMenuPos(pos)
+    }
+    window.addEventListener('resize', updatePos)
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setAvatarMenuOpen(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('resize', updatePos)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [avatarMenuOpen, measureAvatarMenuPos])
 
   const handleCollapseStoreDetails = useCallback((e) => {
     e?.preventDefault?.()
@@ -958,9 +988,10 @@ export default function HomeScreen() {
     touchStartXRef.current = null
   }
 
+  useOverlayLock(activePhotoIndex !== null)
+
   useEffect(() => {
     if (activePhotoIndex === null) return
-    document.body.style.overflow = 'hidden'
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') setActivePhotoIndex(null)
       if (e.key === 'ArrowRight') handleNextPhoto()
@@ -968,7 +999,6 @@ export default function HomeScreen() {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => {
-      document.body.style.overflow = ''
       window.removeEventListener('keydown', handleKeyDown)
     }
   }, [activePhotoIndex, handleNextPhoto, handlePrevPhoto])
@@ -1216,138 +1246,149 @@ export default function HomeScreen() {
               type="button"
               aria-label={t('profile.title')}
               aria-expanded={avatarMenuOpen}
-              onClick={() => setAvatarMenuOpen((val) => !val)}
+              onClick={() => {
+                const pos = measureAvatarMenuPos()
+                if (pos) setAvatarMenuPos(pos)
+                setAvatarMenuOpen((val) => !val)
+              }}
             >
-              <ProfileAvatar avatarId={avatarId} name={profileName} rounded="circle" />
+              <ProfileAvatar avatarId={avatarId} name={user ? profileName : ''} rounded="circle" />
             </button>
 
-            {avatarMenuOpen && (
-              <>
-                <button
-                  className="home-avatar-menu__backdrop"
-                  type="button"
-                  aria-label={t('common.close')}
-                  onClick={() => setAvatarMenuOpen(false)}
-                />
-                <div className="home-avatar-menu" role="menu">
-                  <div className="home-avatar-menu__identity">
-                    <div>
-                      <strong>{profileName}</strong>
-                      <span>{t('home.menuAccountHint')}</span>
+            {avatarMenuOpen &&
+              avatarMenuPos &&
+              createPortal(
+                <>
+                  <button
+                    className="home-avatar-menu__backdrop"
+                    type="button"
+                    aria-label={t('common.close')}
+                    onClick={() => setAvatarMenuOpen(false)}
+                  />
+                  <div
+                    className="home-avatar-menu"
+                    role="menu"
+                    style={{ top: avatarMenuPos.top, right: avatarMenuPos.right }}
+                  >
+                    <div className="home-avatar-menu__identity">
+                      <div>
+                        <strong>{profileName}</strong>
+                        <span>{t('home.menuAccountHint')}</span>
+                      </div>
+                      {user && (
+                        <button
+                          className="home-avatar-menu__edit"
+                          type="button"
+                          aria-label={t('home.menuEditProfile')}
+                          onClick={() => {
+                            setAvatarMenuOpen(false)
+                            navigate(buildProfileEditPath(currentStore?.slug || null))
+                          }}
+                        >
+                          <HomeIcon name="edit" />
+                        </button>
+                      )}
                     </div>
-                    {user && (
+
+                    <button
+                      className="home-avatar-menu__item"
+                      type="button"
+                      onClick={() => {
+                        setAvatarMenuOpen(false)
+                        navigate(`${routes.profile}?tab=preferences`)
+                      }}
+                    >
+                      <HomeIcon name="tune" />
+                      <span>{t('home.menuPreferences')}</span>
+                      <HomeIcon name="chevron_right" />
+                    </button>
+
+                    <button
+                      className="home-avatar-menu__item"
+                      type="button"
+                      onClick={() => {
+                        setAvatarMenuOpen(false)
+                        navigate(`${routes.profile}?tab=favorites`)
+                      }}
+                    >
+                      <HomeIcon name="checklist" />
+                      <span>{t('home.menuFavorites')}</span>
+                      <HomeIcon name="chevron_right" />
+                    </button>
+
+                    <button
+                      className="home-avatar-menu__item"
+                      type="button"
+                      onClick={() => {
+                        setAvatarMenuOpen(false)
+                        navigate(`${routes.profile}?tab=history`)
+                      }}
+                    >
+                      <HomeIcon name="history" />
+                      <span>{t('home.menuChecks')}</span>
+                      <HomeIcon name="chevron_right" />
+                    </button>
+
+                    <button
+                      className="home-avatar-menu__item"
+                      type="button"
+                      onClick={handleResetSeenStories}
+                    >
+                      <SyncIcon size={18} />
+                      <span>{t('home.resetStories') || 'Сбросить сторис (как новые)'}</span>
+                    </button>
+
+                    <div className="home-avatar-menu__switches">
+                      <div>
+                        <span>{t('home.menuLanguage')}</span>
+                        <SegmentedToggle
+                          ariaLabel={t('home.menuLanguage')}
+                          activeKey={lang}
+                          onChange={(item) => setLang(item)}
+                          options={[
+                            { key: 'ru', label: 'RU', ariaLabel: t('common.langRu') },
+                            { key: 'kz', label: 'KZ', ariaLabel: t('common.langKzAria') },
+                          ]}
+                        />
+                      </div>
+                      <div>
+                        <span>{t('home.menuTheme')}</span>
+                        <SegmentedToggle
+                          ariaLabel={t('home.menuTheme')}
+                          activeKey={theme === 'light' ? 'light' : 'dark'}
+                          onChange={handleThemeChange}
+                          options={[
+                            {
+                              key: 'light',
+                              ariaLabel: t('home.theme.light'),
+                              render: (active) => <SunGlyph filled={active} />,
+                            },
+                            {
+                              key: 'dark',
+                              ariaLabel: t('home.theme.dark'),
+                              render: (active) => <MoonGlyph filled={active} />,
+                            },
+                          ]}
+                        />
+                      </div>
+                    </div>
+
+                    {!isInstalled && (
                       <button
-                        className="home-avatar-menu__edit"
+                        className="home-avatar-menu__install"
                         type="button"
-                        aria-label={t('home.menuEditProfile')}
-                        onClick={() => {
-                          setAvatarMenuOpen(false)
-                          navigate(buildProfileEditPath(currentStore?.slug || null))
-                        }}
+                        onClick={handleInstallApp}
                       >
-                        <HomeIcon name="edit" />
+                        <span className="home-avatar-menu__install-icon" aria-hidden="true">
+                          <InstallIcon size={17} color="currentColor" />
+                        </span>
+                        <span>{t('home.menuInstall')}</span>
                       </button>
                     )}
                   </div>
-
-                  <button
-                    className="home-avatar-menu__item"
-                    type="button"
-                    onClick={() => {
-                      setAvatarMenuOpen(false)
-                      navigate(`${routes.profile}?tab=preferences`)
-                    }}
-                  >
-                    <HomeIcon name="tune" />
-                    <span>{t('home.menuPreferences')}</span>
-                    <HomeIcon name="chevron_right" />
-                  </button>
-
-                  <button
-                    className="home-avatar-menu__item"
-                    type="button"
-                    onClick={() => {
-                      setAvatarMenuOpen(false)
-                      navigate(`${routes.profile}?tab=favorites`)
-                    }}
-                  >
-                    <HomeIcon name="checklist" />
-                    <span>{t('home.menuFavorites')}</span>
-                    <HomeIcon name="chevron_right" />
-                  </button>
-
-                  <button
-                    className="home-avatar-menu__item"
-                    type="button"
-                    onClick={() => {
-                      setAvatarMenuOpen(false)
-                      navigate(`${routes.profile}?tab=history`)
-                    }}
-                  >
-                    <HomeIcon name="history" />
-                    <span>{t('home.menuChecks')}</span>
-                    <HomeIcon name="chevron_right" />
-                  </button>
-
-                  <button
-                    className="home-avatar-menu__item"
-                    type="button"
-                    onClick={handleResetSeenStories}
-                  >
-                    <SyncIcon size={18} />
-                    <span>{t('home.resetStories') || 'Сбросить сторис (как новые)'}</span>
-                  </button>
-
-                  <div className="home-avatar-menu__switches">
-                    <div>
-                      <span>{t('home.menuLanguage')}</span>
-                      <SegmentedToggle
-                        ariaLabel={t('home.menuLanguage')}
-                        activeKey={lang}
-                        onChange={(item) => setLang(item)}
-                        options={[
-                          { key: 'ru', label: 'RU', ariaLabel: t('common.langRu') },
-                          { key: 'kz', label: 'KZ', ariaLabel: t('common.langKzAria') },
-                        ]}
-                      />
-                    </div>
-                    <div>
-                      <span>{t('home.menuTheme')}</span>
-                      <SegmentedToggle
-                        ariaLabel={t('home.menuTheme')}
-                        activeKey={theme === 'light' ? 'light' : 'dark'}
-                        onChange={handleThemeChange}
-                        options={[
-                          {
-                            key: 'light',
-                            ariaLabel: t('home.theme.light'),
-                            render: (active) => <SunGlyph filled={active} />,
-                          },
-                          {
-                            key: 'dark',
-                            ariaLabel: t('home.theme.dark'),
-                            render: (active) => <MoonGlyph filled={active} />,
-                          },
-                        ]}
-                      />
-                    </div>
-                  </div>
-
-                  {!isInstalled && (
-                    <button
-                      className="home-avatar-menu__install"
-                      type="button"
-                      onClick={handleInstallApp}
-                    >
-                      <span className="home-avatar-menu__install-icon" aria-hidden="true">
-                        <InstallIcon size={17} color="currentColor" />
-                      </span>
-                      <span>{t('home.menuInstall')}</span>
-                    </button>
-                  )}
-                </div>
-              </>
-            )}
+                </>,
+                document.body
+              )}
           </div>
         </header>
         <div className="home-top-bar-divider" aria-hidden="true" />
@@ -1433,7 +1474,7 @@ export default function HomeScreen() {
                 navigate(routes.scan)
               }}
             >
-              <HomeIcon name="barcode_scanner" />
+              <BarcodeScannerIcon size={21} />
             </button>
           </form>
         </div>

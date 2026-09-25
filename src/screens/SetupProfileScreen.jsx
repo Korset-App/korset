@@ -10,7 +10,11 @@ import {
 } from '../utils/userIdentity.js'
 import { useI18n } from '../i18n/index.js'
 import { useStore } from '../contexts/StoreContext.jsx'
-import { AVATAR_PRESETS } from '../constants/avatarPresets.js'
+import {
+  AVATAR_PRESETS,
+  DEFAULT_AVATAR_ID,
+  SILHOUETTE_PRESETS,
+} from '../constants/avatarPresets.js'
 import { BANNER_PRESETS, resolveBannerSrc } from '../constants/bannerPresets.js'
 import { compressAvatar, compressBanner, validateImageFile } from '../utils/imageCompress.js'
 import {
@@ -371,7 +375,7 @@ export default function SetupProfileScreen() {
   const [name, setName] = useState('')
   const [nameError, setNameError] = useState('')
   const [profileError, setProfileError] = useState(null)
-  const [selectedAvatarId, setSelectedAvatarId] = useState(AVATAR_PRESETS[0].id)
+  const [selectedAvatarId, setSelectedAvatarId] = useState(DEFAULT_AVATAR_ID)
   const [customAvatarUrl, setCustomAvatarUrl] = useState(null)
   const [bannerSelection, setBannerSelection] = useState({
     type: 'preset',
@@ -389,13 +393,14 @@ export default function SetupProfileScreen() {
       user.user_metadata?.avatar_id ||
       user.user_metadata?.avatar_url ||
       user.user_metadata?.picture ||
-      AVATAR_PRESETS[0].id
+      DEFAULT_AVATAR_ID
     setName(currentName)
     if (typeof currentAvatar === 'string' && /^https?:/i.test(currentAvatar)) {
       setCustomAvatarUrl(currentAvatar)
       setSelectedAvatarId('custom')
     } else {
-      setSelectedAvatarId(currentAvatar || AVATAR_PRESETS[0].id)
+      setCustomAvatarUrl(null)
+      setSelectedAvatarId(currentAvatar || DEFAULT_AVATAR_ID)
     }
     const bannerValue = bannerUrl || user.user_metadata?.banner_url || null
     if (!bannerValue) {
@@ -527,7 +532,12 @@ export default function SetupProfileScreen() {
     if (!user || !trimmedName || nameError || !hasAvatar) return
     setLoading(true)
     setProfileError(null)
-    const avatarVal = selectedAvatarId === 'custom' ? customAvatarUrl : selectedAvatarId
+    const avatarVal =
+      selectedAvatarId === 'custom'
+        ? customAvatarUrl
+        : selectedAvatarId === 'initial'
+          ? null
+          : selectedAvatarId
     const bannerVal = bannerToStoredValue(bannerSelection)
     const deviceId = getOrCreateDeviceId()
 
@@ -561,6 +571,8 @@ export default function SetupProfileScreen() {
         updateAuthUserWithRetry({
           full_name: trimmedName,
           avatar_id: avatarVal,
+          avatar_url: avatarVal && /^https?:/i.test(avatarVal) ? avatarVal : null,
+          picture: avatarVal && /^https?:/i.test(avatarVal) ? avatarVal : null,
           banner_url: bannerVal,
           profile_setup_done: true,
         }),
@@ -810,6 +822,25 @@ export default function SetupProfileScreen() {
                     </div>
                   )}
                 </button>
+                {SILHOUETTE_PRESETS.map((avatar) => (
+                  <AvatarChoice
+                    key={avatar.id}
+                    selected={selectedAvatarId === avatar.id}
+                    onClick={() => setSelectedAvatarId(avatar.id)}
+                  >
+                    <ProfileAvatar avatarId={avatar.id} rounded="square" />
+                  </AvatarChoice>
+                ))}
+                <AvatarChoice
+                  selected={selectedAvatarId === 'initial'}
+                  onClick={() => setSelectedAvatarId('initial')}
+                >
+                  <ProfileAvatar
+                    avatarId="initial"
+                    name={trimmedName || displayName || 'A'}
+                    rounded="square"
+                  />
+                </AvatarChoice>
                 {AVATAR_PRESETS.map((avatar) => (
                   <AvatarChoice
                     key={avatar.id}
@@ -1041,6 +1072,25 @@ export default function SetupProfileScreen() {
                         </div>
                       )}
                     </button>
+                    {SILHOUETTE_PRESETS.map((avatar) => (
+                      <AvatarChoice
+                        key={avatar.id}
+                        selected={selectedAvatarId === avatar.id}
+                        onClick={() => setSelectedAvatarId(avatar.id)}
+                      >
+                        <ProfileAvatar avatarId={avatar.id} rounded="square" />
+                      </AvatarChoice>
+                    ))}
+                    <AvatarChoice
+                      selected={selectedAvatarId === 'initial'}
+                      onClick={() => setSelectedAvatarId('initial')}
+                    >
+                      <ProfileAvatar
+                        avatarId="initial"
+                        name={trimmedName || displayName || 'A'}
+                        rounded="square"
+                      />
+                    </AvatarChoice>
                     {AVATAR_PRESETS.map((avatar) => (
                       <AvatarChoice
                         key={avatar.id}

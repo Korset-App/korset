@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { buildAuthNavigateState } from '../utils/authFlow.js'
 import { useI18n } from '../i18n/index.js'
+import { useOverlayLock } from '../hooks/useOverlayLock.js'
 
 /**
  * AuthPromptModal — non-destructive bottom-sheet modal that nudges a guest
@@ -43,16 +44,9 @@ export default function AuthPromptModal({ open, onClose, title, description }) {
     return () => document.removeEventListener('keydown', onKey)
   }, [open, onClose])
 
-  // Lock body scroll while open. On unmount we always restore, even if the
-  // user navigates away mid-prompt.
-  useEffect(() => {
-    if (!open) return undefined
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = prev
-    }
-  }, [open])
+  // Lock background scroll while open. Ref-counted in the hook, so stacked
+  // overlays never unlock each other early.
+  useOverlayLock(open)
 
   if (!open) return null
 

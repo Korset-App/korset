@@ -33,7 +33,7 @@ export const CATEGORY_SHOWCASE = {
     variant: 'compact',
     tone: 'green',
     textTone: 'dark',
-    imageScale: 1.12,
+    imageScale: 1.04,
   },
   deli: {
     image: `${IMAGE_BASE}/category-deli.webp`,
@@ -59,7 +59,7 @@ export const CATEGORY_SHOWCASE = {
     variant: 'portrait',
     tone: 'plum',
     textTone: 'light',
-    imageScale: 1.12,
+    imageScale: 1.04,
   },
   sweets: {
     image: `${IMAGE_BASE}/category-sweets.webp`,
@@ -79,7 +79,7 @@ export const CATEGORY_SHOWCASE = {
     variant: 'portrait',
     tone: 'teal',
     textTone: 'light',
-    imageScale: 1.08,
+    imageScale: 1.04,
   },
   sauces_spices: {
     image: `${IMAGE_BASE}/category-sauces-spices.webp`,
@@ -136,7 +136,6 @@ export const CATEGORY_SHOWCASE = {
     variant: 'hero',
     tone: 'violet',
     textTone: 'light',
-    imageScale: 1.02,
   },
 }
 
