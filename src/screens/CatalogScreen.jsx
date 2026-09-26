@@ -91,7 +91,7 @@ export default function CatalogScreen() {
   const { storeSlug } = useParams()
   const { t, lang } = useI18n()
   const { profile, updateProfile } = useProfile()
-  const { storeId, currentStore, catalogProducts, isCatalogReady, isCatalogLoading } = useStore()
+  const { storeId, currentStore, catalogProducts, isCatalogReady, isCatalogLoading, catalogLoadError } = useStore()
   const { isOnline } = useOffline()
   const location = useLocation()
 
@@ -421,6 +421,15 @@ export default function CatalogScreen() {
         t={t}
         lang={lang}
       />
+
+      {catalogLoadError && isOnline && (
+        <div
+          role="alert"
+          style={{ margin: '8px 20px', padding: '10px 12px', borderRadius: 12, background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'var(--text)' }}
+        >
+          {t('catalog.loadError')}
+        </div>
+      )}
 
       {showSubcategories && (
         <CatalogSubcategoryNav

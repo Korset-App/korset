@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useLocation } from 'react-router-dom'
 import { supabase } from '../utils/supabase.js'
 import { normalizeNutrition, parseJson } from '../domain/product/model.js'
+import { loadCatalogPages } from '../domain/catalog/catalogPageLoader.js'
 import { PRIVACY_EVENT } from '../utils/privacySettings.js'
 import {
   getCatalogFromIndexedDB,
@@ -220,6 +221,7 @@ export function StoreProvider({ children }) {
   )
   const [fullCatalog, setFullCatalog] = useState(null)
   const [isCatalogLoading, setIsCatalogLoading] = useState(false)
+  const [catalogLoadError, setCatalogLoadError] = useState(false)
 
   useEffect(() => {
     const syncStorage = () => {
@@ -295,12 +297,15 @@ export function StoreProvider({ children }) {
           setFullCatalog(null)
           loadedStoreIdRef.current = null
         }
+        setCatalogLoadError(false)
         return
       }
 
       if (loadedStoreIdRef.current !== storeId) {
         loadedStoreIdRef.current = storeId
+        setFullCatalog(null)
       }
+      setCatalogLoadError(false)
 
       // 1. Instant cache warm-up from IndexedDB if available for this store
       try {
@@ -322,38 +327,34 @@ export function StoreProvider({ children }) {
 
       setIsCatalogLoading(true)
 
-      let offset = 0
-      const batchSize = 1000
       let allProducts = []
-
-      while (true) {
+      try {
+        await loadCatalogPages({
+          fetchPage: (cursor, size) => supabase.rpc('fn_get_store_catalog_page', {
+            p_store_id: storeId,
+            p_after_ean: cursor,
+            p_limit: size,
+          }),
+          isCancelled: () => aborted,
+          onPage: (page) => {
+            allProducts = allProducts.concat(page.map(mapRpcRowToProduct))
+            setFullCatalog(allProducts)
+          },
+        })
         if (aborted) return
-        const { data, error } = await supabase
-          .rpc('fn_get_store_catalog', { p_store_id: storeId })
-          .range(offset, offset + batchSize - 1)
-
-        if (error || !data || data.length === 0) {
-          break
+        setFullCatalog(allProducts)
+        if (allProducts.length > 0) {
+          saveCatalogToIndexedDB(allProducts, storeId)
+            .then(() => notifyCatalogWarmed(storeId))
+            .catch(() => {})
         }
-
-        const mapped = data.map(mapRpcRowToProduct)
-        allProducts = allProducts.concat(mapped)
-
-        setFullCatalog([...allProducts])
-
-        if (data.length < batchSize) {
-          break
+      } catch (error) {
+        if (!aborted) {
+          console.error('Failed to load store catalog:', error)
+          setCatalogLoadError(true)
         }
-        offset += batchSize
-      }
-
-      if (aborted) return
-      setIsCatalogLoading(false)
-
-      if (allProducts.length > 0) {
-        saveCatalogToIndexedDB(allProducts, storeId)
-          .then(() => notifyCatalogWarmed(storeId))
-          .catch(() => {})
+      } finally {
+        if (!aborted) setIsCatalogLoading(false)
       }
     }
 
@@ -425,6 +426,7 @@ export function StoreProvider({ children }) {
       catalogProducts,
       isCatalogReady,
       isCatalogLoading,
+      catalogLoadError,
       isStoreApp,
       isStorePublic,
       isPublicMarketing,
@@ -458,6 +460,7 @@ export function StoreProvider({ children }) {
       catalogProducts,
       isCatalogReady,
       isCatalogLoading,
+      catalogLoadError,
       isStoreApp,
       isStorePublic,
       isPublicMarketing,
