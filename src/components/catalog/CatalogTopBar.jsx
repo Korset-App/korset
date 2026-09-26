@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useLayoutEffect, useRef } from 'react'
 import {
   BarcodeScannerIcon,
   CloseIcon,
@@ -72,6 +72,36 @@ function CatalogTopBarComponent({
   onOpenFitDrawer,
   t,
 }) {
+  const compositionButtonRef = useRef(null)
+  const invitationRef = useRef(null)
+  const invitationArrowRef = useRef(null)
+
+  useLayoutEffect(() => {
+    const button = compositionButtonRef.current
+    const invitation = invitationRef.current
+    const arrow = invitationArrowRef.current
+    if (!button || !invitation || !arrow) return undefined
+
+    const positionArrow = () => {
+      const buttonRect = button.getBoundingClientRect()
+      const invitationRect = invitation.getBoundingClientRect()
+      const arrowRect = arrow.getBoundingClientRect()
+      const tipOffset = (49 / 64) * arrowRect.width
+      const right =
+        invitationRect.right -
+        (buttonRect.left + buttonRect.width / 2) -
+        arrowRect.width +
+        tipOffset
+      invitation.style.setProperty('--catalog-invitation-arrow-right', `${right}px`)
+    }
+
+    positionArrow()
+    const observer = new window.ResizeObserver(positionArrow)
+    observer.observe(button)
+    observer.observe(invitation)
+    return () => observer.disconnect()
+  }, [showCategories, isFitConfigured])
+
   return (
     <header
       className={`catalog-topbar${isScrolled ? ' is-scrolled' : ''}`}
@@ -94,6 +124,7 @@ function CatalogTopBarComponent({
           {showSubcategories ? selectedCategoryTitle : t('nav.catalog')}
         </h1>
         <button
+          ref={compositionButtonRef}
           type="button"
           className={`catalog-topbar__composition${isFitConfigured ? ' is-configured' : ''}`}
           onClick={onOpenFitDrawer}
@@ -159,6 +190,7 @@ function CatalogTopBarComponent({
               </div>
             ) : (
               <button
+                ref={invitationRef}
                 type="button"
                 className="catalog-topbar__invitation"
                 onClick={onOpenFitDrawer}
@@ -168,7 +200,14 @@ function CatalogTopBarComponent({
                   <strong>{t('catalog.fitInvite')}</strong>
                   <span>{t('catalog.fitInviteDetail')}</span>
                 </span>
-                <svg aria-hidden="true" width="64" height="44" viewBox="0 0 64 44" fill="none">
+                <svg
+                  ref={invitationArrowRef}
+                  aria-hidden="true"
+                  width="64"
+                  height="44"
+                  viewBox="0 0 64 44"
+                  fill="none"
+                >
                   <path
                     d="M4 34C30 43 53 33 49 7M40 15L49 5L58 14"
                     stroke="currentColor"

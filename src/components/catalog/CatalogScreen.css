@@ -423,7 +423,7 @@
 .catalog-topbar__invitation svg {
   position: absolute;
   top: -5px;
-  right: 10px;
+  right: var(--catalog-invitation-arrow-right, 10px);
   pointer-events: none;
 }
 .catalog-topbar__intro.is-collapsed {
