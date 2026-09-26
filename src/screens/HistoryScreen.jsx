@@ -206,6 +206,36 @@ export default function HistoryScreen() {
     [tab, history, displayedFavorites]
   )
 
+  const totalSum = useMemo(() => {
+    return displayedFavorites.reduce((sum, p) => sum + (p?.priceKzt > 0 ? p.priceKzt : 0), 0)
+  }, [displayedFavorites])
+
+  const handleShareList = async () => {
+    const storeName = currentStore?.name || 'Körset'
+    const itemsText = displayedFavorites
+      .map((p, idx) => {
+        const name = getLocalName(p)
+        const priceStr = p.priceKzt ? ` — ${p.priceKzt.toLocaleString('ru-RU')} ₸` : ''
+        return `${idx + 1}. ${name}${priceStr}`
+      })
+      .join('\n')
+    const totalStr = totalSum > 0 ? `\n\nИтого: ~${totalSum.toLocaleString('ru-RU')} ₸` : ''
+    const shareText = `🛒 Список покупок (${storeName}):\n${itemsText}${totalStr}\n\nСоставлено в Körset`
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: `Список покупок (${storeName})`,
+          text: shareText,
+        })
+        return
+      } catch (err) {
+        if (err.name === 'AbortError') return
+      }
+    }
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`
+    window.open(whatsappUrl, '_blank')
+  }
+
   return (
     <div className="screen" style={{ paddingTop: 0 }}>
       <div
@@ -256,7 +286,7 @@ export default function HistoryScreen() {
               color: 'var(--text)',
             }}
           >
-            {t('history.title')}
+            {tab === 'favorites' ? (t('history.tabFavorites') || 'Список покупок') : t('history.title')}
           </div>
         </div>
 
@@ -303,7 +333,7 @@ export default function HistoryScreen() {
               <polyline points="12 6 12 12 16 14" />
             </svg>
             {t('history.tabHistory')}
-            {history.length > 0 && (
+            {history?.length > 0 && (
               <span
                 style={{
                   fontSize: 10,
@@ -470,6 +500,85 @@ export default function HistoryScreen() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {tab === 'favorites' && displayedFavorites.length > 0 && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  padding: '12px 16px',
+                  marginBottom: 4,
+                  borderRadius: 16,
+                  background: 'var(--glass-subtle)',
+                  border: '1px solid var(--glass-soft-border)',
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: 'var(--text-dim)',
+                      fontFamily: 'var(--font-display)',
+                      marginBottom: 2,
+                    }}
+                  >
+                    {currentStore?.name
+                      ? `${t('profile.inStore') || 'В магазине'} ${currentStore.name}`
+                      : t('profile.totalInStore') || 'Итого в корзине:'}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 17,
+                      fontWeight: 700,
+                      color: '#F59E0B',
+                      fontFamily: 'var(--font-display)',
+                    }}
+                  >
+                    {totalSum > 0
+                      ? `~${totalSum.toLocaleString('ru-RU')} ₸`
+                      : `${displayedFavorites.length} ${t('common.items') || 'товаров'}`}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleShareList}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '8px 14px',
+                    borderRadius: 10,
+                    background: 'rgba(245, 158, 11, 0.15)',
+                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                    color: '#F59E0B',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    fontFamily: 'var(--font-display)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <circle cx="18" cy="5" r="3" />
+                    <circle cx="6" cy="12" r="3" />
+                    <circle cx="18" cy="19" r="3" />
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                  </svg>
+                  <span>{t('profile.shareList') || 'Поделиться'}</span>
+                </button>
+              </div>
+            )}
             {list.map((product, index) => (
               <div
                 key={`${product.canonicalId || product.id || product.ean || index}-${index}`}
@@ -577,6 +686,33 @@ export default function HistoryScreen() {
                     </div>
                   )}
                 </div>
+
+                {tab === 'favorites' && typeof product.priceKzt === 'number' && product.priceKzt > 0 && (
+                  <div style={{ textAlign: 'right', flexShrink: 0, paddingRight: 4 }}>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 700,
+                        fontFamily: 'var(--font-display)',
+                        color: 'var(--text)',
+                      }}
+                    >
+                      {product.priceKzt.toLocaleString('ru-RU')} ₸
+                    </div>
+                    {typeof product.oldPriceKzt === 'number' && product.oldPriceKzt > product.priceKzt && (
+                      <div
+                        style={{
+                          fontSize: 10.5,
+                          color: 'var(--text-dim)',
+                          textDecoration: 'line-through',
+                          fontFamily: 'var(--font-display)',
+                        }}
+                      >
+                        {product.oldPriceKzt.toLocaleString('ru-RU')} ₸
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {tab === 'favorites' ? (
                   <button

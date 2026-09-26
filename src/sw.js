@@ -1,10 +1,16 @@
 /* global self, clients */
-import { precacheAndRoute } from 'workbox-precaching'
-import { registerRoute } from 'workbox-routing'
+import { createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching'
+import { NavigationRoute, registerRoute } from 'workbox-routing'
 import { NetworkFirst, CacheFirst } from 'workbox-strategies'
 import { ExpirationPlugin } from 'workbox-expiration'
 
 precacheAndRoute(self.__WB_MANIFEST)
+
+registerRoute(
+  new NavigationRoute(createHandlerBoundToURL('/index.html'), {
+    denylist: [/^\/api(?:\/|\?|$)/, /^\/assets\//],
+  })
+)
 
 registerRoute(
   ({ url }) => url.origin === self.location.origin && url.pathname.startsWith('/api/'),

@@ -309,10 +309,10 @@ export async function findGlobalProductByEan(ean) {
     .from('global_products')
     .select('id, ean, name, brand, category, image_url, quantity, fat_percent')
     .eq('ean', cleanEan)
-    .eq('is_active', true)
-    .maybeSingle()
+    .order('is_active', { ascending: false })
+    .limit(1)
   if (error) return null
-  return data
+  return data?.[0] || null
 }
 
 export async function addStoreProduct(payload) {

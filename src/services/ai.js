@@ -100,6 +100,16 @@ export async function askGeneralAI(
   )
 }
 
+export async function decomposeRecipeAI(dish, lang = 'ru') {
+  const result = await callAI({
+    mode: 'recipe_decompose',
+    dish,
+    lang,
+    messages: [{ role: 'user', content: dish }],
+  })
+  return result?.recipe || null
+}
+
 /**
  * Объяснение результата сравнения двух товаров.
  * Вызывается только по явному действию пользователя (кнопка на экране сравнения).

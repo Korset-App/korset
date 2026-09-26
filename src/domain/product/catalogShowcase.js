@@ -25,13 +25,13 @@ export const CATEGORY_SHOWCASE = {
   dairy_eggs: {
     image: `${IMAGE_BASE}/category-dairy-eggs.webp`,
     variant: 'wide',
-    tone: 'berry',
+    tone: 'dairy',
     textTone: 'dark',
   },
   meat: {
     image: `${IMAGE_BASE}/category-meat.webp`,
     variant: 'compact',
-    tone: 'green',
+    tone: 'terracotta',
     textTone: 'dark',
     imageScale: 1.04,
   },
@@ -50,15 +50,15 @@ export const CATEGORY_SHOWCASE = {
   water_beverages: {
     image: `${IMAGE_BASE}/category-water-beverages.webp`,
     variant: 'portrait',
-    tone: 'paper',
+    tone: 'azure',
     textTone: 'dark',
     imageY: '48%',
   },
   tea_coffee: {
     image: `${IMAGE_BASE}/category-tea-coffee.webp`,
     variant: 'portrait',
-    tone: 'plum',
-    textTone: 'light',
+    tone: 'amber',
+    textTone: 'dark',
     imageScale: 1.04,
   },
   sweets: {

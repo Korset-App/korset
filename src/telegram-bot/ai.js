@@ -75,10 +75,6 @@ export async function getAIResponse(question, lang, faqItems) {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${API_KEY}`,
     }
-    if (fetchUrl.includes('.azure.com') || fetchUrl.includes('.services.ai.azure.com')) {
-      headers['api-key'] = API_KEY
-    }
-
     const reqPayload = {
       model: MODEL,
       max_completion_tokens: MAX_TOKENS,

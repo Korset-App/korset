@@ -1,4 +1,5 @@
 import { getSubcategoryLabel } from './categoryMap.js'
+import { getAllergenShortName } from '../../constants/allergens.js'
 
 function cleanText(value) {
   if (value === null || value === undefined) return null
@@ -45,18 +46,30 @@ export function buildProductCharacteristicSpecs(product, { lang = 'ru' } = {}) {
   const specs = product.specs || {}
   const rows = []
 
-  const storage = cleanText(specs.storage)
+  const storage = cleanText(product.storage_conditions || product.storageConditions || specs.storage)
   if (storage) rows.push({ key: 'storage', labelKey: 'product.storage', value: storage })
 
-  const bestBefore = cleanText(specs.bestBefore)
+  const bestBefore = cleanText(product.shelf_life || product.shelfLife || specs.bestBefore)
   if (bestBefore) rows.push({ key: 'bestBefore', labelKey: 'product.expiry', value: bestBefore })
+
+  const packagingType = cleanText(product.packaging_type || product.packaging || specs.packaging)
+  if (packagingType)
+    rows.push({ key: 'packagingType', labelKey: 'product.packagingType', value: packagingType })
 
   const fatPercent = formatPercent(product.fatPercent ?? product.fat_percent)
   if (fatPercent)
     rows.push({ key: 'fatPercent', labelKey: 'product.fatPercent', value: fatPercent })
 
-  const flavor = cleanText(product.flavor || specs.flavor)
+  const flavor = cleanText(product.taste || product.flavor || specs.flavor)
   if (flavor) rows.push({ key: 'flavor', labelKey: 'product.flavor', value: flavor })
+
+  const cookingInstructions = cleanText(product.cooking_instructions || product.cookingInstructions || specs.cookingInstructions)
+  if (cookingInstructions)
+    rows.push({ key: 'cookingInstructions', labelKey: 'product.cookingInstructions', value: cookingInstructions })
+
+  const halalCertifier = cleanText(product.halal_certifier || product.halalCertifier || specs.halalCertifier)
+  if (halalCertifier)
+    rows.push({ key: 'halalCertifier', labelKey: 'product.halalCertifier', value: halalCertifier })
 
   const subcategory = getCleanSubcategory(product, lang)
   if (subcategory)

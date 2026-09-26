@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import { CloseIcon } from '../icons/CloseIcon.jsx'
 import { CompareIcon } from '../icons/CompareIcon.jsx'
 import { DietIcon } from '../icons/DietIcon.jsx'
 import './CatalogProductCard.css'
@@ -20,6 +21,21 @@ function ProductThumb({ product }) {
   }
 
   return <div className="catalog-product-card__image-fallback">{product.name?.[0] || '•'}</div>
+}
+
+function FlameIcon({ size = 11 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+      className="catalog-product-card__badge-icon"
+    >
+      <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+    </svg>
+  )
 }
 
 function VerdictIcon({ verdict }) {
@@ -91,9 +107,7 @@ function CardBadges({ verdict, badges, kcalLabel }) {
       ))}
       {kcalLabel && (
         <span className="catalog-product-card__badge catalog-product-card__badge--kcal">
-          <span className="material-symbols-outlined" aria-hidden="true">
-            local_fire_department
-          </span>
+          <FlameIcon />
           {kcalLabel}
         </span>
       )}
@@ -103,7 +117,7 @@ function CardBadges({ verdict, badges, kcalLabel }) {
 
 function CompareButtonIcon({ compareState, size = 18 }) {
   if (compareState === 'active-pin') {
-    return <span className="material-symbols-outlined">close</span>
+    return <CloseIcon size={size} />
   }
 
   return <CompareIcon active={compareState === 'select-second'} size={size} />

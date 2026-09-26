@@ -77,3 +77,48 @@ Uber Eats/Glovo (large title), App Store (тихие секционные стр
 
 `npm run memory:save` падает (embeddings HTTP 404) — инфраструктурная проблема пайплайна,
 не связана с UI. Перезапустить после починки.
+
+---
+
+# Фаза 3 (тот же день) — Шапка-«лист» со scroll-морфингом + «Фильтр состава»
+
+## Решения пользователя
+
+- Поисковая строка = постоянная шапка → сделать акцентным «листом»: заливка от верха экрана
+  (вкл. safe-area), снизу два закруглённых угла 24px, тонкая фиолетовая градиент-линия по кромке.
+- Scroll-морфинг: прогресс 0→1 за 72px скролла → тень проявляется, акцент-линия разгорается,
+  контент-строка сжимается (scale 0.975, translateY -1px). Обратно при возврате наверх.
+- Perf-контракт: только transform/opacity (compositor), один passive scroll-листенер + rAF,
+  одна CSS-переменная --hdr-progress на .catalog-topbar, ноль setState в кадре, БЕЗ
+  backdrop-filter (непрозрачный фон), prefers-reduced-motion уважается.
+- Сканер в шапке каталога → фиолетовый градиент (единый акцент с home и BottomNav).
+- Строка секции: «Категории» слева + кнопка «Фильтр состава» справа (SlidersIcon):
+  неактивна = нейтрал «Настроить»; активна = фиолетовая пилюля «N фильтров · Подходит: M»
+  (ru-склонение через Intl.PluralRules). Подпись «N товаров · MARS» и чипы-строка удалены
+  (пользователь: возвращённый шум, иерархия ломалась).
+- FitCheckDrawer остаётся точкой входа редактирования; счётчик подходящих товаров —
+  deferred checkProductFit по baseProducts (400ms).
+
+## Уроки
+
+1. **TDZ-краш**: useEffect с deps [showCategories,...] объявлен ДО const-деклараций этих
+   переменных ниже по компоненту → "Cannot access before initialization" (поймал только
+   рантайм-тест, build/eslint не ловят). Эффект перемещён после деклараций. Правило:
+   эффекты с deps на render-константы держать ниже их объявления.
+2. ESLint проекта не имеет browser-globals: window.requestAnimationFrame обязателен
+   (bare requestAnimationFrame = no-undef error).
+
+## i18n
+
+ru/kz product.json: добавлены `catalog.fitButtonTitle` («Фильтр состава»/«Құрам сүзгісі»),
+`catalog.fitSetupAction`, `catalog.fitFiltersOne/Few/Many` (kz — одна форма «сүзгі»),
+`catalog.fitMatches`; удалены `catalog.categoriesSub`, `catalog.fitFitCount`,
+`catalog.fitSetupTitle`, `catalog.fitSetupHint`.
+
+## Верификация
+
+- `check:agent:ui` PASS (после фиксов TDZ + window.rAF + удаление забытого fit-row JSX).
+- Playwright обе темы × empty/configured: radius 0 0 24px 24px; progress 0→1 при скролле 300px;
+  row transform matrix(0.975,…,-1); shadow opacity 1; сканер — фиолетовый градиент;
+  кнопка «Фильтр состава» = «Настроить»/«5 фильтров»+is-active.
+- Скриншоты: Temp\opencode\v6_catalog_*.png.

@@ -58,8 +58,8 @@ export const ALLERGEN_NAMES = {
  * Мигрирует старые ID аллергенов на новые (ТР ТС 022/2011).
  * nuts → tree_nuts, shellfish → crustaceans, honey → удаляется (в customAllergens)
  */
-function migrateAllergenIds(allergens) {
-  if (!Array.isArray(allergens)) return []
+export function migrateAllergenIds(allergens) {
+  if (!Array.isArray(allergens)) return { allergens: [], addToCustom: [] }
   const migrated = []
   const removedToCustom = []
 

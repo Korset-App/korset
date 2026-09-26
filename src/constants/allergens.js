@@ -7,39 +7,86 @@ export const ALLERGENS = [
   {
     id: 'milk',
     label: { ru: 'Молоко и лактоза', kz: 'Сүт және лактоза' },
+    shortLabel: { ru: 'Молоко', kz: 'Сүт' },
     icon: 'milk',
     frequency: 5,
   },
-  { id: 'eggs', label: { ru: 'Яйца', kz: 'Жұмыртқа' }, icon: 'egg', frequency: 5 },
+  {
+    id: 'eggs',
+    label: { ru: 'Яйца', kz: 'Жұмыртқа' },
+    shortLabel: { ru: 'Яйца', kz: 'Жұмыртқа' },
+    icon: 'egg',
+    frequency: 5,
+  },
   {
     id: 'gluten',
     label: { ru: 'Глютен (пшеница, рожь, ячмень)', kz: 'Глютен (бидай, қара бидай, арпа)' },
+    shortLabel: { ru: 'Глютен', kz: 'Глютен' },
     icon: 'wheat',
     frequency: 5,
   },
-  { id: 'peanuts', label: { ru: 'Арахис', kz: 'Жержаңғақ' }, icon: 'peanut', frequency: 4 },
+  {
+    id: 'peanuts',
+    label: { ru: 'Арахис', kz: 'Жержаңғақ' },
+    shortLabel: { ru: 'Арахис', kz: 'Жержаңғақ' },
+    icon: 'peanut',
+    frequency: 4,
+  },
   {
     id: 'tree_nuts',
     label: { ru: 'Орехи (миндаль, фундук, кешью...)', kz: 'Жаңғақтар' },
+    shortLabel: { ru: 'Орехи', kz: 'Жаңғақтар' },
     icon: 'nuts',
     frequency: 4,
   },
-  { id: 'soy', label: { ru: 'Соя', kz: 'Соя' }, icon: 'soy', frequency: 3 },
+  {
+    id: 'soy',
+    label: { ru: 'Соя', kz: 'Соя' },
+    shortLabel: { ru: 'Соя', kz: 'Соя' },
+    icon: 'soy',
+    frequency: 3,
+  },
 
   // ★★★☆☆ Средняя распространённость
-  { id: 'fish', label: { ru: 'Рыба', kz: 'Балық' }, icon: 'fish', frequency: 3 },
+  {
+    id: 'fish',
+    label: { ru: 'Рыба', kz: 'Балық' },
+    shortLabel: { ru: 'Рыба', kz: 'Балық' },
+    icon: 'fish',
+    frequency: 3,
+  },
   {
     id: 'crustaceans',
     label: { ru: 'Ракообразные (креветки, крабы)', kz: 'Шаян тәрізділер' },
+    shortLabel: { ru: 'Ракообразные', kz: 'Шаян тәрізділер' },
     icon: 'shell',
     frequency: 2,
   },
-  { id: 'sesame', label: { ru: 'Кунжут', kz: 'Күнжіт' }, icon: 'sesame', frequency: 3 },
-  { id: 'celery', label: { ru: 'Сельдерей', kz: 'Балдыркөк' }, icon: 'celery', frequency: 2 },
-  { id: 'mustard', label: { ru: 'Горчица', kz: 'Қыша' }, icon: 'mustard', frequency: 2 },
+  {
+    id: 'sesame',
+    label: { ru: 'Кунжут', kz: 'Күнжіт' },
+    shortLabel: { ru: 'Кунжут', kz: 'Күнжіт' },
+    icon: 'sesame',
+    frequency: 3,
+  },
+  {
+    id: 'celery',
+    label: { ru: 'Сельдерей', kz: 'Балдыркөк' },
+    shortLabel: { ru: 'Сельдерей', kz: 'Балдыркөк' },
+    icon: 'celery',
+    frequency: 2,
+  },
+  {
+    id: 'mustard',
+    label: { ru: 'Горчица', kz: 'Қыша' },
+    shortLabel: { ru: 'Горчица', kz: 'Қыша' },
+    icon: 'mustard',
+    frequency: 2,
+  },
   {
     id: 'sulfites',
     label: { ru: 'Сульфиты (E220-E228)', kz: 'Сульфиттер' },
+    shortLabel: { ru: 'Сульфиты', kz: 'Сульфиттер' },
     icon: 'sulfites',
     frequency: 2,
   },
@@ -48,10 +95,17 @@ export const ALLERGENS = [
   {
     id: 'mollusks',
     label: { ru: 'Моллюски (мидии, кальмары)', kz: 'Жұмсақ денелілер' },
+    shortLabel: { ru: 'Моллюски', kz: 'Моллюскілер' },
     icon: 'mollusks',
     frequency: 1,
   },
-  { id: 'lupin', label: { ru: 'Люпин', kz: 'Люпин' }, icon: 'lupin', frequency: 1 },
+  {
+    id: 'lupin',
+    label: { ru: 'Люпин', kz: 'Люпин' },
+    shortLabel: { ru: 'Люпин', kz: 'Люпин' },
+    icon: 'lupin',
+    frequency: 1,
+  },
 ]
 
 // Порог частоты для "Показать все" в UI
@@ -64,6 +118,13 @@ export const ALLERGEN_NAMES = Object.fromEntries(ALLERGENS.map((a) => [a.id, a.l
 export function getAllergenName(id, lang = 'ru') {
   const a = ALLERGENS.find((x) => x.id === id)
   return a ? a.label[lang] || a.label.ru : id
+}
+
+// Маппинг id → краткое название для компактных чипов
+export function getAllergenShortName(id, lang = 'ru') {
+  const a = ALLERGENS.find((x) => x.id === id)
+  if (!a) return id
+  return a.shortLabel ? a.shortLabel[lang] || a.shortLabel.ru : a.label[lang] || a.label.ru
 }
 
 // Маппинг Open Food Facts тегов → наш id

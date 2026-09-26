@@ -1,0 +1,206 @@
+# Historical context snapshot before workflow cleanup
+
+Captured 2026-09-26. Includes pre-existing uncommitted documentation. Historical claims are not current verification. Superseded as fast-start context by docs/CONTEXT.md.
+
+# KÖRSET — БЫСТРЫЙ КОНТЕКСТ ПРОЕКТА
+
+> Архитектура: `docs/ARCHITECTURE.md`. Roadmap: `docs/ROADMAP_PILOT_V1.md`.
+> Актуальный мастер-план: `docs/vault/plans/2026-09-18-pilot-revival-master-plan.md`. Детали: `docs/vault/`.
+
+---
+
+## 1. Проект В Одном Экране
+
+Körset — mobile-first PWA: цифровой каталог + Fit-Check для офлайн-продуктовых магазинов Казахстана.
+
+**Модель:** B2B2C. Платят магазины, покупатели используют бесплатно. V1: только продуктовые. Легенда питча: основатель из Усть-Каменогорска (4 подключенных работающих магазина), пилот и масштабирование — в Астане.
+
+**Стратегический поворот (2026-06-11):** от «закрытого ассистента» к «публичному каталогу магазина». Деталь: `docs/vault/plans/2026-06-11-store-access-and-digital-catalog-strategy.md`.
+
+**Ценность:**
+- Магазину: `korset.kz/s/mars` — онлайн-каталог с ценами из дома и 2GIS.
+- Покупателю: каталог + Fit-Check (халал, аллергены, диеты) + сканер у полки.
+- Ниша: прямых конкурентов в KZ нет, мировые аналоги без Fit-Check + халал.
+
+**Доступ:** всё без регистрации (localStorage). Регистрация — опциональный апгрейд для синхронизации.
+Access gate, токены, 4-значные коды — отменены и не строятся.
+
+---
+
+## 2. Стек И Карта
+
+- React 18 + Vite SPA, JavaScript (не TS), Vanilla CSS (не Tailwind).
+- Supabase (PostgreSQL, Auth, Storage, RLS). Vercel Serverless. DeepSeek + Groq Whisper + Gemini 1536d + Supabase pgvector (RAG). СТРОГО 0 AZURE.
+- PWA: service worker, IndexedDB, очередь offline-сканов.
+
+```
+src/screens/      экраны
+src/components/   UI-компоненты
+src/domain/       доменная логика
+src/contexts/     React contexts
+src/i18n/         RU/KZ локализация
+api/              Vercel serverless
+scripts/          data/import/enrichment
+supabase/         миграции
+docs/vault/       проектная память (RAG)
+```
+
+---
+
+## 3. Актуальные Роуты
+
+Публичные:
+```
+/ /stores /stores/:storeSlug /auth /update-password /setup-profile /qr-print /privacy-policy
+```
+
+Consumer (`/s/:storeSlug/`):
+```
+/                               home
+/scan                           сканер
+/catalog                        каталог (18 категорий, поиск, grid/list)
+/ai                             AI-ассистент (text + voice + image)
+/history                        история
+/profile [/edit]                профиль + редактирование
+/account                        аккаунт, методы входа
+/notifications /privacy /sound-settings /faq /about /terms
+/product/:ean                   карточка товара
+/product/:ean/ai                AI по товару
+/product/:ean/alternatives      альтернативы
+/product/:ean/compare/:ean2     сравнение
+/product/:ean/composition       интерактивный состав
+```
+
+Retail:
+```
+/retail /retail/:storeSlug/dashboard /retail/:storeSlug/products
+/retail/:storeSlug/import /retail/:storeSlug/ean-recovery /retail/:storeSlug/settings
+```
+
+Super Admin:
+```
+/korset-admin/stores
+```
+
+Правило: shopping-flows — только внутри `/s/:storeSlug/`.
+
+---
+
+## 4. Что Работает
+
+Consumer:
+- **HomeScreen** — store entry: header + logo (с бейджем Черновик для владельца, если `is_published = false`), stories, карусель фотографий магазина (с Lightbox), разметка Schema.org с геокоординатами, scan CTA, Fit-Check setup. `src/screens/HomeScreen.jsx`
+- **Scanner** — barcode + ручной ввод EAN.
+- **ProductScreen** — Fit-Check, факты, цена, интерактивный состав с цветовыми маркерами. Кнопки «Поделиться» (Web Share API) и «Копировать ссылку» в углу карусели изображения. `src/screens/ProductScreen.jsx`
+- **CompareScreen** — сравнение товаров с weighted scoring (safety 45, nutrition 28, halal/profile/availability/value/price 18, composition 12, data 6). On-demand AI explanation (sessionStorage cache, auth token for higher rate limit). Data confidence + AI-source chips. Analytics: `compare_events` table (migration 058, RLS: insert for published stores only, select for owner/superadmin). `src/screens/CompareScreen.jsx`
+- **AI Assistant** — store-scoped chat: text + voice (MediaRecorder, 30s) + photo (одно изображение, без сохранения). Локальная история IndexedDB. `/api/ai.js`, `/api/ai-image`, `/api/ai-transcribe`.
+- **CatalogScreen** — 18 категорий, bento, RPC v2 поиск, фильтры/сортировка. ProductCard: `src/components/catalog/CatalogProductCard.jsx`
+- History, favorites (поддержка гостевого чек-листа в localStorage с авто-миграцией при логине), profile, account, сервисные экраны.
+
+Auth:
+- Supabase Auth: Google OAuth, email/password, email OTP. Password recovery. `<ProfileAvatar />`. Валидация: `src/utils/authHelpers.js` (9/9 tests).
+
+Retail:
+- Dashboard (метрики + AI-инсайты + баннер черновика), Products (price/stock, barcode search), Import (CSV/XLS/XLSX), Settings (store data, QR, управление картинками со сжатием, геокоординаты, интеграция Leaflet-карты), EAN Recovery (correction inbox, trusted candidates). Multi-store.
+
+Stores:
+- 4 активных (все в Усть-Каменогорске): Марс (mars, ~12.5K), Береке (bereke, ~11.4K), Нұрлы (nurly, ~4K), Калина (kalina, ~3.3K).
+- Управление: `node scripts/create-store.mjs --slug xxx ...`, `node scripts/deactivate-store.mjs --slug xxx`, `node scripts/seed-store-catalog.mjs --store-slug xxx ...`
+
+Super Admin: `/korset-admin/stores` — премиум Bento-дашборд с KPI, интерактивный SVG-график сканов (14 дней), спарклайны в карточках, умная Drawer-панель управления (CRM, биллинг-пресеты, живой поиск и смена владельцев, менеджер ролей, режим публикации/черновика).
+
+Infrastructure: RLS + JWT. Sentry + Telegram alerts. Offline (SW + IndexedDB). RAG (pgvector). Dark/light themes. Telegram Support Bot.
+
+---
+
+## 5. Ключевые Системы
+
+**Alternatives:** RPC-first (`fn_get_product_alternatives`). Сценарии: similar, fits_me, cheaper, better_composition. Analytics: `alternative_events`. Retail Dashboard: агрегированные сигналы. План: `docs/vault/plans/2026-05-22-alternatives-professional-upgrade-plan.md`.
+
+**SEO / Share:** `api/store-seo.js` (og-метатеги для `/s/:storeSlug`) и `api/product-seo.js` (og-метатеги для `/s/:storeSlug/product/:ean`). product-seo: join `store_products → global_products`, инжектирует og:title/image/description/Schema.org Product. Таблица: `global_products` (поле `image_url`, не `image`). Реврайты в `vercel.json` — порядок критичен: product-route выше store-route.
+
+**Store-Aware AI & B2B Strategy (2026-09-25):** привязан к магазину. Catalog-grounded рекомендации, product cards в чате. Сценарий №1 («Рецепты») законсервирован на паузе до завершения обогащения каталога (ждет быстрый RPC `fn_find_recipe_products`). B2B-стратегия для ритейлеров (спасение потерянных покупок, рост чека, разгрузка персонала зала, аналитика скрытого спроса) и спецификации 4 сценариев зафиксированы в `docs/vault/knowledge/ai-b2b-value-and-scenarios-audit.md`. Launch readiness: `docs/vault/plans/2026-05-18-ai-peak-pilot-launch-readiness-report.md`.
+
+**Catalog Search:** RPC v2, 16 сигналов, token-level, brand aliases + category keywords, KZ нормализация, debounce. V3: 82/83 QA на MARS. Детали: `docs/vault/changelog/2026-05-22-catalog-search-v3-complete.md`.
+
+**Data Import:** ~5,000+ EAN из Arbuz.kz (25+ подкатегорий). Mars синхронизирован (10,228 продуктов). Handbook: `docs/vault/operations/arbuz-scraping-handbook.md`.
+
+**Halal:** Mustakshif (822 YES/11,862), HalalDamu (1,130), AHIK (668), OFF (0.2%). Ingredient-based анализ: 9,532 продукта. Helper: `src/domain/product/halalEvidence.js`. Покрытие частичное, авто-matching ненадёжен.
+
+**Product Normalization:** 9 stages + Compare rebuild 2026-09-24 (6 stages: P0 fix, edge cases + AI cost control, verdict clarity + data confidence chips, "Compare with…" entry, analytics + dashboard metric, a11y). Nutrition mapping, specs, flavor, unit prices. ProductScreen preserves known catalog ingredients/nutrition when a later full fetch is sparse. Compare analytics: `compare_events` table (migration 058, not yet applied). Детали: `docs/vault/plans/2026-09-23-compare-feature-master-plan.md`.
+
+**EAN Integrity:** В V4 устранены легаси-галлюцинации и грязь НКТ/NPC. Альтернативные штрихкоды: ровно **2 553 реальных товара** с заводскими вариациями (через `;`). Баг самодублирования первичного EAN в массив альтернативных устранен.
+
+**Catalog Golden Master V4 (2026-09-25 — Реальный Аудит):**
+- **База:** 58 643 товара FMCG в `global_products` (стерильный фундамент: EAN-13, названия, бренды, категории, цены). Магазин MARS содержит 100% каталога (58 648 строк в `store_products`).
+- **RPC Оптимизация:** RPC `fn_get_store_catalog` ускорена в 13 раз (с 10.2с до 765мс) благодаря покрывающему индексу `idx_gp_cat_name_active` и передаче `p_limit`/`p_offset` напрямую в SQL.
+- **Фотографии Semeiniy.kz (Прорыв):** База Семейного НЕ повреждена. Предыдущая путаница (Ariel/вафли) была вызвана ошибкой парсера: брался шаблон карусели сопутствующих товаров `html/products/images` (множественное) вместо фото карточки `html/product/images` (единственное). В активных категориях витрины Семейного покрытие студийными пакшотами составляет **90–100%**. Извлечение строго через одиночный hero-селектор с отсечением `empty_photo.svg`. Парсятся ВСЕ ракурсы (лицевой `image_url`, массив `images`: лицо, оборот с составом, боковины). Фото Корзины запрещены (водяные знаки).
+- **Пакетная проверка (AI Vision Spot-Check):** Перед массовым импортом первые 200 товаров из разных категорий проверяются через Vision AI. Если 100/100 сходятся идеально — массовый съем идет напрямую без лишних AI-затрат.
+- **Источники & Обогащение:** Сняты искусственные лимиты. Все 8 ключевых сетей (Семейный, Arbuz, ВкусМарт, Астыкжан, Clevermarket, Galmart, Interfood, Дина/Корзина) + KDV и OFF участвуют в консенсус-движке по 30 атрибутам упаковки и Халал-сигналам.
+
+**Product Submissions:** неизвестный EAN → фото с упаковки в `ProductSubmissionSheet.jsx` → загрузка в Supabase Storage (`public-assets/submissions/<ean>/...`) → запись в `product_correction_events`. Обработка: `npm run submissions:process` (`scripts/process-submissions.mjs`) через Vision AI (Gemini / OpenAI) с извлечением названия, состава, КБЖУ, категории и апсертом в `global_products` и `store_products`. Документ: `docs/vault/knowledge/product-submission-pipeline.md`.
+
+**Keto:** net-carb (fiber-aware), tag extraction. 12.1% safe, 87.9% caution (11,862 продуктов).
+
+---
+
+## 6. Рабочие Контракты
+
+**Auth:** 0 hardcoded colors, 0 dead code. Email-шаблоны готовы в vault, нужна ручная вставка в Supabase Dashboard.
+
+**i18n:** `src/locales/{ru,kz}/*.json`. Проверка: `node scripts/check-i18n.mjs`. Новый текст — только через `useI18n`, никогда не хардкодить.
+
+**Design:** Dark/light через CSS-токены. Без raw `#fff`/`#000` для core UI. Аватары: `<ProfileAvatar />`. Без gradient-filled text для типографики.
+
+**Data:** 18 категорий. Unknown EAN = data-improvement, не повод выдумывать AI-ответ.
+
+---
+
+## 7. Memory System
+
+Слои:
+- `AGENTS.md` — правила поведения. `docs/CONTEXT.md` — быстрый вход.
+- `docs/ARCHITECTURE.md` — карта архитектуры. `docs/ROADMAP_PILOT_V1.md` — приоритеты.
+- `docs/vault/knowledge/agent-operating-rules-full.md` — полные правила агента.
+- `docs/vault/knowledge/model-routing-and-cost-control.md` — роутинг моделей и бюджет.
+- `.agent/skills/` — project skills (cleanup, korset-check).
+- `docs/vault/architecture/` — system docs. `docs/vault/knowledge/` — исследования.
+- `docs/vault/decisions/` — важные решения. `docs/vault/plans/` — планы/аудиты.
+- `docs/vault/changelog/` — датированные session notes.
+
+Старт задачи: прочитать AGENTS.md + этот файл → targeted search → Vault RAG если нужна глубокая память.
+Движок памяти: Google Gemini 1536d + Supabase pgvector + Hybrid RRF ($0 cost). Azure полностью ликвидирован (`docs/vault/decisions/2026-09-25-purge-azure-and-adopt-gemini-hybrid-rag.md`).
+
+Команды:
+```bash
+node scripts/query-vault.mjs "query" --domain architecture --count 5
+npm run memory:save
+```
+
+**Не добавлять сюда session logs. Детали — в vault.**
+
+---
+
+## 8. Verification
+
+```bash
+npm run build && npm run lint && npm run test:unit
+node scripts/check-i18n.mjs
+```
+
+UI: browser/Playwright smoke. Data scripts: dry-run перед боевым запуском.
+
+---
+
+## 9. Куда Смотреть
+
+Главные указатели:
+- `AGENTS.md` — правила. `docs/ARCHITECTURE.md` — архитектура. `docs/ROADMAP_PILOT_V1.md` — roadmap.
+- `docs/vault/knowledge/agent-operating-rules-full.md` — полные правила и гайдлайны.
+- `docs/vault/knowledge/model-routing-and-cost-control.md` — распределение моделей и экономия квоты.
+- `docs/vault/architecture/` — auth, offline, fit-check, category, EAN recovery.
+- `docs/vault/knowledge/data-moat-pipeline-strategy.md` — стратегия данных.
+- `docs/vault/knowledge/product-submission-pipeline.md` — пайплайн обработки заявок и фото товаров (`npm run submissions:process`).
+- `docs/vault/plans/2026-09-25-profile-screen-redesign-handoff-and-stages.md` — поэтапный план и требования по редизайну ProfileScreen (табы, список покупок, чипы).
+- `docs/vault/changelog/` — последние session notes.
+- `docs/vault/changelog/2026-06-14-context-cleanup-archive.md` — что удалено из CONTEXT.md и почему.

@@ -42,6 +42,7 @@ import SpecsGrid from '../components/product/SpecsGrid.jsx'
 import SectionLabel from '../components/product/SectionLabel.jsx'
 import ProductSubmissionSheet from '../components/product/ProductSubmissionSheet.jsx'
 import { AlertTriangleIcon, CameraIcon } from '../components/icons/index.js'
+import { getAllergenShortName } from '../constants/allergens.js'
 
 function getManufacturerText(product) {
   if (!product) return ''
@@ -700,6 +701,11 @@ export default function ProductScreen() {
             {subtitleText}
           </div>
         )}
+        {lang !== 'kz' && product.nameKz && product.nameKz !== product.name && (
+          <div style={{ fontSize: 13, color: 'var(--text-dim)', marginTop: -8, fontStyle: 'italic' }}>
+            {product.nameKz}
+          </div>
+        )}
 
         {/* 4. Collapsible Fit-Check */}
         <CollapsibleFitCheck severityKey={severityKey} reasons={reasons} />
@@ -755,7 +761,7 @@ export default function ProductScreen() {
         <NutritionUnified nutrition={product.nutritionPer100} product={product} />
 
         {/* 7. Ingredients */}
-        {product.ingredients && (
+        {Boolean(product.ingredients || product.ingredientsKz) && (
           <IngredientsPreview
             product={product}
             profile={profile}
@@ -766,6 +772,106 @@ export default function ProductScreen() {
             }
             onAskAI={handleAskIngredientAI}
           />
+        )}
+
+        {/* 7b. Allergens & Traces Declaration */}
+        {(Boolean(product.allergens?.length) || Boolean(product.traces?.length)) && (
+          <div
+            style={{
+              background: 'var(--glass-subtle)',
+              border: '1px solid var(--line-soft)',
+              borderRadius: 14,
+              padding: '12px 14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: 'var(--text-dim)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+              }}
+            >
+              {t('product.allergens')}
+            </div>
+            {product.allergens?.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {product.allergens.map((id) => (
+                  <span
+                    key={id}
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      padding: '3px 8px',
+                      borderRadius: 6,
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      color: 'var(--red)',
+                      border: '1px solid rgba(239, 68, 68, 0.25)',
+                    }}
+                  >
+                    {getAllergenShortName(id, lang)}
+                  </span>
+                ))}
+              </div>
+            )}
+            {product.traces?.length > 0 && (
+              <div style={{ fontSize: 12, color: 'var(--text-soft)', marginTop: 2 }}>
+                <span style={{ color: 'var(--text-dim)', fontWeight: 600 }}>
+                  {t('product.traces')}:
+                </span>{' '}
+                {product.traces.map((id) => getAllergenShortName(id, lang)).join(', ')}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 7c. Additives (E-numbers) */}
+        {Array.isArray(product.additivesTags) && product.additivesTags.length > 0 && (
+          <div
+            style={{
+              background: 'var(--glass-subtle)',
+              border: '1px solid var(--line-soft)',
+              borderRadius: 14,
+              padding: '12px 14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 6,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: 'var(--text-dim)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+              }}
+            >
+              {t('product.additives')}
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {product.additivesTags.map((tag, idx) => (
+                <span
+                  key={idx}
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: '2px 7px',
+                    borderRadius: 6,
+                    background: 'rgba(245, 158, 11, 0.12)',
+                    color: '#D97706',
+                    border: '1px solid rgba(245, 158, 11, 0.25)',
+                  }}
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* 8. Characteristics */}
@@ -793,6 +899,73 @@ export default function ProductScreen() {
             >
               {product.description}
             </div>
+          </div>
+        )}
+
+        {/* 9b. Barcodes & Packaging Identifiers */}
+        {product.ean && (
+          <div
+            style={{
+              background: 'var(--glass-subtle)',
+              border: '1px solid var(--line-soft)',
+              borderRadius: 14,
+              padding: '12px 14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 6,
+            }}
+          >
+            <div
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+            >
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: 'var(--text-dim)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                }}
+              >
+                {t('product.barcode')}
+              </span>
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: 800,
+                  fontFamily: 'monospace',
+                  letterSpacing: '0.04em',
+                  color: 'var(--text)',
+                }}
+              >
+                {product.ean}
+              </span>
+            </div>
+            {Array.isArray(product.alternateEans) && product.alternateEans.length > 0 && (
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  paddingTop: 6,
+                  borderTop: '1px solid var(--line-soft)',
+                }}
+              >
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-dim)' }}>
+                  {t('product.alternateEans')}
+                </span>
+                <span
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    fontFamily: 'monospace',
+                    color: 'var(--text-soft)',
+                  }}
+                >
+                  {product.alternateEans.join(', ')}
+                </span>
+              </div>
+            )}
           </div>
         )}
 

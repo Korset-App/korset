@@ -98,10 +98,11 @@ async function findGlobalProductByEan(ean) {
       .from('global_products')
       .select('*')
       .eq('ean', ean)
-      .eq('is_active', true)
-      .maybeSingle()
+      .order('is_active', { ascending: false })
+      .limit(1)
 
-    if (data) return normalizeGlobalProduct(data)
+    const product = data?.[0]
+    if (product) return normalizeGlobalProduct(product)
     return null
   } catch {
     return null
@@ -139,7 +140,6 @@ async function findGlobalProductById(id) {
       .from('global_products')
       .select('*')
       .eq('id', id)
-      .eq('is_active', true)
       .maybeSingle()
 
     if (error || !data) return null

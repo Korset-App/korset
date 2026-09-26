@@ -1,3 +1,5 @@
+import { useNavigate } from 'react-router-dom'
+import { useStore } from '../../contexts/StoreContext.jsx'
 import ProductMiniCard from '../ProductMiniCard.jsx'
 import './ProfileStatsTabs.css'
 
@@ -9,23 +11,6 @@ import './ProfileStatsTabs.css'
  *   2. Visible gap (~12px).
  *   3. Single expandable panel beneath, rounded all four corners, content
  *      morphs based on the active tab.
- *
- * Notable cross-browser concerns (and how we handle them):
- *
- * - FRAMER-MOTION + height:'auto' has a long-standing Firefox bug where
- *   the wrapper occasionally collapses to height=0 on first render, hiding
- *   tab content entirely (this is exactly what you observed). We avoid it
- *   by using a CSS grid-template-rows transition (`0fr ↔ 1fr`) which works
- *   identically in Chromium, Firefox, WebKit, and the iOS WebView.
- * - AnimatePresence with mode="popLayout" requires layout measurements that
- *   sometimes fail in Firefox under certain transform parents. We use a
- *   plain key-based crossfade with regular CSS animation here.
- * - backdrop-filter: blur() has a graceful fallback applied via @supports
- *   in the .css file; older Firefox falls back to a slightly more opaque
- *   solid background so the cards remain readable.
- *
- * Accepts pre-rendered `preferencesContent` so the parent owns its complex
- * Diet/Allergens form state.
  */
 export default function ProfileStatsTabs({
   activeTab,
@@ -40,10 +25,48 @@ export default function ProfileStatsTabs({
   onViewAllFavorites,
   onViewAllHistory,
   onAuthPrompt,
+  onRemoveFavorite,
   t,
   isGuest,
 }) {
+  const { currentStore } = useStore()
+  const navigate = useNavigate()
   const toggleTab = (tab) => onTabChange(activeTab === tab ? null : tab)
+
+  const handleOpenCatalog = () => {
+    navigate(currentStore?.slug ? `/s/${currentStore.slug}/catalog` : '/catalog')
+  }
+
+  const handleShareList = async () => {
+    if (!topFavorites || topFavorites.length === 0) return
+    const storeName = currentStore?.name || 'Körset'
+    const itemsText = topFavorites
+      .map((p, idx) => {
+        const name = p.nameRu || p.name || `Товар ${p.ean || ''}`
+        const priceStr = p.priceKzt ? ` — ${p.priceKzt.toLocaleString('ru-RU')} ₸` : ''
+        return `${idx + 1}. ${name}${priceStr}`
+      })
+      .join('\n')
+    const pricedProducts = topFavorites.filter(
+      (p) => p && typeof p.priceKzt === 'number' && p.priceKzt > 0
+    )
+    const totalSum = pricedProducts.reduce((sum, p) => sum + p.priceKzt, 0)
+    const totalStr = totalSum > 0 ? `\n\nИтого: ~${totalSum.toLocaleString('ru-RU')} ₸` : ''
+    const shareText = `🛒 Список покупок (${storeName}):\n${itemsText}${totalStr}\n\nСоставлено в Körset`
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: `Список покупок (${storeName})`,
+          text: shareText,
+        })
+        return
+      } catch (err) {
+        if (err.name === 'AbortError') return
+      }
+    }
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`
+    window.open(whatsappUrl, '_blank')
+  }
 
   const tabs = [
     {
@@ -55,22 +78,20 @@ export default function ProfileStatsTabs({
       iconBorder: 'rgba(251,191,36,0.55)',
       iconShadow: '0 4px 22px rgba(245,158,11,0.36)',
       icon: (
-        <svg
-          width="22"
-          height="22"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#F59E0B"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+        <span
+          className="material-symbols-outlined"
+          style={{
+            fontSize: 22,
+            color: '#F59E0B',
+            lineHeight: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          aria-hidden="true"
         >
-          <path d="M2 12C2 7.28595 2 4.92893 3.46447 3.46447C4.92893 2 7.28595 2 12 2C16.714 2 19.0711 2 20.5355 3.46447C22 4.92893 22 7.28595 22 12C22 16.714 22 19.0711 20.5355 20.5355C19.0711 22 16.714 22 12 22C7.28595 22 4.92893 22 3.46447 20.5355C2 19.0711 2 16.714 2 12Z" />
-          <path d="M6 15.8L7.14286 17L10 14" />
-          <path d="M6 8.8L7.14286 10L10 7" />
-          <path d="M13 9L18 9" />
-          <path d="M13 16L18 16" />
-        </svg>
+          checklist
+        </span>
       ),
     },
     {
@@ -83,8 +104,8 @@ export default function ProfileStatsTabs({
       iconShadow: '0 4px 22px rgba(124,58,237,0.36)',
       icon: (
         <svg
-          width="22"
-          height="22"
+          width="20"
+          height="20"
           viewBox="0 0 24 24"
           fill="none"
           stroke="#A78BFA"
@@ -113,8 +134,8 @@ export default function ProfileStatsTabs({
       iconShadow: '0 4px 22px rgba(16,185,129,0.32)',
       icon: (
         <svg
-          width="22"
-          height="22"
+          width="20"
+          height="20"
           viewBox="0 0 24 24"
           fill="none"
           stroke="#34D399"
@@ -138,28 +159,94 @@ export default function ProfileStatsTabs({
         return <TabSpinner text={t('profile.favoritesLoading') || t('common.loading')} />
       }
       if (topFavorites && topFavorites.length > 0) {
+        const pricedProducts = topFavorites.filter(
+          (p) => p && typeof p.priceKzt === 'number' && p.priceKzt > 0
+        )
+        const totalSum = pricedProducts.reduce((sum, p) => sum + p.priceKzt, 0)
+        const displayItems = topFavorites.slice(0, 6)
+
         return (
           <>
+            <div className="stats-tabs__store-bar">
+              <div className="stats-tabs__store-info">
+                <span className="stats-tabs__store-pin" aria-hidden="true">📍</span>
+                <span className="stats-tabs__store-name">
+                  {currentStore?.name || t('profile.inStore') || 'В магазине'}
+                </span>
+                <span className="stats-tabs__store-status">
+                  <span className="stats-tabs__store-dot" />
+                  {t('profile.storePricesLive') || 'Цены актуальны'}
+                </span>
+              </div>
+              <button
+                type="button"
+                className="stats-tabs__share-btn"
+                onClick={handleShareList}
+                aria-label={t('profile.shareList') || 'Поделиться'}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="18" cy="5" r="3" />
+                  <circle cx="6" cy="12" r="3" />
+                  <circle cx="18" cy="19" r="3" />
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                </svg>
+                <span>{t('profile.shareList') || 'Поделиться'}</span>
+              </button>
+            </div>
+
             <div className="stats-tabs__grid">
-              {topFavorites.map((p) => (
-                <ProductMiniCard key={p.ean || p.id} product={p} />
+              {displayItems.map((p) => (
+                <ProductMiniCard
+                  key={p.ean || p.id}
+                  product={p}
+                  onRemove={onRemoveFavorite ? () => onRemoveFavorite(p) : undefined}
+                />
               ))}
             </div>
-            {favoritesCount > topFavorites.length && (
-              <button type="button" className="stats-tabs__view-all" onClick={onViewAllFavorites}>
-                {t('profile.viewAll')}
+
+            <div className="stats-tabs__footer-bar">
+              <div className="stats-tabs__footer-total">
+                <span className="stats-tabs__footer-total-label">
+                  {t('profile.totalInStore') || 'Итого в магазине:'}
+                </span>
+                <span className="stats-tabs__footer-total-sum">
+                  {totalSum > 0
+                    ? `~${totalSum.toLocaleString('ru-RU')} ₸`
+                    : `${favoritesCount || topFavorites.length} тов.`}
+                </span>
+              </div>
+              <button
+                type="button"
+                className="stats-tabs__footer-view-all"
+                onClick={onViewAllFavorites}
+              >
+                <span>{t('profile.viewAll') || 'Посмотреть все'}</span>
+                {favoritesCount > 0 && (
+                  <span className="stats-tabs__footer-count">({favoritesCount})</span>
+                )}
                 <ChevronRightIcon />
               </button>
-            )}
+            </div>
           </>
         )
       }
       return (
-        <TabEmptyState
-          tone="favorites"
-          title={isGuest ? t('profile.favoritesEmptyGuest') : t('profile.favoritesEmpty')}
-          hint={isGuest ? t('profile.favoritesEmptyGuestHint') : t('profile.favoritesEmptyHint')}
-          onClick={isGuest ? onAuthPrompt : undefined}
+        <ShoppingListEmptyState
+          title={t('profile.favoritesEmpty')}
+          hint={t('profile.favoritesEmptyHint')}
+          onOpenCatalog={handleOpenCatalog}
+          t={t}
         />
       )
     }
@@ -169,19 +256,28 @@ export default function ProfileStatsTabs({
         return <TabSpinner text={t('profile.historyLoading') || t('common.loading')} />
       }
       if (topHistory && topHistory.length > 0) {
+        const displayItems = topHistory.slice(0, 6)
+
         return (
           <>
             <div className="stats-tabs__grid">
-              {topHistory.map((p) => (
+              {displayItems.map((p) => (
                 <ProductMiniCard key={`${p.ean || p.id}-${p.scanDate || ''}`} product={p} />
               ))}
             </div>
-            {scanCount > topHistory.length && (
-              <button type="button" className="stats-tabs__view-all" onClick={onViewAllHistory}>
-                {t('profile.viewAll')}
+            <div className="stats-tabs__footer-bar" style={{ justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                className="stats-tabs__footer-view-all"
+                onClick={onViewAllHistory}
+              >
+                <span>{t('profile.viewAll') || 'Вся история'}</span>
+                {scanCount > 0 && (
+                  <span className="stats-tabs__footer-count">({scanCount})</span>
+                )}
                 <ChevronRightIcon />
               </button>
-            )}
+            </div>
           </>
         )
       }
@@ -320,8 +416,141 @@ const TONE_STYLES = {
   },
 }
 
+function CraftPaperBagIllustration() {
+  return (
+    <div className="craft-bag-scene" aria-hidden="true">
+      <div className="craft-bag-floating">
+        <svg
+          width="96"
+          height="96"
+          viewBox="0 0 120 120"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className="craft-bag-svg"
+        >
+          <defs>
+            <linearGradient id="craftGrad" x1="20" y1="35" x2="100" y2="105" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#F59E0B" />
+              <stop offset="50%" stopColor="#D97706" />
+              <stop offset="100%" stopColor="#B45309" />
+            </linearGradient>
+            <linearGradient id="craftSideGrad" x1="24" y1="40" x2="45" y2="100" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#D97706" />
+              <stop offset="100%" stopColor="#92400E" />
+            </linearGradient>
+            <linearGradient id="leafGrad" x1="65" y1="15" x2="90" y2="40" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#34D399" />
+              <stop offset="100%" stopColor="#059669" />
+            </linearGradient>
+            <linearGradient id="cordGrad" x1="40" y1="12" x2="80" y2="35" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#FDE68A" />
+              <stop offset="100%" stopColor="#D97706" />
+            </linearGradient>
+          </defs>
+
+          {/* Sparkles */}
+          <path
+            d="M22 28L24 22L30 20L24 18L22 12L20 18L14 20L20 22L22 28Z"
+            fill="#FBBF24"
+            className="craft-bag-sparkle craft-bag-sparkle--1"
+          />
+          <path
+            d="M102 42L103.5 37.5L108 36L103.5 34.5L102 30L100.5 34.5L96 36L100.5 37.5L102 42Z"
+            fill="#FCD34D"
+            className="craft-bag-sparkle craft-bag-sparkle--2"
+          />
+
+          {/* Green Eco Leaf */}
+          <path
+            d="M68 36C68 36 67 18 84 16C87 28 78 37 70 38"
+            fill="url(#leafGrad)"
+          />
+          <path
+            d="M69 35C74 27 81 22 84 16"
+            stroke="#A7F3D0"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+
+          {/* Back Handle */}
+          <path
+            d="M48 42V25C48 18 53 14 60 14C67 14 72 18 72 25V42"
+            stroke="url(#cordGrad)"
+            strokeWidth="3.5"
+            strokeLinecap="round"
+            fill="none"
+          />
+
+          {/* Bag Body */}
+          <path
+            d="M28 42L34 102C34.5 105.5 37.5 108 41 108H79C82.5 108 85.5 105.5 86 102L92 42H28Z"
+            fill="url(#craftGrad)"
+          />
+
+          {/* Bag Side Fold */}
+          <path
+            d="M28 42L34 102C34.5 105.5 37.5 108 41 108L47 108L41 42H28Z"
+            fill="url(#craftSideGrad)"
+            opacity="0.45"
+          />
+
+          {/* Folded Top Rim */}
+          <path
+            d="M26 40C26 38.5 27 37 28.5 37H91.5C93 37 94 38.5 94 40L92 44C91.5 45 90.5 45.5 89.5 45.5H30.5C29.5 45.5 28.5 45 28 44L26 40Z"
+            fill="#FBBF24"
+          />
+          <path
+            d="M28.5 37H91.5"
+            stroke="#D97706"
+            strokeWidth="1.5"
+          />
+
+          {/* Front Handle */}
+          <path
+            d="M44 45V27C44 20 49 16 56 16C63 16 68 20 68 27V45"
+            stroke="url(#cordGrad)"
+            strokeWidth="3.5"
+            strokeLinecap="round"
+            fill="none"
+          />
+          <rect x="41.5" y="43" width="5" height="7" rx="1.5" fill="#B45309" />
+          <rect x="65.5" y="43" width="5" height="7" rx="1.5" fill="#B45309" />
+
+          {/* Small Check Badge */}
+          <circle cx="60" cy="74" r="9" fill="rgba(255, 255, 255, 0.22)" />
+          <path
+            d="M56 74L58.5 76.5L64 71"
+            stroke="#FFFBEB"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </div>
+      <div className="craft-bag-shadow" />
+    </div>
+  )
+}
+
+function ShoppingListEmptyState({ title, hint, onOpenCatalog, t }) {
+  return (
+    <div className="stats-tabs__empty stats-tabs__empty--craft">
+      <CraftPaperBagIllustration />
+      <div className="stats-tabs__empty-title">{title}</div>
+      <div className="stats-tabs__empty-hint">{hint}</div>
+      <button
+        type="button"
+        className="stats-tabs__empty-catalog-btn"
+        onClick={onOpenCatalog}
+      >
+        {t('profile.openCatalogBtn') || 'Открыть каталог →'}
+      </button>
+    </div>
+  )
+}
+
 function TabEmptyState({ tone, title, hint, onClick }) {
-  const cfg = TONE_STYLES[tone] || TONE_STYLES.favorites
+  const cfg = TONE_STYLES[tone] || TONE_STYLES.history
   return (
     <div
       className="stats-tabs__empty"

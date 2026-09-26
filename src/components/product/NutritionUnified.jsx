@@ -12,6 +12,21 @@ function fmt(v) {
   return Number.isInteger(n) ? String(n) : n.toFixed(1)
 }
 
+const NUTRI_COLORS = {
+  A: '#038141',
+  B: '#85BB2F',
+  C: '#FECB02',
+  D: '#EE8100',
+  E: '#E63E11',
+}
+
+const NOVA_COLORS = {
+  1: '#00AA00',
+  2: '#E5A800',
+  3: '#FF6600',
+  4: '#CC0000',
+}
+
 function MacroRow({ label, value, color, unitLabel }) {
   return (
     <div
@@ -135,8 +150,16 @@ export default function NutritionUnified({ nutrition, product = null }) {
   const carbs = activeNutrition.carbs ?? activeNutrition.carbohydrates_100g
   const sugar = activeNutrition.sugar ?? activeNutrition.sugars_100g ?? activeNutrition.sugars
   const salt = activeNutrition.salt ?? activeNutrition.salt_100g
+  const saturatedFat =
+    activeNutrition.saturatedFat ??
+    activeNutrition['saturated-fat_100g'] ??
+    product?.saturatedFat100g ??
+    product?.nutritionPer100?.saturatedFat
 
-  const hasAny = [kcal, protein, fat, carbs, sugar, salt].some((v) => v != null)
+  const nutriscore = (product?.nutriscore || '').trim().toUpperCase()
+  const novaGroup = product?.novaGroup ?? product?.nova_group
+
+  const hasAny = [kcal, protein, fat, carbs, sugar, salt, saturatedFat].some((v) => v != null)
   if (!hasAny) return null
 
   const hasSugarSalt = sugar != null || salt != null
@@ -330,6 +353,27 @@ export default function NutritionUnified({ nutrition, product = null }) {
           </div>
         </div>
 
+        {saturatedFat != null && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '6px 12px',
+              fontSize: 11,
+              color: 'var(--text-dim)',
+              background: 'var(--glass-subtle)',
+              borderRadius: 8,
+              marginBottom: hasSugarSalt ? 10 : 0,
+            }}
+          >
+            <span>{t('product.saturatedFat')}</span>
+            <span style={{ fontWeight: 700, color: 'var(--text)' }}>
+              {fmt(saturatedFat)} {unitG}
+            </span>
+          </div>
+        )}
+
         {hasSugarSalt && (
           <div
             style={{
@@ -361,6 +405,76 @@ export default function NutritionUnified({ nutrition, product = null }) {
                 thresholdValue={saltBase}
                 t={t}
               />
+            )}
+          </div>
+        )}
+
+        {(Boolean(NUTRI_COLORS[nutriscore]) ||
+          (novaGroup != null && Boolean(NOVA_COLORS[Number(novaGroup)]))) && (
+          <div
+            style={{
+              display: 'flex',
+              gap: 8,
+              marginTop: 14,
+              paddingTop: 12,
+              borderTop: '1px solid var(--line-soft)',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+            }}
+          >
+            {Boolean(NUTRI_COLORS[nutriscore]) && (
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: `${NUTRI_COLORS[nutriscore]}18`,
+                  border: `1px solid ${NUTRI_COLORS[nutriscore]}50`,
+                  borderRadius: 8,
+                  padding: '4px 8px',
+                }}
+              >
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-dim)' }}>
+                  Nutri-Score
+                </span>
+                <span
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 900,
+                    color: NUTRI_COLORS[nutriscore],
+                    lineHeight: 1,
+                  }}
+                >
+                  {nutriscore}
+                </span>
+              </div>
+            )}
+            {novaGroup != null && Boolean(NOVA_COLORS[Number(novaGroup)]) && (
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: `${NOVA_COLORS[Number(novaGroup)]}18`,
+                  border: `1px solid ${NOVA_COLORS[Number(novaGroup)]}50`,
+                  borderRadius: 8,
+                  padding: '4px 8px',
+                }}
+              >
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-dim)' }}>
+                  NOVA
+                </span>
+                <span
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 900,
+                    color: NOVA_COLORS[Number(novaGroup)],
+                    lineHeight: 1,
+                  }}
+                >
+                  {novaGroup}
+                </span>
+              </div>
             )}
           </div>
         )}
