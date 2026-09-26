@@ -46,6 +46,21 @@ function preserveBaseFactsWhenFullIsSparse(baseProduct, fullProduct) {
     'quantity',
     'quantityParsed',
     'specs',
+    'storageConditions',
+    'shelfLife',
+    'packagingType',
+    'cookingInstructions',
+    'halalStatus',
+    'halalCertifier',
+    'halalNotes',
+    'fatPercent',
+    'flavor',
+    'manufacturer',
+    'country',
+    'alternateEans',
+    'nutriscore',
+    'novaGroup',
+    'saturatedFat100g',
   ]
 
   for (const key of factKeys) {

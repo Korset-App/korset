@@ -10,6 +10,9 @@ const MODES = {
     ['node', ['--check', 'scripts/query-vault.mjs']],
     ['node', ['--check', 'scripts/embed-vault.mjs']],
     ['node', ['--check', 'scripts/agent-check.mjs']],
+    ['node', ['scripts/memory-save.mjs']],
+    ['node', ['--test', 'tests/unit/vaultWorkflow.test.mjs']],
+    ['node', ['--test', 'tests/unit/jevWorkflow.test.mjs']],
   ],
   quick: [
     ['git', ['diff', '--check']],
@@ -30,6 +33,7 @@ const MODES = {
     ['npm', ['run', 'test:unit']],
     ['npm', ['run', 'lint']],
     ['npm', ['run', 'build']],
+    ['npm', ['run', 'test:pwa']],
   ],
 }
 

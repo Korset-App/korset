@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync, statSync, writeFileSync, existsSync } from 'fs'
+import { readFileSync, readdirSync, existsSync } from 'fs'
 import { join } from 'path'
 import { createHash } from 'crypto'
 import { createClient } from '@supabase/supabase-js'
@@ -24,20 +24,31 @@ function loadEnvFile() {
 loadEnvFile()
 
 const VAULT_DIR = join(process.cwd(), 'docs', 'vault')
-const EMBEDDING_MODEL = 'text-embedding-3-small'
 const EMBEDDING_DIMENSIONS = 1536
 const MAX_CHUNK_TOKENS = 500
 const OVERLAP_TOKENS = 50
-const BATCH_SIZE = 100
+const BATCH_SIZE = 50
 const MAX_RETRIES = 3
 const RETRY_BASE_MS = 1000
-// changelog = session logs, archive = completed work. Both dilute retrieval precision
-// without adding durable knowledge. Files stay on disk for Obsidian, just not in RAG.
 const IGNORED_DIRS = new Set(['.obsidian', 'changelog', 'archive'])
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+const GEMINI_KEY = process.env.GEMINI_API_KEY
 const OPENAI_KEY = process.env.OPENAI_API_KEY
+const OPENAI_BASE_URL = process.env.OPENAI_API_BASE_URL || ''
+const EMBEDDINGS_API_KEY = process.env.EMBEDDINGS_API_KEY
+
+// Primary zero-cost provider: Google Gemini 1536d
+// Secondary provider: OpenAI text-embedding-3-small if EMBEDDINGS_API_KEY is explicitly provided
+const activeProvider = GEMINI_KEY
+  ? 'gemini'
+  : EMBEDDINGS_API_KEY
+    ? 'openai'
+    : (!OPENAI_BASE_URL || OPENAI_BASE_URL.includes('openai.com')) && OPENAI_KEY
+      ? 'openai'
+      : null
 
 function log(msg) {
   console.log(`[embed-vault] ${msg}`)
@@ -51,10 +62,6 @@ function err(msg) {
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   err('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY required in .env.local')
-  process.exit(1)
-}
-if (!OPENAI_KEY) {
-  err('OPENAI_API_KEY required in .env.local')
   process.exit(1)
 }
 
@@ -71,14 +78,22 @@ function sleep(ms) {
 }
 
 async function retry(fn, label) {
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+  for (let attempt = 1; attempt <= 12; attempt++) {
     try {
-      return await fn()
+      const res = await fn()
+      await sleep(350) // polite pacing to respect 100 RPM limit
+      return res
     } catch (e) {
-      const delay = RETRY_BASE_MS * Math.pow(2, attempt - 1)
-      if (attempt < MAX_RETRIES) {
+      let delay = RETRY_BASE_MS * Math.pow(2, attempt - 1)
+      const waitMatch = e.message.match(/retry in ([\d.]+)s/i)
+      if (waitMatch) {
+        delay = Math.ceil(parseFloat(waitMatch[1]) * 1000) + 2000
+      } else if (e.message.toLowerCase().includes('quota')) {
+        delay = 65000 // Google AI Studio minute window reset
+      }
+      if (attempt < 12) {
         warn(
-          `${label} failed (attempt ${attempt}/${MAX_RETRIES}), retrying in ${delay}ms: ${e.message}`
+          `${label} notice (attempt ${attempt}/12), waiting ${Math.ceil(delay / 1000)}s: ${e.message.slice(0, 140)}...`
         )
         await sleep(delay)
       } else {
@@ -143,11 +158,9 @@ function splitVaultPath(relPath) {
 
 function detectLang(text) {
   const cyrillicKz = /[әғқңөұүһі]/i
-  const hasKzChars = cyrillicKz.test(text)
-  if (hasKzChars) return 'kz'
+  if (cyrillicKz.test(text)) return 'kz'
   const cyrillicRu = /[а-яё]/i
-  const hasRuChars = cyrillicRu.test(text)
-  if (hasRuChars) return 'ru'
+  if (cyrillicRu.test(text)) return 'ru'
   return 'en'
 }
 
@@ -251,6 +264,7 @@ async function getExistingHashes(sourceFile) {
     .from('vault_embeddings')
     .select('content_hash')
     .eq('source_file', sourceFile)
+    .limit(10000)
 
   if (error) {
     warn(`Failed to fetch existing hashes for ${sourceFile}: ${error.message}`)
@@ -260,7 +274,7 @@ async function getExistingHashes(sourceFile) {
 }
 
 async function getExistingSourceFiles() {
-  const { data, error } = await supabase.from('vault_embeddings').select('source_file')
+  const { data, error } = await supabase.from('vault_embeddings').select('source_file').limit(50000)
 
   if (error) {
     warn(`Failed to fetch existing source files: ${error.message}`)
@@ -270,61 +284,77 @@ async function getExistingSourceFiles() {
 }
 
 async function generateEmbeddings(texts) {
-  const batchSize = BATCH_SIZE
+  if (activeProvider === 'gemini') {
+    return generateGeminiEmbeddings(texts)
+  }
+  if (activeProvider === 'openai') {
+    return generateOpenAiEmbeddings(texts)
+  }
+  throw new Error('No valid embedding provider configured (GEMINI_API_KEY or EMBEDDINGS_API_KEY required)')
+}
+
+async function generateGeminiEmbeddings(texts) {
+  const allEmbeddings = []
+  for (let i = 0; i < texts.length; i += BATCH_SIZE) {
+    const batch = texts.slice(i, i + BATCH_SIZE)
+    const requests = batch.map((t) => ({
+      model: 'models/gemini-embedding-2',
+      content: { parts: [{ text: t }] },
+      outputDimensionality: EMBEDDING_DIMENSIONS,
+    }))
+
+    const response = await retry(async () => {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:batchEmbedContents?key=${GEMINI_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requests }),
+        }
+      )
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error?.message || `Gemini Embeddings HTTP ${res.status}`)
+      }
+      return res.json()
+    }, `Gemini batch ${Math.floor(i / BATCH_SIZE) + 1}`)
+
+    const embeddings = response.embeddings.map((e) => e.values)
+    allEmbeddings.push(...embeddings)
+  }
+  return allEmbeddings
+}
+
+async function generateOpenAiEmbeddings(texts) {
+  const key = EMBEDDINGS_API_KEY || OPENAI_KEY
+  const base = (process.env.EMBEDDINGS_API_BASE_URL || 'https://api.openai.com/v1').replace(/\/+$/, '')
   const allEmbeddings = []
 
-  for (let i = 0; i < texts.length; i += batchSize) {
-    const batch = texts.slice(i, i + batchSize)
-    const response = await retry(
-      async () => {
-        let fetchUrl = 'https://api.openai.com/v1/embeddings'
-        const headers = {
+  for (let i = 0; i < texts.length; i += BATCH_SIZE) {
+    const batch = texts.slice(i, i + BATCH_SIZE)
+    const response = await retry(async () => {
+      const res = await fetch(`${base}/embeddings`, {
+        method: 'POST',
+        headers: {
           'Content-Type': 'application/json',
-        }
-        const requestBody = {
+          Authorization: `Bearer ${key}`,
+        },
+        body: JSON.stringify({
           input: batch,
-        }
-
-        const azureEndpointBase = process.env.AZURE_OPENAI_ENDPOINT_BASE
-        const azureApiKey = process.env.AZURE_OPENAI_KEY
-        const openAiBaseUrl = process.env.OPENAI_API_BASE_URL
-
-        if (azureEndpointBase && azureApiKey) {
-          const deploymentName = process.env.AZURE_OPENAI_EMBEDDING_DEPLOYMENT || EMBEDDING_MODEL
-          const apiVersion = process.env.AZURE_OPENAI_API_VERSION || '2024-02-15-preview'
-          const cleanBase = azureEndpointBase.replace(/^https?:\/\//, '').replace(/\/+$/, '')
-          fetchUrl = `https://${cleanBase}/openai/deployments/${deploymentName}/embeddings?api-version=${apiVersion}`
-          headers['api-key'] = azureApiKey
-          requestBody.model = deploymentName
-        } else {
-          const base = openAiBaseUrl || 'https://api.openai.com/v1'
-          fetchUrl = `${base.replace(/\/+$/, '')}/embeddings`
-          headers['Authorization'] = `Bearer ${OPENAI_KEY}`
-          if (fetchUrl.includes('.azure.com') || fetchUrl.includes('.services.ai.azure.com')) {
-            headers['api-key'] = OPENAI_KEY
-          }
-          requestBody.model = EMBEDDING_MODEL
-          requestBody.dimensions = EMBEDDING_DIMENSIONS
-        }
-
-        const res = await fetch(fetchUrl, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(requestBody),
-        })
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}))
-          throw new Error(body.error?.message || `Embeddings HTTP ${res.status}`)
-        }
-        return res.json()
-      },
-      `Embedding batch ${Math.floor(i / batchSize) + 1}`
-    )
+          model: 'text-embedding-3-small',
+          dimensions: EMBEDDING_DIMENSIONS,
+        }),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error?.message || `OpenAI Embeddings HTTP ${res.status}`)
+      }
+      return res.json()
+    }, `OpenAI batch ${Math.floor(i / BATCH_SIZE) + 1}`)
 
     const embeddings = response.data.sort((a, b) => a.index - b.index).map((d) => d.embedding)
     allEmbeddings.push(...embeddings)
   }
-
   return allEmbeddings
 }
 
@@ -378,9 +408,19 @@ async function deleteFileChunks(sourceFile) {
 }
 
 async function main() {
+  const forceReembed = process.argv.includes('--force') || process.argv.includes('--full')
   const startTime = Date.now()
   log('Starting vault embedding pipeline...')
   log(`Vault directory: ${VAULT_DIR}`)
+  log(`Active embedding provider: ${activeProvider ? activeProvider.toUpperCase() + ' (1536d)' : 'NONE'}`)
+  if (forceReembed) log('Mode: FULL RE-EMBEDDING (overwriting 100% of chunks with fresh 1536d vectors)')
+
+  if (!activeProvider) {
+    log('Neither GEMINI_API_KEY nor EMBEDDINGS_API_KEY found in .env.local.')
+    log('Vulnerability note: files remain saved locally in docs/vault/.')
+    log('Database text search and local markdown search remain fully active.')
+    return
+  }
 
   if (!existsSync(VAULT_DIR)) {
     err('Vault directory does not exist. Create docs/vault/ with markdown files.')
@@ -405,60 +445,68 @@ async function main() {
     }
   }
 
+  const allPendingChunks = []
+
   for (const fileInfo of files) {
     const sourceFile = `vault/${fileInfo.relPath}`
     const chunks = processFile(fileInfo)
 
-    if (chunks.length === 0) {
-      log(`  ${fileInfo.relPath} — no chunks (skipping)`)
-      continue
-    }
+    if (chunks.length === 0) continue
 
     const existingHashes = await getExistingHashes(sourceFile)
-    const newChunks = chunks.filter((c) => !existingHashes.has(c.content_hash))
-    const unchangedChunks = chunks.filter((c) => existingHashes.has(c.content_hash))
+    const newChunks = forceReembed ? chunks : chunks.filter((c) => !existingHashes.has(c.content_hash))
+    const unchangedChunks = forceReembed ? [] : chunks.filter((c) => existingHashes.has(c.content_hash))
     const currentHashes = new Set(chunks.map((c) => c.content_hash))
     const staleHashes = [...existingHashes].filter((h) => !currentHashes.has(h))
-
-    log(
-      `  ${fileInfo.relPath} — ${chunks.length} chunks (${newChunks.length} new, ${unchangedChunks.length} unchanged, ${staleHashes.length} stale)`
-    )
 
     if (staleHashes.length > 0) {
       await deleteChunksByHash(sourceFile, staleHashes)
       totalDeleted += staleHashes.length
     }
 
-    if (newChunks.length > 0) {
-      const texts = newChunks.map((c) => c.content)
-      log(`    Generating embeddings for ${texts.length} chunks...`)
-      const embeddings = await generateEmbeddings(texts)
-
-      const chunksWithEmbeddings = newChunks.map((c, i) => ({
-        ...c,
-        embedding: embeddings[i],
-      }))
-
-      await upsertChunks(chunksWithEmbeddings)
-      totalNew += newChunks.length
-      totalUpdated += staleHashes.length
+    for (const chunk of newChunks) {
+      allPendingChunks.push(chunk)
     }
 
     totalUnchanged += unchangedChunks.length
   }
 
+  log(`Collected ${allPendingChunks.length} chunks to embed (unchanged: ${totalUnchanged})`)
+
+  if (allPendingChunks.length > 0) {
+    const totalBatches = Math.ceil(allPendingChunks.length / BATCH_SIZE)
+    log(`Generating ${activeProvider.toUpperCase()} 1536d embeddings in ${totalBatches} batches of ${BATCH_SIZE}...`)
+
+    for (let b = 0; b < allPendingChunks.length; b += BATCH_SIZE) {
+      const chunkBatch = allPendingChunks.slice(b, b + BATCH_SIZE)
+      const texts = chunkBatch.map((c) => c.content)
+      const batchNum = Math.floor(b / BATCH_SIZE) + 1
+      log(`  Batch ${batchNum}/${totalBatches} (${texts.length} chunks)...`)
+
+      const embeddings = await generateEmbeddings(texts)
+      const chunksWithEmbeddings = chunkBatch.map((c, i) => ({
+        ...c,
+        embedding: embeddings[i],
+      }))
+
+      await upsertChunks(chunksWithEmbeddings)
+      totalNew += chunkBatch.length
+    }
+  }
+
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
   log('')
-  log('╔══════════════════════════════════════╗')
-  log('║     Vault Embedding Pipeline Done     ║')
-  log('╠══════════════════════════════════════╣')
-  log(`║  Files processed:  ${String(files.length).padStart(4)}              ║`)
-  log(`║  New chunks:      ${String(totalNew).padStart(4)}              ║`)
-  log(`║  Updated chunks:  ${String(totalUpdated).padStart(4)}              ║`)
-  log(`║  Deleted chunks:  ${String(totalDeleted).padStart(4)}              ║`)
-  log(`║  Unchanged:       ${String(totalUnchanged).padStart(4)}              ║`)
-  log(`║  Elapsed:     ${String(elapsed + 's').padStart(6)}              ║`)
-  log('╚══════════════════════════════════════╝')
+  log('╔════════════════════════════════════════════════════════════════╗')
+  log('║         Vault Hybrid Memory Synchronization Done               ║')
+  log('╠════════════════════════════════════════════════════════════════╣')
+  log(`║  Provider:         ${(activeProvider.toUpperCase() + ' 1536d').padEnd(16)}                    ║`)
+  log(`║  Files processed:  ${String(files.length).padStart(4)}                                        ║`)
+  log(`║  New chunks:      ${String(totalNew).padStart(4)}                                        ║`)
+  log(`║  Updated chunks:  ${String(totalUpdated).padStart(4)}                                        ║`)
+  log(`║  Deleted chunks:  ${String(totalDeleted).padStart(4)}                                        ║`)
+  log(`║  Unchanged:       ${String(totalUnchanged).padStart(4)}                                        ║`)
+  log(`║  Elapsed:         ${String(elapsed + 's').padStart(6)}                                      ║`)
+  log('╚════════════════════════════════════════════════════════════════╝')
 }
 
 main().catch((e) => {

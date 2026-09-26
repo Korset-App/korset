@@ -6,6 +6,8 @@ const CATALOG_SCREEN = new URL('../../src/screens/CatalogScreen.jsx', import.met
 const SCAN_SCREEN = new URL('../../src/screens/ScanScreen.jsx', import.meta.url)
 const CARD_COMPONENT = new URL('../../src/components/catalog/CatalogProductCard.jsx', import.meta.url)
 const CARD_CSS = new URL('../../src/components/catalog/CatalogProductCard.css', import.meta.url)
+const TOP_BAR_COMPONENT = new URL('../../src/components/catalog/CatalogTopBar.jsx', import.meta.url)
+const COMPARE_BAR_COMPONENT = new URL('../../src/components/catalog/CatalogCompareBar.jsx', import.meta.url)
 
 test('CatalogScreen delegates catalog product cards to a dedicated component', async () => {
   const [screenSource, cardSource, cardCss] = await Promise.all([
@@ -28,8 +30,9 @@ test('CatalogScreen delegates catalog product cards to a dedicated component', a
 })
 
 test('catalog compare entry points use the shared compare icon', async () => {
-  const [screenSource, scanSource, cardSource] = await Promise.all([
+  const [screenSource, compareBarSource, scanSource, cardSource] = await Promise.all([
     readFile(CATALOG_SCREEN, 'utf8'),
+    readFile(COMPARE_BAR_COMPONENT, 'utf8'),
     readFile(SCAN_SCREEN, 'utf8'),
     readFile(CARD_COMPONENT, 'utf8'),
   ])
@@ -39,12 +42,13 @@ test('catalog compare entry points use the shared compare icon', async () => {
     /import \{ CompareIcon \} from '\.\.\/icons\/CompareIcon\.jsx'/
   )
   assert.match(
-    screenSource,
-    /import \{ CompareIcon \} from '\.\.\/components\/icons\/CompareIcon\.jsx'/
+    compareBarSource,
+    /import \{ CompareIcon \} from '\.\.\/icons\/CompareIcon\.jsx'/
   )
   assert.match(scanSource, /import \{ CompareIcon \} from '\.\.\/components\/icons\/CompareIcon\.jsx'/)
   assert.match(cardSource, /<CompareIcon/)
-  assert.match(screenSource, /<CompareIcon/)
+  assert.match(compareBarSource, /<CompareIcon/)
+  assert.match(screenSource, /<CatalogCompareBar/)
   assert.match(scanSource, /<CompareIcon/)
   assert.doesNotMatch(screenSource, /compareIcon\s*=\s*[^\n]*barcode_scanner/)
 })
@@ -84,11 +88,14 @@ test('catalog product list card keeps badges on a stable lower baseline', async 
 })
 
 test('catalog defaults to grid view and shows grid toggle first', async () => {
-  const screenSource = await readFile(CATALOG_SCREEN, 'utf8')
+  const [screenSource, topBarSource] = await Promise.all([
+    readFile(CATALOG_SCREEN, 'utf8'),
+    readFile(TOP_BAR_COMPONENT, 'utf8'),
+  ])
 
   assert.match(screenSource, /sessionStorage\.getItem\('korset_catalog_view'\) \|\| 'grid'/)
   assert.match(
-    screenSource,
+    topBarSource,
     /className=\{`catalog-view-btn\$\{viewMode === 'grid'[\s\S]*?aria-label=(?:\{t\('catalog\.viewGrid'\)\}|"Сетка")[\s\S]*?className=\{`catalog-view-btn\$\{viewMode === 'list'[\s\S]*?aria-label=(?:\{t\('catalog\.viewList'\)\}|"Список")/
   )
 })

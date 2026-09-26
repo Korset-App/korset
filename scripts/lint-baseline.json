@@ -1,0 +1,126 @@
+{
+  "src/App.jsx": {
+    "no-unused-vars": 1
+  },
+  "src/components/ai/AIRecipeSummaryBar.jsx": {
+    "no-unused-vars": 1
+  },
+  "src/components/catalog/CatalogTopBar.jsx": {
+    "no-unused-vars": 1
+  },
+  "src/components/ConfirmDangerModal.jsx": {
+    "react-hooks/set-state-in-effect": 1
+  },
+  "src/components/home/FitCheckDrawer.jsx": {
+    "react-hooks/set-state-in-effect": 1
+  },
+  "src/components/home/StoryViewer.jsx": {
+    "no-unused-vars": 1
+  },
+  "src/components/icons/LocationPinIcon.jsx": {
+    "no-unused-vars": 1
+  },
+  "src/components/retail/AddScannedProductModal.jsx": {
+    "react-hooks/set-state-in-effect": 1
+  },
+  "src/contexts/OfflineContext.jsx": {
+    "react-hooks/no-deriving-state-in-effects": 1,
+    "react-hooks/set-state-in-effect": 2
+  },
+  "src/contexts/ProfileContext.jsx": {
+    "react-hooks/set-state-in-effect": 1
+  },
+  "src/domain/ai/recipes/recipeRegistry.js": {
+    "no-unused-vars": 1
+  },
+  "src/domain/ai/recipes/roleProductMatcher.js": {
+    "no-unused-vars": 1
+  },
+  "src/domain/product/productSpecs.js": {
+    "no-unused-vars": 1
+  },
+  "src/domain/product/resolver.js": {
+    "no-unused-vars": 1
+  },
+  "src/hooks/useCatalogFilter.js": {
+    "react-hooks/exhaustive-deps": 1,
+    "react-hooks/set-state-in-effect": 2
+  },
+  "src/hooks/useCatalogSearch.js": {
+    "react-hooks/exhaustive-deps": 1,
+    "react-hooks/set-state-in-effect": 2
+  },
+  "src/screens/AccountScreen.jsx": {
+    "no-unused-vars": 2
+  },
+  "src/screens/AIAssistantScreen.jsx": {
+    "no-unused-vars": 2,
+    "react-hooks/exhaustive-deps": 1,
+    "react-hooks/set-state-in-effect": 2
+  },
+  "src/screens/CatalogScreen.jsx": {
+    "no-unused-vars": 1
+  },
+  "src/screens/CompareScreen.jsx": {
+    "react-hooks/exhaustive-deps": 1
+  },
+  "src/screens/EanRecoveryScreen.jsx": {
+    "react-hooks/set-state-in-effect": 3
+  },
+  "src/screens/FaqScreen.jsx": {
+    "no-unused-vars": 2
+  },
+  "src/screens/HomeScreen.jsx": {
+    "react-hooks/set-state-in-effect": 1
+  },
+  "src/screens/LandingScreen.jsx": {
+    "no-unused-vars": 3
+  },
+  "src/screens/PrivacySettingsScreen.jsx": {
+    "react-hooks/exhaustive-deps": 1
+  },
+  "src/screens/ProductScreen.jsx": {
+    "no-unused-vars": 4
+  },
+  "src/screens/ProfileEditScreen.jsx": {
+    "no-unused-vars": 2,
+    "react-hooks/exhaustive-deps": 1,
+    "react-hooks/set-state-in-effect": 1
+  },
+  "src/screens/ProfileScreen.jsx": {
+    "no-unused-vars": 5,
+    "react-hooks/set-state-in-effect": 1
+  },
+  "src/screens/RetailDashboardScreen.jsx": {
+    "no-unused-vars": 1
+  },
+  "src/screens/RetailEntryScreen.jsx": {
+    "react-hooks/set-state-in-effect": 1
+  },
+  "src/screens/RetailProductsScreen.jsx": {
+    "no-unused-vars": 9,
+    "react-hooks/exhaustive-deps": 1
+  },
+  "src/screens/ScanScreen.jsx": {
+    "no-unused-vars": 1,
+    "react-hooks/set-state-in-effect": 1
+  },
+  "src/screens/SetupProfileScreen.jsx": {
+    "no-unused-vars": 4,
+    "react-hooks/exhaustive-deps": 2,
+    "react-hooks/set-state-in-effect": 1
+  },
+  "src/screens/SuperAdminStoresScreen.jsx": {
+    "react-hooks/exhaustive-deps": 1,
+    "react-hooks/set-state-in-effect": 1
+  },
+  "src/screens/UpdatePasswordScreen.jsx": {
+    "react-hooks/exhaustive-deps": 1
+  },
+  "src/services/ai.js": {
+    "no-unused-vars": 1
+  },
+  "src/utils/soundSettings.js": {
+    "no-unused-vars": 2
+  }
+}

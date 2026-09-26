@@ -19,8 +19,6 @@ export default defineConfig({
       filename: 'sw.js',
       strategies: 'injectManifest',
       injectManifest: {
-        swSrc: 'src/sw.js',
-        swDest: 'dist/sw.js',
         globPatterns: [
           '**/*.{js,css,html}',
           'favicon.png',

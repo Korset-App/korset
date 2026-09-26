@@ -24,6 +24,11 @@ import {
   SyncIcon,
 } from '../components/icons/index.js'
 import { askGeneralAI, askPackageImageAI, transcribeVoiceInput } from '../services/ai.js'
+import { decomposeRecipeAI } from '../services/ai.js'
+import { matchGoldenRecipe, saveLearnedRecipe } from '../domain/ai/recipes/recipeRegistry.js'
+import { matchProductsForRecipe } from '../domain/ai/recipes/roleProductMatcher.js'
+import { AIRecipeWizardDock } from '../components/ai/AIRecipeWizardDock.jsx'
+import { AIRecipeBasketCard } from '../components/ai/AIRecipeBasketCard.jsx'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { useProfile } from '../contexts/ProfileContext.jsx'
 import {
@@ -234,6 +239,8 @@ export default function AIAssistantScreen() {
     saveStoredAIDraft(activeStoreSlug, input)
   }, [input, activeStoreSlug])
   const [loading, setLoading] = useState(false)
+  const [recipeWizard, setRecipeWizard] = useState(null)
+  const [profileFilterActive, setProfileFilterActive] = useState(true)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [historyItems, setHistoryItems] = useState([])
   const [historyLoading, setHistoryLoading] = useState(false)
@@ -256,6 +263,7 @@ export default function AIAssistantScreen() {
   const screenRef = useRef(null)
   const bottomRef = useRef(null)
   const composerRef = useRef(null)
+  const recipeAbortRef = useRef(null)
   const composerInputRef = useRef(null)
   const cameraInputRef = useRef(null)
   const galleryInputRef = useRef(null)
@@ -281,7 +289,8 @@ export default function AIAssistantScreen() {
     input.includes('\n') ||
     Boolean(selectedImage) ||
     Boolean(imageError) ||
-    imagePickerOpen
+    imagePickerOpen ||
+    Boolean(recipeWizard)
 
   useEffect(() => {
     if (!historyStoreRef.current && typeof window !== 'undefined' && window.indexedDB) {
@@ -443,6 +452,12 @@ export default function AIAssistantScreen() {
   }, [activeStoreSlug, historyOpen])
 
   const startNewChat = ({ closeHistory = true } = {}) => {
+    if (recipeAbortRef.current) {
+      recipeAbortRef.current.abort()
+      recipeAbortRef.current = null
+    }
+    setLoading(false)
+    setRecipeWizard(null)
     clearAIChatSession({
       storage: typeof window !== 'undefined' ? window.localStorage : null,
       key: chatKey,
@@ -770,9 +785,163 @@ export default function AIAssistantScreen() {
     }
   }, [location.state])
 
+  const startRecipeWizard = () => {
+    setRecipeWizard({ step: 1, dish: null, budget: null })
+    const assistantMsg = {
+      role: 'assistant',
+      content:
+        lang === 'kz'
+          ? 'Қандай тағамға немесе оқиғаға сатып аламыз? Төмендегі дайын нұсқаны таңдаңыз немесе өз тағамыңызды жазыңыз.'
+          : 'Какое блюдо или повод для корзины запланировали? Выберите вариант снизу или напишите свой в строке ввода.',
+    }
+    setMessages((prev) => [...prev, assistantMsg])
+  }
+
+  const handleWizardDish = (dish) => {
+    setRecipeWizard((prev) => ({ ...(prev || {}), step: 2, dish }))
+    const userMsg = { role: 'user', content: dish }
+    const assistantMsg = {
+      role: 'assistant',
+      content:
+        lang === 'kz'
+          ? `«${dish}» үшін бюджетіңіз қандай? Лимитті таңдаңыз немесе соманы жазыңыз.`
+          : `Отличный выбор! Есть ли пожелания по бюджету на «${dish}»? Выберите вариант или укажите сумму.`,
+    }
+    setMessages((prev) => [...prev, userMsg, assistantMsg])
+  }
+
+  const handleWizardBudget = (budget) => {
+    const dish = recipeWizard?.dish || 'Домашние бургеры'
+    const budgetText =
+      budget && budget > 0
+        ? `${budget} ₸`
+        : lang === 'kz'
+          ? 'Кез келген бюджет'
+          : 'Любой бюджет'
+    const userMsg = { role: 'user', content: budgetText }
+    setMessages((prev) => [...prev, userMsg])
+    setRecipeWizard(null)
+    executeRecipeShoppingList(dish, budget)
+  }
+
+  const executeRecipeShoppingList = async (dish, budget = null) => {
+    if (recipeAbortRef.current) {
+      recipeAbortRef.current.abort()
+    }
+    const abortCtrl = new AbortController()
+    recipeAbortRef.current = abortCtrl
+    setLoading(true)
+
+    try {
+      let recipe = matchGoldenRecipe(dish)
+      if (!recipe) {
+        recipe = await decomposeRecipeAI(dish, lang)
+        if (recipe) {
+          saveLearnedRecipe(recipe)
+        }
+      }
+
+      if (abortCtrl.signal.aborted) return
+
+      if (!recipe || !recipe.roles?.length) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content:
+              lang === 'kz'
+                ? `«${dish}» үшін рецепт құрамын табу мүмкін болмады. Басқа тағамды жазып көріңізші.`
+                : `Не удалось разобрать рецепт для «${dish}». Попробуйте назвать другое блюдо.`,
+          },
+        ])
+        return
+      }
+
+      const matchedRoles = await matchProductsForRecipe({
+        storeId: currentStore?.id,
+        recipe,
+        profile: profileFilterActive ? profile : null,
+        budget,
+      })
+
+      if (abortCtrl.signal.aborted) return
+
+      const storeName = storeContext?.name || (lang === 'kz' ? 'дүкен' : 'магазин')
+      const replyContent =
+        lang === 'kz'
+          ? `«${recipe.title?.[lang] || recipe.title?.ru || dish}» үшін ${storeName} сөрелерінен қажетті өнімдер табылды. Әр санатта ең тиімді нұсқа таңдалды:`
+          : `Я собрал корзину для «${recipe.title?.[lang] || recipe.title?.ru || dish}» из наличия в ${storeName}. В каждом ингредиенте предвыбран лучший вариант, но вы можете свайпнуть и заменить товар:`
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: replyContent,
+          recipeBasket: {
+            recipe,
+            matchedRoles,
+            budget,
+          },
+        },
+      ])
+    } catch (err) {
+      if (err?.name === 'AbortError' || abortCtrl.signal.aborted) return
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: t('ai.errorGeneric'),
+        },
+      ])
+    } finally {
+      if (!abortCtrl.signal.aborted) {
+        setLoading(false)
+        recipeAbortRef.current = null
+      }
+    }
+  }
+
   const sendMessage = async (text, { image = null } = {}) => {
     const cleanText = text.trim()
     if ((!cleanText && !image) || loading) return
+
+    // Wizard interception: Step 1 (Dish)
+    if (recipeWizard?.step === 1 && !image) {
+      setInput('')
+      clearStoredAIDraft(activeStoreSlug)
+      handleWizardDish(cleanText)
+      return
+    }
+
+    // Wizard interception: Step 2 (Budget)
+    if (recipeWizard?.step === 2 && !image) {
+      setInput('')
+      clearStoredAIDraft(activeStoreSlug)
+      const numMatch = cleanText.match(/\d[\d\s]*/)
+      const parsedBudget = numMatch ? Number(numMatch[0].replace(/\s+/g, '')) : null
+      handleWizardBudget(parsedBudget)
+      return
+    }
+
+    // Direct recipe intent detection
+    if (!image) {
+      const lower = cleanText.toLowerCase()
+      const isRecipeQuery =
+        lower.includes('ингредиент') ||
+        lower.includes('рецепт') ||
+        lower.includes('собери продукты') ||
+        Boolean(matchGoldenRecipe(cleanText))
+
+      if (isRecipeQuery) {
+        const userMsg = { role: 'user', content: cleanText }
+        setMessages((prev) => [...prev, userMsg])
+        setInput('')
+        clearStoredAIDraft(activeStoreSlug)
+        executeRecipeShoppingList(cleanText, null)
+        return
+      }
+    }
+
     const messageText = cleanText || t('ai.image.defaultPrompt')
     const userMsg = { role: 'user', content: messageText }
     const newMessages = [...visibleMessages, userMsg]
@@ -1043,7 +1212,13 @@ export default function AIAssistantScreen() {
                     key={capability.id}
                     type="button"
                     className={`ai-capability-card ai-capability-card--${capability.tone}`}
-                    onClick={() => sendMessage(t(capability.promptKey))}
+                    onClick={() => {
+                      if (capability.id === 'build_shopping_list') {
+                        startRecipeWizard()
+                      } else {
+                        sendMessage(t(capability.promptKey))
+                      }
+                    }}
                     disabled={loading}
                   >
                     <span className="ai-capability-card__icon">
@@ -1069,7 +1244,14 @@ export default function AIAssistantScreen() {
               {msg.role === 'assistant' && msg.warnings?.length > 0 && (
                 <div className="ai-warning-note">{msg.warnings[0]}</div>
               )}
-              {msg.role === 'assistant' && (
+              {msg.role === 'assistant' && msg.recipeBasket && (
+                <AIRecipeBasketCard
+                  recipeBasket={msg.recipeBasket}
+                  storeSlug={storeContext?.slug || routeStoreSlug || storeSlug}
+                  lang={lang}
+                />
+              )}
+              {msg.role === 'assistant' && !msg.recipeBasket && (
                 <MessageProductGroups
                   groups={msg.productGroups}
                   storeSlug={storeContext?.slug || routeStoreSlug || storeSlug}
@@ -1110,6 +1292,20 @@ export default function AIAssistantScreen() {
       </div>
       <div ref={composerRef} className="ai-composer">
         <div className={`ai-composer__dock${composerExpanded ? ' is-expanded' : ''}`}>
+          {recipeWizard && (
+            <AIRecipeWizardDock
+              step={recipeWizard.step}
+              selectedDish={recipeWizard.dish}
+              lang={lang}
+              onSelectDish={handleWizardDish}
+              onSelectBudget={handleWizardBudget}
+              onBack={() => setRecipeWizard((prev) => ({ ...(prev || {}), step: 1 }))}
+              onCancel={() => setRecipeWizard(null)}
+              profile={profile}
+              profileFilterActive={profileFilterActive}
+              onToggleProfileFilter={() => setProfileFilterActive((prev) => !prev)}
+            />
+          )}
           {imageError && (
             <div
               className="ai-image-status ai-image-status--error"
@@ -1255,7 +1451,17 @@ export default function AIAssistantScreen() {
                   sendMessage(input, { image: selectedImage })
                 }
               }}
-              placeholder={t('ai.inputGeneral')}
+              placeholder={
+                recipeWizard?.step === 1
+                  ? lang === 'kz'
+                    ? 'Өз тағамыңызды жазыңыз (мысалы, паста)...'
+                    : 'Напишите своё блюдо (например, паста)...'
+                  : recipeWizard?.step === 2
+                    ? lang === 'kz'
+                      ? 'Соманы жазыңыз (мысалы, 4000)...'
+                      : 'Укажите сумму (например, 4000)...'
+                    : t('ai.inputGeneral')
+              }
               disabled={loading}
               rows={1}
               className="ai-composer__input"

@@ -368,6 +368,7 @@ export function getOpenAICompletionLimits(mode) {
   if (mode === 'enrich') return { max_completion_tokens: 260, temperature: 0.3 }
   if (mode === 'compare') return { max_completion_tokens: 180, temperature: 0.6 }
   if (mode === 'product') return { max_completion_tokens: 280, temperature: 0.6 }
+  if (mode === 'recipe_decompose') return { max_completion_tokens: 500, temperature: 0.2 }
   return { max_completion_tokens: 320, temperature: 0.6 }
 }
 
@@ -398,25 +399,20 @@ async function fetchRagContext(product, _mode, profile) {
     const queryText = queryParts.join(' ').slice(0, 500)
     if (!queryText) return null
 
-    const openAiBaseUrl = process.env.OPENAI_API_BASE_URL
-    const base = openAiBaseUrl || 'https://api.openai.com/v1'
-    let fetchUrl = `${base.replace(/\/+$/, '')}/embeddings`
+    let fetchUrl = null
     const headers = {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
     }
-    if (base.includes('deepseek')) {
-      if (process.env.EMBEDDINGS_API_BASE_URL) {
-        fetchUrl = `${process.env.EMBEDDINGS_API_BASE_URL.replace(/\/+$/, '')}/embeddings`
-        headers.Authorization = `Bearer ${process.env.EMBEDDINGS_API_KEY || process.env.OPENAI_API_KEY}`
-      } else if (process.env.GITHUB_TOKEN) {
-        fetchUrl = 'https://models.github.ai/inference/embeddings'
-        headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`
-      } else {
-        return null
-      }
-    } else if (fetchUrl.includes('.azure.com') || fetchUrl.includes('.services.ai.azure.com')) {
-      headers['api-key'] = process.env.OPENAI_API_KEY
+
+    if (process.env.EMBEDDINGS_API_BASE_URL) {
+      fetchUrl = `${process.env.EMBEDDINGS_API_BASE_URL.replace(/\/+$/, '')}/embeddings`
+      headers.Authorization = `Bearer ${process.env.EMBEDDINGS_API_KEY || process.env.OPENAI_API_KEY}`
+    } else if (process.env.OPENAI_API_KEY) {
+      const base = process.env.OPENAI_API_BASE_URL || 'https://api.openai.com/v1'
+      fetchUrl = `${base.replace(/\/+$/, '')}/embeddings`
+      headers.Authorization = `Bearer ${process.env.OPENAI_API_KEY}`
+    } else {
+      return null
     }
 
     const embRes = await fetch(fetchUrl, {
@@ -477,9 +473,8 @@ async function handleChat(req, res) {
   if (req.method !== 'POST') return void res.status(405).json({ error: 'Method not allowed' })
 
   const apiKey = process.env.OPENAI_API_KEY
-  const azureApiKey = process.env.AZURE_OPENAI_KEY
-  if (!apiKey && !azureApiKey) {
-    return void res.status(500).json({ error: 'Neither OPENAI_API_KEY nor AZURE_OPENAI_KEY is configured' })
+  if (!apiKey) {
+    return void res.status(500).json({ error: 'OPENAI_API_KEY is not configured' })
   }
 
   // ── Auth + Rate limit ──
@@ -504,12 +499,12 @@ async function handleChat(req, res) {
 
   try {
     const rawMode = body.mode
-    const allowedModes = ['product', 'enrich', 'compare', 'general']
+    const allowedModes = ['product', 'enrich', 'compare', 'general', 'recipe_decompose']
     const mode = allowedModes.includes(rawMode) ? rawMode : 'general'
     const lang = body.lang === 'kz' ? 'kz' : 'ru'
 
     const validMessages = validateMessages(body.messages)
-    if (!validMessages) {
+    if (!validMessages && mode !== 'recipe_decompose') {
       return void res.status(400).json({ error: 'Invalid messages payload' })
     }
 
@@ -556,7 +551,10 @@ async function handleChat(req, res) {
     // ── System prompt ──
     let systemPrompt
 
-    if (mode === 'product' && product) {
+    if (mode === 'recipe_decompose') {
+      const dish = cleanString(body.dish || validMessages?.[0]?.content || '', 100)
+      systemPrompt = buildRecipeDecomposePrompt(dish, lang)
+    } else if (mode === 'product' && product) {
       systemPrompt = buildProductPrompt(
         product,
         profile,
@@ -581,30 +579,24 @@ async function handleChat(req, res) {
     const headers = {
       'Content-Type': 'application/json',
     }
+    const requestMessages =
+      mode === 'recipe_decompose'
+        ? [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: `Разложи блюдо: ${cleanString(body.dish || '', 100)}` },
+          ]
+        : [{ role: 'system', content: systemPrompt }, ...validMessages]
+
     const requestBody = {
       ...completionLimits,
-      messages: [{ role: 'system', content: systemPrompt }, ...validMessages],
+      messages: requestMessages,
     }
 
-    const azureEndpointBase = process.env.AZURE_OPENAI_ENDPOINT_BASE
     const openAiBaseUrl = process.env.OPENAI_API_BASE_URL
-
-    if (azureEndpointBase && azureApiKey) {
-      const deploymentName = modelSelection.model
-      const apiVersion = process.env.AZURE_OPENAI_API_VERSION || '2024-02-15-preview'
-      const cleanBase = azureEndpointBase.replace(/^https?:\/\//, '').replace(/\/+$/, '')
-      fetchUrl = `https://${cleanBase}/openai/deployments/${deploymentName}/chat/completions?api-version=${apiVersion}`
-      headers['api-key'] = azureApiKey
-      requestBody.model = deploymentName
-    } else {
-      const base = openAiBaseUrl || 'https://api.openai.com/v1'
-      fetchUrl = `${base.replace(/\/+$/, '')}/chat/completions`
-      headers['Authorization'] = `Bearer ${apiKey}`
-      if (fetchUrl.includes('.azure.com') || fetchUrl.includes('.services.ai.azure.com')) {
-        headers['api-key'] = apiKey
-      }
-      requestBody.model = modelSelection.model
-    }
+    const base = openAiBaseUrl || 'https://api.openai.com/v1'
+    fetchUrl = `${base.replace(/\/+$/, '')}/chat/completions`
+    headers['Authorization'] = `Bearer ${apiKey}`
+    requestBody.model = modelSelection.model
 
     if (requestBody.model?.includes('deepseek') || fetchUrl.includes('deepseek')) {
       requestBody.thinking = { type: 'disabled' }
@@ -643,6 +635,21 @@ async function handleChat(req, res) {
 
     const data = await openaiRes.json()
     const reply = data.choices?.[0]?.message?.content?.trim()
+
+    if (mode === 'recipe_decompose') {
+      let parsedRecipe = null
+      try {
+        const cleanJson = (reply || '')
+          .replace(/```(?:json)?/gi, '')
+          .replace(/```/g, '')
+          .trim()
+        parsedRecipe = JSON.parse(cleanJson)
+      } catch (_e) {
+        parsedRecipe = null
+      }
+      return void res.status(200).json({ recipe: parsedRecipe, reply: reply || '' })
+    }
+
     const responseProductGroups =
       mode === 'general'
         ? buildProductGroupsFromCatalog(catalogContext, { lang, replyText: reply || '' })
@@ -844,6 +851,29 @@ function buildEnrichPrompt(product) {
 Оставь в allergens и dietTags ТОЛЬКО те, которые реально относятся к этому товару. Используй ТОЛЬКО перечисленные ID, не выдумывай свои.`
 }
 
+export function buildRecipeDecomposePrompt(dish, lang) {
+  const langNote = lang === 'kz' ? 'Тіл: қазақша.' : 'Язык: русский.'
+  return `Ты — кулинарный эксперт Körset AI для супермаркетов Казахстана.
+Разложи блюдо "${cleanString(dish, 100)}" на 3–5 ключевых практичных кулинарных ролей (ингредиентов), которые продаются в супермаркетах.
+${langNote}
+Ответь ТОЛЬКО валидным JSON без markdown, без backticks, без комментариев:
+{
+  "id": "dish_id_latin",
+  "title": { "ru": "Название блюда", "kz": "Тағам атауы" },
+  "emoji": "🍲",
+  "roles": [
+    {
+      "id": "role_id",
+      "title": { "ru": "Название роли ингредиента", "kz": "Ингредиент атауы" },
+      "category": "одна из: bread, meat, deli, fish, dairy_eggs, grocery, sauces_spices, fruits_veg, frozen",
+      "queryTerms": ["поисковый запрос 1", "синоним 2"],
+      "required": true
+    }
+  ]
+}
+Категории СТРОГО только из списка: bread, meat, deli, fish, dairy_eggs, grocery, sauces_spices, fruits_veg, frozen.`
+}
+
 function formatNutrition(product) {
   const n = product.nutrition || product.nutritionPer100
   if (!n) return 'не указано'
@@ -1022,10 +1052,9 @@ async function handleTranscription(req, res) {
   if (req.method !== 'POST') return void res.status(405).json({ error: 'method_not_allowed' })
 
   const apiKey = process.env.OPENAI_API_KEY
-  const azureApiKey = process.env.AZURE_OPENAI_KEY
   const groqApiKey = process.env.GROQ_API_KEY
-  if (!apiKey && !azureApiKey && !groqApiKey) {
-    return void res.status(500).json({ error: 'Neither OPENAI_API_KEY nor AZURE_OPENAI_KEY is configured' })
+  if (!apiKey && !groqApiKey) {
+    return void res.status(500).json({ error: 'Neither OPENAI_API_KEY nor GROQ_API_KEY is configured' })
   }
 
   const auth = await verifyAuth(req)
@@ -1055,20 +1084,7 @@ async function handleTranscription(req, res) {
     }
 
     const providers = []
-    const azureEndpointBase = process.env.AZURE_OPENAI_ENDPOINT_BASE
     const openAiBaseUrl = process.env.OPENAI_API_BASE_URL
-
-    if (azureEndpointBase && azureApiKey) {
-      const deploymentName = process.env.AZURE_OPENAI_TRANSCRIPTION_DEPLOYMENT || TRANSCRIPTION_MODEL
-      const apiVersion = process.env.AZURE_OPENAI_API_VERSION || '2024-02-15-preview'
-      const cleanBase = azureEndpointBase.replace(/^https?:\/\//, '').replace(/\/+$/, '')
-      providers.push({
-        name: 'azure',
-        url: `https://${cleanBase}/openai/deployments/${deploymentName}/audio/transcriptions?api-version=${apiVersion}`,
-        headers: { 'api-key': azureApiKey },
-        model: deploymentName,
-      })
-    }
 
     if (groqApiKey) {
       providers.push({
@@ -1086,9 +1102,6 @@ async function handleTranscription(req, res) {
           ? process.env.OPENAI_TRANSCRIPTION_MODEL
           : 'whisper-1'
       const headers = { Authorization: `Bearer ${apiKey}` }
-      if (base.includes('.azure.com') || base.includes('.services.ai.azure.com')) {
-        headers['api-key'] = apiKey
-      }
       providers.push({
         name: 'openai',
         url: `${base.replace(/\/+$/, '')}/audio/transcriptions`,
@@ -1256,9 +1269,8 @@ async function handleImageAnalysis(req, res) {
   if (req.method !== 'POST') return void res.status(405).json({ error: 'method_not_allowed' })
 
   const apiKey = process.env.OPENAI_API_KEY
-  const azureApiKey = process.env.AZURE_OPENAI_KEY
-  if (!apiKey && !azureApiKey) {
-    return void res.status(500).json({ error: 'Neither OPENAI_API_KEY nor AZURE_OPENAI_KEY is configured' })
+  if (!apiKey) {
+    return void res.status(500).json({ error: 'OPENAI_API_KEY is not configured' })
   }
 
   const auth = await verifyAuth(req)
@@ -1316,25 +1328,11 @@ async function handleImageAnalysis(req, res) {
       ],
     }
 
-    const azureEndpointBase = process.env.AZURE_OPENAI_ENDPOINT_BASE
     const openAiBaseUrl = process.env.OPENAI_API_BASE_URL
-
-    if (azureEndpointBase && azureApiKey) {
-      const deploymentName = IMAGE_AI_MODEL
-      const apiVersion = process.env.AZURE_OPENAI_API_VERSION || '2024-02-15-preview'
-      const cleanBase = azureEndpointBase.replace(/^https?:\/\//, '').replace(/\/+$/, '')
-      fetchUrl = `https://${cleanBase}/openai/deployments/${deploymentName}/chat/completions?api-version=${apiVersion}`
-      headers['api-key'] = azureApiKey
-      requestBody.model = deploymentName
-    } else {
-      const base = openAiBaseUrl || 'https://api.openai.com/v1'
-      fetchUrl = `${base.replace(/\/+$/, '')}/chat/completions`
-      headers['Authorization'] = `Bearer ${apiKey}`
-      if (fetchUrl.includes('.azure.com') || fetchUrl.includes('.services.ai.azure.com')) {
-        headers['api-key'] = apiKey
-      }
-      requestBody.model = IMAGE_AI_MODEL
-    }
+    const base = openAiBaseUrl || 'https://api.openai.com/v1'
+    fetchUrl = `${base.replace(/\/+$/, '')}/chat/completions`
+    headers['Authorization'] = `Bearer ${apiKey}`
+    requestBody.model = IMAGE_AI_MODEL
 
     if (requestBody.model?.includes('deepseek') || fetchUrl.includes('deepseek')) {
       requestBody.thinking = { type: 'disabled' }

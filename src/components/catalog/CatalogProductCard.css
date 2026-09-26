@@ -89,10 +89,11 @@
 
 .catalog-product-card__title--grid {
   font-size: 13px;
-  line-height: 1.3;
-  -webkit-line-clamp: 2;
+  line-height: 1.35;
+  -webkit-line-clamp: 3;
   margin-bottom: 4px;
-  min-height: 2.6em;
+  min-height: 2.7em;
+  word-break: break-word;
 }
 
 .catalog-product-card__title--list {
@@ -328,6 +329,88 @@
 :root[data-theme='light'] .catalog-product-card__badge {
   background: color-mix(in srgb, var(--glass-subtle) 88%, transparent);
   box-shadow: none;
+}
+
+:root[data-theme='light'] .catalog-product-card__badge--halal {
+  background: rgba(8, 145, 178, 0.08);
+  border-color: rgba(8, 145, 178, 0.24);
+  color: #0e7490;
+}
+
+:root[data-theme='light'] .catalog-product-card__badge--sugar-free {
+  background: rgba(147, 51, 234, 0.08);
+  border-color: rgba(147, 51, 234, 0.24);
+  color: #7e22ce;
+}
+
+:root[data-theme='light'] .catalog-product-card__badge--gluten-free,
+:root[data-theme='light'] .catalog-product-card__badge--lactose-free {
+  background: rgba(37, 99, 235, 0.08);
+  border-color: rgba(37, 99, 235, 0.24);
+  color: #1d4ed8;
+}
+
+:root[data-theme='light'] .catalog-product-card__badge--vegan {
+  background: rgba(101, 163, 13, 0.09);
+  border-color: rgba(101, 163, 13, 0.26);
+  color: #4d7c0f;
+}
+
+:root[data-theme='light'] .catalog-product-card__badge--keto {
+  background: rgba(79, 70, 229, 0.08);
+  border-color: rgba(79, 70, 229, 0.24);
+  color: #4338ca;
+}
+
+:root[data-theme='light'] .catalog-product-card__badge--kcal {
+  background: rgba(217, 119, 6, 0.09);
+  border-color: rgba(217, 119, 6, 0.26);
+  color: #b45309;
+}
+
+:root[data-theme='light'] .catalog-product-card .catalog-verdict-badge.safe {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #047857;
+}
+
+:root[data-theme='light'] .catalog-product-card .catalog-verdict-badge.caution {
+  background: rgba(202, 138, 4, 0.1);
+  border-color: rgba(202, 138, 4, 0.3);
+  color: #a16207;
+}
+
+:root[data-theme='light'] .catalog-product-card .catalog-verdict-badge.warning {
+  background: rgba(234, 88, 12, 0.1);
+  border-color: rgba(234, 88, 12, 0.3);
+  color: #c2410c;
+}
+
+:root[data-theme='light'] .catalog-product-card .catalog-verdict-badge.danger {
+  background: rgba(220, 38, 38, 0.1);
+  border-color: rgba(220, 38, 38, 0.3);
+  color: #b91c1c;
+}
+
+:root[data-theme='light'] .catalog-product-card .catalog-compare-btn.default,
+:root[data-theme='light'] .catalog-product-card .catalog-compare-btn-grid.default {
+  background: rgba(124, 58, 237, 0.08);
+  border-color: rgba(124, 58, 237, 0.22);
+  color: #7c3aed;
+}
+
+:root[data-theme='light'] .catalog-product-card .catalog-compare-btn.select-second,
+:root[data-theme='light'] .catalog-product-card .catalog-compare-btn-grid.select-second {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.25);
+  color: #059669;
+}
+
+:root[data-theme='light'] .catalog-product-card .catalog-compare-btn.active-pin,
+:root[data-theme='light'] .catalog-product-card .catalog-compare-btn-grid.active-pin {
+  background: rgba(124, 58, 237, 0.16);
+  border-color: rgba(124, 58, 237, 0.45);
+  color: #6d28d9;
 }
 
 @media (max-width: 360px) {

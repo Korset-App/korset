@@ -1,25 +1,26 @@
-async function inspectKdvProductState() {
-  const url = 'https://kdvonline.kz/product/vafli-s-shokoladom-12571';
-  const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } });
+import vm from 'vm';
+
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
+
+async function testKdvState() {
+  const res = await fetch('https://kdvonline.kz/product/vafli-s-shokoladom-12571', { headers: { 'User-Agent': UA } });
   const html = await res.text();
-  const m = html.match(/window\.__INITIAL_STATE__\s*=\s*function[^{]*\{return\s*([\s\S]*?)\};\s*window\.__INITIAL_LOCALIZATION/);
-  if (m) {
-    try {
-      const state = JSON.parse(m[1]);
-      console.log('State keys:', Object.keys(state));
-      if (state.catalog) {
-        console.log('Catalog keys:', Object.keys(state.catalog));
-        console.log('Product data:', JSON.stringify(state.catalog.product || state.catalog.currentProduct || {}).slice(0, 400));
-      }
-      if (state.product) {
-        console.log('Product keys:', Object.keys(state.product));
-        console.log('Product data:', JSON.stringify(state.product).slice(0, 400));
-      }
-    } catch (e) {
-      console.log('JSON parse error:', e.message);
+
+  const match = html.match(/window\.__INITIAL_STATE__=function\([^)]*\)\{return\s*([\s\S]*?)\};/);
+  if (match) {
+    const jsCode = '(' + match[1] + ')';
+    const state = vm.runInNewContext(jsCode, {});
+    console.log('Successfully evaluated __INITIAL_STATE__!');
+    console.log('Top keys:', Object.keys(state));
+    console.log('api keys:', Object.keys(state.api || {}));
+
+    // Find product details
+    const product = state.api?.product || state.api?.products || state.product;
+    console.log('\napi.product keys:', Object.keys(product || {}));
+    if (product) {
+      console.log('Product details:\n', JSON.stringify(product, null, 2).slice(0, 3000));
     }
-  } else {
-    console.log('Did not match window.__INITIAL_STATE__');
   }
 }
-inspectKdvProductState();
+
+testKdvState().catch(console.error);

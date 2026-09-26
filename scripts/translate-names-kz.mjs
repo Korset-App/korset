@@ -55,9 +55,6 @@ ${lines}`
     'Authorization': 'Bearer ' + OPENAI_KEY,
     'Content-Type': 'application/json',
   }
-  if (fetchUrl.includes('.azure.com') || fetchUrl.includes('.services.ai.azure.com')) {
-    headers['api-key'] = OPENAI_KEY
-  }
 
   const r = await httpPost(fetchUrl, headers, {
     model: 'gpt-4o-mini',

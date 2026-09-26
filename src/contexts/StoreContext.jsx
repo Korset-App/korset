@@ -35,7 +35,7 @@ export const STORE_KEY = 'korset_store_slug'
 const STORE_CACHE_PREFIX = 'korset_store_data_'
 
 const FULL_FIELDS =
-  'ean, name, name_kz, brand, category, subcategory, quantity, description, ingredients_raw, ingredients_kz, allergens_json, diet_tags_json, tags_json, additives_tags_json, traces_json, categories_tags_json, halal_status, packaging_type, fat_percent, nutriscore, nutriments_json, alcohol_100g, saturated_fat_100g, nova_group, image_ingredients_url, image_nutrition_url, image_url, images, manufacturer, country_of_origin, specs_json, data_quality_score, source_primary, source_confidence, is_verified, needs_review, group, alternate_eans'
+  'ean, name, name_kz, brand, category, subcategory, quantity, description, ingredients_raw, ingredients_kz, allergens_json, diet_tags_json, tags_json, additives_tags_json, traces_json, categories_tags_json, halal_status, halal_certifier, halal_notes, cooking_instructions, storage_conditions, shelf_life, packaging_type, fat_percent, nutriscore, nutriments_json, alcohol_100g, saturated_fat_100g, nova_group, image_ingredients_url, image_nutrition_url, image_url, images, manufacturer, country_of_origin, specs_json, data_quality_score, source_primary, source_confidence, is_verified, needs_review, group, alternate_eans'
 
 // Maps a flat RPC row from fn_get_store_catalog to the canonical product shape.
 // JSONB columns (allergens_json, diet_tags_json, alternate_eans) are auto-parsed
@@ -95,6 +95,11 @@ function mapRowToProduct(row) {
     traces: parseJson(gp.traces_json, []),
     categoriesTags: parseJson(gp.categories_tags_json, []),
     halalStatus: gp.halal_status || 'unknown',
+    halalCertifier: gp.halal_certifier || null,
+    halalNotes: gp.halal_notes || null,
+    cookingInstructions: gp.cooking_instructions || null,
+    storageConditions: gp.storage_conditions || null,
+    shelfLife: gp.shelf_life || null,
     packagingType: gp.packaging_type || null,
     fatPercent: gp.fat_percent ?? null,
     nutriscore: gp.nutriscore,
@@ -106,7 +111,12 @@ function mapRowToProduct(row) {
     imageNutritionUrl: gp.image_nutrition_url || null,
     image: getImageUrl(gp.image_url),
     images: parseJson(gp.images, []),
-    manufacturer: gp.manufacturer ? { name: gp.manufacturer, country: gp.country_of_origin } : null,
+    manufacturer: gp.manufacturer
+      ? { name: gp.manufacturer, country: gp.country_of_origin || null }
+      : gp.country_of_origin
+        ? { name: null, country: gp.country_of_origin }
+        : null,
+    country: gp.country_of_origin || null,
     specs: gp.specs_json || null,
     priceKzt: row.price_kzt,
     oldPriceKzt: row.old_price_kzt ?? null,

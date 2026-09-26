@@ -59,13 +59,27 @@ export default function IngredientsPreview({
   const { t, lang } = useI18n()
   const [selected, setSelected] = useState(null)
   const [expanded, setExpanded] = useState(false)
+
+  const hasBoth = Boolean(product?.ingredients && product?.ingredientsKz)
+  const [selectedLang, setSelectedLang] = useState(() =>
+    lang === 'kz' && product?.ingredientsKz ? 'kz' : product?.ingredients ? 'ru' : 'kz'
+  )
+  const currentLang = hasBoth ? selectedLang : product?.ingredients ? 'ru' : 'kz'
+
+  const targetProduct = useMemo(() => {
+    if (currentLang === 'kz' && product?.ingredientsKz) {
+      return { ...product, ingredients: product.ingredientsKz }
+    }
+    return product
+  }, [product, currentLang])
+
   const analysis = useMemo(
-    () => analyzeProductIngredients({ product, profile, lang }),
-    [product, profile, lang]
+    () => analyzeProductIngredients({ product: targetProduct, profile, lang: currentLang }),
+    [targetProduct, profile, currentLang]
   )
   const highlights = useMemo(
-    () => analysis.highlights.map((item) => enrichHighlight(item, t, lang)),
-    [analysis.highlights, t, lang]
+    () => analysis.highlights.map((item) => enrichHighlight(item, t, currentLang)),
+    [analysis.highlights, t, currentLang]
   )
   const highlightsById = useMemo(
     () => new Map(highlights.map((item) => [item.id, item])),
@@ -94,6 +108,59 @@ export default function IngredientsPreview({
               })}
             </p>
           </div>
+          {hasBoth && (
+            <div
+              role="tablist"
+              aria-label={t('product.ingredients')}
+              style={{
+                display: 'inline-flex',
+                background: 'var(--glass-muted)',
+                border: '1px solid var(--border)',
+                borderRadius: 8,
+                padding: 2,
+                gap: 2,
+              }}
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={selectedLang === 'ru'}
+                onClick={() => setSelectedLang('ru')}
+                style={{
+                  border: 'none',
+                  background: selectedLang === 'ru' ? 'var(--primary)' : 'transparent',
+                  color: selectedLang === 'ru' ? '#ffffff' : 'var(--text-soft)',
+                  fontSize: 10,
+                  fontWeight: selectedLang === 'ru' ? 700 : 500,
+                  padding: '3px 8px',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  lineHeight: 1.2,
+                }}
+              >
+                RU
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={selectedLang === 'kz'}
+                onClick={() => setSelectedLang('kz')}
+                style={{
+                  border: 'none',
+                  background: selectedLang === 'kz' ? 'var(--primary)' : 'transparent',
+                  color: selectedLang === 'kz' ? '#ffffff' : 'var(--text-soft)',
+                  fontSize: 10,
+                  fontWeight: selectedLang === 'kz' ? 700 : 500,
+                  padding: '3px 8px',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  lineHeight: 1.2,
+                }}
+              >
+                KZ
+              </button>
+            </div>
+          )}
         </div>
 
         <div

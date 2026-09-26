@@ -155,7 +155,7 @@ export default function ProfileScreen() {
   const allergenInputRef = useRef(null)
   const { profile, updateProfile: setProfile } = useProfile()
   const { user, displayName, avatarId, bannerUrl, internalUserId, logout, isSuperadmin } = useAuth()
-  const { favoritesCount, scanCount } = useUserData()
+  const { favoritesCount, scanCount, favoriteEans, toggleFavorite } = useUserData()
   const { currentStore } = useStore()
   const { theme, toggleTheme } = useTheme()
   const scrollRef = useScrollRestore('profile')
@@ -241,6 +241,8 @@ export default function ProfileScreen() {
   const [soundSettings, setSoundSettings] = useState(() => loadSoundSettings())
   const [topHistory, setTopHistory] = useState(null)
   const [loadingTab, setLoadingTab] = useState(null)
+  const [autoSaveNotice, setAutoSaveNotice] = useState(false)
+  const autoSaveTimerRef = useRef(null)
 
   const deviceId =
     typeof window !== 'undefined'
@@ -361,27 +363,31 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     if (activeTab !== 'favorites' || topFavorites !== null) return
-    if (!user || !internalUserId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setTopFavorites([])
-      return
-    }
     let cancelled = false
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadingTab('favorites')
     ;(async () => {
       try {
-        const { data, error } = await supabase
-          .from('user_favorites')
-          .select('ean, global_product_id, added_at')
-          .eq('user_id', internalUserId)
-          .order('added_at', { ascending: false })
-          .limit(6)
-        if (error) throw error
-        const hydrated = await hydrateProductsFromFavoriteRows(data || [])
+        let favoriteRows = []
+        if (user && internalUserId) {
+          const { data, error } = await supabase
+            .from('user_favorites')
+            .select('ean, global_product_id, added_at')
+            .eq('user_id', internalUserId)
+            .order('added_at', { ascending: false })
+            .limit(6)
+          if (!error && data) favoriteRows = data
+        } else if (favoriteEans && favoriteEans.size > 0) {
+          favoriteRows = [...favoriteEans].slice(0, 6).map((ean) => ({ ean, added_at: null }))
+        }
+        if (favoriteRows.length === 0) {
+          if (!cancelled) setTopFavorites([])
+          return
+        }
+        const hydrated = await hydrateProductsFromFavoriteRows(favoriteRows)
         if (!cancelled) setTopFavorites(hydrated)
       } catch {
-        // favorites fetch failed silently
         if (!cancelled) setTopFavorites([])
       } finally {
         if (!cancelled) setLoadingTab((cur) => (cur === 'favorites' ? null : cur))
@@ -390,7 +396,17 @@ export default function ProfileScreen() {
     return () => {
       cancelled = true
     }
-  }, [activeTab, user, internalUserId, topFavorites])
+  }, [activeTab, user, internalUserId, topFavorites, favoriteEans])
+
+  const handleRemoveFavorite = async (product) => {
+    if (!product?.ean) return
+    try {
+      await toggleFavorite(product)
+      setTopFavorites((prev) => (prev ? prev.filter((p) => p.ean !== product.ean) : []))
+    } catch {
+      // rollback handled in context
+    }
+  }
 
   useEffect(() => {
     if (activeTab !== 'history' || topHistory !== null) return
@@ -440,28 +456,51 @@ export default function ProfileScreen() {
     }
   }, [activeTab, user, internalUserId, topHistory])
 
-  const toggleDiet = (id) =>
+  const triggerAutoSaveFeedback = () => {
+    setAutoSaveNotice(true)
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
+    autoSaveTimerRef.current = setTimeout(() => {
+      setAutoSaveNotice(false)
+    }, 1800)
+  }
+
+  const toggleHalal = () => {
+    triggerAutoSaveFeedback()
+    setProfile((p) => ({ ...p, halal: !p.halal }))
+  }
+
+  const toggleDiet = (id) => {
+    triggerAutoSaveFeedback()
     setProfile((p) => ({
       ...p,
       dietGoals: p.dietGoals.includes(id)
         ? p.dietGoals.filter((x) => x !== id)
         : [...p.dietGoals, id],
     }))
-  const toggleAllergen = (id) =>
+  }
+
+  const toggleAllergen = (id) => {
+    triggerAutoSaveFeedback()
     setProfile((p) => ({
       ...p,
       allergens: p.allergens.includes(id)
         ? p.allergens.filter((x) => x !== id)
         : [...p.allergens, id],
     }))
+  }
+
   const addCustom = () => {
     const val = allergenInput.trim()
     if (!val || profile.customAllergens.includes(val)) return
+    triggerAutoSaveFeedback()
     setProfile((p) => ({ ...p, customAllergens: [...p.customAllergens, val] }))
     setAllergenInput('')
   }
-  const removeCustom = (val) =>
+
+  const removeCustom = (val) => {
+    triggerAutoSaveFeedback()
     setProfile((p) => ({ ...p, customAllergens: p.customAllergens.filter((x) => x !== val) }))
+  }
 
   const dietCount = profile.dietGoals.length + (profile.halal ? 1 : 0)
   const allergenCount = profile.allergens.length + profile.customAllergens.length
@@ -927,57 +966,105 @@ export default function ProfileScreen() {
               }}
               t={t}
               isGuest={!user}
+              onRemoveFavorite={handleRemoveFavorite}
               preferencesContent={
                 <>
                   {/* Diet */}
                   <div style={{ marginBottom: 20 }}>
                     <div
-                      style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: 12,
+                      }}
                     >
-                      <div
-                        style={{
-                          width: 6,
-                          height: 6,
-                          borderRadius: '50%',
-                          background: 'var(--success-bright)',
-                        }}
-                      />
-                      <span
-                        style={{
-                          fontFamily: 'var(--font-display)',
-                          fontSize: 13,
-                          fontWeight: 600,
-                          color: 'var(--success-bright)',
-                          textTransform: 'uppercase',
-                          letterSpacing: 1,
-                        }}
-                      >
-                        {t('profile.diet')}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      <div
-                        className="pref-chip"
-                        onClick={() => setProfile((p) => ({ ...p, halal: !p.halal }))}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 7,
-                          padding: '8px 14px',
-                          borderRadius: 14,
-                          background: profile.halal ? 'var(--primary-dim)' : 'var(--glass-subtle)',
-                          border: `1px solid ${profile.halal ? 'var(--primary-mid)' : 'var(--glass-soft-border)'}`,
-                          color: profile.halal ? 'var(--primary)' : 'var(--text-disabled)',
-                        }}
-                      >
-                        <DietIcon name="halal" size={24} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div
+                          style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: '50%',
+                            background: 'var(--success-bright)',
+                          }}
+                        />
                         <span
                           style={{
                             fontFamily: 'var(--font-display)',
                             fontSize: 13,
-                            fontWeight: 500,
-                            color: profile.halal ? 'var(--primary)' : 'var(--text-disabled)',
-                            transition: 'color 0.2s ease',
+                            fontWeight: 600,
+                            color: 'var(--success-bright)',
+                            textTransform: 'uppercase',
+                            letterSpacing: 1,
+                          }}
+                        >
+                          {t('profile.diet')}
+                        </span>
+                      </div>
+
+                      {/* Subtle auto-save status pill */}
+                      <div
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5,
+                          fontSize: 11,
+                          fontWeight: 600,
+                          fontFamily: 'var(--font-display)',
+                          color: 'var(--success-bright)',
+                          opacity: autoSaveNotice ? 1 : 0,
+                          transform: autoSaveNotice ? 'scale(1)' : 'scale(0.95)',
+                          transition: 'opacity 0.25s ease, transform 0.25s ease',
+                          pointerEvents: 'none',
+                        }}
+                      >
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span>{t('profile.autoSaved') || 'Сохранено'}</span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                      <div
+                        className="pref-chip"
+                        onClick={toggleHalal}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
+                          padding: '9px 6px',
+                          borderRadius: 12,
+                          background: profile.halal ? 'rgba(16, 185, 129, 0.16)' : 'var(--glass-subtle)',
+                          border: `1.5px solid ${profile.halal ? 'var(--success-bright)' : 'var(--glass-border)'}`,
+                          boxShadow: profile.halal ? '0 0 12px rgba(16, 185, 129, 0.22)' : 'none',
+                          color: profile.halal ? 'var(--success-bright)' : 'var(--text)',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s cubic-bezier(0.22, 1, 0.36, 1)',
+                          userSelect: 'none',
+                        }}
+                      >
+                        <DietIcon name="halal" size={18} />
+                        <span
+                          style={{
+                            fontFamily: 'var(--font-display)',
+                            fontSize: 12,
+                            fontWeight: profile.halal ? 600 : 500,
+                            color: profile.halal ? 'var(--success-bright)' : 'var(--text)',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
                           }}
                         >
                           {t('profile.halalLabel')}
@@ -993,20 +1080,29 @@ export default function ProfileScreen() {
                             style={{
                               display: 'flex',
                               alignItems: 'center',
-                              gap: 7,
-                              padding: '8px 14px',
-                              borderRadius: 14,
-                              background: a ? 'var(--primary-dim)' : 'var(--glass-subtle)',
-                              border: `1px solid ${a ? 'var(--primary-mid)' : 'var(--glass-soft-border)'}`,
+                              justifyContent: 'center',
+                              gap: 6,
+                              padding: '9px 6px',
+                              borderRadius: 12,
+                              background: a ? 'rgba(16, 185, 129, 0.16)' : 'var(--glass-subtle)',
+                              border: `1.5px solid ${a ? 'var(--success-bright)' : 'var(--glass-border)'}`,
+                              boxShadow: a ? '0 0 12px rgba(16, 185, 129, 0.22)' : 'none',
+                              color: a ? 'var(--success-bright)' : 'var(--text)',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s cubic-bezier(0.22, 1, 0.36, 1)',
+                              userSelect: 'none',
                             }}
                           >
-                            <DietIcon name={d.icon} size={24} />
+                            <DietIcon name={d.icon} size={18} />
                             <span
                               style={{
                                 fontFamily: 'var(--font-display)',
-                                fontSize: 13,
-                                fontWeight: 500,
-                                color: a ? 'var(--primary)' : 'var(--text-disabled)',
+                                fontSize: 12,
+                                fontWeight: a ? 600 : 500,
+                                color: a ? 'var(--success-bright)' : 'var(--text)',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
                               }}
                             >
                               {tr(d.label)}
@@ -1060,14 +1156,18 @@ export default function ProfileScreen() {
                             className="pref-chip"
                             onClick={() => toggleAllergen(al.id)}
                             style={{
-                              display: 'flex',
+                              display: 'inline-flex',
                               alignItems: 'center',
-                              gap: 7,
+                              gap: 6,
                               padding: '8px 12px',
-                              borderRadius: 14,
-                              background: 'var(--error-dim)',
-                              border: '1px solid var(--error-border)',
-                              color: a ? 'var(--error-bright)' : 'var(--text-disabled)',
+                              borderRadius: 12,
+                              background: a ? 'rgba(239, 68, 68, 0.16)' : 'var(--glass-subtle)',
+                              border: `1.5px solid ${a ? 'var(--error-bright)' : 'var(--glass-border)'}`,
+                              boxShadow: a ? '0 0 12px rgba(239, 68, 68, 0.22)' : 'none',
+                              color: a ? 'var(--error-bright)' : 'var(--text)',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s cubic-bezier(0.22, 1, 0.36, 1)',
+                              userSelect: 'none',
                             }}
                           >
                             <DietIcon name={al.icon} size={16} />
@@ -1075,86 +1175,160 @@ export default function ProfileScreen() {
                               style={{
                                 fontFamily: 'var(--font-display)',
                                 fontSize: 12,
-                                fontWeight: 500,
-                                color: a ? 'var(--error-bright)' : 'var(--text-disabled)',
+                                fontWeight: a ? 600 : 500,
+                                color: a ? 'var(--error-bright)' : 'var(--text)',
+                                transition: 'color 0.2s ease',
                               }}
                             >
-                              {tr(al.label)}
+                              {tr(al.shortLabel || al.label)}
                             </span>
                           </div>
                         )
                       })}
                     </div>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <input
-                        ref={allergenInputRef}
-                        value={allergenInput}
-                        onChange={(e) => setAllergenInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && addCustom()}
-                        placeholder={t('profile.customPlaceholder')}
-                        style={{
-                          flex: 1,
-                          background: 'var(--glass-bg)',
-                          border: '1px solid var(--glass-soft-border)',
-                          borderRadius: 12,
-                          padding: '10px 14px',
-                          color: 'var(--text)',
-                          fontSize: 12,
-                          fontFamily: 'var(--font-display)',
-                          outline: 'none',
-                        }}
-                      />
-                      <button
-                        onClick={addCustom}
-                        style={{
-                          padding: '10px 14px',
-                          borderRadius: 12,
-                          background: 'var(--primary)',
-                          border: 'none',
-                          color: 'var(--text-inverse)',
-                          fontSize: 12,
-                          fontWeight: 600,
-                          fontFamily: 'var(--font-display)',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {t('profile.add')}
-                      </button>
-                    </div>
-                    {profile.customAllergens.length > 0 && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
-                        {profile.customAllergens.map((val) => (
-                          <span
-                            key={val}
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 5,
-                              padding: '5px 10px',
-                              borderRadius: 12,
-                              background: 'var(--error-dim)',
-                              color: 'var(--error-bright)',
-                              border: '1px solid var(--error-border)',
-                              fontSize: 11,
-                              fontFamily: 'var(--font-display)',
-                            }}
+
+                    {/* Custom allergen input card */}
+                    <div
+                      style={{
+                        padding: '14px',
+                        borderRadius: 16,
+                        background: 'var(--glass-subtle)',
+                        border: '1px solid var(--glass-soft-border)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 10,
+                      }}
+                    >
+                      <div>
+                        <div
+                          style={{
+                            fontFamily: 'var(--font-display)',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            color: 'var(--text)',
+                          }}
+                        >
+                          {t('profile.customAllergensTitle') || 'Свой аллерген'}
+                        </div>
+                      </div>
+
+                      <div style={{ position: 'relative', width: '100%' }}>
+                        <input
+                          ref={allergenInputRef}
+                          value={allergenInput}
+                          onChange={(e) => setAllergenInput(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && addCustom()}
+                          placeholder={t('profile.customPlaceholder') || 'Например: клубника, киви...'}
+                          style={{
+                            width: '100%',
+                            boxSizing: 'border-box',
+                            background: 'var(--glass-bg)',
+                            border: '1px solid var(--glass-border)',
+                            borderRadius: 12,
+                            padding: '10px 44px 10px 14px',
+                            color: 'var(--text)',
+                            fontSize: 12.5,
+                            fontFamily: 'var(--font-display)',
+                            outline: 'none',
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={addCustom}
+                          disabled={!allergenInput.trim()}
+                          aria-label={t('profile.add') || 'Добавить'}
+                          style={{
+                            position: 'absolute',
+                            right: 6,
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            width: 30,
+                            height: 30,
+                            borderRadius: 8,
+                            background: allergenInput.trim() ? 'var(--primary)' : 'var(--glass-subtle)',
+                            color: allergenInput.trim() ? 'var(--text-inverse)' : 'var(--text-disabled)',
+                            border: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: allergenInput.trim() ? 'pointer' : 'default',
+                            transition: 'all 0.2s ease',
+                          }}
+                        >
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
                           >
-                            {val}
+                            <line x1="12" y1="5" x2="12" y2="19" />
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                          </svg>
+                        </button>
+                      </div>
+
+                      {profile.customAllergens.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                          {profile.customAllergens.map((val) => (
                             <span
-                              onClick={() => removeCustom(val)}
+                              key={val}
                               style={{
-                                cursor: 'pointer',
-                                fontSize: 14,
-                                lineHeight: 1,
-                                opacity: 0.6,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                padding: '5px 10px',
+                                borderRadius: 12,
+                                background: 'var(--error-dim)',
+                                color: 'var(--error-bright)',
+                                border: '1px solid var(--error-border)',
+                                fontSize: 11,
+                                fontWeight: 500,
+                                fontFamily: 'var(--font-display)',
                               }}
                             >
-                              Г—
+                              {val}
+                              <button
+                                type="button"
+                                onClick={() => removeCustom(val)}
+                                aria-label={`${t('common.delete') || 'Удалить'} ${val}`}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  padding: 0,
+                                  margin: 0,
+                                  background: 'transparent',
+                                  border: 'none',
+                                  color: 'currentColor',
+                                  cursor: 'pointer',
+                                  opacity: 0.75,
+                                  lineHeight: 1,
+                                }}
+                              >
+                                <svg
+                                  width="12"
+                                  height="12"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2.4"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  aria-hidden="true"
+                                >
+                                  <path d="M18 6L6 18M6 6l12 12" />
+                                </svg>
+                              </button>
                             </span>
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </>
               }

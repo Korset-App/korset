@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { useAuth } from './AuthContext.jsx'
 import { supabase } from '../utils/supabase.js'
 import {
@@ -18,7 +18,7 @@ import {
   markSyncComplete,
   mergeProfiles,
 } from '../utils/profileSync.js'
-import { normalizeDietGoals } from '../utils/profile.js'
+import { migrateAllergenIds, normalizeDietGoals } from '../utils/profile.js'
 import SyncResolveModal from '../components/SyncResolveModal.jsx'
 
 const ProfileContext = createContext(null)
@@ -36,6 +36,14 @@ const DEFAULT_PROFILE = {
 function normalizeProfile(raw) {
   const profile = { ...DEFAULT_PROFILE, ...(raw || {}) }
   profile.dietGoals = normalizeDietGoals(profile.dietGoals)
+
+  const rawAllergens = Array.isArray(profile.allergens) ? profile.allergens : []
+  const { allergens: migratedAllergens, addToCustom } = migrateAllergenIds(rawAllergens)
+  profile.allergens = migratedAllergens
+
+  const existingCustom = Array.isArray(profile.customAllergens) ? profile.customAllergens : []
+  profile.customAllergens = [...new Set([...existingCustom, ...addToCustom])]
+
   profile.notifications = {
     ...DEFAULT_NOTIFICATION_SETTINGS,
     ...(raw?.notifications || {}),
@@ -65,6 +73,11 @@ function persistProfileToLocal(profile) {
 export function ProfileProvider({ children }) {
   const { user } = useAuth()
   const [profile, setProfileState] = useState(loadProfileLocal)
+  const profileRef = useRef(profile)
+
+  useEffect(() => {
+    profileRef.current = profile
+  }, [profile])
 
   // Sync conflict state: null = no conflict, object = awaiting user resolution
   const [syncConflict, setSyncConflict] = useState(null) // { local, cloud }
@@ -114,6 +127,7 @@ export function ProfileProvider({ children }) {
 
         // ── Case 2: Local is default (fresh install) → apply cloud silently ──
         if (isDefaultPreferences(localPrefs)) {
+          profileRef.current = cloudPrefs
           setProfileState(cloudPrefs)
           persistProfileToLocal(cloudPrefs)
           markSyncComplete(user.id)
@@ -122,6 +136,7 @@ export function ProfileProvider({ children }) {
 
         // ── Case 3: Already resolved for this user → cloud wins (trusted source) ──
         if (isAlreadySynced(user.id)) {
+          profileRef.current = cloudPrefs
           setProfileState(cloudPrefs)
           persistProfileToLocal(cloudPrefs)
           return
@@ -132,6 +147,7 @@ export function ProfileProvider({ children }) {
 
         if (!hasConflict) {
           // Data is effectively equal — cloud wins, mark complete
+          profileRef.current = cloudPrefs
           setProfileState(cloudPrefs)
           persistProfileToLocal(cloudPrefs)
           markSyncComplete(user.id)
@@ -173,6 +189,7 @@ export function ProfileProvider({ children }) {
       }
 
       // Apply locally first (instant feedback)
+      profileRef.current = finalProfile
       setProfileState(finalProfile)
       persistProfileToLocal(finalProfile)
       notifyPrivacyChanged()
@@ -204,23 +221,22 @@ export function ProfileProvider({ children }) {
 
   const updateProfile = useCallback(
     async (nextValue) => {
-      let merged
-      setProfileState((prev) => {
-        const resolved = typeof nextValue === 'function' ? nextValue(prev) : nextValue
-        merged = normalizeProfile({
-          ...prev,
-          ...resolved,
-          notifications: { ...prev.notifications, ...(resolved?.notifications || {}) },
-          privacy: { ...prev.privacy, ...(resolved?.privacy || {}) },
-        })
-        localStorage.setItem('korset_profile', JSON.stringify(merged))
-        saveNotificationSettings(merged.notifications)
-        writePrivacySettings(merged.privacy)
-        notifyPrivacyChanged()
-        return merged
+      const prev = profileRef.current
+      const resolved = typeof nextValue === 'function' ? nextValue(prev) : nextValue
+      const merged = normalizeProfile({
+        ...prev,
+        ...resolved,
+        notifications: { ...prev.notifications, ...(resolved?.notifications || {}) },
+        privacy: { ...prev.privacy, ...(resolved?.privacy || {}) },
       })
+      profileRef.current = merged
+      setProfileState(merged)
+      localStorage.setItem('korset_profile', JSON.stringify(merged))
+      saveNotificationSettings(merged.notifications)
+      writePrivacySettings(merged.privacy)
+      notifyPrivacyChanged()
 
-      if (user && merged) {
+      if (user) {
         try {
           await supabase.from('users').update({ preferences: merged }).eq('auth_id', user.id)
         } catch (err) {
@@ -235,11 +251,18 @@ export function ProfileProvider({ children }) {
 
   useEffect(() => {
     const onStorage = (e) => {
-      if (e.key === 'korset_profile') setProfileState(loadProfileLocal())
+      if (e.key === 'korset_profile') {
+        const next = loadProfileLocal()
+        profileRef.current = next
+        setProfileState(next)
+      }
       if (e.key === 'korset_notification_settings') {
-        setProfileState((prev) =>
-          normalizeProfile({ ...prev, notifications: loadNotificationSettings() })
-        )
+        const next = normalizeProfile({
+          ...profileRef.current,
+          notifications: loadNotificationSettings(),
+        })
+        profileRef.current = next
+        setProfileState(next)
       }
     }
     window.addEventListener('storage', onStorage)

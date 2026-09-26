@@ -151,11 +151,9 @@ Rules:
     const base = process.env.OPENAI_API_BASE_URL || 'https://api.openai.com/v1'
     const model = process.env.OPENAI_VISION_MODEL || 'gpt-4o-mini'
     const fetchUrl = `${base.replace(/\/+$/, '')}/chat/completions`
-    const headers = { 'Content-Type': 'application/json' }
-    if (fetchUrl.includes('.azure.com') || fetchUrl.includes('.services.ai.azure.com')) {
-      headers['api-key'] = OPENAI_API_KEY
-    } else {
-      headers['Authorization'] = `Bearer ${OPENAI_API_KEY}`
+    const headers = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
     }
 
     const imageContents = photoUrls.map((url) => ({

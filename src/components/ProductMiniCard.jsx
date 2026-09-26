@@ -9,7 +9,7 @@ import { getDisplayQuantity } from '../utils/parseQuantity.js'
  * Compact product card used in profile tabs (favorites / history).
  * Whole card is the only click target — opens the product detail screen.
  */
-export default function ProductMiniCard({ product }) {
+export default function ProductMiniCard({ product, onRemove }) {
   const navigate = useNavigate()
   const { currentStore } = useStore()
   const { lang } = useI18n()
@@ -22,6 +22,12 @@ export default function ProductMiniCard({ product }) {
   const meta = [country || product.brand, getDisplayQuantity(product, lang)]
     .filter(Boolean)
     .join(' · ')
+
+  const price = typeof product.priceKzt === 'number' && product.priceKzt > 0 ? product.priceKzt : null
+  const oldPrice =
+    typeof product.oldPriceKzt === 'number' && product.oldPriceKzt > (price || 0)
+      ? product.oldPriceKzt
+      : null
 
   const handleOpen = () => {
     if (!product.ean) return
@@ -43,7 +49,33 @@ export default function ProductMiniCard({ product }) {
         }
       }}
     >
-      <div className="product-mini-card__image-wrap catalog-img-box">
+      <div className="product-mini-card__image-wrap catalog-img-box" style={{ position: 'relative' }}>
+        {onRemove && (
+          <button
+            type="button"
+            className="product-mini-card__remove-btn"
+            onClick={(e) => {
+              e.stopPropagation()
+              onRemove(product)
+            }}
+            aria-label="Удалить"
+          >
+            <svg
+              width="11"
+              height="11"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        )}
         {image ? (
           <img
             src={image}
@@ -74,6 +106,14 @@ export default function ProductMiniCard({ product }) {
         )}
       </div>
       <div className="product-mini-card__body">
+        {price ? (
+          <div className="product-mini-card__price-row">
+            <span className="product-mini-card__price">{price.toLocaleString('ru-RU')} ₸</span>
+            {oldPrice ? (
+              <span className="product-mini-card__old-price">{oldPrice.toLocaleString('ru-RU')} ₸</span>
+            ) : null}
+          </div>
+        ) : null}
         <div className="product-mini-card__name" title={localName}>
           {localName}
         </div>

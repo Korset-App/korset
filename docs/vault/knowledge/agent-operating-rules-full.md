@@ -1,14 +1,14 @@
 ---
 domain: knowledge
 subdomain: agent-workflow
-updated: 2026-09-17
+updated: 2026-09-26
 ---
 
 # Agent Operating Rules — Extended Reference
 
 Full version of the agent rules. The short, always-loaded version lives in `AGENTS.md`.
 
-`AGENTS.md` is injected into every single request, so it is deliberately kept under ~3 KB.
+`AGENTS.md` is always-loaded guidance; keep it concise and move task-specific detail into linked references.
 Everything below was moved here on 2026-09-17 because it is either generic agent hygiene
 that modern models already follow, or detail that is only needed occasionally and can be
 retrieved on demand.
@@ -20,8 +20,8 @@ Query this file with:
 
 Two independent reasons, both real:
 
-1. **Cost.** An 11 KB instruction file is ~3 500 tokens resent on every turn. On a
-   frontier model that is a meaningful per-turn floor before the user types anything.
+1. **Cost.** Long instructions consume context. Exact billed usage depends on model,
+   caching and execution mode; do not infer a fixed per-turn price from file size.
 2. **Quality.** Long instruction files dilute attention. A short file where every line
    is load-bearing gets followed more reliably than a long file where most lines are
    boilerplate the model would have done anyway.
@@ -53,7 +53,12 @@ Reason 2 outlives reason 1. Even when tokens are cheap, keep `AGENTS.md` short.
 - Do not add speculative abstractions, generic frameworks, or configurability that was
   not requested.
 - Prefer professional, future-aware solutions, but do not over-engineer. Quality and
-  simplicity must work together.
+## Thorough Planning & Anti-Rush Standard (Осознанное проектирование и запрет скорострельности)
+
+- **Запрет скорострельности и поспешных действий**: Категорически запрещено выдавать поверхностные решения наспех. Прежде чем приступать к коду, агент обязан глубоко обдумать решение со всех сторон: как продуктовый маркетолог (польза, ценность, отсутствие мусора/шума) и как ведущий инженер (производительность, надежность, архитектура).
+- **Обязательный поэтапный план**: Если задача объемная или многосоставная, агент ОБЯЗАН СНАЧАЛА построить полноценный план, разбить его на прозрачные логические этапы с контрольными точками и показать пользователю целостную картину.
+- **Согласование до написания кода**: Сформулировать архитектуру и ключевые развилки, задать уточняющие вопросы и дождаться утверждения плана пользователем, прежде чем вносить масштабные правки вне уже согласованного объёма. Явное разрешение пользователя на безопасную реализацию достаточно; повторно его не запрашивать. Двигаться поэтапно, проверяя результат.
+- **Продуктовая планка качества**: Каждый элемент интерфейса должен быть реально полезен и обоснован, не создавать визуальный или текстовый шум, соответствовать премиальному уровню ведущих продуктов (Kaspi, Wolt, Apple) и нести прямую B2B2C ценность.
 
 ## When to stop and ask (expanded)
 
@@ -61,7 +66,7 @@ Stop and ask before editing when:
 
 - Requirements are ambiguous and guessing could affect behavior, data, design,
   security, payments, auth, routing, or business logic.
-- Local files contradict the user's request or each other.
+- Conflicting local files leave a consequential decision unresolved; explicit current user instructions take priority.
 - The task seems to require changing product scope or business assumptions.
 - You cannot verify a critical fact from local context or current official docs.
 - Continuing would require destructive actions, deleting data, resetting git state,
@@ -86,14 +91,11 @@ the same time.
 
 | Layer | Role |
 | --- | --- |
-| `AGENTS.md` | Stable agent behavior rules. Always loaded. Keep under ~3 KB. |
+| `AGENTS.md` | Stable agent behavior rules. Always loaded. Keep concise; link task-specific rules. |
 | `docs/CONTEXT.md` | Fast-start project context. Current focus, working status, critical constraints, links to deeper docs. Under 250 lines. |
 | `docs/ARCHITECTURE.md` | Deep system map and long-lived architecture. |
 | `docs/ROADMAP_PILOT_V1.md` | Current product roadmap and launch priorities. |
-| `docs/AI_TASK_MODES.md` | Task-specific workflows for UI, bugfix, DB, architecture, memory, release work. |
-| `docs/AI_TOOLS_MATRIX.md` | Which skills, plugins, MCP tools, and checks to use per task type. |
-| `docs/PROMPT_STARTERS.md` | Reusable short prompts for the owner. |
-| `docs/AI_COLLAB_PROTOCOL.md` | Multi-agent workflow. |
+| `docs/vault/knowledge/model-routing-and-cost-control.md` | Current workflow, skills, integrations, memory modes and Jev decision. |
 | `docs/vault/` | Detailed memory, decisions, research, plans, operations, changelog notes for RAG. |
 
 ### CONTEXT.md discipline
@@ -113,7 +115,7 @@ the same time.
 | Architecture details | `docs/vault/architecture/` or `docs/ARCHITECTURE.md` |
 | Plans and audits | `docs/vault/plans/` |
 | Decisions | `docs/vault/decisions/` |
-| Tool lists and task modes | `docs/AI_TASK_MODES.md`, `docs/AI_TOOLS_MATRIX.md` |
+| Tool lists and task modes | `docs/vault/knowledge/model-routing-and-cost-control.md` |
 
 Do **not** put in `AGENTS.md`: session changelogs, old audits, numeric project scores,
 full architecture explanations, database statistics snapshots, long command catalogs,
@@ -130,8 +132,8 @@ For broad architecture, audit, product strategy, or cross-system refactors, read
 - Add or update the relevant vault note when work changes architecture, product
   direction, data model, important UX patterns, business logic, decisions, or future
   handoff context.
-- Run `npm run memory:save` after vault changes when credentials and network are
-  available.
+- Run `npm run memory:save` after vault changes for local validation. Remote indexing
+  requires separate authorization and explicit `--remote --apply`; never imply it ran locally.
 
 ## Verification catalog
 
