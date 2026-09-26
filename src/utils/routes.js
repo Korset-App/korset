@@ -39,8 +39,13 @@ export function buildAccountPath(storeSlug = null) {
 }
 
 export function buildHistoryPath(storeSlug = null, tab = null) {
+  if (tab === 'favorites') return buildShoppingListPath(storeSlug)
   const base = storeSlug ? `${buildStoreAppBase(storeSlug)}/history` : '/history'
-  return tab ? `${base}?tab=${tab}` : base
+  return base
+}
+
+export function buildShoppingListPath(storeSlug = null) {
+  return storeSlug ? `${buildStoreAppBase(storeSlug)}/shopping-list` : '/shopping-list'
 }
 
 export function buildAIHomePath(storeSlug = null) {

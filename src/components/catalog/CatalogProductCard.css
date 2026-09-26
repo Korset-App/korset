@@ -35,14 +35,23 @@
 }
 
 .catalog-product-card__thumb--grid {
+  position: relative;
   width: 100%;
   aspect-ratio: 1 / 1;
   margin-bottom: 10px;
 }
 
 .catalog-product-card__thumb--list {
+  position: relative;
   width: 80px;
   height: 80px;
+}
+
+.catalog-product-card__shopping-action {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 1;
 }
 
 .catalog-product-card__image {
@@ -198,6 +207,13 @@
   background: rgba(245, 158, 11, 0.1);
   border-color: rgba(251, 191, 36, 0.24);
   color: #fbbf24;
+}
+
+.catalog-product-card__badge--more {
+  min-width: 25px;
+  justify-content: center;
+  color: var(--text-dim);
+  background: var(--glass-muted);
 }
 
 .catalog-product-card__meta {

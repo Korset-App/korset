@@ -1,7 +1,7 @@
 /**
  * Day definitions (Monday = 0 ... Sunday = 6 in Kazakhstan ISO standard)
  */
-const DAY_DEFS = [
+export const DAY_DEFS = [
   { dayKey: 'mon', dayRu: 'Понедельник', shortRu: 'Пн', dayKz: 'Дүйсенбі', shortKz: 'Дс' },
   { dayKey: 'tue', dayRu: 'Вторник', shortRu: 'Вт', dayKz: 'Сейсенбі', shortKz: 'Сс' },
   { dayKey: 'wed', dayRu: 'Среда', shortRu: 'Ср', dayKz: 'Сәрсенбі', shortKz: 'Ср' },
@@ -12,21 +12,29 @@ const DAY_DEFS = [
 ]
 
 /**
- * Parses store opening hours string and evaluates current status against Kazakhstan timezone (UTC+5).
+ * Parses store opening hours string or store object and evaluates current status against Kazakhstan timezone (UTC+5).
  * Formats supported:
  *  - "09:00-23:00"
  *  - "09:00 - 23:00"
  *  - "24/7", "круглосуточно", "тәулік бойы"
  *  - "Пн-Сб: 08:30-23:00; Вс: выходной"
  *  - "09:00-23:00 | 28 сентября — санитарный день (с 14:00)"
+ *  - Store object: { opening_hours: "...", temporary_closure: { date: "2026-09-28", reason: "Ревизия", is_active: true } }
  */
-export function parseStoreSchedule(hoursStr, now = new Date()) {
-  if (!hoursStr || typeof hoursStr !== 'string') {
-    return { isConfigured: false, raw: '' }
+export function parseStoreSchedule(storeOrHours, now = new Date()) {
+  let hoursStr = ''
+  let closureObj = null
+
+  if (typeof storeOrHours === 'string') {
+    hoursStr = storeOrHours
+  } else if (storeOrHours && typeof storeOrHours === 'object') {
+    hoursStr = storeOrHours.opening_hours || ''
+    closureObj = storeOrHours.temporary_closure || storeOrHours.temporaryClosure || null
   }
 
-  const clean = hoursStr.trim()
-  if (!clean) {
+  const clean = String(hoursStr || '').trim()
+
+  if (!clean && !closureObj) {
     return { isConfigured: false, raw: '' }
   }
 
@@ -36,17 +44,40 @@ export function parseStoreSchedule(hoursStr, now = new Date()) {
   const currentMinutes = kzTime.getHours() * 60 + kzTime.getMinutes()
   // JS getDay(): 0 is Sunday, 1 is Monday ... convert to 0 = Monday ... 6 = Sunday
   const currentDayIndex = (kzTime.getDay() + 6) % 7
+  const todayYmd = kzTime.toISOString().slice(0, 10)
 
   // 1. Check for special notice or temporary closure delimiter ('|')
   let mainHoursPart = clean
   let specialNotice = null
   let isTemporarilyClosed = false
   let temporaryClosureReason = null
+  let upcomingClosure = null
 
   if (clean.includes('|')) {
     const parts = clean.split('|').map((s) => s.trim())
     mainHoursPart = parts[0] || ''
     specialNotice = parts.slice(1).join('; ')
+  }
+
+  // Handle structured temporary_closure
+  if (closureObj && closureObj.is_active !== false && closureObj.date) {
+    const closureYmd = String(closureObj.date).slice(0, 10)
+    const closureReason = closureObj.reason || 'Ревизия / Санитарный день'
+
+    // Compare dates (YYYY-MM-DD)
+    const msDiff = new Date(closureYmd).getTime() - new Date(todayYmd).getTime()
+    const daysLeft = Math.round(msDiff / (1000 * 60 * 60 * 24))
+
+    if (daysLeft === 0) {
+      isTemporarilyClosed = true
+      temporaryClosureReason = closureReason
+    } else if (daysLeft > 0 && daysLeft <= 7) {
+      upcomingClosure = {
+        date: closureYmd,
+        reason: closureReason,
+        daysLeft,
+      }
+    }
   }
 
   if (specialNotice && /(сегодня закрыт|санитарный день|ревизия|жабық|учёт)/i.test(specialNotice)) {
@@ -55,6 +86,12 @@ export function parseStoreSchedule(hoursStr, now = new Date()) {
       isTemporarilyClosed = true
       temporaryClosureReason = specialNotice
     }
+  }
+
+  if (!specialNotice && isTemporarilyClosed) {
+    specialNotice = `Сегодня магазин закрыт (${temporaryClosureReason || 'санитарный день / ревизия'})`
+  } else if (!specialNotice && upcomingClosure) {
+    specialNotice = `Внимание: ${upcomingClosure.date} магазин закрыт (${upcomingClosure.reason})`
   }
 
   // 2. 24/7 store case
@@ -72,6 +109,7 @@ export function parseStoreSchedule(hoursStr, now = new Date()) {
       isOpen: !isTemporarilyClosed,
       isTemporarilyClosed,
       temporaryClosureReason,
+      upcomingClosure,
       specialNotice,
       todayHours: 'Круглосуточно',
       isTodayDayOff: false,
@@ -89,6 +127,7 @@ export function parseStoreSchedule(hoursStr, now = new Date()) {
       specialNotice,
       isTemporarilyClosed,
       temporaryClosureReason,
+      upcomingClosure,
       raw: clean,
     }
   }
@@ -135,6 +174,7 @@ export function parseStoreSchedule(hoursStr, now = new Date()) {
     isOpen,
     isTemporarilyClosed,
     temporaryClosureReason,
+    upcomingClosure,
     specialNotice,
     opens: openStr,
     closes: closeStr,

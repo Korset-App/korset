@@ -10,6 +10,7 @@ import {
   getStoreCatalogProducts,
   updateProductPrice,
   updateProductPromotion,
+  updateProductShoppingRecommendation,
   updateProductStock,
   deleteStoreProduct,
 } from '../utils/retailAnalytics.js'
@@ -304,6 +305,56 @@ function StockToggle({ product, label, stockMutation }) {
           }}
         />
       </div>
+    </div>
+  )
+}
+
+function ShoppingRecommendationToggle({ product, label, recommendationMutation }) {
+  if (!Object.hasOwn(product, 'is_shopping_recommended')) return null
+  const on = Boolean(product.is_shopping_recommended)
+  return (
+    <div
+      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}
+    >
+      <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{label}</span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={on}
+        aria-label={label}
+        disabled={recommendationMutation?.isPending}
+        onClick={(e) => {
+          e.stopPropagation()
+          recommendationMutation?.mutate({ id: product.id, isRecommended: !on })
+        }}
+        style={{
+          width: 52,
+          height: 30,
+          border: 0,
+          padding: 0,
+          borderRadius: 15,
+          cursor: recommendationMutation?.isPending ? 'default' : 'pointer',
+          background: on ? '#10B981' : 'var(--glass-border)',
+          position: 'relative',
+          transition: 'background 0.25s',
+          opacity: recommendationMutation?.isPending ? 0.7 : 1,
+          flexShrink: 0,
+        }}
+      >
+        <span
+          style={{
+            position: 'absolute',
+            top: 3,
+            left: on ? 25 : 3,
+            width: 24,
+            height: 24,
+            borderRadius: '50%',
+            background: 'var(--text-inverse)',
+            transition: 'left 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.25)',
+          }}
+        />
+      </button>
     </div>
   )
 }
@@ -692,6 +743,7 @@ const ProductCard = memo(
     storeSlug,
     priceMutation,
     stockMutation,
+    recommendationMutation,
     promotionMutation,
     setExpandedId,
     onDeleteRequest,
@@ -930,6 +982,11 @@ const ProductCard = memo(
                 priceMutation={priceMutation}
               />
               <StockToggle product={product} label={tr.stockLabel} stockMutation={stockMutation} />
+              <ShoppingRecommendationToggle
+                product={product}
+                label={tr.shoppingRecommendationLabel}
+                recommendationMutation={recommendationMutation}
+              />
               <PromotionSection product={product} p={tr} promotionMutation={promotionMutation} />
               <ReadonlyBlock product={product} p={tr} storeSlug={storeSlug} />
 
@@ -1159,6 +1216,7 @@ function EditBottomSheet({
   storeSlug,
   priceMutation,
   stockMutation,
+  recommendationMutation,
   promotionMutation,
   onClose,
   onDeleteRequest,
@@ -1306,6 +1364,11 @@ function EditBottomSheet({
             priceMutation={priceMutation}
           />
           <StockToggle product={product} label={tr.stockLabel} stockMutation={stockMutation} />
+          <ShoppingRecommendationToggle
+            product={product}
+            label={tr.shoppingRecommendationLabel}
+            recommendationMutation={recommendationMutation}
+          />
           <PromotionSection product={product} p={tr} promotionMutation={promotionMutation} />
 
           {/* Delete button */}
@@ -1473,6 +1536,10 @@ export default function RetailProductsScreen() {
       retry: t('retail.products.retry'),
       noPrice: t('retail.products.noPrice'),
       stockLabel: t('retail.products.stockLabel'),
+      shoppingRecommendationLabel: t('retail.products.shoppingRecommendationLabel'),
+      recommendationLimitTitle: t('retail.products.recommendationLimitTitle'),
+      recommendationLimitMessage: t('retail.products.recommendationLimitMessage'),
+      recommendationSaveFailed: t('retail.products.recommendationSaveFailed'),
       deleteProduct: t('retail.products.deleteProduct'),
       saving: t('retail.products.saving'),
       saved: t('retail.products.saved'),
@@ -1608,6 +1675,37 @@ export default function RetailProductsScreen() {
     },
     onError: (_err, _vars, ctx) => {
       if (ctx?.prev) ctx.prev.forEach(([key, val]) => queryClient.setQueryData(key, val))
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['retail-products', storeId] })
+    },
+  })
+
+  const recommendationMutation = useMutation({
+    mutationFn: ({ id, isRecommended }) =>
+      updateProductShoppingRecommendation(id, storeId, isRecommended),
+    onMutate: async ({ id, isRecommended }) => {
+      await queryClient.cancelQueries({ queryKey: ['retail-products', storeId] })
+      const prev = queryClient.getQueriesData({ queryKey: ['retail-products', storeId] })
+      patchPages((item) =>
+        item.id === id ? { ...item, is_shopping_recommended: isRecommended } : item
+      )
+      return { prev }
+    },
+    onError: (error, _vars, ctx) => {
+      if (ctx?.prev) ctx.prev.forEach(([key, val]) => queryClient.setQueryData(key, val))
+      if (error?.message?.includes('Maximum 10 shopping recommendation candidates per store')) {
+        clearTimeout(toastTimer.current)
+        setScanToast({
+          type: 'recommendation_limit',
+          label: p.recommendationLimitMessage,
+        })
+        toastTimer.current = setTimeout(() => setScanToast(null), 4000)
+      } else {
+        clearTimeout(toastTimer.current)
+        setScanToast({ type: 'recommendation_error', label: p.recommendationSaveFailed })
+        toastTimer.current = setTimeout(() => setScanToast(null), 4000)
+      }
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['retail-products', storeId] })
@@ -2061,7 +2159,13 @@ export default function RetailProductsScreen() {
           )}
           <div style={{ color: 'var(--text)' }}>
             <div style={{ fontSize: 13, fontWeight: 700 }}>
-              {scanToast.type === 'found' ? p.scanFound : p.scanNotFound}
+              {scanToast.type === 'found'
+                ? p.scanFound
+                : scanToast.type === 'recommendation_limit'
+                  ? p.recommendationLimitTitle
+                  : scanToast.type === 'recommendation_error'
+                    ? p.recommendationSaveFailed
+                    : p.scanNotFound}
             </div>
             <div
               style={{
@@ -2109,6 +2213,7 @@ export default function RetailProductsScreen() {
                 storeSlug={storeSlug}
                 priceMutation={priceMutation}
                 stockMutation={stockMutation}
+                recommendationMutation={recommendationMutation}
                 promotionMutation={promotionMutation}
                 setExpandedId={setExpandedId}
                 onDeleteRequest={(id) => {
@@ -2234,6 +2339,7 @@ export default function RetailProductsScreen() {
             storeSlug={storeSlug}
             priceMutation={priceMutation}
             stockMutation={stockMutation}
+            recommendationMutation={recommendationMutation}
             promotionMutation={promotionMutation}
             onClose={() => setGridSelectedId(null)}
             onDeleteRequest={(id) => {

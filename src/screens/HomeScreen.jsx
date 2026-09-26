@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import ProfileAvatar from '../components/ProfileAvatar.jsx'
+import ShoppingListButton from '../components/ShoppingListButton.jsx'
 import KorsetAvatar from '../components/KorsetAvatar.jsx'
 import SegmentedToggle from '../components/SegmentedToggle.jsx'
 import { useOverlayLock } from '../hooks/useOverlayLock.js'
@@ -65,7 +66,6 @@ import {
   HalykIcon,
   FreedomIcon,
   BankCardIcon,
-  NfcPaymentIcon,
   MicrophoneIcon,
   SendIcon,
   BakeryTandyrIcon,
@@ -566,10 +566,24 @@ export default function HomeScreen() {
   const [installSheetOpen, setInstallSheetOpen] = useState(false)
   const [failedImageEans, setFailedImageEans] = useState(() => new Set())
   const [isShoppingListExpanded, setIsShoppingListExpanded] = useState(false)
-  const [isStoreDetailsExpanded, setIsStoreDetailsExpanded] = useState(false)
+  const [isStoreDetailsExpanded, setIsStoreDetailsExpanded] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.location.hash === '#store-about' || window.location.hash === '#about'
+  })
   const [avatarMenuPos, setAvatarMenuPos] = useState(null)
 
   useOverlayLock(avatarMenuOpen)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const hash = window.location.hash
+    if (hash === '#store-about' || hash === '#about') {
+      const timer = setTimeout(() => {
+        storeInfoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 300)
+      return () => clearTimeout(timer)
+    }
+  }, [currentStore?.slug])
 
   const measureAvatarMenuPos = useCallback(() => {
     const rect = avatarButtonRef.current?.getBoundingClientRect()
@@ -832,7 +846,10 @@ export default function HomeScreen() {
   }, [catalogProducts, favoriteEans])
 
   const storeHours = getStoreHours(currentStore, t)
-  const schedule = useMemo(() => parseStoreSchedule(storeHours), [storeHours])
+  const schedule = useMemo(
+    () => parseStoreSchedule(currentStore || storeHours),
+    [currentStore, storeHours]
+  )
 
   // Fit-Check configuration status
   const isFitConfigured = useMemo(() => {
@@ -1222,11 +1239,16 @@ export default function HomeScreen() {
                   />
                 )}
                 <span className="home-store-badge__status-text">
-                  {schedule.isOpen
-                    ? t('home.storeClosesAt', { time: schedule.closes }) || `до ${schedule.closes}`
-                    : schedule.isConfigured
-                      ? t('home.storeOpensAt', { time: schedule.opens }) || `с ${schedule.opens}`
-                      : storeHours}
+                  {schedule.isTemporarilyClosed
+                    ? schedule.temporaryClosureReason ||
+                      t('home.storeTemporaryClosed') ||
+                      'Временно закрыт'
+                    : schedule.isOpen
+                      ? t('home.storeClosesAt', { time: schedule.closes }) ||
+                        `до ${schedule.closes}`
+                      : schedule.isConfigured
+                        ? t('home.storeOpensAt', { time: schedule.opens }) || `с ${schedule.opens}`
+                        : storeHours}
                 </span>
                 {storeAddress && (
                   <>
@@ -1656,7 +1678,7 @@ export default function HomeScreen() {
             {showcaseProducts.map((product) => {
               const isFav = checkIsFavorite ? checkIsFavorite(product.ean) : false
               const productImage = product.image || product.image_url
-              const { badges, extraCount } = getProductBadgeSummary(product, lang)
+              const { badges, extraCount, discountBadge } = getProductBadgeSummary(product, lang)
               const hasDiscount = Boolean(
                 (product.discountPercent && product.discountPercent > 0) ||
                 (product.oldPriceKzt && product.oldPriceKzt > product.priceKzt)
@@ -1670,7 +1692,9 @@ export default function HomeScreen() {
                   tabIndex={0}
                   onClick={() => handleProductCardClick(product)}
                   onKeyDown={(e) => {
+                    if (e.target !== e.currentTarget) return
                     if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
                       handleProductCardClick(product)
                     }
                   }}
@@ -1696,8 +1720,13 @@ export default function HomeScreen() {
                       </div>
                     )}
 
-                    {badges.length > 0 && (
+                    {(badges.length > 0 || discountBadge) && (
                       <div className="home-product-card__badges">
+                        {discountBadge && (
+                          <span className="home-product-card__badge home-product-card__badge--discount">
+                            {discountBadge.label}
+                          </span>
+                        )}
                         {badges.map((badge) => (
                           <span
                             key={badge.key}
@@ -1718,43 +1747,11 @@ export default function HomeScreen() {
                       </div>
                     )}
 
-                    <button
-                      type="button"
-                      className={`home-product-card__fav-btn${isFav ? ' is-active' : ''}`}
+                    <ShoppingListButton
+                      className="home-product-card__shopping-action"
+                      active={isFav}
                       onClick={(e) => handleProductFavoriteClick(e, product)}
-                      aria-label={isFav ? t('home.addedToCart') : t('home.addToCart')}
-                    >
-                      {isFav ? (
-                        <svg
-                          width="15"
-                          height="15"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="3"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
-                        >
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      ) : (
-                        <svg
-                          width="15"
-                          height="15"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2.6"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
-                        >
-                          <line x1="12" y1="5" x2="12" y2="19" />
-                          <line x1="5" y1="12" x2="19" y2="12" />
-                        </svg>
-                      )}
-                    </button>
+                    />
                   </div>
 
                   <div className="home-product-card__info">
@@ -1980,7 +1977,7 @@ export default function HomeScreen() {
       )}
 
       {/* 9. STORE COMPACT PROFILE & STORE GUIDE */}
-      <section ref={storeInfoRef} className="home-store-details-section">
+      <section ref={storeInfoRef} id="store-about" className="home-store-details-section">
         <div className="home-section-header home-store-header">
           <div className="home-section-header__titles">
             <h2>{t('home.storeAbout') || 'О магазине'}</h2>
@@ -2068,9 +2065,11 @@ export default function HomeScreen() {
                   >
                     <span className="home-store-status-dot" />
                     <span>
-                      {schedule.isOpen
-                        ? t('home.storeOpenNow') || 'Открыто'
-                        : t('home.storeClosedNow') || 'Закрыто'}
+                      {schedule.isTemporarilyClosed
+                        ? schedule.temporaryClosureReason || t('home.storeClosedNow') || 'Закрыто'
+                        : schedule.isOpen
+                          ? t('home.storeOpenNow') || 'Открыто'
+                          : t('home.storeClosedNow') || 'Закрыто'}
                     </span>
                   </span>
                 )}
@@ -2267,175 +2266,270 @@ export default function HomeScreen() {
                 </div>
 
                 {/* 3. Payment Methods */}
-                <div className="home-store-payments-section">
-                  <div className="home-store-subhead">
-                    <WalletIcon size={14} />
-                    <h4>{t('home.storePaymentTitle') || 'Способы оплаты'}</h4>
+                {(!Array.isArray(currentStore?.features) ||
+                  currentStore.features.length === 0 ||
+                  ['kaspi_qr', 'kaspi_alaqan', 'halyk', 'freedom', 'card', 'cash'].some((f) =>
+                    currentStore.features.includes(f)
+                  )) && (
+                  <div className="home-store-payments-section">
+                    <div className="home-store-subhead">
+                      <WalletIcon size={14} />
+                      <h4>{t('home.storePaymentTitle') || 'Способы оплаты'}</h4>
+                    </div>
+                    <div className="home-store-payment-grid">
+                      {(!currentStore?.features?.length ||
+                        currentStore.features.includes('kaspi_qr')) && (
+                        <div
+                          className="home-store-payment-badge home-store-payment-badge--kaspi-qr"
+                          aria-label="Kaspi QR"
+                          title="Kaspi QR"
+                        >
+                          <KaspiQrIcon size={20} />
+                        </div>
+                      )}
+                      {(!currentStore?.features?.length ||
+                        currentStore.features.includes('kaspi_alaqan')) && (
+                        <div className="home-store-payment-badge">
+                          <span className="home-store-payment-badge__icon">
+                            <KaspiAlaqanIcon size={16} />
+                          </span>
+                          <span>{t('home.payKaspiAlaqan') || 'Kaspi Alaqan'}</span>
+                        </div>
+                      )}
+                      {(!currentStore?.features?.length ||
+                        currentStore.features.includes('halyk')) && (
+                        <div className="home-store-payment-badge">
+                          <span className="home-store-payment-badge__icon">
+                            <HalykIcon size={16} />
+                          </span>
+                          <span>{t('home.payHalyk') || 'Halyk QR'}</span>
+                        </div>
+                      )}
+                      {(!currentStore?.features?.length ||
+                        currentStore.features.includes('freedom')) && (
+                        <div className="home-store-payment-badge">
+                          <span className="home-store-payment-badge__icon">
+                            <FreedomIcon size={16} />
+                          </span>
+                          <span>{t('home.payFreedom') || 'Freedom QR'}</span>
+                        </div>
+                      )}
+                      {(!currentStore?.features?.length ||
+                        currentStore.features.includes('card')) && (
+                        <div className="home-store-payment-badge">
+                          <span className="home-store-payment-badge__icon">
+                            <BankCardIcon size={16} />
+                          </span>
+                          <span>{t('home.payCards') || 'Банковские карты'}</span>
+                        </div>
+                      )}
+                      {(!currentStore?.features?.length ||
+                        currentStore.features.includes('cash')) && (
+                        <div className="home-store-payment-badge">
+                          <span className="home-store-payment-badge__icon">
+                            <WalletIcon size={16} />
+                          </span>
+                          <span>{t('home.payCash') || 'Наличные'}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="home-store-payment-grid">
-                    <div
-                      className="home-store-payment-badge home-store-payment-badge--kaspi-qr"
-                      aria-label="Kaspi QR"
-                      title="Kaspi QR"
-                    >
-                      <KaspiQrIcon size={20} />
-                    </div>
-                    <div className="home-store-payment-badge">
-                      <span className="home-store-payment-badge__icon">
-                        <KaspiAlaqanIcon size={16} />
-                      </span>
-                      <span>{t('home.payKaspiAlaqan') || 'Kaspi Alaqan'}</span>
-                    </div>
-                    <div className="home-store-payment-badge">
-                      <span className="home-store-payment-badge__icon">
-                        <HalykIcon size={16} />
-                      </span>
-                      <span>{t('home.payHalyk') || 'Halyk QR'}</span>
-                    </div>
-                    <div className="home-store-payment-badge">
-                      <span className="home-store-payment-badge__icon">
-                        <FreedomIcon size={16} />
-                      </span>
-                      <span>{t('home.payFreedom') || 'Freedom QR'}</span>
-                    </div>
-                    <div className="home-store-payment-badge">
-                      <span className="home-store-payment-badge__icon">
-                        <BankCardIcon size={16} />
-                      </span>
-                      <span>{t('home.payCards') || 'Банковские карты'}</span>
-                    </div>
-                    <div className="home-store-payment-badge">
-                      <span className="home-store-payment-badge__icon">
-                        <NfcPaymentIcon size={16} />
-                      </span>
-                      <span>{t('home.payNfc') || 'Бесконтактная оплата'}</span>
-                    </div>
-                    <div className="home-store-payment-badge">
-                      <span className="home-store-payment-badge__icon">
-                        <WalletIcon size={16} />
-                      </span>
-                      <span>{t('home.payCash') || 'Наличные'}</span>
-                    </div>
-                  </div>
-                </div>
+                )}
 
                 {/* 4. Amenities & Services */}
-                <div className="home-store-amenities-section">
-                  <div className="home-store-subhead">
-                    <AdvantagesIcon size={14} />
-                    <h4>{t('home.storeAmenitiesTitle') || 'Особенности и сервис'}</h4>
+                {(!Array.isArray(currentStore?.features) ||
+                  currentStore.features.length === 0 ||
+                  [
+                    'halal',
+                    'bakery',
+                    'cookery',
+                    'coffee',
+                    'self_checkout',
+                    'atm',
+                    'parking',
+                    'carts',
+                    'ramp',
+                    'pharmacy',
+                    'meat_cutting',
+                    'fresh_bar',
+                    'scales',
+                    'microwave',
+                    'kids_carts',
+                    'lockers',
+                    'wifi',
+                    'pickup',
+                  ].some((f) => currentStore.features.includes(f))) && (
+                  <div className="home-store-amenities-section">
+                    <div className="home-store-subhead">
+                      <AdvantagesIcon size={14} />
+                      <h4>{t('home.storeAmenitiesTitle') || 'Особенности и сервис'}</h4>
+                    </div>
+                    <div className="home-store-amenities-grid">
+                      {(!currentStore?.features?.length ||
+                        currentStore.features.includes('halal')) && (
+                        <div className="home-store-amenity-chip">
+                          <span className="home-store-amenity-chip__icon">
+                            <DietIcon name="halal" size={15} />
+                          </span>
+                          <span>{t('home.amenityHalal') || 'Халал-отдел'}</span>
+                        </div>
+                      )}
+                      {(!currentStore?.features?.length ||
+                        currentStore.features.includes('bakery')) && (
+                        <div className="home-store-amenity-chip">
+                          <span className="home-store-amenity-chip__icon">
+                            <BakeryTandyrIcon size={15} />
+                          </span>
+                          <span>{t('home.amenityBakery') || 'Свежая выпечка'}</span>
+                        </div>
+                      )}
+                      {(!currentStore?.features?.length ||
+                        currentStore.features.includes('cookery')) && (
+                        <div className="home-store-amenity-chip">
+                          <span className="home-store-amenity-chip__icon">
+                            <CookeryIcon size={15} />
+                          </span>
+                          <span>{t('home.amenityCookery') || 'Кулинария и готовая еда'}</span>
+                        </div>
+                      )}
+                      {(!currentStore?.features?.length ||
+                        currentStore.features.includes('coffee')) && (
+                        <div className="home-store-amenity-chip">
+                          <span className="home-store-amenity-chip__icon">
+                            <CoffeeToGoIcon size={15} />
+                          </span>
+                          <span>{t('home.amenityCoffee') || 'Кофе с собой'}</span>
+                        </div>
+                      )}
+                      {(!currentStore?.features?.length ||
+                        currentStore.features.includes('self_checkout')) && (
+                        <div className="home-store-amenity-chip">
+                          <span className="home-store-amenity-chip__icon">
+                            <SelfCheckoutIcon size={15} />
+                          </span>
+                          <span>{t('home.amenitySelfCheckout') || 'Кассы самообслуживания'}</span>
+                        </div>
+                      )}
+                      {(!currentStore?.features?.length ||
+                        currentStore.features.includes('atm')) && (
+                        <div className="home-store-amenity-chip">
+                          <span className="home-store-amenity-chip__icon">
+                            <AtmTerminalIcon size={15} />
+                          </span>
+                          <span>{t('home.amenityAtm') || 'Терминалы и банкоматы'}</span>
+                        </div>
+                      )}
+                      {(!currentStore?.features?.length ||
+                        currentStore.features.includes('parking')) && (
+                        <div className="home-store-amenity-chip">
+                          <span className="home-store-amenity-chip__icon">
+                            <ParkingIcon size={15} />
+                          </span>
+                          <span>{t('home.amenityParking') || 'Удобная парковка'}</span>
+                        </div>
+                      )}
+                      {(!currentStore?.features?.length ||
+                        currentStore.features.includes('carts')) && (
+                        <div className="home-store-amenity-chip">
+                          <span className="home-store-amenity-chip__icon">
+                            <CartIcon size={15} />
+                          </span>
+                          <span>{t('home.amenityCarts') || 'Корзины и тележки'}</span>
+                        </div>
+                      )}
+                      {(!currentStore?.features?.length ||
+                        currentStore.features.includes('ramp')) && (
+                        <div className="home-store-amenity-chip">
+                          <span className="home-store-amenity-chip__icon">
+                            <AccessibleRampIcon size={15} />
+                          </span>
+                          <span>{t('home.amenityRamp') || 'Пандус и доступная среда'}</span>
+                        </div>
+                      )}
+                      {(!currentStore?.features?.length ||
+                        currentStore.features.includes('pharmacy')) && (
+                        <div className="home-store-amenity-chip">
+                          <span className="home-store-amenity-chip__icon">
+                            <PharmacyPointIcon size={15} />
+                          </span>
+                          <span>{t('home.amenityPharmacy') || 'Аптечный пункт'}</span>
+                        </div>
+                      )}
+                      {(!currentStore?.features?.length ||
+                        currentStore.features.includes('meat_cutting')) && (
+                        <div className="home-store-amenity-chip">
+                          <span className="home-store-amenity-chip__icon">
+                            <MeatCuttingIcon size={15} />
+                          </span>
+                          <span>{t('home.amenityMeatCutting') || 'Мясной цех и разделка'}</span>
+                        </div>
+                      )}
+                      {(!currentStore?.features?.length ||
+                        currentStore.features.includes('fresh_bar')) && (
+                        <div className="home-store-amenity-chip">
+                          <span className="home-store-amenity-chip__icon">
+                            <FreshBarIcon size={15} />
+                          </span>
+                          <span>{t('home.amenityFreshBar') || 'Фреш и свежие соки'}</span>
+                        </div>
+                      )}
+                      {(!currentStore?.features?.length ||
+                        currentStore.features.includes('scales')) && (
+                        <div className="home-store-amenity-chip">
+                          <span className="home-store-amenity-chip__icon">
+                            <ScalesIcon size={15} />
+                          </span>
+                          <span>{t('home.amenityScales') || 'Контрольные весы'}</span>
+                        </div>
+                      )}
+                      {(!currentStore?.features?.length ||
+                        currentStore.features.includes('microwave')) && (
+                        <div className="home-store-amenity-chip">
+                          <span className="home-store-amenity-chip__icon">
+                            <MicrowaveIcon size={15} />
+                          </span>
+                          <span>{t('home.amenityMicrowave') || 'Зона разогрева еды'}</span>
+                        </div>
+                      )}
+                      {(!currentStore?.features?.length ||
+                        currentStore.features.includes('kids_carts')) && (
+                        <div className="home-store-amenity-chip">
+                          <span className="home-store-amenity-chip__icon">
+                            <KidsCartIcon size={15} />
+                          </span>
+                          <span>{t('home.amenityKidsCarts') || 'Детские тележки'}</span>
+                        </div>
+                      )}
+                      {(!currentStore?.features?.length ||
+                        currentStore.features.includes('lockers')) && (
+                        <div className="home-store-amenity-chip">
+                          <span className="home-store-amenity-chip__icon">
+                            <LockerIcon size={15} />
+                          </span>
+                          <span>{t('home.amenityLockers') || 'Камера хранения'}</span>
+                        </div>
+                      )}
+                      {(!currentStore?.features?.length ||
+                        currentStore.features.includes('wifi')) && (
+                        <div className="home-store-amenity-chip">
+                          <span className="home-store-amenity-chip__icon">
+                            <WifiIcon size={15} />
+                          </span>
+                          <span>{t('home.amenityWifi') || 'Бесплатный Wi-Fi'}</span>
+                        </div>
+                      )}
+                      {(!currentStore?.features?.length ||
+                        currentStore.features.includes('pickup')) && (
+                        <div className="home-store-amenity-chip">
+                          <span className="home-store-amenity-chip__icon">
+                            <OrderPickupIcon size={15} />
+                          </span>
+                          <span>{t('home.amenityPickup') || 'Самовывоз интернет-заказов'}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="home-store-amenities-grid">
-                    <div className="home-store-amenity-chip">
-                      <span className="home-store-amenity-chip__icon">
-                        <DietIcon name="halal" size={15} />
-                      </span>
-                      <span>{t('home.amenityHalal') || 'Халал-отдел'}</span>
-                    </div>
-                    <div className="home-store-amenity-chip">
-                      <span className="home-store-amenity-chip__icon">
-                        <BakeryTandyrIcon size={15} />
-                      </span>
-                      <span>{t('home.amenityBakery') || 'Свежая выпечка'}</span>
-                    </div>
-                    <div className="home-store-amenity-chip">
-                      <span className="home-store-amenity-chip__icon">
-                        <CookeryIcon size={15} />
-                      </span>
-                      <span>{t('home.amenityCookery') || 'Кулинария и готовая еда'}</span>
-                    </div>
-                    <div className="home-store-amenity-chip">
-                      <span className="home-store-amenity-chip__icon">
-                        <CoffeeToGoIcon size={15} />
-                      </span>
-                      <span>{t('home.amenityCoffee') || 'Кофе с собой'}</span>
-                    </div>
-                    <div className="home-store-amenity-chip">
-                      <span className="home-store-amenity-chip__icon">
-                        <SelfCheckoutIcon size={15} />
-                      </span>
-                      <span>{t('home.amenitySelfCheckout') || 'Кассы самообслуживания'}</span>
-                    </div>
-                    <div className="home-store-amenity-chip">
-                      <span className="home-store-amenity-chip__icon">
-                        <AtmTerminalIcon size={15} />
-                      </span>
-                      <span>{t('home.amenityAtm') || 'Терминалы и банкоматы'}</span>
-                    </div>
-                    <div className="home-store-amenity-chip">
-                      <span className="home-store-amenity-chip__icon">
-                        <ParkingIcon size={15} />
-                      </span>
-                      <span>{t('home.amenityParking') || 'Удобная парковка'}</span>
-                    </div>
-                    <div className="home-store-amenity-chip">
-                      <span className="home-store-amenity-chip__icon">
-                        <CartIcon size={15} />
-                      </span>
-                      <span>{t('home.amenityCarts') || 'Корзины и тележки'}</span>
-                    </div>
-                    <div className="home-store-amenity-chip">
-                      <span className="home-store-amenity-chip__icon">
-                        <AccessibleRampIcon size={15} />
-                      </span>
-                      <span>{t('home.amenityRamp') || 'Пандус и доступная среда'}</span>
-                    </div>
-                    <div className="home-store-amenity-chip">
-                      <span className="home-store-amenity-chip__icon">
-                        <PharmacyPointIcon size={15} />
-                      </span>
-                      <span>{t('home.amenityPharmacy') || 'Аптечный пункт'}</span>
-                    </div>
-                    <div className="home-store-amenity-chip">
-                      <span className="home-store-amenity-chip__icon">
-                        <MeatCuttingIcon size={15} />
-                      </span>
-                      <span>{t('home.amenityMeatCutting') || 'Мясной цех и разделка'}</span>
-                    </div>
-                    <div className="home-store-amenity-chip">
-                      <span className="home-store-amenity-chip__icon">
-                        <FreshBarIcon size={15} />
-                      </span>
-                      <span>{t('home.amenityFreshBar') || 'Фреш и свежие соки'}</span>
-                    </div>
-                    <div className="home-store-amenity-chip">
-                      <span className="home-store-amenity-chip__icon">
-                        <ScalesIcon size={15} />
-                      </span>
-                      <span>{t('home.amenityScales') || 'Контрольные весы'}</span>
-                    </div>
-                    <div className="home-store-amenity-chip">
-                      <span className="home-store-amenity-chip__icon">
-                        <MicrowaveIcon size={15} />
-                      </span>
-                      <span>{t('home.amenityMicrowave') || 'Зона разогрева еды'}</span>
-                    </div>
-                    <div className="home-store-amenity-chip">
-                      <span className="home-store-amenity-chip__icon">
-                        <KidsCartIcon size={15} />
-                      </span>
-                      <span>{t('home.amenityKidsCarts') || 'Детские тележки'}</span>
-                    </div>
-                    <div className="home-store-amenity-chip">
-                      <span className="home-store-amenity-chip__icon">
-                        <LockerIcon size={15} />
-                      </span>
-                      <span>{t('home.amenityLockers') || 'Камера хранения'}</span>
-                    </div>
-                    <div className="home-store-amenity-chip">
-                      <span className="home-store-amenity-chip__icon">
-                        <WifiIcon size={15} />
-                      </span>
-                      <span>{t('home.amenityWifi') || 'Бесплатный Wi-Fi'}</span>
-                    </div>
-                    <div className="home-store-amenity-chip">
-                      <span className="home-store-amenity-chip__icon">
-                        <OrderPickupIcon size={15} />
-                      </span>
-                      <span>{t('home.amenityPickup') || 'Самовывоз интернет-заказов'}</span>
-                    </div>
-                  </div>
-                </div>
+                )}
 
                 {/* 5. 7-Day Schedule Table */}
                 <div className="home-store-schedule-section">

@@ -37,7 +37,8 @@ nurly, kalina; наличие, публикацию, цены и остатки 
 - Приоритеты: `docs/ROADMAP_PILOT_V1.md` и
   `docs/vault/plans/2026-09-18-pilot-revival-master-plan.md`.
 - Каталог: `docs/vault/plans/2026-09-25-catalog-v4-enrichment-handoff.md`.
-- Профиль: `docs/vault/plans/2026-09-25-profile-screen-redesign-handoff-and-stages.md`.
+- Профиль и списки по магазинам: `docs/vault/plans/2026-09-26-store-scoped-shopping-profile-plan.md`
+  (локальная реализация готова, миграции ещё не применены; прежняя попытка — `docs/vault/plans/2026-09-25-profile-screen-redesign-handoff-and-stages.md`).
 - Сравнение: `docs/vault/plans/2026-09-23-compare-feature-master-plan.md`.
 - ИИ для магазинов: `docs/vault/knowledge/ai-b2b-value-and-scenarios-audit.md`.
   Сценарий рецептов был отложен; не возобновлять без задачи пользователя.

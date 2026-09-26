@@ -118,6 +118,9 @@ export function buildStoreAIContext(store, fallback = null) {
     instagramUrl: cleanString(source.instagram_url || source.instagramUrl, 240),
     websiteUrl: cleanString(source.website_url || source.websiteUrl, 240),
     aiStoreNotes: cleanString(source.ai_store_notes || source.aiStoreNotes, MAX_STORE_NOTES_LENGTH),
+    features: Array.isArray(source.features)
+      ? source.features.filter((f) => typeof f === 'string').slice(0, 30)
+      : [],
   }
 }
 

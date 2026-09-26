@@ -13,6 +13,9 @@ const dict = {
   'catalog.badge.lactoseFree': 'Без лактозы',
   'catalog.badge.vegan': 'Веган',
   'catalog.badge.keto': 'Кето',
+  'catalog.badge.lowFat': 'Низкожирный',
+  'catalog.badge.kidFriendly': 'Для детей',
+  'catalog.badge.vegetarian': 'Вегетарианский',
   'catalog.badge.kcal': '{{value}} ккал',
 }
 
@@ -38,7 +41,7 @@ test('buildCatalogProductCardBadges returns all positive product attributes', ()
   assert.equal(badges[5].label, 'Кето')
 })
 
-test('buildCatalogProductCardBadges treats low carb as keto badge', () => {
+test('buildCatalogProductCardBadges does not call low carb keto without a keto tag', () => {
   const badges = buildCatalogProductCardBadges(
     {
       dietTags: ['low_carb'],
@@ -48,8 +51,16 @@ test('buildCatalogProductCardBadges treats low carb as keto badge', () => {
 
   assert.deepEqual(
     badges.map((badge) => badge.id),
-    ['keto']
+    []
   )
+})
+
+test('buildCatalogProductCardBadges recognizes certified halal and all profile diet goals', () => {
+  const badges = buildCatalogProductCardBadges({
+    halalStatus: 'certified',
+    dietTags: ['low_fat', 'kid_friendly', 'vegetarian'],
+  }, t)
+  assert.deepEqual(badges.map((badge) => badge.id), ['halal', 'low_fat', 'kid_friendly', 'vegetarian'])
 })
 
 test('buildCatalogProductCardBadges does not render empty or negative attributes', () => {

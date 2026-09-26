@@ -1,9 +1,17 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { supabase } from '../utils/supabase.js'
 import { useAuth } from './AuthContext.jsx'
+import { useStoreId } from './StoreContext.jsx'
+import {
+  getStoreShoppingList,
+  readGuestShoppingLists,
+  toggleStoreShoppingItem,
+  writeGuestShoppingLists,
+} from '../utils/shoppingLists.js'
 import {
   buildHistoryOwnerKey,
-  getLocalScanHistoryCount,
+  filterLocalScanHistoryByStore,
+  readLocalScanHistory,
   SCAN_HISTORY_STORAGE_KEY,
   syncScanHistoryWithCloud,
 } from '../utils/localHistory.js'
@@ -18,33 +26,67 @@ function withTimeout(promise, ms = 5000) {
   ])
 }
 
-function getScopedLocalScanCount(user) {
-  return getLocalScanHistoryCount(buildHistoryOwnerKey(user))
+function getScopedLocalScanCount(user, storeId) {
+  if (!storeId) return 0
+  return filterLocalScanHistoryByStore(readLocalScanHistory(buildHistoryOwnerKey(user)), storeId)
+    .length
+}
+
+function getScopedLocalScanEans(user, storeId) {
+  if (!storeId) return new Set()
+  return new Set(
+    filterLocalScanHistoryByStore(readLocalScanHistory(buildHistoryOwnerKey(user)), storeId).map(
+      (item) => item.ean
+    )
+  )
+}
+
+async function getRemoteScanEans(userId, storeId) {
+  const eans = new Set()
+  for (let from = 0; ; from += 500) {
+    const { data, error } = await supabase
+      .from('scan_events')
+      .select('ean')
+      .eq('user_id', userId)
+      .eq('store_id', storeId)
+      .order('id')
+      .range(from, from + 499)
+    if (error) throw error
+    for (const row of data || []) if (row.ean) eans.add(row.ean)
+    if (!data || data.length < 500) return eans
+  }
 }
 
 export function UserDataProvider({ children }) {
   const { user, internalUserId } = useAuth()
+  const storeId = useStoreId()
   const [favoriteEans, setFavoriteEans] = useState(new Set())
+  const [favoriteScopeId, setFavoriteScopeId] = useState(null)
+  const favoriteEansRef = useRef(new Set())
+  const favoriteScopeRef = useRef(null)
   const [scanCount, setScanCount] = useState(0)
+  const remoteScanEansRef = useRef({ storeId: null, eans: new Set() })
   const [userDataLoaded, setUserDataLoaded] = useState(false)
+  const [shoppingListLoadError, setShoppingListLoadError] = useState(false)
+  const [shoppingListReloadVersion, setShoppingListReloadVersion] = useState(0)
 
   useEffect(() => {
     let cancelled = false
 
     async function loadIdentifiers() {
-      const localCount = getScopedLocalScanCount(user)
+      const localEans = getScopedLocalScanEans(user, storeId)
+      const localCount = localEans.size
+      setShoppingListLoadError(false)
 
       if (!user || !internalUserId) {
         if (!cancelled) {
-          const localFavsRaw = localStorage.getItem('korset_local_favorites')
-          let localFavs = []
-          try {
-            if (localFavsRaw) localFavs = JSON.parse(localFavsRaw)
-          } catch (e) {
-            console.error('Failed to parse local favorites', e)
-          }
-          setFavoriteEans(new Set(localFavs))
+          const guestEans = new Set(getStoreShoppingList(readGuestShoppingLists(), storeId))
+          favoriteEansRef.current = guestEans
+          favoriteScopeRef.current = storeId
+          setFavoriteEans(guestEans)
+          setFavoriteScopeId(storeId)
           setScanCount(localCount)
+          remoteScanEansRef.current = { storeId, eans: new Set() }
           setUserDataLoaded(true)
         }
         return
@@ -52,41 +94,39 @@ export function UserDataProvider({ children }) {
 
       setUserDataLoaded(false)
 
-      // Sync guest favorites to cloud if any exist
-      const localFavsRaw = localStorage.getItem('korset_local_favorites')
-      let localFavs = []
-      try {
-        if (localFavsRaw) localFavs = JSON.parse(localFavsRaw)
-      } catch (e) {
-        console.error('Failed to parse local favorites for sync', e)
-      }
-
-      if (localFavs.length > 0) {
+      const guestLists = readGuestShoppingLists()
+      const guestRows = Object.keys(guestLists).flatMap((guestStoreId) =>
+        getStoreShoppingList(guestLists, guestStoreId).map((ean) => ({
+          user_id: internalUserId,
+          store_id: guestStoreId,
+          ean,
+        }))
+      )
+      if (guestRows.length > 0) {
         try {
-          const upsertRows = localFavs.map((ean) => ({
-            user_id: internalUserId,
-            ean,
-          }))
           const { error } = await supabase
-            .from('user_favorites')
-            .upsert(upsertRows, { onConflict: 'user_id, ean' })
+            .from('store_shopping_items')
+            .upsert(guestRows, { onConflict: 'user_id,store_id,ean' })
           if (error) throw error
-          localStorage.removeItem('korset_local_favorites')
+          writeGuestShoppingLists({})
         } catch (err) {
-          console.error('Failed to sync guest favorites to cloud', err)
+          console.error('Failed to sync guest shopping lists to cloud', err)
         }
       }
 
       const [favRes, scanRes] = await Promise.allSettled([
         withTimeout(
-          supabase.from('user_favorites').select('ean').eq('user_id', internalUserId),
+          storeId
+            ? supabase
+                .from('store_shopping_items')
+                .select('ean')
+                .eq('user_id', internalUserId)
+                .eq('store_id', storeId)
+            : Promise.resolve({ data: [] }),
           5000
         ),
         withTimeout(
-          supabase
-            .from('scan_events')
-            .select('id', { count: 'exact', head: true })
-            .eq('user_id', internalUserId),
+          storeId ? getRemoteScanEans(internalUserId, storeId) : Promise.resolve(new Set()),
           5000
         ),
       ])
@@ -97,12 +137,16 @@ export function UserDataProvider({ children }) {
         favRes.status === 'fulfilled' && !favRes.value?.error
           ? new Set((favRes.value?.data || []).map((item) => item.ean).filter(Boolean))
           : new Set()
+      setShoppingListLoadError(favRes.status !== 'fulfilled' || Boolean(favRes.value?.error))
 
-      const remoteCount =
-        scanRes.status === 'fulfilled' && !scanRes.value?.error ? scanRes.value?.count || 0 : 0
+      const remoteEans = scanRes.status === 'fulfilled' ? scanRes.value : new Set()
+      remoteScanEansRef.current = { storeId, eans: remoteEans }
 
+      favoriteEansRef.current = favoriteList
+      favoriteScopeRef.current = storeId
       setFavoriteEans(favoriteList)
-      setScanCount(Math.max(remoteCount, localCount))
+      setFavoriteScopeId(storeId)
+      setScanCount(new Set([...remoteEans, ...localEans]).size)
       setUserDataLoaded(true)
 
       // Fire-and-forget: sync scan history in background.
@@ -115,7 +159,8 @@ export function UserDataProvider({ children }) {
     loadIdentifiers().catch((err) => {
       console.error('Failed to load user data cache', err)
       if (!cancelled) {
-        setScanCount(getScopedLocalScanCount(user))
+        setShoppingListLoadError(true)
+        setScanCount(getScopedLocalScanCount(user, storeId))
         setUserDataLoaded(true)
       }
     })
@@ -123,99 +168,115 @@ export function UserDataProvider({ children }) {
     return () => {
       cancelled = true
     }
-  }, [user, internalUserId])
+  }, [user, internalUserId, storeId, shoppingListReloadVersion])
+
+  const reloadShoppingList = useCallback(
+    () => setShoppingListReloadVersion((value) => value + 1),
+    []
+  )
+
+  const activeFavoriteEans = favoriteScopeId === storeId ? favoriteEans : new Set()
 
   const checkIsFavorite = (ean) => {
     if (!ean) return false
-    return favoriteEans.has(ean)
+    return activeFavoriteEans.has(ean)
   }
 
   const togglingRef = useRef(new Set())
 
   const toggleFavorite = useCallback(
     async (product) => {
-      if (!product || !product.ean) return false
+      if (
+        !product ||
+        !product.ean ||
+        !storeId ||
+        favoriteScopeId !== storeId ||
+        shoppingListLoadError
+      )
+        return false
       const ean = product.ean
+      const operationKey = `${storeId}:${ean}`
+      if (togglingRef.current.has(operationKey)) return false
+      togglingRef.current.add(operationKey)
+      const wasFavorite = favoriteEansRef.current.has(ean)
+      const next = new Set(favoriteEansRef.current)
+      if (wasFavorite) next.delete(ean)
+      else next.add(ean)
+      favoriteEansRef.current = next
+      setFavoriteEans(next)
 
       if (!internalUserId) {
-        let wasFavorite = false
-        setFavoriteEans((prev) => {
-          wasFavorite = prev.has(ean)
-          const next = new Set(prev)
-          if (wasFavorite) next.delete(ean)
-          else next.add(ean)
-          localStorage.setItem('korset_local_favorites', JSON.stringify(Array.from(next)))
-          return next
-        })
-        return true
+        try {
+          writeGuestShoppingLists(toggleStoreShoppingItem(readGuestShoppingLists(), storeId, ean))
+          return true
+        } catch (err) {
+          console.error('Guest shopping list save failed', err)
+          favoriteEansRef.current = new Set(favoriteEansRef.current)
+          if (wasFavorite) favoriteEansRef.current.add(ean)
+          else favoriteEansRef.current.delete(ean)
+          setFavoriteEans(favoriteEansRef.current)
+          return false
+        } finally {
+          togglingRef.current.delete(operationKey)
+        }
       }
-
-      if (togglingRef.current.has(ean)) return false
-      togglingRef.current.add(ean)
-
-      let wasFavorite = false
-      setFavoriteEans((prev) => {
-        wasFavorite = prev.has(ean)
-        const next = new Set(prev)
-        if (wasFavorite) next.delete(ean)
-        else next.add(ean)
-        return next
-      })
 
       try {
         if (!wasFavorite) {
           const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-          const candidateGlobalId = product?.sourceMeta?.globalProductId || product?.id || null
+          const candidateGlobalId =
+            product?.globalProductId || product?.sourceMeta?.globalProductId || null
           const validGlobalId =
             candidateGlobalId && uuidRegex.test(candidateGlobalId) ? candidateGlobalId : null
 
-          const { error } = await supabase.from('user_favorites').upsert(
+          const { error } = await supabase.from('store_shopping_items').upsert(
             {
               user_id: internalUserId,
+              store_id: storeId,
               global_product_id: validGlobalId,
               ean,
             },
-            { onConflict: 'user_id, ean' }
+            { onConflict: 'user_id,store_id,ean' }
           )
 
           if (error) throw error
         } else {
           const { error } = await supabase
-            .from('user_favorites')
+            .from('store_shopping_items')
             .delete()
             .eq('user_id', internalUserId)
+            .eq('store_id', storeId)
             .eq('ean', ean)
           if (error) throw error
         }
       } catch (err) {
         console.error('Toggle favorite failed', err)
-        setFavoriteEans((prev) => {
-          const next = new Set(prev)
-          if (wasFavorite) next.add(ean)
-          else next.delete(ean)
-          return next
-        })
+        if (favoriteScopeRef.current === storeId) {
+          const reverted = new Set(favoriteEansRef.current)
+          if (wasFavorite) reverted.add(ean)
+          else reverted.delete(ean)
+          favoriteEansRef.current = reverted
+          setFavoriteEans(reverted)
+        }
         return false
       } finally {
-        togglingRef.current.delete(ean)
+        togglingRef.current.delete(operationKey)
       }
       return true
     },
-    [internalUserId]
+    [internalUserId, storeId, favoriteScopeId, shoppingListLoadError]
   )
 
   const syncScanCount = useCallback(() => {
-    setScanCount((prev) => Math.max(prev, getScopedLocalScanCount(user)))
-  }, [user])
+    const remoteEans =
+      remoteScanEansRef.current.storeId === storeId ? remoteScanEansRef.current.eans : new Set()
+    setScanCount(new Set([...remoteEans, ...getScopedLocalScanEans(user, storeId)]).size)
+  }, [user, storeId])
 
   useEffect(() => {
     const handleScanAdded = (event) => {
       const ownerKey = buildHistoryOwnerKey(user)
       if (event?.detail?.ownerKey && event.detail.ownerKey !== ownerKey) return
-      if (typeof event?.detail?.count === 'number') {
-        setScanCount((prev) => Math.max(prev, event.detail.count))
-        return
-      }
       syncScanCount()
     }
 
@@ -241,13 +302,18 @@ export function UserDataProvider({ children }) {
   return (
     <UserDataContext.Provider
       value={{
-        favoriteEans,
+        favoriteEans: activeFavoriteEans,
         checkIsFavorite,
         toggleFavorite,
-        favoritesCount: favoriteEans.size,
+        favoritesCount: activeFavoriteEans.size,
         scanCount,
         incrementScanCount: syncScanCount,
         userDataLoaded,
+        shoppingListLoadError,
+        shoppingListReady: Boolean(
+          storeId && favoriteScopeId === storeId && userDataLoaded && !shoppingListLoadError
+        ),
+        reloadShoppingList,
       }}
     >
       {children}

@@ -190,13 +190,14 @@ export async function getStoreCatalogProducts(storeId, { page = 0, search = '' }
   const from = page * PRODUCTS_PAGE_SIZE
   const to = from + PRODUCTS_PAGE_SIZE - 1
 
-  const buildQuery = (includePromo = true) => {
+  const buildQuery = (includePromo = true, includeShopping = true) => {
     const promoFields = includePromo ? 'old_price_kzt, discount_percent, is_featured,' : ''
+    const shoppingField = includeShopping ? 'is_shopping_recommended,' : ''
     let q = supabase
       .from('store_products')
       .select(
         `
-        id, ean, local_name, price_kzt, ${promoFields} stock_status,
+        id, ean, local_name, price_kzt, ${promoFields} ${shoppingField} stock_status,
         shelf_zone, shelf_position, is_active, updated_at,
         global_products!store_products_global_product_id_fkey (
           name, brand, image_url, category, ingredients_raw, ingredients_kz, quantity
@@ -215,8 +216,8 @@ export async function getStoreCatalogProducts(storeId, { page = 0, search = '' }
     return { q, s: null }
   }
 
-  const runQuery = async (includePromo) => {
-    let { q, s } = buildQuery(includePromo)
+  const runQuery = async (includePromo, includeShopping) => {
+    let { q, s } = buildQuery(includePromo, includeShopping)
     if (s) {
       const { data: gpMatches } = await supabase
         .from('global_products')
@@ -231,12 +232,14 @@ export async function getStoreCatalogProducts(storeId, { page = 0, search = '' }
     return q.range(from, to)
   }
 
-  let result = await runQuery(true)
+  let result = await runQuery(true, true)
   if (
     result.error &&
     (result.error.message?.includes('column') || result.error.code === 'PGRST204')
   ) {
-    result = await runQuery(false)
+    result = await runQuery(true, false)
+    if (result.error) result = await runQuery(false, true)
+    if (result.error) result = await runQuery(false, false)
   }
 
   if (result.error) throw new Error(result.error.message ?? result.error)
@@ -266,6 +269,21 @@ export async function updateProductPromotion(productId, storeId, promotionPayloa
     .eq('id', productId)
     .eq('store_id', storeId)
     .select('id, is_featured, old_price_kzt, discount_percent')
+  if (error) throw new Error(error.message ?? error)
+  if (!data || data.length === 0) throw new Error('Update blocked: RLS or row not found')
+  return data[0]
+}
+
+export async function updateProductShoppingRecommendation(productId, storeId, isRecommended) {
+  const { data, error } = await supabase
+    .from('store_products')
+    .update({
+      is_shopping_recommended: Boolean(isRecommended),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', productId)
+    .eq('store_id', storeId)
+    .select('id, is_shopping_recommended')
   if (error) throw new Error(error.message ?? error)
   if (!data || data.length === 0) throw new Error('Update blocked: RLS or row not found')
   return data[0]

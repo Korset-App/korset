@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { setLang, useI18n } from '../i18n/index.js'
 import { useProfile } from '../contexts/ProfileContext.jsx'
@@ -9,7 +9,11 @@ import {
   hydrateProductsFromFavoriteRows,
   hydrateProductsFromScanRows,
 } from '../domain/product/resolver.js'
-import { buildHistoryOwnerKey, readLocalScanHistory } from '../utils/localHistory.js'
+import {
+  buildHistoryOwnerKey,
+  filterLocalScanHistoryByStore,
+  readLocalScanHistory,
+} from '../utils/localHistory.js'
 import { loadSoundSettings, saveSoundSettings } from '../utils/soundSettings.js'
 import { clearSeenStories } from '../domain/home/homeScreenModel.js'
 import {
@@ -41,6 +45,8 @@ import { buildAuthNavigateState } from '../utils/authFlow.js'
 import { useTheme } from '../utils/theme.js'
 import { resolveBannerSrc } from '../constants/bannerPresets.js'
 import { DietIcon } from '../components/icons/DietIcon.jsx'
+import './ProfilePreferences.css'
+import { summarizeShoppingList } from '../domain/shopping/shoppingListSummary.js'
 
 import { useUserData } from '../contexts/UserDataContext.jsx'
 
@@ -155,8 +161,15 @@ export default function ProfileScreen() {
   const allergenInputRef = useRef(null)
   const { profile, updateProfile: setProfile } = useProfile()
   const { user, displayName, avatarId, bannerUrl, internalUserId, logout, isSuperadmin } = useAuth()
-  const { favoritesCount, scanCount, favoriteEans, toggleFavorite } = useUserData()
-  const { currentStore } = useStore()
+  const {
+    favoritesCount,
+    scanCount,
+    favoriteEans,
+    toggleFavorite,
+    shoppingListLoadError,
+    reloadShoppingList,
+  } = useUserData()
+  const { currentStore, catalogProducts } = useStore()
   const { theme, toggleTheme } = useTheme()
   const scrollRef = useScrollRestore('profile')
 
@@ -238,11 +251,45 @@ export default function ProfileScreen() {
   // Lazy-loaded mini-grids for favorites/history tabs (top 6 each).
   // null = not loaded yet, [] = loaded but empty, [items] = loaded with content.
   const [topFavorites, setTopFavorites] = useState(null)
+  const [favoritesLoadError, setFavoritesLoadError] = useState(false)
+  const [historyLoadError, setHistoryLoadError] = useState(false)
   const [soundSettings, setSoundSettings] = useState(() => loadSoundSettings())
   const [topHistory, setTopHistory] = useState(null)
   const [loadingTab, setLoadingTab] = useState(null)
+  const previousStoreId = useRef(currentStore?.id)
+  if (previousStoreId.current !== currentStore?.id) {
+    previousStoreId.current = currentStore?.id
+    setTopFavorites(null)
+    setFavoritesLoadError(false)
+    setTopHistory(null)
+    setHistoryLoadError(false)
+  }
   const [autoSaveNotice, setAutoSaveNotice] = useState(false)
   const autoSaveTimerRef = useRef(null)
+  const favoriteSummary = useMemo(() => {
+    const catalogByEan = new Map((catalogProducts || []).map((item) => [item.ean, item]))
+    return summarizeShoppingList([...favoriteEans].map((ean) => catalogByEan.get(ean) || { ean }))
+  }, [favoriteEans, catalogProducts])
+  const previewFavorites = useMemo(() => {
+    if (!topFavorites) return topFavorites
+    const catalogByEan = new Map((catalogProducts || []).map((item) => [item.ean, item]))
+    return topFavorites.map((item) => {
+      const local = catalogByEan.get(item.ean)
+      return local
+        ? { ...item, ...local, storeOutOfStock: local.stockStatus === 'out_of_stock' }
+        : { ...item, priceKzt: null, storeUnavailable: true }
+    })
+  }, [topFavorites, catalogProducts])
+  const previewHistory = useMemo(() => {
+    if (!topHistory) return topHistory
+    const catalogByEan = new Map((catalogProducts || []).map((item) => [item.ean, item]))
+    return topHistory.map((item) => {
+      const local = catalogByEan.get(item.ean)
+      return local
+        ? { ...item, ...local, storeOutOfStock: local.stockStatus === 'out_of_stock' }
+        : { ...item, priceKzt: null, storeUnavailable: true }
+    })
+  }, [topHistory, catalogProducts])
 
   const deviceId =
     typeof window !== 'undefined'
@@ -362,7 +409,13 @@ export default function ProfileScreen() {
   }
 
   useEffect(() => {
-    if (activeTab !== 'favorites' || topFavorites !== null) return
+    if (
+      activeTab !== 'favorites' ||
+      topFavorites !== null ||
+      favoritesLoadError ||
+      !currentStore?.id
+    )
+      return
     let cancelled = false
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -372,12 +425,14 @@ export default function ProfileScreen() {
         let favoriteRows = []
         if (user && internalUserId) {
           const { data, error } = await supabase
-            .from('user_favorites')
+            .from('store_shopping_items')
             .select('ean, global_product_id, added_at')
             .eq('user_id', internalUserId)
+            .eq('store_id', currentStore.id)
             .order('added_at', { ascending: false })
             .limit(6)
-          if (!error && data) favoriteRows = data
+          if (error) throw error
+          favoriteRows = data || []
         } else if (favoriteEans && favoriteEans.size > 0) {
           favoriteRows = [...favoriteEans].slice(0, 6).map((ean) => ({ ean, added_at: null }))
         }
@@ -387,8 +442,9 @@ export default function ProfileScreen() {
         }
         const hydrated = await hydrateProductsFromFavoriteRows(favoriteRows)
         if (!cancelled) setTopFavorites(hydrated)
-      } catch {
-        if (!cancelled) setTopFavorites([])
+      } catch (error) {
+        console.error('Shopping preview load failed', error)
+        if (!cancelled) setFavoritesLoadError(true)
       } finally {
         if (!cancelled) setLoadingTab((cur) => (cur === 'favorites' ? null : cur))
       }
@@ -396,42 +452,52 @@ export default function ProfileScreen() {
     return () => {
       cancelled = true
     }
-  }, [activeTab, user, internalUserId, topFavorites, favoriteEans])
+  }, [
+    activeTab,
+    user,
+    internalUserId,
+    topFavorites,
+    favoriteEans,
+    favoritesLoadError,
+    currentStore?.id,
+  ])
 
   const handleRemoveFavorite = async (product) => {
     if (!product?.ean) return
     try {
-      await toggleFavorite(product)
-      setTopFavorites((prev) => (prev ? prev.filter((p) => p.ean !== product.ean) : []))
+      const removed = await toggleFavorite(product)
+      if (removed)
+        setTopFavorites((prev) => (prev ? prev.filter((p) => p.ean !== product.ean) : []))
     } catch {
       // rollback handled in context
     }
   }
 
   useEffect(() => {
-    if (activeTab !== 'history' || topHistory !== null) return
+    if (activeTab !== 'history' || topHistory !== null || historyLoadError || !currentStore?.id)
+      return
     let cancelled = false
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadingTab('history')
     ;(async () => {
       try {
         const ownerKey = buildHistoryOwnerKey(user)
-        const local = readLocalScanHistory(ownerKey)
+        const local = filterLocalScanHistoryByStore(readLocalScanHistory(ownerKey), currentStore.id)
         let remoteHydrated = []
         if (user && internalUserId) {
           const { data, error } = await supabase
             .from('scan_events')
-            .select('ean, global_product_id, scanned_at')
+            .select('ean, global_product_id, scanned_at, store_id')
             .eq('user_id', internalUserId)
+            .eq('store_id', currentStore.id)
             .order('scanned_at', { ascending: false })
             .limit(20)
-          if (!error) {
-            remoteHydrated = await hydrateProductsFromScanRows(data || [])
-          }
+          if (error) throw error
+          remoteHydrated = await hydrateProductsFromScanRows(data || [])
         }
         // Merge by ean, keep most recent occurrence
         const map = new Map()
-        for (const item of [...remoteHydrated, ...local]) {
+        for (const item of [...local, ...remoteHydrated]) {
           if (!item?.ean) continue
           const time = new Date(item.scanDate || item.scannedAt || item.scanned_at || 0).getTime()
           const existing = map.get(item.ean)
@@ -444,9 +510,9 @@ export default function ProfileScreen() {
           .slice(0, 6)
           .map(({ _time, ...rest }) => rest)
         if (!cancelled) setTopHistory(merged)
-      } catch {
-        // history fetch failed silently
-        if (!cancelled) setTopHistory([])
+      } catch (error) {
+        console.error('History preview load failed', error)
+        if (!cancelled) setHistoryLoadError(true)
       } finally {
         if (!cancelled) setLoadingTab((cur) => (cur === 'history' ? null : cur))
       }
@@ -454,7 +520,7 @@ export default function ProfileScreen() {
     return () => {
       cancelled = true
     }
-  }, [activeTab, user, internalUserId, topHistory])
+  }, [activeTab, user, internalUserId, topHistory, historyLoadError, currentStore?.id])
 
   const triggerAutoSaveFeedback = () => {
     setAutoSaveNotice(true)
@@ -941,10 +1007,22 @@ export default function ProfileScreen() {
                 setActiveTab(tab)
               }}
               favoritesCount={favoritesCount}
+              favoriteSummary={favoriteSummary}
               scanCount={scanCount}
               preferencesCount={totalPref}
-              topFavorites={topFavorites}
-              topHistory={topHistory}
+              topFavorites={previewFavorites}
+              favoritesLoadError={favoritesLoadError || shoppingListLoadError}
+              onRetryFavorites={() => {
+                setFavoritesLoadError(false)
+                setTopFavorites(null)
+                reloadShoppingList()
+              }}
+              topHistory={previewHistory}
+              historyLoadError={historyLoadError}
+              onRetryHistory={() => {
+                setHistoryLoadError(false)
+                setTopHistory(null)
+              }}
               loadingTab={loadingTab}
               onViewAllFavorites={() =>
                 navigate(buildHistoryPath(currentStore?.slug || null, 'favorites'))
@@ -1035,10 +1113,12 @@ export default function ProfileScreen() {
                       </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                      <div
+                    <div className="pref-choice-grid">
+                      <button
+                        type="button"
                         className="pref-chip"
                         onClick={toggleHalal}
+                        aria-pressed={profile.halal}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -1046,7 +1126,9 @@ export default function ProfileScreen() {
                           gap: 6,
                           padding: '9px 6px',
                           borderRadius: 12,
-                          background: profile.halal ? 'rgba(16, 185, 129, 0.16)' : 'var(--glass-subtle)',
+                          background: profile.halal
+                            ? 'rgba(16, 185, 129, 0.16)'
+                            : 'var(--glass-subtle)',
                           border: `1.5px solid ${profile.halal ? 'var(--success-bright)' : 'var(--glass-border)'}`,
                           boxShadow: profile.halal ? '0 0 12px rgba(16, 185, 129, 0.22)' : 'none',
                           color: profile.halal ? 'var(--success-bright)' : 'var(--text)',
@@ -1055,28 +1137,27 @@ export default function ProfileScreen() {
                           userSelect: 'none',
                         }}
                       >
-                        <DietIcon name="halal" size={18} />
+                        <DietIcon name="halal" size={30} />
                         <span
                           style={{
                             fontFamily: 'var(--font-display)',
                             fontSize: 12,
                             fontWeight: profile.halal ? 600 : 500,
                             color: profile.halal ? 'var(--success-bright)' : 'var(--text)',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
                           }}
                         >
                           {t('profile.halalLabel')}
                         </span>
-                      </div>
+                      </button>
                       {DIET_GOALS.map((d) => {
                         const a = profile.dietGoals.includes(d.id)
                         return (
-                          <div
+                          <button
+                            type="button"
                             key={d.id}
                             className="pref-chip"
                             onClick={() => toggleDiet(d.id)}
+                            aria-pressed={a}
                             style={{
                               display: 'flex',
                               alignItems: 'center',
@@ -1100,14 +1181,11 @@ export default function ProfileScreen() {
                                 fontSize: 12,
                                 fontWeight: a ? 600 : 500,
                                 color: a ? 'var(--success-bright)' : 'var(--text)',
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
                               }}
                             >
                               {tr(d.label)}
                             </span>
-                          </div>
+                          </button>
                         )
                       })}
                     </div>
@@ -1147,14 +1225,16 @@ export default function ProfileScreen() {
                         {t('profile.allergens')}
                       </span>
                     </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+                    <div className="pref-allergen-grid">
                       {ALLERGENS.map((al) => {
                         const a = profile.allergens.includes(al.id)
                         return (
-                          <div
+                          <button
+                            type="button"
                             key={al.id}
                             className="pref-chip"
                             onClick={() => toggleAllergen(al.id)}
+                            aria-pressed={a}
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
@@ -1182,7 +1262,7 @@ export default function ProfileScreen() {
                             >
                               {tr(al.shortLabel || al.label)}
                             </span>
-                          </div>
+                          </button>
                         )
                       })}
                     </div>
@@ -1218,7 +1298,9 @@ export default function ProfileScreen() {
                           value={allergenInput}
                           onChange={(e) => setAllergenInput(e.target.value)}
                           onKeyDown={(e) => e.key === 'Enter' && addCustom()}
-                          placeholder={t('profile.customPlaceholder') || 'Например: клубника, киви...'}
+                          placeholder={
+                            t('profile.customPlaceholder') || 'Например: клубника, киви...'
+                          }
                           style={{
                             width: '100%',
                             boxSizing: 'border-box',
@@ -1245,8 +1327,12 @@ export default function ProfileScreen() {
                             width: 30,
                             height: 30,
                             borderRadius: 8,
-                            background: allergenInput.trim() ? 'var(--primary)' : 'var(--glass-subtle)',
-                            color: allergenInput.trim() ? 'var(--text-inverse)' : 'var(--text-disabled)',
+                            background: allergenInput.trim()
+                              ? 'var(--primary)'
+                              : 'var(--glass-subtle)',
+                            color: allergenInput.trim()
+                              ? 'var(--text-inverse)'
+                              : 'var(--text-disabled)',
                             border: 'none',
                             display: 'flex',
                             alignItems: 'center',

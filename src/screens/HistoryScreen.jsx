@@ -1,757 +1,295 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../utils/supabase.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
-import { useUserData } from '../contexts/UserDataContext.jsx'
+import { useStore } from '../contexts/StoreContext.jsx'
 import { useI18n } from '../i18n/index.js'
 import { getLocalName } from '../utils/localName.js'
-import { useStore } from '../contexts/StoreContext.jsx'
-import { buildProductPath } from '../utils/routes.js'
 import {
-  hydrateProductsFromFavoriteRows,
-  hydrateProductsFromScanRows,
-} from '../domain/product/resolver.js'
+  buildCatalogPath,
+  buildProductPath,
+  buildProfilePath,
+  buildShoppingListPath,
+} from '../utils/routes.js'
+import { hydrateProductsFromScanRows } from '../domain/product/resolver.js'
 import {
   buildHistoryOwnerKey,
+  dedupeLocalScanHistory,
+  filterLocalScanHistoryByStore,
   readLocalScanHistory,
   SCAN_HISTORY_STORAGE_KEY,
 } from '../utils/localHistory.js'
-import { PRIVACY_EVENT } from '../utils/privacySettings.js'
-import { buildAuthNavigateState } from '../utils/authFlow.js'
-import { FactCheckIcon, SyncIcon, TrashIcon } from '../components/icons/index.js'
-
-function toDate(value) {
-  if (!value) return null
-  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value
-  const parsed = new Date(value)
-  return Number.isNaN(parsed.getTime()) ? null : parsed
-}
-
-function getItemTime(item) {
-  const date = toDate(
-    item?.scanDate || item?.favDate || item?.scanned_at || item?.scannedAt || item?.added_at
-  )
-  return date ? date.getTime() : 0
-}
-
-function formatDate(value, lang) {
-  const date = toDate(value)
-  if (!date) return ''
-  try {
-    return date.toLocaleDateString(lang === 'kz' ? 'kk' : 'ru')
-  } catch {
-    return date.toLocaleDateString()
-  }
-}
-
-function withTimeout(promise, ms = 5000) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
-  ])
-}
-
-function mergeHistoryItems(primary = [], secondary = []) {
-  const map = new Map()
-  for (const item of [...primary, ...secondary]) {
-    if (!item?.ean) continue
-    const existing = map.get(item.ean)
-    if (!existing || getItemTime(item) >= getItemTime(existing)) {
-      map.set(item.ean, item)
-    }
-  }
-  return Array.from(map.values()).sort((a, b) => getItemTime(b) - getItemTime(a))
-}
+import './ShoppingExperience.css'
 
 export default function HistoryScreen() {
   const navigate = useNavigate()
-  const location = useLocation()
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [params, setParams] = useSearchParams()
   const { user, internalUserId } = useAuth()
-  const { t, lang } = useI18n()
   const { currentStore } = useStore()
-  const { toggleFavorite, favoriteEans } = useUserData()
-
-  const [history, setHistory] = useState(null)
-  const [favorites, setFavorites] = useState([])
-  const tab = searchParams.get('tab') || 'history'
-  const loading = history === null
+  const { t, lang } = useI18n()
+  const scope = params.get('scope') === 'all' ? 'all' : 'current'
+  const [result, setResult] = useState({ key: null, rows: null, error: false })
+  const [storesById, setStoresById] = useState({})
+  const [query, setQuery] = useState('')
+  const [revision, setRevision] = useState(0)
+  const [historyLimit, setHistoryLimit] = useState(100)
+  const requestKey = `${scope}:${currentStore?.id || ''}:${internalUserId || ''}:${revision}:${historyLimit}`
+  const rows = result.key === requestKey ? result.rows : null
 
   useEffect(() => {
-    const ownerKey = buildHistoryOwnerKey(user)
-    const scopedLocalHistory = readLocalScanHistory(ownerKey)
+    if (params.get('tab') === 'favorites' && currentStore?.slug)
+      navigate(buildShoppingListPath(currentStore.slug), { replace: true })
+  }, [params, navigate, currentStore?.slug])
 
+  useEffect(() => {
+    const refresh = (event) => {
+      if (event?.key && event.key !== SCAN_HISTORY_STORAGE_KEY) return
+      setRevision((value) => value + 1)
+    }
+    window.addEventListener('storage', refresh)
+    window.addEventListener('korset:scan_added', refresh)
+    return () => {
+      window.removeEventListener('storage', refresh)
+      window.removeEventListener('korset:scan_added', refresh)
+    }
+  }, [])
+
+  useEffect(() => {
     let cancelled = false
+    const localRows = readLocalScanHistory(buildHistoryOwnerKey(user))
+    const scopedLocal =
+      scope === 'all' ? localRows : filterLocalScanHistoryByStore(localRows, currentStore?.id)
 
-    async function loadData() {
-      let historyRows
-      let favoriteRows
-
-      if (user && internalUserId) {
-        const [histRes, favRes] = await Promise.allSettled([
-          withTimeout(
-            supabase
-              .from('scan_events')
-              .select('ean, global_product_id, scanned_at')
-              .eq('user_id', internalUserId)
-              .order('scanned_at', { ascending: false })
-              .limit(50),
-            5000
-          ),
-          withTimeout(
-            supabase
-              .from('user_favorites')
-              .select('ean, global_product_id, added_at')
-              .eq('user_id', internalUserId)
-              .order('added_at', { ascending: false }),
-            5000
-          ),
-        ])
-
-        historyRows =
-          histRes.status === 'fulfilled' && !histRes.value?.error ? histRes.value?.data || [] : []
-        favoriteRows =
-          favRes.status === 'fulfilled' && !favRes.value?.error
-            ? favRes.value?.data || []
-            : [...favoriteEans].map((ean) => ({ ean, added_at: null }))
-      } else {
-        historyRows = scopedLocalHistory.map((item) => ({
-          ean: item.ean,
-          scanned_at: item.scannedAt,
-        }))
-        favoriteRows = [...favoriteEans].map((ean) => ({ ean, added_at: null }))
+    async function load() {
+      let remoteRows = []
+      let hasMore = false
+      if (internalUserId && (scope === 'all' || currentStore?.id)) {
+        for (let from = 0; from <= historyLimit; from += 500) {
+          const to = Math.min(from + 499, historyLimit)
+          let request = supabase
+            .from('scan_events')
+            .select('ean, global_product_id, scanned_at, store_id')
+            .eq('user_id', internalUserId)
+            .order('scanned_at', { ascending: false })
+            .order('id')
+            .range(from, to)
+          if (scope === 'current') request = request.eq('store_id', currentStore?.id)
+          const { data, error } = await request
+          if (error) throw error
+          remoteRows.push(...(data || []))
+          if (!data || data.length < to - from + 1) break
+        }
+        hasMore = remoteRows.length > historyLimit
+        remoteRows = remoteRows.slice(0, historyLimit)
       }
 
-      const [hydratedHistoryRes, hydratedFavoritesRes] = await Promise.allSettled([
-        withTimeout(hydrateProductsFromScanRows(historyRows), 5000),
-        withTimeout(hydrateProductsFromFavoriteRows(favoriteRows), 5000),
-      ])
-
-      if (cancelled) return
-
-      const hydratedHistory =
-        hydratedHistoryRes.status === 'fulfilled' ? hydratedHistoryRes.value : []
-      const hydratedFavorites =
-        hydratedFavoritesRes.status === 'fulfilled'
-          ? hydratedFavoritesRes.value
-          : favoriteRows.map((row) => ({ ean: row.ean, name: `Товар ${row.ean}` }))
-
-      setHistory(mergeHistoryItems(hydratedHistory, scopedLocalHistory))
-      setFavorites(hydratedFavorites)
+      const hydrated = await hydrateProductsFromScanRows(remoteRows)
+      const hydratedByEan = new Map(hydrated.map((product) => [product.ean, product]))
+      const remoteProducts = remoteRows.map((row) => ({
+        ...hydratedByEan.get(row.ean),
+        ean: row.ean,
+        storeId: row.store_id || null,
+        scanDate: row.scanned_at || null,
+      }))
+      const merged = dedupeLocalScanHistory([...scopedLocal, ...remoteProducts])
+      const storeIds = [...new Set(merged.map((item) => item.storeId).filter(Boolean))]
+      let storeMap = {}
+      if (scope === 'all' && storeIds.length) {
+        const { data } = await supabase.from('stores').select('id,name,slug').in('id', storeIds)
+        storeMap = Object.fromEntries((data || []).map((store) => [store.id, store]))
+      }
+      if (currentStore?.id) storeMap[currentStore.id] = currentStore
+      if (!cancelled) {
+        setStoresById(storeMap)
+        setResult({ key: requestKey, rows: merged, error: false, hasMore })
+      }
     }
 
-    loadData().catch((error) => {
-      console.error('HistoryScreen loadData failed', error)
-      if (!cancelled) {
-        setHistory(mergeHistoryItems([], scopedLocalHistory))
-        setFavorites([...favoriteEans].map((ean) => ({ ean, name: `Товар ${ean}` })))
-      }
+    load().catch((error) => {
+      console.error('History load failed', error)
+      if (!cancelled)
+        setResult({
+          key: requestKey,
+          rows: dedupeLocalScanHistory(scopedLocal),
+          error: true,
+          hasMore: false,
+        })
     })
-
     return () => {
       cancelled = true
     }
-  }, [user, internalUserId, favoriteEans])
+  }, [user, internalUserId, currentStore, scope, revision, requestKey, historyLimit])
 
-  useEffect(() => {
-    const syncLocalHistory = () => {
-      const scopedLocalHistory = readLocalScanHistory(buildHistoryOwnerKey(user))
-      setHistory((prev) => mergeHistoryItems(prev, scopedLocalHistory))
-    }
-
-    const handleStorage = (event) => {
-      if (!event || event.key === SCAN_HISTORY_STORAGE_KEY) syncLocalHistory()
-    }
-
-    window.addEventListener('storage', handleStorage)
-    window.addEventListener('korset:scan_added', syncLocalHistory)
-    window.addEventListener(PRIVACY_EVENT, syncLocalHistory)
-
-    return () => {
-      window.removeEventListener('storage', handleStorage)
-      window.removeEventListener('korset:scan_added', syncLocalHistory)
-      window.removeEventListener(PRIVACY_EVENT, syncLocalHistory)
-    }
-  }, [user])
-
-  const removeFavorite = async (product, event) => {
-    event.stopPropagation()
-    if (!product?.ean) return
-    try {
-      await toggleFavorite(product)
-      setFavorites((prev) => prev.filter((item) => item.ean !== product.ean))
-    } catch {
-      // Context already logs and rolls back.
-    }
-  }
-
-  const goToProduct = (product) => {
-    if (!product?.ean) return
-    navigate(buildProductPath(currentStore?.slug || null, product.ean), {
-      state: { product },
-    })
-  }
-
-  const setActiveTab = (nextTab) => {
-    setSearchParams(nextTab === 'history' ? {} : { tab: nextTab }, { replace: true })
-  }
-
-  const displayedFavorites = useMemo(
-    () => favorites.filter((item) => !item.ean || favoriteEans.has(item.ean)),
-    [favorites, favoriteEans]
-  )
-
-  const list = useMemo(
-    () => (tab === 'history' ? history : displayedFavorites),
-    [tab, history, displayedFavorites]
-  )
-
-  const totalSum = useMemo(() => {
-    return displayedFavorites.reduce((sum, p) => sum + (p?.priceKzt > 0 ? p.priceKzt : 0), 0)
-  }, [displayedFavorites])
-
-  const handleShareList = async () => {
-    const storeName = currentStore?.name || 'Körset'
-    const itemsText = displayedFavorites
-      .map((p, idx) => {
-        const name = getLocalName(p)
-        const priceStr = p.priceKzt ? ` — ${p.priceKzt.toLocaleString('ru-RU')} ₸` : ''
-        return `${idx + 1}. ${name}${priceStr}`
-      })
-      .join('\n')
-    const totalStr = totalSum > 0 ? `\n\nИтого: ~${totalSum.toLocaleString('ru-RU')} ₸` : ''
-    const shareText = `🛒 Список покупок (${storeName}):\n${itemsText}${totalStr}\n\nСоставлено в Körset`
-    if (typeof navigator !== 'undefined' && navigator.share) {
-      try {
-        await navigator.share({
-          title: `Список покупок (${storeName})`,
-          text: shareText,
-        })
-        return
-      } catch (err) {
-        if (err.name === 'AbortError') return
-      }
-    }
-    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`
-    window.open(whatsappUrl, '_blank')
-  }
+  const visibleRows = useMemo(() => {
+    const needle = query.trim().toLocaleLowerCase(lang === 'kz' ? 'kk' : 'ru')
+    if (!needle) return rows || []
+    return (rows || []).filter((item) =>
+      `${getLocalName(item)} ${item.brand || ''}`
+        .toLocaleLowerCase(lang === 'kz' ? 'kk' : 'ru')
+        .includes(needle)
+    )
+  }, [rows, query, lang])
 
   return (
-    <div className="screen" style={{ paddingTop: 0 }}>
-      <div
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 10,
-          background: 'var(--header-bg)',
-          backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid var(--line-soft)',
-          padding: '16px 20px',
-          paddingTop: 'max(16px, env(safe-area-inset-top))',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-          <button
-            onClick={() => navigate(-1)}
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 10,
-              background: 'var(--glass-bg)',
-              border: '1px solid var(--glass-soft-border)',
-              color: 'var(--text)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-            }}
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            >
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
-          </button>
-          <div
-            style={{
-              fontSize: 20,
-              fontWeight: 700,
-              fontFamily: 'var(--font-display)',
-              color: 'var(--text)',
-            }}
-          >
-            {tab === 'favorites' ? (t('history.tabFavorites') || 'Список покупок') : t('history.title')}
-          </div>
-        </div>
-
-        <div
-          style={{
-            display: 'flex',
-            gap: 8,
-            padding: 4,
-            borderRadius: 14,
-            background: 'var(--glass-muted)',
-            border: '1px solid var(--glass-soft-border)',
-          }}
+    <main className="shopping-page">
+      <header className="shopping-page__header">
+        <button
+          className="shopping-page__back"
+          type="button"
+          onClick={() => navigate(buildProfilePath(currentStore?.slug))}
+          aria-label={t('common.back')}
         >
-          <button
-            onClick={() => setActiveTab('history')}
-            style={{
-              flex: 1,
-              padding: '10px 0',
-              borderRadius: 9,
-              fontSize: 13,
-              fontWeight: 600,
-              fontFamily: 'var(--font-display)',
-              border: 'none',
-              background: tab === 'history' ? 'rgba(124,58,237,0.16)' : 'transparent',
-              color: tab === 'history' ? '#C4B5FD' : 'var(--text-dim)',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-            }}
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden="true"
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <polyline points="12 6 12 12 16 14" />
-            </svg>
-            {t('history.tabHistory')}
-            {history?.length > 0 && (
-              <span
-                style={{
-                  fontSize: 10,
-                  background: 'rgba(124,58,237,0.3)',
-                  padding: '1px 6px',
-                  borderRadius: 8,
-                  color: '#C4B5FD',
-                }}
-              >
-                {history.length}
-              </span>
-            )}
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+        </button>
+        <div className="shopping-page__heading">
+          <span className="shopping-page__eyebrow">Körset</span>
+          <h1>{t('history.tabHistory')}</h1>
+        </div>
+      </header>
+      <div className="shopping-page__body">
+        <div className="shopping-page__segmented" role="group" aria-label={t('history.tabHistory')}>
+          <button
+            type="button"
+            className={scope === 'current' ? 'is-active' : ''}
+            onClick={() => setParams({ scope: 'current' }, { replace: true })}
+          >
+            {t('history.scopeCurrent')}
           </button>
           <button
-            onClick={() => setActiveTab('favorites')}
-            style={{
-              flex: 1,
-              padding: '10px 0',
-              borderRadius: 9,
-              fontSize: 13,
-              fontWeight: 600,
-              fontFamily: 'var(--font-display)',
-              border: 'none',
-              background: tab === 'favorites' ? 'var(--glass-muted)' : 'transparent',
-              color: tab === 'favorites' ? 'var(--text)' : 'var(--text-dim)',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-            }}
+            type="button"
+            className={scope === 'all' ? 'is-active' : ''}
+            onClick={() => setParams({ scope: 'all' }, { replace: true })}
           >
-            <FactCheckIcon size={16} />
-            {t('history.tabFavorites')}
-            {displayedFavorites.length > 0 && (
-              <span
-                style={{
-                  fontSize: 10,
-                  background: 'var(--glass-border)',
-                  padding: '1px 6px',
-                  borderRadius: 8,
-                  color: 'var(--text)',
-                }}
-              >
-                {displayedFavorites.length}
-              </span>
-            )}
+            {t('history.scopeAll')}
           </button>
         </div>
-      </div>
-
-      <div style={{ padding: '16px 20px', paddingBottom: 100 }}>
-        {!user && tab === 'favorites' && (
-          <div
-            style={{
-              background: 'rgba(124, 58, 237, 0.08)',
-              border: '1px solid rgba(124, 58, 237, 0.18)',
-              borderRadius: 16,
-              padding: '12px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 12,
-              marginBottom: 16,
-            }}
+        <label className="shopping-page__search">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden="true"
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
-              <SyncIcon size={24} color="#A78BFA" />
-              <div style={{ fontSize: 13, color: 'var(--text-sub)', lineHeight: 1.4 }}>
-                {t('history.guestFavoritesBanner') ||
-                  'Войдите в аккаунт, чтобы сохранять список покупок между вашими устройствами.'}
-              </div>
-            </div>
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-4-4" />
+          </svg>
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={t('history.searchPlaceholder')}
+          />
+        </label>
+        {result.error && rows?.length > 0 && (
+          <div className="shopping-page__feedback" role="status">
+            {t('history.partialLoad')}
+          </div>
+        )}
+        {rows === null ? (
+          <div className="shopping-page__loading" aria-live="polite">
+            {t('history.loading')}
+          </div>
+        ) : result.error && rows.length === 0 ? (
+          <div className="shopping-page__error" role="alert">
+            <p>{t('history.loadFailed')}</p>
             <button
-              onClick={() =>
-                navigate('/auth', {
-                  state: buildAuthNavigateState(location, {
-                    reason: 'history_required',
-                    message: t('history.authNavigateMsg'),
-                  }),
-                })
-              }
-              style={{
-                background: 'rgba(124, 58, 237, 0.15)',
-                border: '1px solid rgba(124, 58, 237, 0.3)',
-                color: '#C4B5FD',
-                padding: '6px 12px',
-                borderRadius: 8,
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
+              type="button"
+              className="shopping-page__primary"
+              onClick={() => setRevision((value) => value + 1)}
             >
-              {t('history.guestFavoritesBannerBtn') || 'Войти'}
+              {t('shopping.retry')}
             </button>
           </div>
-        )}
-
-        {loading ? (
-          <div
-            style={{
-              textAlign: 'center',
-              marginTop: 40,
-              color: 'var(--text-dim)',
-              fontFamily: 'var(--font-display)',
-            }}
-          >
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                border: '3px solid rgba(124,58,237,0.2)',
-                borderTop: '3px solid #7C3AED',
-                borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite',
-                margin: '0 auto 12px',
-              }}
-            />
-            {t('history.loading')}
-            <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-          </div>
-        ) : list.length === 0 ? (
-          <div style={{ textAlign: 'center', marginTop: 60, color: 'var(--text-dim)' }}>
-            <div
-              style={{
-                width: 72,
-                height: 72,
-                borderRadius: '50%',
-                background: 'var(--glass-subtle)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 16px',
-              }}
-            >
-              {tab === 'history' ? (
-                <svg
-                  width="28"
-                  height="28"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="var(--icon-muted)"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg>
-              ) : (
-                <FactCheckIcon size={28} color="var(--icon-muted)" />
-              )}
+        ) : visibleRows.length === 0 ? (
+          <div className="shopping-page__empty">
+            <div className="shopping-page__empty-mark" aria-hidden="true">
+              <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="24" cy="24" r="17" />
+                <path d="M24 14v11l7 5" />
+              </svg>
             </div>
-            <p
-              style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: 14,
-                color: 'var(--text-disabled)',
-              }}
+            <h2>
+              {t(
+                query.trim()
+                  ? 'history.noResults'
+                  : scope === 'all'
+                    ? 'history.noHistoryAnywhere'
+                    : 'history.noHistoryHere'
+              )}
+            </h2>
+            <button
+              type="button"
+              className="shopping-page__primary"
+              onClick={() => navigate(buildCatalogPath(currentStore?.slug))}
             >
-              {tab === 'history' ? t('history.emptyHistory') : t('history.emptyFavorites')}
-            </p>
+              {t('history.openCatalog')}
+            </button>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {tab === 'favorites' && displayedFavorites.length > 0 && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 12,
-                  padding: '12px 16px',
-                  marginBottom: 4,
-                  borderRadius: 16,
-                  background: 'var(--glass-subtle)',
-                  border: '1px solid var(--glass-soft-border)',
-                }}
-              >
-                <div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: 'var(--text-dim)',
-                      fontFamily: 'var(--font-display)',
-                      marginBottom: 2,
-                    }}
-                  >
-                    {currentStore?.name
-                      ? `${t('profile.inStore') || 'В магазине'} ${currentStore.name}`
-                      : t('profile.totalInStore') || 'Итого в корзине:'}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 17,
-                      fontWeight: 700,
-                      color: '#F59E0B',
-                      fontFamily: 'var(--font-display)',
-                    }}
-                  >
-                    {totalSum > 0
-                      ? `~${totalSum.toLocaleString('ru-RU')} ₸`
-                      : `${displayedFavorites.length} ${t('common.items') || 'товаров'}`}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleShareList}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '8px 14px',
-                    borderRadius: 10,
-                    background: 'rgba(245, 158, 11, 0.15)',
-                    border: '1px solid rgba(245, 158, 11, 0.3)',
-                    color: '#F59E0B',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    fontFamily: 'var(--font-display)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <svg
-                    width="15"
-                    height="15"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <circle cx="18" cy="5" r="3" />
-                    <circle cx="6" cy="12" r="3" />
-                    <circle cx="18" cy="19" r="3" />
-                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-                  </svg>
-                  <span>{t('profile.shareList') || 'Поделиться'}</span>
-                </button>
-              </div>
-            )}
-            {list.map((product, index) => (
-              <div
-                key={`${product.canonicalId || product.id || product.ean || index}-${index}`}
-                onClick={() => goToProduct(product)}
-                style={{
-                  background: 'var(--glass-subtle)',
-                  border: '1px solid var(--glass-soft-border)',
-                  borderRadius: 16,
-                  padding: 12,
-                  display: 'flex',
-                  gap: 12,
-                  alignItems: 'center',
-                  cursor: 'pointer',
-                }}
-              >
-                <div
-                  className="catalog-img-box"
-                  style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: 12,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    overflow: 'hidden',
-                  }}
-                >
-                  {product.image || product.images?.[0] ? (
-                    <img
-                      src={product.image || product.images?.[0]}
-                      alt={product.name}
-                      className="product-img-blend"
-                      style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 4 }}
-                      onError={(event) => {
-                        event.currentTarget.style.display = 'none'
-                        if (event.currentTarget.nextSibling)
-                          event.currentTarget.nextSibling.style.display = 'flex'
-                      }}
-                    />
-                  ) : null}
-                  <span
-                    style={{
-                      fontSize: 22,
-                      opacity: 0.3,
-                      display: product.image || product.images?.[0] ? 'none' : 'flex',
-                    }}
-                  >
-                    📦
-                  </span>
-                </div>
-
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 600,
-                      fontFamily: 'var(--font-display)',
-                      color: 'var(--text)',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      marginBottom: 3,
-                    }}
-                  >
-                    {getLocalName(product)}
-                  </div>
-                  {product.brand && (
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: 'var(--text-dim)',
-                        fontFamily: 'var(--font-display)',
-                      }}
-                    >
-                      {product.brand}
-                    </div>
-                  )}
-                  {tab === 'history' &&
-                    (product.scanDate || product.scanned_at || product.scannedAt) && (
-                      <div
-                        style={{
-                          fontSize: 10,
-                          color: 'var(--text-disabled)',
-                          marginTop: 3,
-                          fontFamily: 'var(--font-display)',
-                        }}
-                      >
-                        {formatDate(
-                          product.scanDate || product.scanned_at || product.scannedAt,
-                          lang
-                        )}
-                      </div>
-                    )}
-                  {tab === 'favorites' && (product.favDate || product.added_at) && (
-                    <div
-                      style={{
-                        fontSize: 10,
-                        color: 'var(--text-disabled)',
-                        marginTop: 3,
-                        fontFamily: 'var(--font-display)',
-                      }}
-                    >
-                      {formatDate(product.favDate || product.added_at, lang)}
-                    </div>
-                  )}
-                </div>
-
-                {tab === 'favorites' && typeof product.priceKzt === 'number' && product.priceKzt > 0 && (
-                  <div style={{ textAlign: 'right', flexShrink: 0, paddingRight: 4 }}>
-                    <div
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 700,
-                        fontFamily: 'var(--font-display)',
-                        color: 'var(--text)',
-                      }}
-                    >
-                      {product.priceKzt.toLocaleString('ru-RU')} ₸
-                    </div>
-                    {typeof product.oldPriceKzt === 'number' && product.oldPriceKzt > product.priceKzt && (
-                      <div
-                        style={{
-                          fontSize: 10.5,
-                          color: 'var(--text-dim)',
-                          textDecoration: 'line-through',
-                          fontFamily: 'var(--font-display)',
-                        }}
-                      >
-                        {product.oldPriceKzt.toLocaleString('ru-RU')} ₸
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {tab === 'favorites' ? (
+          <>
+            <div className="shopping-page__history-list">
+              {visibleRows.map((product) => {
+                const store = storesById[product.storeId]
+                const date = product.scanDate ? new Date(product.scanDate) : null
+                const canOpen = Boolean(store?.slug && product.ean)
+                return (
                   <button
-                    onClick={(event) => removeFavorite(product, event)}
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 8,
-                      background: 'var(--glass-muted)',
-                      border: '1px solid var(--glass-border)',
-                      color: 'var(--text-dim)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      flexShrink: 0,
-                    }}
+                    type="button"
+                    key={`${product.storeId || 'global'}:${product.ean}`}
+                    className="shopping-page__history-item"
+                    disabled={!canOpen}
+                    onClick={() =>
+                      navigate(buildProductPath(store.slug, product.ean), { state: { product } })
+                    }
                   >
-                    <TrashIcon size={18} />
+                    <div className="shopping-page__history-image">
+                      {product.image ? (
+                        <img src={product.image} alt="" loading="lazy" />
+                      ) : (
+                        <span aria-hidden="true">{getLocalName(product)?.[0] || '•'}</span>
+                      )}
+                    </div>
+                    <div className="shopping-page__history-copy">
+                      <strong>{getLocalName(product)}</strong>
+                      <span>
+                        {scope === 'all'
+                          ? store?.name || t('history.otherStore')
+                          : product.brand || currentStore?.name}
+                      </span>
+                    </div>
+                    {date && !Number.isNaN(date.getTime()) && (
+                      <time dateTime={date.toISOString()}>
+                        {date.toLocaleDateString(lang === 'kz' ? 'kk-KZ' : 'ru-RU', {
+                          day: 'numeric',
+                          month: 'short',
+                        })}
+                      </time>
+                    )}
                   </button>
-                ) : (
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="var(--icon-muted)"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    style={{ flexShrink: 0 }}
-                  >
-                    <path d="M9 18l6-6-6-6" />
-                  </svg>
-                )}
-              </div>
-            ))}
-          </div>
+                )
+              })}
+            </div>
+            {result.hasMore && (
+              <button
+                type="button"
+                className="shopping-page__more"
+                onClick={() => setHistoryLimit((value) => value + 100)}
+              >
+                {t('history.showMore')}
+              </button>
+            )}
+          </>
         )}
       </div>
-    </div>
+    </main>
   )
 }

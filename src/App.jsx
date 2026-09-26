@@ -34,6 +34,7 @@ const AuthScreen = lazyWithRetry(() => import('./screens/AuthScreen.jsx'))
 const UpdatePasswordScreen = lazyWithRetry(() => import('./screens/UpdatePasswordScreen.jsx'))
 const SetupProfileScreen = lazyWithRetry(() => import('./screens/SetupProfileScreen.jsx'))
 const HistoryScreen = lazyWithRetry(() => import('./screens/HistoryScreen.jsx'))
+const ShoppingListScreen = lazyWithRetry(() => import('./screens/ShoppingListScreen.jsx'))
 const PrivacySettingsScreen = lazyWithRetry(() => import('./screens/PrivacySettingsScreen.jsx'))
 const PrivacyPolicyScreen = lazyWithRetry(() => import('./screens/PrivacyPolicyScreen.jsx'))
 const SoundSettingsScreen = lazyWithRetry(() => import('./screens/SoundSettingsScreen.jsx'))
@@ -107,6 +108,7 @@ function AppInner() {
             <Route path="/s/:storeSlug/scan" element={<ScanScreen />} />
             <Route path="/s/:storeSlug/ai" element={<AIAssistantScreen />} />
             <Route path="/s/:storeSlug/history" element={<HistoryScreen />} />
+            <Route path="/s/:storeSlug/shopping-list" element={<ShoppingListScreen />} />
             <Route path="/s/:storeSlug/profile" element={<ProfileScreen />} />
             <Route path="/s/:storeSlug/profile/edit" element={<ProfileEditScreen />} />
             <Route path="/s/:storeSlug/account" element={<AccountScreen />} />
@@ -179,16 +181,16 @@ export default function App() {
     <HelmetProvider>
       <ErrorBoundary>
         <AuthProvider>
-          <UserDataProvider>
-            <OfflineProvider>
-              <StoreProvider>
+          <OfflineProvider>
+            <StoreProvider>
+              <UserDataProvider>
                 <ProfileProvider>
                   <AppInner />
                   <SpeedInsights />
                 </ProfileProvider>
-              </StoreProvider>
-            </OfflineProvider>
-          </UserDataProvider>
+              </UserDataProvider>
+            </StoreProvider>
+          </OfflineProvider>
         </AuthProvider>
       </ErrorBoundary>
     </HelmetProvider>

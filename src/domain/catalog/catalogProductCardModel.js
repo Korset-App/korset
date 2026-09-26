@@ -5,7 +5,9 @@ const CARD_BADGE_DEFS = [
     icon: 'verified',
     labelKey: 'catalog.badge.halal',
     matches: (product) =>
-      product.halalStatus === 'yes' || product.halal === 'yes' || product.halal === true,
+      ['certified', 'halal', 'yes'].includes(
+        String(product.halalStatus || product.halal_status || '').toLowerCase()
+      ) || product.halal === true,
   },
   {
     id: 'sugar_free',
@@ -40,7 +42,25 @@ const CARD_BADGE_DEFS = [
     className: 'keto',
     icon: 'nutrition',
     labelKey: 'catalog.badge.keto',
-    matches: (_product, dietTags) => dietTags.includes('keto') || dietTags.includes('low_carb'),
+    matches: (_product, dietTags) => dietTags.includes('keto'),
+  },
+  {
+    id: 'low_fat',
+    className: 'low-fat',
+    labelKey: 'catalog.badge.lowFat',
+    matches: (_product, dietTags) => dietTags.includes('low_fat'),
+  },
+  {
+    id: 'kid_friendly',
+    className: 'kid-friendly',
+    labelKey: 'catalog.badge.kidFriendly',
+    matches: (_product, dietTags) => dietTags.includes('kid_friendly'),
+  },
+  {
+    id: 'vegetarian',
+    className: 'vegetarian',
+    labelKey: 'catalog.badge.vegetarian',
+    matches: (_product, dietTags) => dietTags.includes('vegetarian'),
   },
 ]
 

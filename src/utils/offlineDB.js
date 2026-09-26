@@ -23,8 +23,10 @@ const DB_NAME = 'korset-offline-db'
 //   - store_catalog: category index remains (now uses normalized keys)
 // v4 (2026-09-23):
 //   - catalog v2 overhaul: purge stale legacy catalog cache and alternate_eans
+// v5 (2026-09-26):
+//   - purge pre-archive catalog snapshot; retain pending scans
 // ══════════════════════════════════════════════════════════════════
-const DB_VERSION = 4
+const DB_VERSION = 5
 
 const STORE_CATALOG = 'store_catalog'
 const STORE_META = 'store_meta'
@@ -98,6 +100,11 @@ function runMigrations(db, oldVersion, newVersion, tx) {
       metaStore.clear()
     }
   }
+
+  if (oldVersion < 5) {
+    tx.objectStore(STORE_CATALOG).clear()
+    tx.objectStore(STORE_META).clear()
+  }
 }
 
 function getDB() {
@@ -133,11 +140,7 @@ export async function saveCatalogToIndexedDB(products, storeId) {
   const db = await getDB()
   const tx = db.transaction(STORE_CATALOG, 'readwrite')
   const store = tx.objectStore(STORE_CATALOG)
-  const existing = await store.getAll()
-  const existingStoreId = existing.length > 0 ? existing[0].store_id : null
-  if (existingStoreId && existingStoreId !== storeId) {
-    await store.clear()
-  }
+  await store.clear()
   for (const product of products) {
     if (!product.ean) continue
     await store.put({

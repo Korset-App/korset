@@ -44,6 +44,7 @@ test('buildStoreAIContext keeps only compact public store fields', () => {
     instagramUrl: 'https://instagram.com/example',
     websiteUrl: 'https://example.kz',
     aiStoreNotes: '',
+    features: [],
   })
 })
 
@@ -63,6 +64,7 @@ test('buildStoreAIContext preserves route slug while store details are still loa
     instagramUrl: '',
     websiteUrl: '',
     aiStoreNotes: '',
+    features: [],
   })
 })
 

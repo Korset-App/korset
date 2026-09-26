@@ -250,31 +250,20 @@ export const KZ_POPULAR_BRAND_KEYWORDS = [
 
 export function getProductBadgeSummary(product, lang = 'ru') {
   const allBadges = []
-  if (!product) return { badges: [], extraCount: 0 }
+  if (!product) return { badges: [], extraCount: 0, discountBadge: null }
 
-  // 1. Скидка (если есть)
   const discountPercent = product.discountPercent ?? product.discount_percent
   const price = product.priceKzt ?? product.price_kzt ?? product.price ?? 0
   const oldPrice = product.oldPriceKzt ?? product.old_price_kzt ?? 0
+  const calculatedDiscount =
+    oldPrice > price && price > 0 ? Math.round((1 - price / oldPrice) * 100) : 0
+  const discount =
+    typeof discountPercent === 'number' && discountPercent > 0
+      ? discountPercent
+      : calculatedDiscount
+  const discountBadge =
+    discount > 0 ? { key: 'discount', type: 'discount', label: `-${discount}%` } : null
 
-  if (typeof discountPercent === 'number' && discountPercent > 0) {
-    allBadges.push({
-      key: 'discount',
-      type: 'discount',
-      label: `-${discountPercent}%`,
-    })
-  } else if (oldPrice > price && price > 0) {
-    const pct = Math.round((1 - price / oldPrice) * 100)
-    if (pct > 0) {
-      allBadges.push({
-        key: 'discount',
-        type: 'discount',
-        label: `-${pct}%`,
-      })
-    }
-  }
-
-  // 2. Халал (официальный статус)
   const halal = (product.halalStatus || product.halal_status || '').toLowerCase()
   const isHalal = halal === 'certified' || halal === 'halal' || halal === 'yes'
   if (isHalal) {
@@ -285,11 +274,12 @@ export function getProductBadgeSummary(product, lang = 'ru') {
     })
   }
 
-  // 3. Диетические теги
   const dietTags = product.dietTags || product.diet_tags || product.diet_tags_json || []
   const tags = Array.isArray(dietTags) ? dietTags : []
 
-  const knownDietKeys = ['sugar_free', 'lactose_free', 'gluten_free', 'vegan', 'keto', 'vegetarian']
+  const knownDietKeys = DIET_PREFERENCES.map((preference) => preference.id).filter(
+    (id) => id !== 'halal'
+  )
   for (const tagKey of knownDietKeys) {
     if (tags.includes(tagKey)) {
       const pref = DIET_PREFERENCES.find((p) => p.id === tagKey)
@@ -298,24 +288,28 @@ export function getProductBadgeSummary(product, lang = 'ru') {
     }
   }
 
-  if (allBadges.length <= 1) {
-    return { badges: allBadges, extraCount: 0 }
-  }
-
-  const first = allBadges[0]
-  const second = allBadges[1]
-  const combinedLength = (first?.label?.length || 0) + (second?.label?.length || 0)
-
-  if (combinedLength > 16) {
-    return {
-      badges: [first],
-      extraCount: allBadges.length - 1,
-    }
-  }
-
+  const explicitKey = product.primaryDietTag || product.primaryTag
+  const explicit = allBadges.find((badge) => badge.key === explicitKey)
+  const name = `${product.name || ''} ${product.nameKz || ''}`.toLocaleLowerCase()
+  const focused = allBadges.find((badge) => {
+    const terms =
+      {
+        keto: ['кето', 'keto'],
+        vegan: ['веган', 'vegan'],
+        gluten_free: ['без глютена', 'gluten free'],
+        sugar_free: ['без сахара', 'sugar free'],
+        lactose_free: ['без лактозы', 'lactose free'],
+        low_fat: ['низкожир', 'маложир', 'low fat'],
+        kid_friendly: ['для детей', 'детский', 'балаларға', 'kids'],
+        vegetarian: ['вегетариан', 'vegetarian'],
+      }[badge.key] || []
+    return terms.some((term) => name.includes(term))
+  })
+  const primary = explicit || focused || allBadges[0]
   return {
-    badges: allBadges.slice(0, 2),
-    extraCount: Math.max(0, allBadges.length - 2),
+    badges: primary ? [primary] : [],
+    extraCount: Math.max(0, allBadges.length - 1),
+    discountBadge,
   }
 }
 

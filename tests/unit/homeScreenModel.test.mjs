@@ -83,8 +83,8 @@ test('fit-check setup state can be completed with explicit no-preference choices
   })
 })
 
-test('getProductDisplayBadges extracts discount, halal and diet tags correctly', async () => {
-  const { getProductDisplayBadges } = await import('../../src/domain/home/homeScreenModel.js')
+test('getProductDisplayBadges shows one primary attribute and counts the rest', async () => {
+  const { getProductDisplayBadges, getProductBadgeSummary } = await import('../../src/domain/home/homeScreenModel.js')
 
   const product = {
     halal_status: 'halal',
@@ -93,24 +93,20 @@ test('getProductDisplayBadges extracts discount, halal and diet tags correctly',
     discount_percent: 25,
   }
 
-  // Max 2 badges per card to avoid visual clutter
   const badges = getProductDisplayBadges(product)
-  assert.equal(badges.length, 2)
-  assert.equal(badges[0].type, 'discount')
-  assert.equal(badges[0].label, '-25%')
-  assert.equal(badges[1].type, 'halal')
-  assert.equal(badges[1].label, 'Халал')
+  assert.equal(badges.length, 1)
+  assert.equal(badges[0].type, 'halal')
+  assert.equal(getProductBadgeSummary(product).extraCount, 2)
+  assert.equal(getProductBadgeSummary(product).discountBadge.label, '-25%')
 
-  // Diet badge is shown when discount is absent
   const dietProduct = {
     halal_status: 'halal',
     diet_tags: ['gluten_free'],
   }
   const dietBadges = getProductDisplayBadges(dietProduct)
-  assert.equal(dietBadges.length, 2)
+  assert.equal(dietBadges.length, 1)
   assert.equal(dietBadges[0].type, 'halal')
-  assert.equal(dietBadges[1].type, 'diet')
-  assert.equal(dietBadges[1].label, 'Без глютена')
+  assert.equal(getProductBadgeSummary(dietProduct).extraCount, 1)
 })
 
 test('getShowcaseProducts prioritizes popular KZ brands and enforces category diversity', async () => {

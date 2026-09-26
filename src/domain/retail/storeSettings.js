@@ -1,4 +1,4 @@
-const AI_STORE_NOTES_LIMIT = 2000
+const AI_STORE_NOTES_LIMIT = 1200
 const STORE_SETTINGS_COLUMNS = new Set([
   'name',
   'address',
@@ -17,6 +17,9 @@ const STORE_SETTINGS_COLUMNS = new Set([
   'latitude',
   'longitude',
   'is_published',
+  'temporary_closure',
+  'features',
+  'type',
 ])
 
 function cleanString(value, max = 500) {
@@ -56,9 +59,21 @@ export function buildRetailStoreSettingsPayload(settings = {}) {
     twogis_url: cleanString(settings.twogis_url, 300),
     ai_store_notes: cleanString(settings.ai_store_notes, AI_STORE_NOTES_LIMIT),
     images: Array.isArray(settings.images) ? settings.images : [],
-    latitude: settings.latitude !== undefined && settings.latitude !== '' && settings.latitude !== null ? Number(settings.latitude) : null,
-    longitude: settings.longitude !== undefined && settings.longitude !== '' && settings.longitude !== null ? Number(settings.longitude) : null,
+    latitude:
+      settings.latitude !== undefined && settings.latitude !== '' && settings.latitude !== null
+        ? Number(settings.latitude)
+        : null,
+    longitude:
+      settings.longitude !== undefined && settings.longitude !== '' && settings.longitude !== null
+        ? Number(settings.longitude)
+        : null,
     is_published: settings.is_published !== undefined ? Boolean(settings.is_published) : true,
+    temporary_closure:
+      settings.temporary_closure && typeof settings.temporary_closure === 'object'
+        ? settings.temporary_closure
+        : null,
+    features: settings.features && typeof settings.features === 'object' ? settings.features : null,
+    type: cleanString(settings.type, 40) || 'minimarket',
   }
 }
 

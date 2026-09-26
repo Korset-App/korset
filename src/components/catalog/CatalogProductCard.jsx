@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { CloseIcon } from '../icons/CloseIcon.jsx'
 import { CompareIcon } from '../icons/CompareIcon.jsx'
 import { DietIcon } from '../icons/DietIcon.jsx'
+import ShoppingListButton from '../ShoppingListButton.jsx'
 import './CatalogProductCard.css'
 
 function ProductThumb({ product }) {
@@ -96,8 +97,8 @@ function AttributeBadge({ badge }) {
   )
 }
 
-function CardBadges({ verdict, badges, kcalLabel }) {
-  const badgeCount = 1 + badges.length + (kcalLabel ? 1 : 0)
+function CardBadges({ verdict, badges, extraBadgeCount, kcalLabel }) {
+  const badgeCount = 1 + badges.length + (extraBadgeCount ? 1 : 0) + (kcalLabel ? 1 : 0)
 
   return (
     <div className="catalog-product-card__badges" data-badge-count={badgeCount}>
@@ -105,6 +106,14 @@ function CardBadges({ verdict, badges, kcalLabel }) {
       {badges.map((badge) => (
         <AttributeBadge key={badge.id} badge={badge} />
       ))}
+      {extraBadgeCount > 0 && (
+        <span
+          className="catalog-product-card__badge catalog-product-card__badge--more"
+          aria-label={`+${extraBadgeCount}`}
+        >
+          +{extraBadgeCount}
+        </span>
+      )}
       {kcalLabel && (
         <span className="catalog-product-card__badge catalog-product-card__badge--kcal">
           <FlameIcon />
@@ -131,12 +140,15 @@ export default function CatalogProductCard({
   price,
   verdict,
   badges = [],
+  extraBadgeCount = 0,
   kcalLabel = null,
   compareState,
   compareLabel,
   searchDiagnosticsAttrs,
+  isFavorite = false,
   onOpen,
   onCompare,
+  onToggleFavorite,
 }) {
   if (mode === 'grid') {
     return (
@@ -147,6 +159,14 @@ export default function CatalogProductCard({
       >
         <div className="catalog-img-box catalog-product-card__thumb catalog-product-card__thumb--grid">
           <ProductThumb product={product} />
+          <ShoppingListButton
+            className="catalog-product-card__shopping-action"
+            active={isFavorite}
+            onClick={(event) => {
+              event.stopPropagation()
+              onToggleFavorite?.(product)
+            }}
+          />
         </div>
 
         <div className="catalog-product-card__title catalog-product-card__title--grid">
@@ -157,7 +177,12 @@ export default function CatalogProductCard({
           {productMeta}
         </div>
 
-        <CardBadges verdict={verdict} badges={badges} kcalLabel={kcalLabel} />
+        <CardBadges
+          verdict={verdict}
+          badges={badges}
+          extraBadgeCount={extraBadgeCount}
+          kcalLabel={kcalLabel}
+        />
 
         <div className="catalog-product-card__footer catalog-product-card__footer--grid">
           <div className="catalog-product-card__price catalog-product-card__price--grid">
@@ -184,6 +209,14 @@ export default function CatalogProductCard({
     >
       <div className="catalog-img-box catalog-product-card__thumb catalog-product-card__thumb--list">
         <ProductThumb product={product} />
+        <ShoppingListButton
+          className="catalog-product-card__shopping-action"
+          active={isFavorite}
+          onClick={(event) => {
+            event.stopPropagation()
+            onToggleFavorite?.(product)
+          }}
+        />
       </div>
 
       <div className="catalog-product-card__body">
@@ -197,7 +230,12 @@ export default function CatalogProductCard({
           {productMeta}
         </div>
 
-        <CardBadges verdict={verdict} badges={badges} kcalLabel={kcalLabel} />
+        <CardBadges
+          verdict={verdict}
+          badges={badges}
+          extraBadgeCount={extraBadgeCount}
+          kcalLabel={kcalLabel}
+        />
       </div>
 
       <div className="catalog-product-card__actions catalog-product-card__actions--list">

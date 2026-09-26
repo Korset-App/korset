@@ -13,12 +13,45 @@ import {
   ChevronDownIcon,
   FactCheckIcon,
   SparklesIcon,
+  PhoneCallIcon,
+  WhatsAppIcon,
+  TwoGisIcon,
+  InstagramIcon,
+  AlertTriangleIcon,
 } from '../components/icons/index.js'
 import './StorePublicScreen.css'
 
+const STORE_FEATURE_DEFINITIONS = [
+  { id: 'kaspi_qr', labelRu: 'Kaspi QR', labelKz: 'Kaspi QR' },
+  { id: 'kaspi_alaqan', labelRu: 'Kaspi Alaqan', labelKz: 'Kaspi Alaqan' },
+  { id: 'halyk', labelRu: 'Halyk QR', labelKz: 'Halyk QR' },
+  { id: 'freedom', labelRu: 'Freedom QR', labelKz: 'Freedom QR' },
+  { id: 'card', labelRu: 'Банковские карты', labelKz: 'Банк карталары' },
+  { id: 'cash', labelRu: 'Наличный расчет', labelKz: 'Қолма-қол ақша' },
+  { id: 'halal', labelRu: 'Халал-отдел', labelKz: 'Халал бөлімі' },
+  { id: 'bakery', labelRu: 'Свежая выпечка', labelKz: 'Жаңа піскен нан' },
+  { id: 'cookery', labelRu: 'Кулинария', labelKz: 'Кулинария' },
+  { id: 'coffee', labelRu: 'Кофе с собой', labelKz: 'Өзімен бірге кофе' },
+  { id: 'self_checkout', labelRu: 'Кассы самообслуживания', labelKz: 'Өзіне-өзі қызмет кассалары' },
+  { id: 'atm', labelRu: 'Терминалы и банкоматы', labelKz: 'Терминалдар мен банкоматтар' },
+  { id: 'parking', labelRu: 'Удобная парковка', labelKz: 'Ыңғайлы автотұрақ' },
+  { id: 'carts', labelRu: 'Корзины и тележки', labelKz: 'Себеттер мен арбалар' },
+  { id: 'ramp', labelRu: 'Пандус', labelKz: 'Пандус' },
+  { id: 'pharmacy', labelRu: 'Аптечный пункт', labelKz: 'Дәріхана пункті' },
+  { id: 'meat_cutting', labelRu: 'Мясной цех', labelKz: 'Ет бөлімі' },
+  { id: 'fresh_bar', labelRu: 'Фреш-бар', labelKz: 'Фреш-бар' },
+  { id: 'scales', labelRu: 'Контрольные весы', labelKz: 'Бақылау таразысы' },
+  { id: 'microwave', labelRu: 'Разогрев еды', labelKz: 'Тамақ жылыту' },
+  { id: 'kids_carts', labelRu: 'Детские тележки', labelKz: 'Балалар арбалары' },
+  { id: 'lockers', labelRu: 'Камеры хранения', labelKz: 'Жүк сақтау' },
+  { id: 'wifi', labelRu: 'Wi-Fi', labelKz: 'Wi-Fi' },
+  { id: 'pickup', labelRu: 'Самовывоз', labelKz: 'Алып кету' },
+]
+
 export default function StorePublicScreen() {
   const navigate = useNavigate()
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
+  const isKz = lang === 'kz'
   const { currentStore: store, isStoreLoading, rememberStore } = useStore()
   const [showFullDesc, setShowFullDesc] = useState(false)
   const showFullDescRef = useRef(false)
@@ -38,11 +71,10 @@ export default function StorePublicScreen() {
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
 
-  const openingHours = store?.opening_hours
   const schedule = useMemo(() => {
-    if (!openingHours) return null
-    return parseStoreSchedule(openingHours)
-  }, [openingHours])
+    if (!store) return null
+    return parseStoreSchedule(store)
+  }, [store])
 
   if (isStoreLoading) {
     return (
@@ -133,15 +165,17 @@ export default function StorePublicScreen() {
                 >
                   <span className="store-public-status-tag__dot" />
                   <span>
-                    {schedule.isAlwaysOpen
-                      ? t('home.storeAlwaysOpen')
-                      : schedule.isOpen
-                        ? schedule.closes
-                          ? t('home.storeClosesAt', { time: schedule.closes })
-                          : t('home.storeOpenNow')
-                        : schedule.opens
-                          ? t('home.storeOpensAt', { time: schedule.opens })
-                          : t('home.storeClosedNow')}
+                    {schedule.isTemporarilyClosed
+                      ? schedule.temporaryClosureReason || t('home.storeClosedNow')
+                      : schedule.isAlwaysOpen
+                        ? t('home.storeAlwaysOpen')
+                        : schedule.isOpen
+                          ? schedule.closes
+                            ? t('home.storeClosesAt', { time: schedule.closes })
+                            : t('home.storeOpenNow')
+                          : schedule.opens
+                            ? t('home.storeOpensAt', { time: schedule.opens })
+                            : t('home.storeClosedNow')}
                   </span>
                 </span>
               )}
@@ -162,6 +196,29 @@ export default function StorePublicScreen() {
             )}
           </div>
         </article>
+
+        {/* Advance Notice / Temporary Closure Banner */}
+        {schedule?.specialNotice && (
+          <div
+            className="store-public-notice-bar"
+            style={{
+              background: 'rgba(245, 158, 11, 0.12)',
+              border: '1px solid rgba(245, 158, 11, 0.28)',
+              borderRadius: '12px',
+              padding: '10px 14px',
+              marginBottom: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              color: 'var(--text-primary)',
+              fontSize: '13px',
+              fontWeight: 500,
+            }}
+          >
+            <AlertTriangleIcon size={16} color="#f59e0b" />
+            <span>{schedule.specialNotice}</span>
+          </div>
+        )}
 
         {/* Primary CTAs: Digital Storefront first, shelf scanner second */}
         <div className="store-public-cta-group">
@@ -190,7 +247,7 @@ export default function StorePublicScreen() {
                   color: '#4ade80',
                 }}
               >
-                <span className="material-symbols-outlined">call</span>
+                <PhoneCallIcon size={18} />
               </div>
               <span>{t('home.storeCall')}</span>
             </a>
@@ -210,7 +267,7 @@ export default function StorePublicScreen() {
                   color: '#25d366',
                 }}
               >
-                <span className="material-symbols-outlined">chat</span>
+                <WhatsAppIcon size={18} />
               </div>
               <span>{t('home.storeWhatsApp')}</span>
             </a>
@@ -230,7 +287,7 @@ export default function StorePublicScreen() {
                   color: '#38bdf8',
                 }}
               >
-                <span className="material-symbols-outlined">map</span>
+                <TwoGisIcon size={18} />
               </div>
               <span>{t('home.storeRoute2Gis')}</span>
             </a>
@@ -250,7 +307,7 @@ export default function StorePublicScreen() {
                   color: '#f43f5e',
                 }}
               >
-                <span className="material-symbols-outlined">photo_camera</span>
+                <InstagramIcon size={18} />
               </div>
               <span>{t('home.storeInstagram')}</span>
             </a>
@@ -262,21 +319,29 @@ export default function StorePublicScreen() {
           <section className="store-public-card">
             <h2 className="store-public-card__title">{t('home.storePhotos')}</h2>
             <div className="store-public-photos-grid">
-              {store.images.map((url, idx) => (
-                <div
-                  key={url}
-                  className="store-public-photo-item"
-                  onClick={() => setActivePhotoIndex(idx)}
-                >
-                  <img src={url} alt={`${store.name} photo ${idx + 1}`} loading="lazy" />
-                </div>
-              ))}
+              {store.images.map((item, idx) => {
+                const url = typeof item === 'string' ? item : item?.url
+                if (!url) return null
+                return (
+                  <div
+                    key={url || idx}
+                    className="store-public-photo-item"
+                    onClick={() => setActivePhotoIndex(idx)}
+                  >
+                    <img
+                      src={url}
+                      alt={item?.caption || `${store.name} photo ${idx + 1}`}
+                      loading="lazy"
+                    />
+                  </div>
+                )
+              })}
             </div>
           </section>
         )}
 
         {/* Lightbox for Store Photos */}
-        {activePhotoIndex !== null && store.images && (
+        {activePhotoIndex !== null && store.images?.[activePhotoIndex] && (
           <div
             style={{
               position: 'fixed',
@@ -312,7 +377,11 @@ export default function StorePublicScreen() {
               <CloseIcon size={22} />
             </button>
             <img
-              src={store.images[activePhotoIndex]}
+              src={
+                typeof store.images[activePhotoIndex] === 'string'
+                  ? store.images[activePhotoIndex]
+                  : store.images[activePhotoIndex]?.url
+              }
               alt="Store full view"
               style={{ maxWidth: '92%', maxHeight: '86%', objectFit: 'contain', borderRadius: 14 }}
             />
@@ -338,6 +407,40 @@ export default function StorePublicScreen() {
                 {store.description || store.short_description}
               </div>
             )}
+          </section>
+        )}
+
+        {/* Store Amenities and Payments */}
+        {Array.isArray(store.features) && store.features.length > 0 && (
+          <section className="store-public-card">
+            <h2 className="store-public-card__title">
+              {t('home.storeAmenitiesTitle') || 'Особенности и сервис'}
+            </h2>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {store.features.map((featureId) => {
+                const def = STORE_FEATURE_DEFINITIONS.find((f) => f.id === featureId)
+                if (!def) return null
+                const label = isKz ? def.labelKz : def.labelRu
+                return (
+                  <span
+                    key={featureId}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      padding: '6px 12px',
+                      borderRadius: 10,
+                      background: 'rgba(56, 189, 248, 0.08)',
+                      border: '1px solid rgba(56, 189, 248, 0.2)',
+                      color: 'var(--text-primary)',
+                      fontSize: 12,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {label}
+                  </span>
+                )
+              })}
+            </div>
           </section>
         )}
 

@@ -34,6 +34,7 @@ import { buildProductUnitPrice } from '../domain/product/unitPrice.js'
 import { hasProductScreenCharacteristics } from '../domain/product/productScreenSections.js'
 import { resolveFitSeverityKey } from '../domain/product/fitVerdict.js'
 import ImageCarousel from '../components/product/ImageCarousel.jsx'
+import ShoppingListButton from '../components/ShoppingListButton.jsx'
 import CollapsibleFitCheck from '../components/product/CollapsibleFitCheck.jsx'
 import DietBadges from '../components/product/DietBadges.jsx'
 import NutritionUnified from '../components/product/NutritionUnified.jsx'
@@ -92,15 +93,9 @@ export default function ProductScreen() {
   const [fetchingFull, setFetchingFull] = useState(false)
   const [fetchSettledEmpty, setFetchSettledEmpty] = useState(false)
   const [unknownRequestStatus, setUnknownRequestStatus] = useState('idle')
-  const [shoppingAdding, setShoppingAdding] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
   const [submissionOpen, setSubmissionOpen] = useState(false)
   const [submissionMode, setSubmissionMode] = useState('new_product')
-
-  const addShoppingAnimation = () => {
-    setShoppingAdding(true)
-    setTimeout(() => setShoppingAdding(false), 400)
-  }
 
   // Optimistic scan path: arrived from ScanScreen without pre-loaded product
   const needsResolve = fromScan && !location.state?.product && !baseProduct
@@ -225,11 +220,7 @@ export default function ProductScreen() {
   }
 
   const handleToggleFavorite = async () => {
-    addShoppingAnimation()
-    const ok = await toggleFavorite(product)
-    if (!ok) {
-      addShoppingAnimation()
-    }
+    await toggleFavorite(product)
   }
 
   const buildShareUrl = () =>
@@ -592,31 +583,7 @@ export default function ProductScreen() {
           >
             <AlertTriangleIcon size={18} />
           </button>
-          <button
-            onClick={handleToggleFavorite}
-            className={`product-header__shopping-btn${isFavorite ? ' product-header__shopping-btn--active' : ''}${shoppingAdding ? ' product-header__shopping-btn--animating' : ''}`}
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: 12,
-              border: '1px solid var(--glass-border)',
-              background: isFavorite ? 'var(--glass-muted)' : 'var(--glass-bg)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              flexShrink: 0,
-              transition: 'background 0.15s, border-color 0.15s, transform 0.2s ease',
-              color: isFavorite ? 'var(--accent-sky)' : 'var(--text)',
-            }}
-          >
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: 20, fontVariationSettings: isFavorite ? "'FILL' 1" : "'FILL' 0" }}
-            >
-              checklist
-            </span>
-          </button>
+          <ShoppingListButton active={isFavorite} onClick={handleToggleFavorite} />
         </div>
       </div>
 
@@ -702,7 +669,9 @@ export default function ProductScreen() {
           </div>
         )}
         {lang !== 'kz' && product.nameKz && product.nameKz !== product.name && (
-          <div style={{ fontSize: 13, color: 'var(--text-dim)', marginTop: -8, fontStyle: 'italic' }}>
+          <div
+            style={{ fontSize: 13, color: 'var(--text-dim)', marginTop: -8, fontStyle: 'italic' }}
+          >
             {product.nameKz}
           </div>
         )}
@@ -915,9 +884,7 @@ export default function ProductScreen() {
               gap: 6,
             }}
           >
-            <div
-              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-            >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span
                 style={{
                   fontSize: 11,

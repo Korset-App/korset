@@ -16,10 +16,15 @@ export default function ProfileStatsTabs({
   activeTab,
   onTabChange,
   favoritesCount,
+  favoriteSummary,
   scanCount,
   preferencesCount,
   topFavorites,
+  favoritesLoadError,
+  onRetryFavorites,
   topHistory,
+  historyLoadError,
+  onRetryHistory,
   loadingTab,
   preferencesContent,
   onViewAllFavorites,
@@ -37,61 +42,30 @@ export default function ProfileStatsTabs({
     navigate(currentStore?.slug ? `/s/${currentStore.slug}/catalog` : '/catalog')
   }
 
-  const handleShareList = async () => {
-    if (!topFavorites || topFavorites.length === 0) return
-    const storeName = currentStore?.name || 'Körset'
-    const itemsText = topFavorites
-      .map((p, idx) => {
-        const name = p.nameRu || p.name || `Товар ${p.ean || ''}`
-        const priceStr = p.priceKzt ? ` — ${p.priceKzt.toLocaleString('ru-RU')} ₸` : ''
-        return `${idx + 1}. ${name}${priceStr}`
-      })
-      .join('\n')
-    const pricedProducts = topFavorites.filter(
-      (p) => p && typeof p.priceKzt === 'number' && p.priceKzt > 0
-    )
-    const totalSum = pricedProducts.reduce((sum, p) => sum + p.priceKzt, 0)
-    const totalStr = totalSum > 0 ? `\n\nИтого: ~${totalSum.toLocaleString('ru-RU')} ₸` : ''
-    const shareText = `🛒 Список покупок (${storeName}):\n${itemsText}${totalStr}\n\nСоставлено в Körset`
-    if (typeof navigator !== 'undefined' && navigator.share) {
-      try {
-        await navigator.share({
-          title: `Список покупок (${storeName})`,
-          text: shareText,
-        })
-        return
-      } catch (err) {
-        if (err.name === 'AbortError') return
-      }
-    }
-    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`
-    window.open(whatsappUrl, '_blank')
-  }
-
   const tabs = [
     {
       id: 'favorites',
       tone: 'favorites',
-      value: favoritesCount,
+      value: favoritesLoadError ? '—' : favoritesCount,
       label: t('profile.favorites'),
       iconBg: 'rgba(245,158,11,0.18)',
       iconBorder: 'rgba(251,191,36,0.55)',
       iconShadow: '0 4px 22px rgba(245,158,11,0.36)',
       icon: (
-        <span
-          className="material-symbols-outlined"
-          style={{
-            fontSize: 22,
-            color: '#F59E0B',
-            lineHeight: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="var(--warning)"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
           aria-hidden="true"
         >
-          checklist
-        </span>
+          <path d="M4.5 8.5h15l-1 12h-13l-1-12ZM8.5 8.5V6a3.5 3.5 0 0 1 7 0v2.5" />
+          <path d="m9.5 14.5 1.8 1.8 3.5-3.6" />
+        </svg>
       ),
     },
     {
@@ -155,54 +129,30 @@ export default function ProfileStatsTabs({
     if (activeTab === 'preferences') return preferencesContent
 
     if (activeTab === 'favorites') {
+      if (favoritesLoadError) {
+        return (
+          <div className="stats-tabs__load-error" role="alert">
+            <span>{t('shopping.loadFailed')}</span>
+            <button type="button" onClick={onRetryFavorites}>
+              {t('shopping.retry')}
+            </button>
+          </div>
+        )
+      }
       if (loadingTab === 'favorites' && topFavorites === null) {
         return <TabSpinner text={t('profile.favoritesLoading') || t('common.loading')} />
       }
       if (topFavorites && topFavorites.length > 0) {
-        const pricedProducts = topFavorites.filter(
-          (p) => p && typeof p.priceKzt === 'number' && p.priceKzt > 0
-        )
-        const totalSum = pricedProducts.reduce((sum, p) => sum + p.priceKzt, 0)
         const displayItems = topFavorites.slice(0, 6)
 
         return (
           <>
             <div className="stats-tabs__store-bar">
               <div className="stats-tabs__store-info">
-                <span className="stats-tabs__store-pin" aria-hidden="true">📍</span>
                 <span className="stats-tabs__store-name">
                   {currentStore?.name || t('profile.inStore') || 'В магазине'}
                 </span>
-                <span className="stats-tabs__store-status">
-                  <span className="stats-tabs__store-dot" />
-                  {t('profile.storePricesLive') || 'Цены актуальны'}
-                </span>
               </div>
-              <button
-                type="button"
-                className="stats-tabs__share-btn"
-                onClick={handleShareList}
-                aria-label={t('profile.shareList') || 'Поделиться'}
-              >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <circle cx="18" cy="5" r="3" />
-                  <circle cx="6" cy="12" r="3" />
-                  <circle cx="18" cy="19" r="3" />
-                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-                </svg>
-                <span>{t('profile.shareList') || 'Поделиться'}</span>
-              </button>
             </div>
 
             <div className="stats-tabs__grid">
@@ -218,12 +168,14 @@ export default function ProfileStatsTabs({
             <div className="stats-tabs__footer-bar">
               <div className="stats-tabs__footer-total">
                 <span className="stats-tabs__footer-total-label">
-                  {t('profile.totalInStore') || 'Итого в магазине:'}
+                  {favoriteSummary?.missingPriceCount
+                    ? t('shopping.partialTotal')
+                    : t('shopping.total')}
                 </span>
                 <span className="stats-tabs__footer-total-sum">
-                  {totalSum > 0
-                    ? `~${totalSum.toLocaleString('ru-RU')} ₸`
-                    : `${favoritesCount || topFavorites.length} тов.`}
+                  {favoriteSummary?.pricedCount > 0
+                    ? `${favoriteSummary.knownSubtotalKzt.toLocaleString('ru-RU')} ₸`
+                    : t('shopping.priceUnknown')}
                 </span>
               </div>
               <button
@@ -232,9 +184,6 @@ export default function ProfileStatsTabs({
                 onClick={onViewAllFavorites}
               >
                 <span>{t('profile.viewAll') || 'Посмотреть все'}</span>
-                {favoritesCount > 0 && (
-                  <span className="stats-tabs__footer-count">({favoritesCount})</span>
-                )}
                 <ChevronRightIcon />
               </button>
             </div>
@@ -252,6 +201,16 @@ export default function ProfileStatsTabs({
     }
 
     if (activeTab === 'history') {
+      if (historyLoadError) {
+        return (
+          <div className="stats-tabs__load-error" role="alert">
+            <span>{t('history.loadFailed')}</span>
+            <button type="button" onClick={onRetryHistory}>
+              {t('shopping.retry')}
+            </button>
+          </div>
+        )
+      }
       if (loadingTab === 'history' && topHistory === null) {
         return <TabSpinner text={t('profile.historyLoading') || t('common.loading')} />
       }
@@ -272,9 +231,6 @@ export default function ProfileStatsTabs({
                 onClick={onViewAllHistory}
               >
                 <span>{t('profile.viewAll') || 'Вся история'}</span>
-                {scanCount > 0 && (
-                  <span className="stats-tabs__footer-count">({scanCount})</span>
-                )}
                 <ChevronRightIcon />
               </button>
             </div>
@@ -416,133 +372,23 @@ const TONE_STYLES = {
   },
 }
 
-function CraftPaperBagIllustration() {
+function ShoppingListEmptyIllustration() {
   return (
-    <div className="craft-bag-scene" aria-hidden="true">
-      <div className="craft-bag-floating">
-        <svg
-          width="96"
-          height="96"
-          viewBox="0 0 120 120"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className="craft-bag-svg"
-        >
-          <defs>
-            <linearGradient id="craftGrad" x1="20" y1="35" x2="100" y2="105" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stopColor="#F59E0B" />
-              <stop offset="50%" stopColor="#D97706" />
-              <stop offset="100%" stopColor="#B45309" />
-            </linearGradient>
-            <linearGradient id="craftSideGrad" x1="24" y1="40" x2="45" y2="100" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stopColor="#D97706" />
-              <stop offset="100%" stopColor="#92400E" />
-            </linearGradient>
-            <linearGradient id="leafGrad" x1="65" y1="15" x2="90" y2="40" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stopColor="#34D399" />
-              <stop offset="100%" stopColor="#059669" />
-            </linearGradient>
-            <linearGradient id="cordGrad" x1="40" y1="12" x2="80" y2="35" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stopColor="#FDE68A" />
-              <stop offset="100%" stopColor="#D97706" />
-            </linearGradient>
-          </defs>
-
-          {/* Sparkles */}
-          <path
-            d="M22 28L24 22L30 20L24 18L22 12L20 18L14 20L20 22L22 28Z"
-            fill="#FBBF24"
-            className="craft-bag-sparkle craft-bag-sparkle--1"
-          />
-          <path
-            d="M102 42L103.5 37.5L108 36L103.5 34.5L102 30L100.5 34.5L96 36L100.5 37.5L102 42Z"
-            fill="#FCD34D"
-            className="craft-bag-sparkle craft-bag-sparkle--2"
-          />
-
-          {/* Green Eco Leaf */}
-          <path
-            d="M68 36C68 36 67 18 84 16C87 28 78 37 70 38"
-            fill="url(#leafGrad)"
-          />
-          <path
-            d="M69 35C74 27 81 22 84 16"
-            stroke="#A7F3D0"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-
-          {/* Back Handle */}
-          <path
-            d="M48 42V25C48 18 53 14 60 14C67 14 72 18 72 25V42"
-            stroke="url(#cordGrad)"
-            strokeWidth="3.5"
-            strokeLinecap="round"
-            fill="none"
-          />
-
-          {/* Bag Body */}
-          <path
-            d="M28 42L34 102C34.5 105.5 37.5 108 41 108H79C82.5 108 85.5 105.5 86 102L92 42H28Z"
-            fill="url(#craftGrad)"
-          />
-
-          {/* Bag Side Fold */}
-          <path
-            d="M28 42L34 102C34.5 105.5 37.5 108 41 108L47 108L41 42H28Z"
-            fill="url(#craftSideGrad)"
-            opacity="0.45"
-          />
-
-          {/* Folded Top Rim */}
-          <path
-            d="M26 40C26 38.5 27 37 28.5 37H91.5C93 37 94 38.5 94 40L92 44C91.5 45 90.5 45.5 89.5 45.5H30.5C29.5 45.5 28.5 45 28 44L26 40Z"
-            fill="#FBBF24"
-          />
-          <path
-            d="M28.5 37H91.5"
-            stroke="#D97706"
-            strokeWidth="1.5"
-          />
-
-          {/* Front Handle */}
-          <path
-            d="M44 45V27C44 20 49 16 56 16C63 16 68 20 68 27V45"
-            stroke="url(#cordGrad)"
-            strokeWidth="3.5"
-            strokeLinecap="round"
-            fill="none"
-          />
-          <rect x="41.5" y="43" width="5" height="7" rx="1.5" fill="#B45309" />
-          <rect x="65.5" y="43" width="5" height="7" rx="1.5" fill="#B45309" />
-
-          {/* Small Check Badge */}
-          <circle cx="60" cy="74" r="9" fill="rgba(255, 255, 255, 0.22)" />
-          <path
-            d="M56 74L58.5 76.5L64 71"
-            stroke="#FFFBEB"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </div>
-      <div className="craft-bag-shadow" />
+    <div className="stats-tabs__empty-mark" aria-hidden="true">
+      <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="9" y="14" width="30" height="25" rx="5" />
+        <path d="M17 17V11a7 7 0 0 1 14 0v6M18 27h12M24 21v12" />
+      </svg>
     </div>
   )
 }
-
 function ShoppingListEmptyState({ title, hint, onOpenCatalog, t }) {
   return (
     <div className="stats-tabs__empty stats-tabs__empty--craft">
-      <CraftPaperBagIllustration />
+      <ShoppingListEmptyIllustration />
       <div className="stats-tabs__empty-title">{title}</div>
       <div className="stats-tabs__empty-hint">{hint}</div>
-      <button
-        type="button"
-        className="stats-tabs__empty-catalog-btn"
-        onClick={onOpenCatalog}
-      >
+      <button type="button" className="stats-tabs__empty-catalog-btn" onClick={onOpenCatalog}>
         {t('profile.openCatalogBtn') || 'Открыть каталог →'}
       </button>
     </div>

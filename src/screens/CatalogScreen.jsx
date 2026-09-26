@@ -1,14 +1,11 @@
 import { useState, useMemo, useEffect, useCallback, useRef, forwardRef } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { Virtuoso, VirtuosoGrid } from 'react-virtuoso'
-import {
-  checkProductFit,
-  formatPrice,
-  getCategoryLabel,
-} from '../utils/fitCheck.js'
+import { checkProductFit, formatPrice, getCategoryLabel } from '../utils/fitCheck.js'
 import { useProfile } from '../contexts/ProfileContext.jsx'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { useOffline } from '../contexts/OfflineContext.jsx'
+import { useUserData } from '../contexts/UserDataContext.jsx'
 import { useI18n } from '../i18n/index.js'
 import { getLocalName } from '../utils/localName.js'
 import { getCatalogFromIndexedDB } from '../utils/offlineDB.js'
@@ -31,6 +28,7 @@ import { useCatalogSearch } from '../hooks/useCatalogSearch.js'
 import { useCatalogFilter } from '../hooks/useCatalogFilter.js'
 
 import CatalogProductCard from '../components/catalog/CatalogProductCard.jsx'
+import { getProductBadgeSummary } from '../domain/home/homeScreenModel.js'
 import FitCheckDrawer from '../components/home/FitCheckDrawer.jsx'
 import { CatalogTopBar } from '../components/catalog/CatalogTopBar.jsx'
 import { CategoryShowcaseGrid } from '../components/catalog/CategoryShowcaseGrid.jsx'
@@ -91,8 +89,16 @@ export default function CatalogScreen() {
   const { storeSlug } = useParams()
   const { t, lang } = useI18n()
   const { profile, updateProfile } = useProfile()
-  const { storeId, currentStore, catalogProducts, isCatalogReady, isCatalogLoading } = useStore()
+  const {
+    storeId,
+    currentStore,
+    catalogProducts,
+    isCatalogReady,
+    isCatalogLoading,
+    catalogLoadError,
+  } = useStore()
   const { isOnline } = useOffline()
+  const { favoriteEans = new Set(), toggleFavorite } = useUserData() || {}
   const location = useLocation()
 
   const [offlineCatalog, setOfflineCatalog] = useState([])
@@ -326,7 +332,12 @@ export default function CatalogScreen() {
           : comparePin
             ? t('compare.btnLabel')
             : t('compare.compareMode')
-      const badges = buildCatalogProductCardBadges(product, t)
+      const allBadges = buildCatalogProductCardBadges(product, t)
+      const primaryKey = getProductBadgeSummary(product, lang).badges[0]?.key
+      const badges = allBadges.length
+        ? [allBadges.find((badge) => badge.id === primaryKey) || allBadges[0]]
+        : []
+      const extraBadgeCount = Math.max(0, allBadges.length - badges.length)
       const kcal = getCatalogProductCardKcal(product)
       const searchDiagnosticsAttrs = getProductSearchDiagnosticsAttrs(product)
       return (
@@ -341,16 +352,19 @@ export default function CatalogScreen() {
           price={formatPrice(product.priceKzt)}
           verdict={verdict}
           badges={badges}
+          extraBadgeCount={extraBadgeCount}
           kcalLabel={kcal ? t('catalog.badge.kcal', { value: kcal }) : null}
           compareState={compareState}
           compareLabel={compareLabel}
           searchDiagnosticsAttrs={searchDiagnosticsAttrs}
+          isFavorite={favoriteEans.has(product.ean)}
           onOpen={() => handleNavigate(product)}
           onCompare={(e) => handleCompare(product, e)}
+          onToggleFavorite={toggleFavorite}
         />
       )
     },
-    [profile, comparePin, handleCompare, handleNavigate, t, lang]
+    [profile, comparePin, handleCompare, handleNavigate, t, lang, favoriteEans, toggleFavorite]
   )
 
   const renderListItem = useCallback(
@@ -365,7 +379,12 @@ export default function CatalogScreen() {
           : comparePin
             ? t('compare.btnLabel')
             : t('compare.compareMode')
-      const badges = buildCatalogProductCardBadges(product, t)
+      const allBadges = buildCatalogProductCardBadges(product, t)
+      const primaryKey = getProductBadgeSummary(product, lang).badges[0]?.key
+      const badges = allBadges.length
+        ? [allBadges.find((badge) => badge.id === primaryKey) || allBadges[0]]
+        : []
+      const extraBadgeCount = Math.max(0, allBadges.length - badges.length)
       const kcal = getCatalogProductCardKcal(product)
       const searchDiagnosticsAttrs = getProductSearchDiagnosticsAttrs(product)
       return (
@@ -379,16 +398,19 @@ export default function CatalogScreen() {
           price={formatPrice(product.priceKzt)}
           verdict={verdict}
           badges={badges}
+          extraBadgeCount={extraBadgeCount}
           kcalLabel={kcal ? t('catalog.badge.kcal', { value: kcal }) : null}
           compareState={compareState}
           compareLabel={compareLabel}
           searchDiagnosticsAttrs={searchDiagnosticsAttrs}
+          isFavorite={favoriteEans.has(product.ean)}
           onOpen={() => handleNavigate(product)}
           onCompare={(e) => handleCompare(product, e)}
+          onToggleFavorite={toggleFavorite}
         />
       )
     },
-    [profile, comparePin, handleCompare, handleNavigate, t, lang]
+    [profile, comparePin, handleCompare, handleNavigate, t, lang, favoriteEans, toggleFavorite]
   )
 
   return (
@@ -421,6 +443,22 @@ export default function CatalogScreen() {
         t={t}
         lang={lang}
       />
+
+      {catalogLoadError && isOnline && (
+        <div
+          role="alert"
+          style={{
+            margin: '8px 20px',
+            padding: '10px 12px',
+            borderRadius: 12,
+            background: 'var(--glass-bg)',
+            border: '1px solid var(--glass-border)',
+            color: 'var(--text)',
+          }}
+        >
+          {t('catalog.loadError')}
+        </div>
+      )}
 
       {showSubcategories && (
         <CatalogSubcategoryNav

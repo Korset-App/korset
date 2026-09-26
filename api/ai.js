@@ -322,6 +322,9 @@ function sanitizeStoreContext(storeContext) {
     city: cleanString(storeContext.city, 120),
     address: cleanString(storeContext.address, 240),
     aiStoreNotes: cleanString(storeContext.aiStoreNotes, 2000),
+    features: Array.isArray(storeContext.features)
+      ? storeContext.features.filter((f) => typeof f === 'string').slice(0, 30)
+      : [],
   }
 }
 
@@ -747,7 +750,7 @@ export function buildProductPrompt(product, profile, lang, ragContext, storeCont
 - Не приписывай альтернативам полку, halal-статус, отсутствие аллергенов, состав или свойства, если этого нет в блоке альтернатив.
 - Если Fit-Check или данные профиля показывают реальный риск, не спорь с ними и не снижай риск.`
   const storeSection = storeContext?.name
-    ? `\nМАГАЗИН: ${storeContext.name}${storeContext.address ? ` | ${storeContext.address}` : ''}${storeContext.aiStoreNotes ? `\nФАКТЫ МАГАЗИНА: ${storeContext.aiStoreNotes}` : ''}`
+    ? `\nМАГАЗИН: ${storeContext.name}${storeContext.address ? ` | ${storeContext.address}` : ''}${storeContext.features?.length ? ` | Особенности: ${storeContext.features.join(', ')}` : ''}${storeContext.aiStoreNotes ? `\nФАКТЫ МАГАЗИНА: ${storeContext.aiStoreNotes}` : ''}`
     : ''
   const alternativesSection = product.alternatives?.length
     ? `\nАЛЬТЕРНАТИВЫ В ЭТОМ МАГАЗИНЕ: ${product.alternatives
@@ -787,6 +790,15 @@ ${langNote}
 
 export function buildGeneralPrompt(lang, storeContext, catalogContext = []) {
   const storeName = storeContext?.name || 'текущего магазина'
+  const storeExtra = []
+  if (storeContext?.features?.length) {
+    storeExtra.push(`Особенности и способы оплаты магазина: ${storeContext.features.join(', ')}`)
+  }
+  if (storeContext?.aiStoreNotes) {
+    storeExtra.push(`Факты о магазине от владельца: ${storeContext.aiStoreNotes}`)
+  }
+  const storeExtraLine = storeExtra.length ? `\n\n${storeExtra.join('\n')}` : ''
+
   const catalogSection = catalogContext.length
     ? `\n\nТОВАРЫ, КОТОРЫЕ ВИДНЫ В КАТАЛОГЕ ${storeName}:\n${catalogContext
         .map(
@@ -798,10 +810,10 @@ export function buildGeneralPrompt(lang, storeContext, catalogContext = []) {
 
   if (lang === 'kz') {
     return `Сен — ${storeName} дүкеніндегі Körset AI көмекшісісің. Тек осы дүкеннің берілген каталогындағы тауарларды ұсын. Егер тауар берілген каталогта жоқ болса, оны көрмей тұрғаныңды ашық айт. Қысқа, түсінікті қазақша жауап бер. Максимум 3-4 сөйлем. Markdown-разметку қолданба: **, *, тақырыптар, кестелер және bullet-тізімдер жоқ; карточкалардағы тауарларды мәтінде толық қайталама.
-ПРЕМИУМ ЖАУАП ЕРЕЖЕСІ: тауарларды тек ағымдағы дүкеннің берілген каталогынан ұсын; карточкалардағы барлық тауарды мәтінде қайталама; тауар топтары сұрауға неге сәйкес келетінін қысқа түсіндір; пайдалы келесі қадам ұсын; сәйкес тауар көрінбесе, осы дүкен каталогында көрмей тұрғаныңды айт. Ішкі өрістер мен машиналық labels көрсетпе: stockStatus, in_stock, out_of_stock, priceKzt, halalConfidence, allergyConfidence. Балаға арналған сұрақта жаңғақ, кофеин, энергетик немесе қанты көп тауарларды бірінші қауіпсіз таңдау ретінде ұсынба; алдымен су, шырын, жеміс сияқты қарапайым нұсқаларды бер және қаптаманы/аллергендерді тексеруді айт.${catalogSection}`
+ПРЕМИУМ ЖАУАП ЕРЕЖЕСІ: тауарларды тек ағымдағы дүкеннің берілген каталогынан ұсын; карточкалардағы барлық тауарды мәтінде қайталама; тауар топтары сұрауға неге сәйкес келетінін қысқа түсіндір; пайдалы келесі қадам ұсын; сәйкес тауар көрінбесе, осы дүкен каталогында көрмей тұрғаныңды айт. Ішкі өрістер мен машиналық labels көрсетпе: stockStatus, in_stock, out_of_stock, priceKzt, halalConfidence, allergyConfidence. Балаға арналған сұрақта жаңғақ, кофеин, энергетик немесе қанты көп тауарларды бірінші қауіпсіз таңдау ретінде ұсынба; алдымен су, шырын, жеміс сияқты қарапайым нұсқаларды бер және қаптаманы/аллергендерді тексеруді айт.${catalogSection}${storeExtraLine}`
   }
   return `Ты — Körset AI, помощник покупателя в магазине ${storeName}. Помогаешь найти товары, советуешь простые покупки и отвечаешь про состав и аллергены. Рекомендуй только товары из переданного каталога текущего магазина. Если товара нет в данных, честно скажи, что не видишь его в этом магазине. Кратко, по-русски, как дружелюбный консультант. Максимум 3-4 предложения. Не используй markdown-разметку: без **, *, заголовков, таблиц и bullet-списков; не дублируй в тексте весь список товаров, который уже показан карточками.
-ПРЕМИУМ-КОНТРАКТ ОТВЕТА: рекомендуй только из переданного каталога текущего магазина; не повторяй в тексте весь список товаров из карточек; объясни, почему группы товаров подходят под запрос; предложи следующий шаг, например дешевле, без аллергена, halal-фильтр, замену или проверку упаковки; если подходящих товаров не видно, скажи, что не вижу подходящих товаров в каталоге этого магазина, и не предлагай товары вне текущего магазина. Не показывай пользователю внутренние поля и машинные labels вроде stockStatus, in_stock, out_of_stock, priceKzt, halalConfidence, allergyConfidence. Для детских перекусов не ставь орехи, кофеин, энергетики или явно сладкие спорные товары как первый безопасный выбор, если аллергии и возраст неизвестны; сначала предлагай более нейтральные видимые варианты и проси проверить упаковку/аллергены.${catalogSection}`
+ПРЕМИУМ-КОНТРАКТ ОТВЕТА: рекомендуй только из переданного каталога текущего магазина; не повторяй в тексте весь список товаров из карточек; объясни, почему группы товаров подходят под запрос; предложи следующий шаг, например дешевле, без аллергена, halal-фильтр, замену или проверку упаковки; если подходящих товаров не видно, скажи, что не вижу подходящих товаров в каталоге этого магазина, и не предлагай товары вне текущего магазина. Не показывай пользователю внутренние поля и машинные labels вроде stockStatus, in_stock, out_of_stock, priceKzt, halalConfidence, allergyConfidence. Для детских перекусов не ставь орехи, кофеин, энергетики или явно сладкие спорные товары как первый безопасный выбор, если аллергии и возраст неизвестны; сначала предлагай более нейтральные видимые варианты и проси проверить упаковку/аллергены.${catalogSection}${storeExtraLine}`
 }
 
 export function buildComparePrompt(productA, productB, profile, comparison, lang, ragContext) {

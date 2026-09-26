@@ -4,6 +4,23 @@ import { addPendingScan } from './offlineDB.js'
 
 export const SCAN_HISTORY_STORAGE_KEY = 'korset_scan_history_cache_v2'
 
+const SCAN_FOUND_STATUSES = new Set([
+  'found_store',
+  'found_global',
+  'found_cache',
+  'found_off',
+  'not_found',
+])
+
+function toScanFoundStatus(value) {
+  if (SCAN_FOUND_STATUSES.has(value)) return value
+  return (
+    { store: 'found_store', global: 'found_global', cache: 'found_cache', offline: 'found_off' }[
+      value
+    ] || 'not_found'
+  )
+}
+
 function toIsoDate(value) {
   if (!value) return new Date().toISOString()
   if (value instanceof Date)
@@ -18,6 +35,7 @@ function normalizeHistoryEntry(entry) {
     ownerKey: entry.ownerKey || 'guest',
     ean: String(entry.ean),
     name: entry.name || `Товар ${entry.ean}`,
+    nameKz: entry.nameKz || null,
     brand: entry.brand || null,
     image: entry.image || entry.images?.[0] || null,
     images: Array.isArray(entry.images)
@@ -52,6 +70,28 @@ function writeRawHistory(items) {
 
 function getHistoryItemKey(item) {
   return `${item?.storeId || 'global'}::${item?.ean || item?.canonicalId || 'unknown'}`
+}
+
+export function dedupeLocalScanHistory(items = []) {
+  const map = new Map()
+  for (const item of items) {
+    if (!item?.ean) continue
+    const key = getHistoryItemKey(item)
+    const existing = map.get(key)
+    if (!existing || new Date(item.scanDate).getTime() >= new Date(existing.scanDate).getTime()) {
+      map.set(key, item)
+    }
+  }
+  return Array.from(map.values()).sort((a, b) => new Date(b.scanDate) - new Date(a.scanDate))
+}
+
+export function filterLocalScanHistoryByStore(items = [], storeId = null) {
+  const targetStoreId = storeId || null
+  return dedupeLocalScanHistory(items).filter((item) => (item.storeId || null) === targetStoreId)
+}
+
+export function filterLocalScanHistoryAcrossStores(items = []) {
+  return dedupeLocalScanHistory(items)
 }
 
 export function buildHistoryOwnerKey(user) {
@@ -103,11 +143,12 @@ export function buildLocalScanHistoryEntry(product, foundStatus = 'scan', storeI
   return normalizeHistoryEntry({
     ean: product.ean,
     name: product.name || `Товар ${product.ean}`,
+    nameKz: product.nameKz || null,
     brand: product.brand || null,
     image: product.image || product.images?.[0] || null,
     images: Array.isArray(product.images) ? product.images : product.image ? [product.image] : [],
     canonicalId: product.canonicalId || product.id || `ean:${product.ean}`,
-    source: product.source || foundStatus || 'scan',
+    source: toScanFoundStatus(SCAN_FOUND_STATUSES.has(foundStatus) ? foundStatus : product.source),
     scanDate: new Date().toISOString(),
     storeId: storeId || product.storeId || null,
   })
@@ -126,7 +167,7 @@ export function appendLocalScanHistory(ownerKey, entry, limit = 50) {
   if (!navigator.onLine && normalized.ean) {
     addPendingScan({
       ean: normalized.ean,
-      found_status: normalized.source || 'scan',
+      found_status: toScanFoundStatus(normalized.source),
       store_id: normalized.storeId || null,
       scanned_at: normalized.scanDate || new Date().toISOString(),
     }).catch(() => {})
@@ -155,16 +196,7 @@ function withSyncTimeout(promise, ms = 8000) {
  * Used internally during cloud sync.
  */
 function mergeHistoryLists(primary = [], secondary = []) {
-  const map = new Map()
-  for (const item of [...primary, ...secondary]) {
-    if (!item?.ean) continue
-    const key = getHistoryItemKey(item)
-    const existing = map.get(key)
-    if (!existing || new Date(item.scanDate).getTime() >= new Date(existing.scanDate).getTime()) {
-      map.set(key, item)
-    }
-  }
-  return Array.from(map.values()).sort((a, b) => new Date(b.scanDate) - new Date(a.scanDate))
+  return dedupeLocalScanHistory([...primary, ...secondary])
 }
 
 /** Session guard: run sync at most once per browser session per user. */
@@ -211,15 +243,23 @@ export async function syncScanHistoryWithCloud(internalUserId, user) {
   if (privacy.analyticsEnabled && localHistory.length > 0) {
     try {
       const { data: existingRows } = await withSyncTimeout(
-        supabase.from('scan_events').select('ean').eq('user_id', internalUserId).limit(200)
+        supabase
+          .from('scan_events')
+          .select('ean, store_id')
+          .eq('user_id', internalUserId)
+          .limit(200)
       )
-      const existingEans = new Set((existingRows || []).map((r) => String(r.ean)))
-      const toUpload = localHistory.filter((item) => !existingEans.has(String(item.ean)))
+      const existingScanKeys = new Set(
+        (existingRows || []).map((row) =>
+          getHistoryItemKey({ ean: row.ean, storeId: row.store_id })
+        )
+      )
+      const toUpload = localHistory.filter((item) => !existingScanKeys.has(getHistoryItemKey(item)))
 
       if (toUpload.length > 0) {
         const rows = toUpload.map((item) => ({
           ean: item.ean,
-          found_status: item.source || 'scan',
+          found_status: toScanFoundStatus(item.source),
           user_id: internalUserId,
           store_id: item.storeId || null,
           app_version: '1.0',
@@ -245,9 +285,12 @@ export async function syncScanHistoryWithCloud(internalUserId, user) {
 
       if (cloudScans?.length > 0) {
         const currentLocal = readLocalScanHistory(ownerKey)
-        const localEans = new Set(currentLocal.map((h) => String(h.ean)))
+        const localScanKeys = new Set(currentLocal.map(getHistoryItemKey))
         const toAdd = cloudScans
-          .filter((scan) => !localEans.has(String(scan.ean)))
+          .filter(
+            (scan) =>
+              !localScanKeys.has(getHistoryItemKey({ ean: scan.ean, storeId: scan.store_id }))
+          )
           .map((scan) =>
             normalizeHistoryEntry({
               ownerKey,
