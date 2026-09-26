@@ -35,6 +35,7 @@ import { CategoryShowcaseGrid } from '../components/catalog/CategoryShowcaseGrid
 import { CatalogSubcategoryNav } from '../components/catalog/CatalogSubcategoryNav.jsx'
 import { CatalogCompareBar } from '../components/catalog/CatalogCompareBar.jsx'
 import { CatalogEmptyView } from '../components/catalog/CatalogEmptyView.jsx'
+import '../components/catalog/CatalogScreen.css'
 
 function getVerdictConfig(fit, t) {
   const v = fit.verdict
@@ -108,22 +109,28 @@ export default function CatalogScreen() {
   const [fitDrawerOpen, setFitDrawerOpen] = useState(false)
   const [isHeaderScrolled, setIsHeaderScrolled] = useState(false)
   const isScrolledRef = useRef(false)
+  const showcaseScrollRef = useRef(0)
 
   const handleShowcaseScroll = useCallback((e) => {
     const top = e.currentTarget.scrollTop
-    if (top > 35 && !isScrolledRef.current) {
+    showcaseScrollRef.current = top
+    if (top > 14 && !isScrolledRef.current) {
       isScrolledRef.current = true
       setIsHeaderScrolled(true)
-    } else if (top <= 12 && isScrolledRef.current) {
+    } else if (top <= 2 && isScrolledRef.current) {
       isScrolledRef.current = false
       setIsHeaderScrolled(false)
     }
   }, [])
 
   const virtuosoRef = useRef(null)
+  const productScrollerRef = useRef(null)
+  const setProductScroller = useCallback((element) => {
+    productScrollerRef.current = element
+  }, [])
   const scrollRef = useRef(0)
   const isInitialMount = useRef(true)
-  const [initialScrollIndex] = useState(() =>
+  const [initialScrollIndex, setInitialScrollIndex] = useState(() =>
     parseInt(sessionStorage.getItem('korset_catalog_scroll') || '0', 10)
   )
 
@@ -184,8 +191,6 @@ export default function CatalogScreen() {
     activeCategoryKeys,
     subcategoryCountMap,
     activeSubcategoryKeys,
-    activeFilterCount,
-    fitCount,
     displayList,
     handleCategoryClick,
     handleBackToCategories,
@@ -208,8 +213,7 @@ export default function CatalogScreen() {
     }
     sessionStorage.setItem('korset_catalog_scroll', '0')
     scrollRef.current = 0
-    isScrolledRef.current = false
-    setIsHeaderScrolled(false)
+    setInitialScrollIndex(0)
     if (virtuosoRef.current) {
       virtuosoRef.current.scrollToIndex({ index: 0, align: 'start', behavior: 'auto' })
     }
@@ -295,6 +299,21 @@ export default function CatalogScreen() {
     return chips
   }, [isFitConfigured, profile, lang, t])
 
+  const fitCount = useMemo(() => {
+    if (
+      !isFitConfigured ||
+      !isCatalogReady ||
+      isCatalogLoading ||
+      catalogLoadError ||
+      !baseProducts.length
+    )
+      return null
+    return baseProducts.reduce(
+      (count, product) => count + Number(checkProductFit(product, profile).fits),
+      0
+    )
+  }, [isFitConfigured, isCatalogReady, isCatalogLoading, catalogLoadError, baseProducts, profile])
+
   const storeTitle =
     currentStore?.name ||
     (storeSlug ? `${storeSlug.charAt(0).toUpperCase()}${storeSlug.slice(1)}` : 'Körset')
@@ -315,10 +334,23 @@ export default function CatalogScreen() {
     setIsSubMenuOpen(false)
   }, [setSelectedSubcategories, setIsSubMenuOpen])
 
-  const handleViewModeChange = useCallback((mode) => {
-    setViewMode(mode)
-    sessionStorage.setItem('korset_catalog_view', mode)
-  }, [])
+  const handleViewModeChange = useCallback(
+    (mode) => {
+      if (mode === viewMode) return
+      const scroller = productScrollerRef.current
+      const top = scroller?.getBoundingClientRect().top
+      const visibleItem =
+        scroller &&
+        [...scroller.querySelectorAll('[data-index]')].find(
+          (item) => item.getBoundingClientRect().bottom > top + 1
+        )
+      const index = visibleItem ? Number(visibleItem.dataset.index) : scrollRef.current
+      setInitialScrollIndex(index)
+      setViewMode(mode)
+      sessionStorage.setItem('korset_catalog_view', mode)
+    },
+    [viewMode]
+  )
 
   const renderGridItem = useCallback(
     (index, product) => {
@@ -419,7 +451,7 @@ export default function CatalogScreen() {
       style={{ display: 'flex', flexDirection: 'column', height: '100dvh', paddingBottom: 0 }}
     >
       <CatalogTopBar
-        isScrolled={isHeaderScrolled}
+        isScrolled={showCategories && isHeaderScrolled}
         q={q}
         setQ={setQ}
         onClearQuery={() => setQ('')}
@@ -496,6 +528,7 @@ export default function CatalogScreen() {
           pendingCategory={pendingCategory}
           onCategoryClick={handleCategoryClick}
           onScroll={handleShowcaseScroll}
+          scrollPositionRef={showcaseScrollRef}
           lang={lang}
           t={t}
           baseProductsCount={baseProducts.length}
@@ -522,6 +555,7 @@ export default function CatalogScreen() {
           ) : viewMode === 'grid' ? (
             <VirtuosoGrid
               ref={virtuosoRef}
+              scrollerRef={setProductScroller}
               data={displayList}
               components={gridComponents}
               itemContent={renderGridItem}
@@ -534,6 +568,7 @@ export default function CatalogScreen() {
           ) : (
             <Virtuoso
               ref={virtuosoRef}
+              scrollerRef={setProductScroller}
               data={displayList}
               itemContent={renderListItem}
               overscan={600}

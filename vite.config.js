@@ -32,6 +32,7 @@ export default defineConfig({
           'stories/*.webp',
           'avatars/*.webp',
           'profile-bgs/*.webp',
+          'catalog-categories/*.webp',
         ],
         globIgnores: [
           '**/raw/**',

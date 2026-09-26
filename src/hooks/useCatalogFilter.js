@@ -1,9 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
-import {
-  checkProductFit,
-  getAllCategoryKeys,
-  getSubcategoryKeys,
-} from '../utils/fitCheck.js'
+import { checkProductFit, getAllCategoryKeys, getSubcategoryKeys } from '../utils/fitCheck.js'
 import { CATEGORY_SHOWCASE_ORDER } from '../domain/product/catalogShowcase.js'
 import {
   sortCatalogSearchProducts,
@@ -111,38 +107,6 @@ export function useCatalogFilter({
     return getSubcategoryKeys(selectedCategory).filter((k) => subcategoryCountMap[k])
   }, [selectedCategory, subcategoryCountMap])
 
-  // Fit count & active filters
-  const activeFilterCount = useMemo(() => {
-    if (!profile) return 0
-    let count = 0
-    if (profile.halal || profile.halalOnly) count += 1
-    count += (profile.dietGoals || []).length
-    count += (profile.allergens || []).length
-    count += (profile.customAllergens || []).length
-    return count
-  }, [profile])
-
-  const [fitCount, setFitCount] = useState(null)
-
-  useEffect(() => {
-    if (activeFilterCount === 0 || baseProducts.length === 0) {
-      setFitCount(null)
-      return undefined
-    }
-    let cancelled = false
-    const timer = setTimeout(() => {
-      let matches = 0
-      for (const product of baseProducts) {
-        if (checkProductFit(product, profile).fits) matches += 1
-      }
-      if (!cancelled) setFitCount(matches)
-    }, 400)
-    return () => {
-      cancelled = true
-      clearTimeout(timer)
-    }
-  }, [activeFilterCount, baseProducts, profile])
-
   // Filter & sort
   const list = useMemo(() => {
     if (!isSearching && !selectedCategory) return []
@@ -236,8 +200,6 @@ export function useCatalogFilter({
     activeCategoryKeys,
     subcategoryCountMap,
     activeSubcategoryKeys,
-    activeFilterCount,
-    fitCount,
     displayList,
     handleCategoryClick,
     handleBackToCategories,

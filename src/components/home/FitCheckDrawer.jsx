@@ -267,7 +267,7 @@ export default function FitCheckDrawer({
                 <CheckCircleIcon size={19} />
                 <span>
                   {saving
-                    ? t('common.saving') || 'Сохранение...'
+                    ? t('home.fitSaving')
                     : activeCount > 0
                       ? `${t('home.fitSaveCount') || 'Применить'} (${activeCount})`
                       : t('home.fitSaveCount') || 'Применить'}

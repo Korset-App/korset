@@ -47,12 +47,13 @@ function CatalogSubcategoryNavComponent({
   const activeSortOption = SORT_OPTIONS.find((o) => o.id === sort) || SORT_OPTIONS[0]
 
   return (
-    <div style={{ padding: '0 20px', marginBottom: 10 }}>
-      <div style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
+    <div className="catalog-subcategory-nav">
+      <div className="catalog-subcategory-controls">
         {activeSubcategoryKeys.length > 1 && (
           <button
             type="button"
             className={`catalog-dropdown-trigger${isSubMenuOpen || selectedSubcategories.length > 0 ? ' active' : ''}`}
+            aria-expanded={isSubMenuOpen}
             onClick={() => {
               setIsSubMenuOpen(!isSubMenuOpen)
               setIsSortMenuOpen(false)
@@ -91,6 +92,7 @@ function CatalogSubcategoryNavComponent({
         <button
           type="button"
           className={`catalog-dropdown-trigger${isSortMenuOpen ? ' active' : ''}`}
+          aria-expanded={isSortMenuOpen}
           onClick={() => {
             setIsSortMenuOpen(!isSortMenuOpen)
             setIsSubMenuOpen(false)

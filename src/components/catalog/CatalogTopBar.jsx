@@ -5,33 +5,7 @@ import {
   ArrowBackIcon,
   SearchIcon,
   HistoryIcon,
-  SlidersIcon,
-  DietIcon,
 } from '../icons/index.js'
-
-function formatCatalogCount(value) {
-  if (value == null) return ''
-  return new Intl.NumberFormat('ru-RU').format(value)
-}
-
-function ChevronRightMini({ size = 11, className }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <path d="M4.25 2.5L7.75 6l-3.5 3.5" />
-    </svg>
-  )
-}
 
 const IconListActive = (
   <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
@@ -80,7 +54,7 @@ function CatalogTopBarComponent({
   setQ,
   onClearQuery,
   searchHint,
-  _isSearchFocused,
+  isSearchFocused,
   setIsSearchFocused,
   onRememberSearch,
   showRecentSearches,
@@ -97,14 +71,16 @@ function CatalogTopBarComponent({
   fitCount = null,
   onOpenFitDrawer,
   t,
-  lang,
 }) {
   return (
-    <header className={`catalog-topbar${isScrolled ? ' is-scrolled' : ''}`}>
+    <header
+      className={`catalog-topbar${isScrolled ? ' is-scrolled' : ''}`}
+      data-home={showCategories}
+    >
       <div className="catalog-topbar__bg" aria-hidden="true" />
 
-      {showSubcategories && (
-        <div className="catalog-topbar__row catalog-topbar__row--title">
+      <div className="catalog-topbar__row catalog-topbar__row--title">
+        {showSubcategories && (
           <button
             type="button"
             onClick={onBackToCategories}
@@ -113,74 +89,97 @@ function CatalogTopBarComponent({
           >
             <ArrowBackIcon size={20} />
           </button>
-          <h1 className="catalog-topbar__cat-title">
-            {selectedCategoryTitle}
-          </h1>
-        </div>
-      )}
-
-      {showCategories && !showRecentSearches && (
-        <div className="catalog-topbar__fit-row">
-          <button
-            type="button"
-            className={`catalog-topbar__fit-btn${isFitConfigured ? ' is-configured' : ''}`}
-            onClick={onOpenFitDrawer}
-            aria-label={t('catalog.fitSetupTitle')}
-          >
-            <div className="catalog-topbar__fit-lead">
-              <span className="catalog-topbar__fit-lead-icon" aria-hidden="true">
-                <SlidersIcon size={14} />
-              </span>
-              <span className="catalog-topbar__fit-title">
-                {t('catalog.fitSmartTitle')}
-              </span>
-
-              {isFitConfigured ? (
+        )}
+        <h1 className="catalog-topbar__cat-title">
+          {showSubcategories ? selectedCategoryTitle : t('nav.catalog')}
+        </h1>
+        <button
+          type="button"
+          className={`catalog-topbar__composition${isFitConfigured ? ' is-configured' : ''}`}
+          onClick={onOpenFitDrawer}
+          aria-label={t('catalog.fitSetupTitle')}
+          aria-haspopup="dialog"
+          title={fitChips.map((chip) => chip.label).join(', ') || t('catalog.fitSetupTitle')}
+        >
+          <span>{t('catalog.composition')}</span>
+          {fitChips.length > 0 && (
+            <span className="catalog-topbar__composition-count">{fitChips.length}</span>
+          )}
+        </button>
+      </div>
+      {showCategories && (
+        <div
+          className={`catalog-topbar__intro${isScrolled || isSearchFocused ? ' is-collapsed' : ''}`}
+          aria-hidden={isScrolled || isSearchFocused}
+          inert={isScrolled || isSearchFocused ? '' : undefined}
+        >
+          <div>
+            {isFitConfigured ? (
+              <div className="catalog-topbar__personalized">
                 <div
-                  className="catalog-topbar__fit-icons"
-                  aria-label={fitChips.map((c) => c.label).join(', ')}
+                  className="catalog-topbar__preferences"
+                  aria-label={t('catalog.compositionPreferences')}
                 >
-                  {fitChips.slice(0, 4).map((chip) => (
-                    <span
+                  {fitChips.slice(0, 2).map((chip, index) => (
+                    <button
                       key={chip.key}
-                      className="catalog-topbar__fit-icon-bubble"
+                      className={index === 1 ? 'catalog-topbar__second-preference' : undefined}
+                      type="button"
+                      onClick={onOpenFitDrawer}
+                      aria-haspopup="dialog"
                       title={chip.label}
-                      aria-label={chip.label}
                     >
-                      <DietIcon name={chip.icon || 'leaf'} size={12} />
-                    </span>
+                      {chip.label}
+                    </button>
                   ))}
-                  {fitChips.length > 4 && (
-                    <span
-                      className="catalog-topbar__fit-icon-bubble is-more"
-                      title={`+${fitChips.length - 4}`}
+                  {fitChips.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={onOpenFitDrawer}
+                      className={`catalog-topbar__more-preferences${fitChips.length === 2 ? ' is-two' : ''}`}
+                      aria-label={t('catalog.compositionPreferences')}
                     >
-                      +{fitChips.length - 4}
-                    </span>
+                      <span className="catalog-topbar__more-narrow">+{fitChips.length - 1}</span>
+                      <span className="catalog-topbar__more-wide">
+                        {fitChips.length > 2 ? `+${fitChips.length - 2}` : null}
+                      </span>
+                    </button>
+                  )}
+                  {fitChips.length === 0 && (
+                    <button type="button" onClick={onOpenFitDrawer}>
+                      {t('catalog.noRestrictions')}
+                    </button>
                   )}
                 </div>
-              ) : (
-                <span className="catalog-topbar__fit-hint">
-                  {t('catalog.fitSetupHint')}
+                <span className="catalog-topbar__fit-result">
+                  {fitCount !== null
+                    ? t('catalog.fitLoadedCount', { count: fitCount })
+                    : t('catalog.fitOnCards')}
                 </span>
-              )}
-            </div>
-
-            <div className="catalog-topbar__fit-meta">
-              {isFitConfigured && fitCount != null ? (
-                <span className="catalog-topbar__fit-count">
-                  {t('catalog.fitFitCount', { count: formatCatalogCount(fitCount) })}
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="catalog-topbar__invitation"
+                onClick={onOpenFitDrawer}
+                aria-haspopup="dialog"
+              >
+                <span>
+                  <strong>{t('catalog.fitInvite')}</strong>
+                  <span>{t('catalog.fitInviteDetail')}</span>
                 </span>
-              ) : (
-                <span className="catalog-topbar__fit-action">
-                  {t('catalog.fitSetupAction')}
-                </span>
-              )}
-              <span className="catalog-topbar__fit-chevron" aria-hidden="true">
-                <ChevronRightMini size={10} />
-              </span>
-            </div>
-          </button>
+                <svg aria-hidden="true" width="64" height="44" viewBox="0 0 64 44" fill="none">
+                  <path
+                    d="M4 34C30 43 53 33 49 7M40 15L49 5L58 14"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -196,9 +195,15 @@ function CatalogTopBarComponent({
             onFocus={() => setIsSearchFocused(true)}
             onBlur={() => setTimeout(() => setIsSearchFocused(false), 140)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') onRememberSearch()
+              if (e.key === 'Enter') {
+                onRememberSearch()
+                e.currentTarget.blur()
+              }
             }}
             placeholder={t('catalog.searchPlaceholder')}
+            aria-label={t('catalog.searchPlaceholder')}
+            type="search"
+            enterKeyHint="search"
             autoComplete="off"
             spellCheck="false"
           />
@@ -229,12 +234,18 @@ function CatalogTopBarComponent({
         </button>
 
         {!showCategories && (
-          <div className="catalog-view-toggle">
+          <div
+            className="catalog-view-toggle"
+            data-view={viewMode}
+            role="group"
+            aria-label={t('catalog.viewLabel')}
+          >
             <button
               type="button"
               className={`catalog-view-btn${viewMode === 'grid' ? ' active' : ''}`}
               onClick={() => setViewMode('grid')}
               aria-label={t('catalog.viewGrid')}
+              aria-pressed={viewMode === 'grid'}
             >
               {viewMode === 'grid' ? IconGridActive : IconGrid}
             </button>
@@ -243,6 +254,7 @@ function CatalogTopBarComponent({
               className={`catalog-view-btn${viewMode === 'list' ? ' active' : ''}`}
               onClick={() => setViewMode('list')}
               aria-label={t('catalog.viewList')}
+              aria-pressed={viewMode === 'list'}
             >
               {viewMode === 'list' ? IconListActive : IconList}
             </button>
@@ -251,10 +263,7 @@ function CatalogTopBarComponent({
       </div>
 
       {showRecentSearches && (
-        <div
-          className="catalog-search-history-row"
-          aria-label={t('catalog.recentSearches')}
-        >
+        <div className="catalog-search-history-row" aria-label={t('catalog.recentSearches')}>
           <span className="catalog-search-history-label">{t('catalog.recentSearches')}</span>
           {recentSearches.map((item) => (
             <button

@@ -1,4 +1,6 @@
+import { useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { preloadCatalogImages } from '../domain/catalog/catalogImageWarmup.js'
 import { useI18n } from '../i18n/index.js'
 import { useStore } from '../contexts/StoreContext.jsx'
 import {
@@ -13,6 +15,18 @@ export default function BottomNav() {
   const { pathname } = useLocation()
   const { currentStore } = useStore()
   const { t } = useI18n()
+
+  useEffect(() => {
+    const warm = () => {
+      void preloadCatalogImages(navigator.connection?.saveData ? 4 : 18)
+    }
+    if ('requestIdleCallback' in window) {
+      const id = window.requestIdleCallback(warm, { timeout: 1200 })
+      return () => window.cancelIdleCallback(id)
+    }
+    const id = window.setTimeout(warm, 350)
+    return () => window.clearTimeout(id)
+  }, [])
 
   const getActive = () => {
     if (pathname === '/' || /^\/s\/[^/]+$/.test(pathname)) return 'home'

@@ -1,4 +1,4 @@
-import { forwardRef } from 'react'
+import { forwardRef, useLayoutEffect, useRef } from 'react'
 import { getCategoryLabel } from '../../utils/fitCheck.js'
 import { CategoryCard } from './CategoryCard.jsx'
 
@@ -8,6 +8,7 @@ export const CategoryShowcaseGrid = forwardRef(function CategoryShowcaseGrid(
     pendingCategory,
     onCategoryClick,
     onScroll,
+    scrollPositionRef,
     lang,
     t,
     _baseProductsCount = 0,
@@ -17,15 +18,21 @@ export const CategoryShowcaseGrid = forwardRef(function CategoryShowcaseGrid(
   },
   ref
 ) {
+  const scrollElement = useRef(null)
+  useLayoutEffect(() => {
+    if (scrollElement.current) scrollElement.current.scrollTop = scrollPositionRef?.current || 0
+  }, [scrollPositionRef])
   return (
     <div
-      ref={ref}
+      ref={(element) => {
+        scrollElement.current = element
+        if (typeof ref === 'function') ref(element)
+        else if (ref) ref.current = element
+      }}
       onScroll={onScroll}
       className={`catalog-showcase-scroll${pendingCategory ? ' is-exiting' : ''}`}
     >
-      <h1 className="sr-only">{t('catalog.categoriesTitle')}</h1>
-
-      <div className="catalog-showcase-grid">
+      <div className="catalog-showcase-grid" role="group" aria-label={t('catalog.categoriesTitle')}>
         {activeCategoryKeys.map((catKey, index) => {
           const label = getCategoryLabel(catKey, lang)
           return (

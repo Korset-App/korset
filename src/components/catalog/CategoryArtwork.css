@@ -1,0 +1,65 @@
+.catalog-category-card[data-category='tea_coffee'],
+.catalog-category-card[data-category='ready_meals'],
+.catalog-category-card[data-category='healthy'] {
+  --artwork-side-inset: 12px;
+  --artwork-bottom-inset: 10px;
+  --artwork-top-inset: 14px;
+  overflow: hidden;
+}
+
+.catalog-category-card[data-category='tea_coffee'] .catalog-category-media {
+  margin-inline: calc(-1 * var(--artwork-side-inset));
+  margin-bottom: calc(-1 * var(--artwork-bottom-inset));
+}
+
+.catalog-category-card[data-category='tea_coffee'] .catalog-category-media img {
+  object-fit: cover;
+  object-position: center bottom;
+}
+
+.catalog-category-card[data-category='ready_meals'] {
+  grid-template-rows: minmax(68px, 1fr) auto;
+}
+
+.catalog-category-card[data-category='ready_meals'] .catalog-category-copy {
+  grid-row: 2;
+}
+
+.catalog-category-card[data-category='ready_meals'] .catalog-category-media {
+  grid-row: 1;
+  margin-top: calc(-1 * var(--artwork-top-inset));
+}
+
+.catalog-category-card[data-category='ready_meals'] .catalog-category-media img {
+  object-position: center top;
+}
+
+.catalog-category-card[data-category='healthy'] .catalog-category-media {
+  min-height: clamp(110px, 22vw, 155px);
+  margin-right: calc(-1 * var(--artwork-side-inset));
+  margin-bottom: calc(-1 * var(--artwork-bottom-inset));
+}
+
+.catalog-category-card[data-category='healthy'] .catalog-category-media img {
+  object-position: right bottom;
+}
+
+@media (max-width: 359px) {
+  .catalog-category-card[data-category='tea_coffee'],
+  .catalog-category-card[data-category='ready_meals'],
+  .catalog-category-card[data-category='healthy'] {
+    --artwork-side-inset: 10px;
+    --artwork-bottom-inset: 8px;
+    --artwork-top-inset: 12px;
+  }
+}
+
+@media (min-width: 600px) {
+  .catalog-category-card[data-category='tea_coffee'],
+  .catalog-category-card[data-category='ready_meals'],
+  .catalog-category-card[data-category='healthy'] {
+    --artwork-side-inset: 18px;
+    --artwork-bottom-inset: 14px;
+    --artwork-top-inset: 18px;
+  }
+}
