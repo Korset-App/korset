@@ -40,7 +40,6 @@ import {
   BarcodeScannerIcon,
   InventoryIcon,
   SparklesIcon,
-  SyncIcon,
   ResetArrowIcon,
   DietIcon,
   SlidersIcon,
@@ -677,7 +676,10 @@ export default function HomeScreen() {
     return count % (AI_PROMPT_SETS.length || 1)
   })
 
+  const [isAiShuffling, setIsAiShuffling] = useState(false)
+
   const handleShuffleAiPrompts = () => {
+    setIsAiShuffling(true)
     setAiPromptSetIndex((prev) => {
       const next = (prev + 1) % (AI_PROMPT_SETS.length || 1)
       if (typeof window !== 'undefined') {
@@ -685,6 +687,7 @@ export default function HomeScreen() {
       }
       return next
     })
+    window.setTimeout(() => setIsAiShuffling(false), 450)
   }
 
   const handleAiSubmit = (e) => {
@@ -1139,15 +1142,6 @@ export default function HomeScreen() {
     setInstallSheetOpen(true)
   }
 
-  const handleResetSeenStories = () => {
-    if (currentStore?.slug) {
-      clearSeenStories(currentStore.slug)
-    }
-    setSeenStories(new Set())
-    setStoryProgress({})
-    setAvatarMenuOpen(false)
-  }
-
   function handleProductFavoriteClick(e, product) {
     e.stopPropagation()
     if (typeof window !== 'undefined' && navigator?.vibrate) {
@@ -1349,15 +1343,6 @@ export default function HomeScreen() {
                       <HomeIcon name="history" />
                       <span>{t('home.menuChecks')}</span>
                       <HomeIcon name="chevron_right" />
-                    </button>
-
-                    <button
-                      className="home-avatar-menu__item"
-                      type="button"
-                      onClick={handleResetSeenStories}
-                    >
-                      <SyncIcon size={18} />
-                      <span>{t('home.resetStories') || 'Сбросить сторис (как новые)'}</span>
                     </button>
 
                     <div className="home-avatar-menu__switches">
@@ -1808,7 +1793,7 @@ export default function HomeScreen() {
               </span>
               <button
                 type="button"
-                className="home-ai-island__shuffle-btn"
+                className={`home-ai-island__shuffle-btn${isAiShuffling ? ' is-spinning' : ''}`}
                 onClick={handleShuffleAiPrompts}
                 title={t('home.aiShufflePrompt') || 'Другие варианты'}
                 aria-label={t('home.aiShufflePrompt') || 'Другие варианты'}

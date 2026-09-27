@@ -385,8 +385,8 @@
 }
 .catalog-topbar__fit-result {
   display: block;
-  flex: 0 0 30%;
-  max-width: 130px;
+  flex: 0 0 38%;
+  max-width: 150px;
   min-width: 0;
   overflow-wrap: anywhere;
   text-align: right;
@@ -458,7 +458,7 @@
   border-radius: 14px;
   background: var(--bg-card);
   color: var(--text);
-  font: 400 1rem var(--font-body);
+  font: 400 0.9375rem var(--font-body);
   outline: none;
   appearance: none;
   transition: box-shadow 160ms ease;

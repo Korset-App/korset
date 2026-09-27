@@ -327,6 +327,11 @@ export default function ScanScreen() {
   const { isOnline } = useOffline()
   const storeSlug = currentStore?.slug || null
 
+  // Detect iOS once at component level — used for error message and constraint hints
+  const isIOS =
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+
   const [status, setStatus] = useState('starting')
   const [torchOn, setTorchOn] = useState(false)
   const [torchErr, setTorchErr] = useState(false)
@@ -480,6 +485,34 @@ export default function ScanScreen() {
         const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import('html5-qrcode')
         if (!mountedRef.current || startSeq !== startSeqRef.current) return
 
+        // Detect iOS WebKit: all iOS browsers share WebKit so need special handling
+        const isIOS =
+          /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+
+        // Lazily inject WASM ZBar polyfill for browsers without native BarcodeDetector
+        // (Firefox Android, iOS Safari, desktop Firefox). Chrome Android already has it natively.
+        // html5-qrcode automatically picks up window.BarcodeDetector if present.
+        if (typeof window.BarcodeDetector === 'undefined') {
+          try {
+            const { BarcodeDetectorPolyfill } = await import('@undecaf/barcode-detector-polyfill')
+            window['BarcodeDetector'] = BarcodeDetectorPolyfill
+          } catch {
+            /* polyfill unavailable — html5-qrcode falls back to ZXing-JS */
+          }
+        }
+        if (!mountedRef.current || startSeq !== startSeqRef.current) return
+
+        // Re-check after polyfill injection
+        const hasNativeBarcodeDetector = typeof window.BarcodeDetector !== 'undefined'
+
+        // With polyfill loaded, all browsers can use BarcodeDetector — use full fps
+        // Without polyfill (edge case), stay on slow ZXing path
+        const targetFps = hasNativeBarcodeDetector ? 20 : 10
+
+        // Multi-frame confirmation window: widen only if truly on ZXing fallback
+        const confirmWindowMs = hasNativeBarcodeDetector ? 1200 : 2800
+
         const createScanner = () =>
           new Html5Qrcode(ID, {
             verbose: false,
@@ -493,19 +526,21 @@ export default function ScanScreen() {
           })
 
         const scanConfig = {
-          fps: 20,
+          fps: targetFps,
           qrbox: (viewfinderWidth, viewfinderHeight) => {
             const width = Math.min(
               viewfinderWidth - 16,
               Math.max(240, Math.floor(viewfinderWidth * 0.9))
             )
+            // Wider height for ZXing fallback — EAN-13 needs more vertical room
+            const heightRatio = hasNativeBarcodeDetector ? 0.6 : 0.72
             const height = Math.min(
               viewfinderHeight - 16,
-              Math.max(180, Math.floor(viewfinderHeight * 0.6))
+              Math.max(200, Math.floor(viewfinderHeight * heightRatio))
             )
             return {
               width: Math.max(120, width),
-              height: Math.max(120, height),
+              height: Math.max(140, height),
             }
           },
           disableFlip: false,
@@ -527,9 +562,9 @@ export default function ScanScreen() {
             return
           }
 
-          // 2. Multi-frame confirmation: require 2 identical consecutive reads within 1200ms
+          // 2. Multi-frame confirmation — window widens for low-fps browsers
           const now = Date.now()
-          if (pendingCandidate === cleanEan && now - candidateTime < 1200) {
+          if (pendingCandidate === cleanEan && now - candidateTime < confirmWindowMs) {
             candidateHits += 1
           } else {
             pendingCandidate = cleanEan
@@ -620,25 +655,65 @@ export default function ScanScreen() {
           }
         }
 
+        // iOS Safari requires `playsinline` on the <video> element — html5-qrcode doesn't
+        // guarantee this attribute. We patch it as soon as the element appears in the DOM.
+        let videoObserver = null
+        if (isIOS) {
+          const container = document.getElementById(ID)
+          if (container) {
+            const patchVideo = (el) => {
+              el.setAttribute('playsinline', '')
+              el.setAttribute('muted', '')
+              el.muted = true
+              el.setAttribute('autoplay', '')
+            }
+            container.querySelectorAll('video').forEach(patchVideo)
+            if (typeof window !== 'undefined' && window.MutationObserver) {
+              videoObserver = new window.MutationObserver((mutations) => {
+                for (const m of mutations) {
+                  m.addedNodes.forEach((node) => {
+                    if (node.nodeName === 'VIDEO') patchVideo(node)
+                    if (node.querySelectorAll) node.querySelectorAll('video').forEach(patchVideo)
+                  })
+                }
+              })
+              videoObserver.observe(container, { childList: true, subtree: true })
+            }
+          }
+        }
+
+        // Camera constraint attempt chain.
+        // iOS: use `ideal` (not exact) facingMode to avoid OverconstrainedError.
         let cameraAttempts = []
         if (idx > 0 && cameraList[idx]?.id) {
           cameraAttempts = [
-            cameraList[idx].id,
+            { deviceId: { exact: cameraList[idx].id } },
             { deviceId: cameraList[idx].id },
+            { facingMode: { ideal: 'environment' } },
             { facingMode: 'environment' },
-            { facingMode: 'user' },
+            true,
+          ]
+        } else if (isIOS) {
+          cameraAttempts = [
+            { facingMode: { ideal: 'environment' } },
+            { facingMode: 'environment' },
+            true,
           ]
         } else {
           cameraAttempts = [
             { facingMode: 'environment' },
-            cameraList[0]?.id || null,
-            { facingMode: 'user' },
+            cameraList[0]?.id ? { deviceId: cameraList[0].id } : null,
+            { facingMode: { ideal: 'environment' } },
+            true,
           ].filter(Boolean)
         }
 
         let lastStartError = null
         for (const config of cameraAttempts) {
-          if (!mountedRef.current || startSeq !== startSeqRef.current) return
+          if (!mountedRef.current || startSeq !== startSeqRef.current) {
+            videoObserver?.disconnect()
+            return
+          }
           try {
             if (scannerRef.current) {
               try {
@@ -662,6 +737,7 @@ export default function ScanScreen() {
             scannerRef.current = scanner
             await scanner.start(config, scanConfig, onScanSuccess, () => {})
             if (!mountedRef.current || startSeq !== startSeqRef.current) {
+              videoObserver?.disconnect()
               try {
                 if (scanner.isScanning) await scanner.stop()
                 scanner.clear()
@@ -676,6 +752,8 @@ export default function ScanScreen() {
             lastStartError = err
           }
         }
+
+        videoObserver?.disconnect()
         if (lastStartError) throw lastStartError
 
         if (!mountedRef.current) {
@@ -707,6 +785,14 @@ export default function ScanScreen() {
             const track = videoEl.srcObject.getVideoTracks()[0]
             if (track) {
               trackRef.current = track
+              // Apply continuous autofocus after a short settling delay
+              setTimeout(async () => {
+                try {
+                  await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] })
+                } catch {
+                  /* noop — not all devices/browsers support this */
+                }
+              }, 600)
             }
           }
         } catch {
@@ -732,7 +818,11 @@ export default function ScanScreen() {
         busyRef.current = false
         if (!mountedRef.current) return
         const msg = String(e?.message || e)
-        setStatus(/permission|not allowed|denied/i.test(msg) ? 'error_permission' : 'error')
+        if (/permission|not allowed|denied/i.test(msg)) {
+          setStatus('error_permission')
+        } else {
+          setStatus('error')
+        }
       }
     },
     [navigate, rememberScan, stopScanner]
@@ -1135,7 +1225,7 @@ export default function ScanScreen() {
           <div className="scan-status-overlay scan-status-overlay--error">
             <span className="material-symbols-outlined">camera_video_off</span>
             <strong>{t('scan.cameraError')}</strong>
-            <p>{t('scan.cameraErrorBody')}</p>
+            <p>{isIOS ? t('scan.cameraErrorBodyIOS') : t('scan.cameraErrorBody')}</p>
             <div className="scan-status-overlay__actions">
               <button type="button" onClick={retryCamera}>
                 {t('common.retry')}

@@ -205,6 +205,41 @@ export default function CatalogScreen() {
     serverSearch,
   })
 
+  const isSentinelPopRef = useRef(false)
+
+  // Push a sentinel history entry when a category is selected so hardware back
+  // / swipe-back stays within the catalog instead of leaving the screen.
+  useEffect(() => {
+    if (selectedCategory) {
+      window.history.pushState({ korsetCatalogCategory: selectedCategory }, '')
+    }
+  }, [selectedCategory])
+
+  useEffect(() => {
+    const onPopState = (e) => {
+      // Ignore pops we triggered ourselves (from the UI back button)
+      if (isSentinelPopRef.current) {
+        isSentinelPopRef.current = false
+        return
+      }
+      if (e.state?.korsetCatalogCategory) {
+        // Hardware/gesture back — absorb sentinel, stay on catalog
+        handleBackToCategories()
+      }
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [handleBackToCategories])
+
+  // UI back-button handler: pop the sentinel ourselves before resetting state
+  const handleBackToCategoriesFromUI = useCallback(() => {
+    if (window.history.state?.korsetCatalogCategory) {
+      isSentinelPopRef.current = true
+      window.history.go(-1)
+    }
+    handleBackToCategories()
+  }, [handleBackToCategories])
+
   // Reset scroll on category/search change
   useEffect(() => {
     if (isInitialMount.current) {
@@ -465,7 +500,7 @@ export default function CatalogScreen() {
         showCategories={showCategories}
         showSubcategories={showSubcategories}
         selectedCategoryTitle={getCategoryLabel(selectedCategory, lang)}
-        onBackToCategories={handleBackToCategories}
+        onBackToCategories={handleBackToCategoriesFromUI}
         viewMode={viewMode}
         setViewMode={handleViewModeChange}
         isFitConfigured={isFitConfigured}

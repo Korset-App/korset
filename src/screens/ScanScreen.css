@@ -42,7 +42,9 @@
 
 .scan-video-host img,
 .scan-video-host canvas {
-  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: absolute !important;
 }
 
 .scan-video-host > div {
