@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { useI18n } from '../../i18n/index.js'
 import { supabase } from '../../utils/supabase.js'
 import { compressImage } from '../../utils/imageCompressor.js'
@@ -261,6 +262,8 @@ export default function StorePhotosManager({
   }
 
   const handleDeletePhoto = async (photoId) => {
+    const msg = t('retail.settings.confirmDeletePhoto') || 'Удалить эту фотографию магазина?'
+    if (!window.confirm(msg)) return
     const nextList = normalizedList.filter((p) => p.id !== photoId)
     onChange?.(nextList)
     if (onAutoSave) {
@@ -287,107 +290,53 @@ export default function StorePhotosManager({
         onChange={handleFileSelected}
       />
 
-      {/* Header section label */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: 8,
-          paddingLeft: 4,
-          paddingRight: 4,
-        }}
-      >
-        <span
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-            color: 'var(--text-dim)',
-            textTransform: 'uppercase',
-            letterSpacing: 1,
-          }}
-        >
-          {t('retail.settings.imagesTitle') || 'ФОТОГРАФИИ МАГАЗИНА'}
-        </span>
-        <span
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-            color: isRecommendedMet ? 'var(--primary-bright, #38BDF8)' : '#F59E0B',
-            background: isRecommendedMet ? 'rgba(56,189,248,0.1)' : 'rgba(245,158,11,0.1)',
-            padding: '2px 8px',
-            borderRadius: 8,
-          }}
-        >
-          {photoCount} / {MAX_PHOTOS}
-        </span>
-      </div>
-
       {/* Main Container Card */}
       <div
         style={{
-          background: 'var(--glass-subtle)',
-          border: '1px solid var(--glass-soft-border)',
-          borderRadius: 16,
-          padding: 16,
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border)',
+          borderRadius: 18,
+          boxShadow: 'var(--shadow-card)',
+          padding: 18,
           display: 'flex',
           flexDirection: 'column',
           gap: 14,
         }}
       >
-        {/* Status / Recommendation Banner */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: '10px 12px',
-            borderRadius: 12,
-            background: isRecommendedMet ? 'rgba(16, 185, 129, 0.08)' : 'rgba(245, 158, 11, 0.08)',
-            border: `1px solid ${
-              isRecommendedMet ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'
-            }`,
-          }}
-        >
-          {isRecommendedMet ? (
-            <CheckCircleIcon size={18} color="#10B981" />
-          ) : (
-            <AlertTriangleIcon size={18} color="#F59E0B" />
-          )}
-          <div style={{ flex: 1, fontSize: 12, lineHeight: 1.4, color: 'var(--text)' }}>
-            {isRecommendedMet
-              ? t('retail.settings.imagesOptimalHint') ||
-                'Витрина магазина заполнена фото ключевых зон.'
-              : t('retail.settings.imagesMinimumHint') ||
-                'Рекомендуем добавить минимум 3 фото (фасад, касса, зал), чтобы витрина вызывала доверие.'}
+        {/* Top Header inside Card */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div
+              style={{
+                fontSize: 14,
+                fontWeight: 700,
+                color: 'var(--text)',
+                fontFamily: 'var(--font-display)',
+              }}
+            >
+              {t('retail.settings.imagesTitle') || 'Фотографии витрины'}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-sub)', marginTop: 2 }}>
+              {t('retail.settings.imagesSubtitle') ||
+                'Отображаются в карточке магазина и привлекают покупателей'}
+            </div>
           </div>
-          <button
-            type="button"
-            onClick={() => setIsExpanded(!isExpanded)}
+          <span
             style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--retail-accent, #38BDF8)',
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              padding: '4px 6px',
+              fontSize: 11,
+              fontWeight: 700,
+              color: isRecommendedMet ? 'var(--retail-accent, #38BDF8)' : '#F59E0B',
+              background: isRecommendedMet ? 'rgba(56,189,248,0.1)' : 'rgba(245,158,11,0.1)',
+              padding: '3px 9px',
+              borderRadius: 8,
+              border: `1px solid ${
+                isRecommendedMet ? 'rgba(56,189,248,0.25)' : 'rgba(245,158,11,0.25)'
+              }`,
+              flexShrink: 0,
             }}
           >
-            {isExpanded
-              ? t('retail.settings.collapsePhotos') || 'Свернуть'
-              : t('retail.settings.managePhotos') || 'Управление'}
-            <ChevronDownIcon
-              size={16}
-              style={{
-                transform: isExpanded ? 'rotate(180deg)' : 'none',
-                transition: 'transform 0.2s',
-              }}
-            />
-          </button>
+            {photoCount} / {MAX_PHOTOS}
+          </span>
         </div>
 
         {uploadError && (
@@ -404,132 +353,153 @@ export default function StorePhotosManager({
           </div>
         )}
 
-        {/* Collapsed Compact View: horizontal preview strip */}
-        {!isExpanded && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {photoCount > 0 ? (
-              <div
-                style={{
-                  display: 'flex',
-                  gap: 10,
-                  overflowX: 'auto',
-                  paddingBottom: 4,
-                  WebkitOverflowScrolling: 'touch',
-                }}
-              >
-                {normalizedList.map((photo) => (
-                  <div
-                    key={photo.id}
-                    onClick={() => setActivePreviewUrl(photo.url)}
-                    style={{
-                      position: 'relative',
-                      width: 80,
-                      height: 80,
-                      flexShrink: 0,
-                      borderRadius: 12,
-                      overflow: 'hidden',
-                      border: '1px solid var(--glass-soft-border)',
-                      cursor: 'pointer',
-                      background: 'var(--input-bg)',
-                    }}
-                  >
-                    <img
-                      src={photo.url}
-                      alt={photo.label}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                    <div
-                      style={{
-                        position: 'absolute',
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        padding: '2px 4px',
-                        background: 'linear-gradient(transparent, rgba(0,0,0,0.85))',
-                        color: '#fff',
-                        fontSize: 9,
-                        fontWeight: 600,
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
-                      {photo.label}
-                    </div>
-                  </div>
-                ))}
-
-                {photoCount < MAX_PHOTOS && (
-                  <button
-                    type="button"
-                    onClick={() => setIsExpanded(true)}
-                    style={{
-                      width: 80,
-                      height: 80,
-                      flexShrink: 0,
-                      borderRadius: 12,
-                      border: '1px dashed var(--glass-strong-border)',
-                      background: 'var(--glass-subtle)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 4,
-                      color: 'var(--text-sub)',
-                      cursor: 'pointer',
-                      fontSize: 11,
-                    }}
-                  >
-                    <PlusIcon size={18} color="var(--retail-accent, #38BDF8)" />
-                    <span>{t('retail.settings.addPhotoShort') || 'Добавить'}</span>
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div
-                style={{
-                  padding: '16px',
-                  borderRadius: 12,
-                  border: '1px dashed var(--glass-strong-border)',
-                  textAlign: 'center',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 8,
-                }}
-              >
-                <CameraIcon size={28} color="var(--text-dim)" />
-                <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>
-                  {t('retail.settings.noPhotosYet') || 'Фотографии магазина пока не добавлены'}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsExpanded(true)}
+        {/* 1. Photos Preview (ВЫШЕ кнопки управления) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {photoCount > 0 ? (
+            <div
+              style={{
+                display: 'flex',
+                gap: 10,
+                overflowX: 'auto',
+                paddingBottom: 4,
+                WebkitOverflowScrolling: 'touch',
+              }}
+            >
+              {normalizedList.map((photo) => (
+                <div
+                  key={photo.id}
+                  onClick={() => setActivePreviewUrl(photo.url)}
                   style={{
-                    padding: '8px 16px',
-                    borderRadius: 10,
-                    background: 'rgba(56,189,248,0.12)',
-                    border: '1px solid rgba(56,189,248,0.25)',
-                    color: 'var(--retail-accent, #38BDF8)',
-                    fontSize: 13,
-                    fontWeight: 600,
+                    position: 'relative',
+                    width: 84,
+                    height: 84,
+                    flexShrink: 0,
+                    borderRadius: 14,
+                    overflow: 'hidden',
+                    border: '1px solid var(--border)',
                     cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
+                    background: 'var(--surface)',
                   }}
                 >
-                  <PlusIcon size={16} />
-                  {t('retail.settings.startAddPhotos') || 'Заполнить зоны магазина'}
-                </button>
+                  <img
+                    src={photo.url}
+                    alt={photo.label}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      padding: '3px 4px',
+                      background: 'linear-gradient(transparent, rgba(0,0,0,0.85))',
+                      color: '#fff',
+                      fontSize: 9,
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {photo.label}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div
+              style={{
+                padding: '16px',
+                borderRadius: 12,
+                border: '1px dashed var(--border-bright)',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              <CameraIcon size={26} color="var(--text-dim)" />
+              <div style={{ fontSize: 13, color: 'var(--text-sub)' }}>
+                {t('retail.settings.noPhotosYet') || 'Фотографии магазина пока не добавлены'}
               </div>
-            )}
-          </div>
-        )}
+              <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>
+                {t('retail.settings.imagesMinimumHint') ||
+                  'Рекомендуем добавить минимум 3 фото (фасад, касса, зал)'}
+              </div>
+            </div>
+          )}
+        </div>
 
-        {/* Expanded Full View: Grid of template zones */}
+        {/* 2. Management Expand Button (НИЖЕ фотографий) */}
+        <button
+          type="button"
+          onClick={() => setIsExpanded(!isExpanded)}
+          style={{
+            width: '100%',
+            padding: '10px 14px',
+            borderRadius: 12,
+            background: isExpanded ? 'rgba(56, 189, 248, 0.12)' : 'var(--surface)',
+            border: '1px solid var(--border)',
+            color: 'var(--retail-accent, #38BDF8)',
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <CameraIcon size={16} />
+          <span>
+            {isExpanded
+              ? t('retail.settings.collapsePhotos') || 'Скрыть редактор зон'
+              : t('retail.settings.managePhotos') || 'Управление фото (по зонам)'}
+          </span>
+          <ChevronDownIcon
+            size={16}
+            style={{
+              transform: isExpanded ? 'rotate(180deg)' : 'none',
+              transition: 'transform 0.2s',
+            }}
+          />
+        </button>
+
+        {/* 3. Expanded Full View: Grid of template zones */}
         {isExpanded && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* Recommendation info */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 12px',
+                borderRadius: 10,
+                background: isRecommendedMet
+                  ? 'rgba(16, 185, 129, 0.08)'
+                  : 'rgba(245, 158, 11, 0.08)',
+                border: `1px solid ${
+                  isRecommendedMet ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'
+                }`,
+              }}
+            >
+              {isRecommendedMet ? (
+                <CheckCircleIcon size={16} color="#10B981" />
+              ) : (
+                <AlertTriangleIcon size={16} color="#F59E0B" />
+              )}
+              <span style={{ fontSize: 11, color: 'var(--text-sub)', lineHeight: 1.35 }}>
+                {isRecommendedMet
+                  ? t('retail.settings.imagesOptimalHint') ||
+                    'Витрина магазина заполнена фото ключевых зон.'
+                  : t('retail.settings.imagesMinimumHint') ||
+                    'Рекомендуем добавить минимум 3 фото (фасад, касса, зал), чтобы витрина вызывала доверие.'}
+              </span>
+            </div>
             <div
               style={{
                 display: 'grid',
@@ -551,10 +521,10 @@ export default function StorePhotosManager({
                     style={{
                       borderRadius: 14,
                       border: currentPhoto
-                        ? '1px solid var(--glass-soft-border)'
-                        : '1px dashed var(--glass-strong-border)',
+                        ? '1px solid var(--border)'
+                        : '1px dashed var(--border-bright)',
                       overflow: 'hidden',
-                      background: 'var(--input-bg)',
+                      background: 'var(--surface)',
                       display: 'flex',
                       flexDirection: 'column',
                       position: 'relative',
@@ -604,6 +574,26 @@ export default function StorePhotosManager({
                               }}
                             >
                               <EyeIcon size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => triggerUploadForZone(zone.key)}
+                              title={t('retail.settings.replacePhoto') || 'Заменить ракурс / фото'}
+                              style={{
+                                width: 26,
+                                height: 26,
+                                borderRadius: 7,
+                                background: 'rgba(56,189,248,0.85)',
+                                backdropFilter: 'blur(4px)',
+                                border: 'none',
+                                color: '#fff',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              <CameraIcon size={14} />
                             </button>
                             <button
                               type="button"
@@ -727,9 +717,9 @@ export default function StorePhotosManager({
                   key={customPhoto.id}
                   style={{
                     borderRadius: 14,
-                    border: '1px solid var(--glass-soft-border)',
+                    border: '1px solid var(--border)',
                     overflow: 'hidden',
-                    background: 'var(--input-bg)',
+                    background: 'var(--surface)',
                     display: 'flex',
                     flexDirection: 'column',
                   }}
@@ -812,7 +802,7 @@ export default function StorePhotosManager({
                 <div
                   style={{
                     borderRadius: 14,
-                    border: '1px dashed var(--glass-strong-border)',
+                    border: '1px dashed var(--border-bright)',
                     background: 'rgba(124, 58, 237, 0.04)',
                     display: 'flex',
                     flexDirection: 'column',
@@ -838,8 +828,8 @@ export default function StorePhotosManager({
                         maxLength={30}
                         style={{
                           width: '100%',
-                          background: 'var(--input-bg)',
-                          border: '1px solid var(--input-border)',
+                          background: 'var(--surface)',
+                          border: '1px solid var(--border)',
                           borderRadius: 8,
                           padding: '6px 8px',
                           color: 'var(--text)',
@@ -854,7 +844,7 @@ export default function StorePhotosManager({
                             flex: 1,
                             padding: '6px',
                             borderRadius: 6,
-                            border: '1px solid var(--glass-border)',
+                            border: '1px solid var(--border)',
                             background: 'transparent',
                             color: 'var(--text-dim)',
                             fontSize: 11,
@@ -928,71 +918,75 @@ export default function StorePhotosManager({
         )}
       </div>
 
-      {/* Fullscreen Photo Lightbox Modal */}
-      {activePreviewUrl && (
-        <div
-          onClick={() => setActivePreviewUrl(null)}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 1100,
-            background: 'rgba(0,0,0,0.88)',
-            backdropFilter: 'blur(8px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 16,
-          }}
-        >
+      {/* Fullscreen Photo Lightbox Modal rendered in document.body via Portal */}
+      {activePreviewUrl &&
+        typeof document !== 'undefined' &&
+        createPortal(
           <div
-            onClick={(e) => e.stopPropagation()}
+            onClick={() => setActivePreviewUrl(null)}
             style={{
-              position: 'relative',
-              maxWidth: 600,
-              maxHeight: '90dvh',
-              borderRadius: 16,
-              overflow: 'hidden',
-              background: '#07070F',
-              boxShadow: '0 20px 48px rgba(0,0,0,0.6)',
+              position: 'fixed',
+              inset: 0,
+              zIndex: 9999,
+              background: 'rgba(0,0,0,0.92)',
+              backdropFilter: 'blur(10px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 20,
             }}
           >
-            <img
-              src={activePreviewUrl}
-              alt="preview"
+            <div
+              onClick={(e) => e.stopPropagation()}
               style={{
+                position: 'relative',
+                maxWidth: 680,
                 width: '100%',
-                maxHeight: '80dvh',
-                objectFit: 'contain',
-                display: 'block',
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => setActivePreviewUrl(null)}
-              style={{
-                position: 'absolute',
-                top: 12,
-                right: 12,
-                width: 32,
-                height: 32,
-                borderRadius: 16,
-                background: 'rgba(0,0,0,0.6)',
-                border: 'none',
-                color: '#fff',
+                maxHeight: '90dvh',
+                borderRadius: 20,
+                overflow: 'hidden',
+                background: '#07070F',
+                boxShadow: '0 25px 60px rgba(0,0,0,0.8)',
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
+                flexDirection: 'column',
               }}
             >
-              <CloseIcon size={18} />
-            </button>
-          </div>
-        </div>
-      )}
+              <img
+                src={activePreviewUrl}
+                alt="preview"
+                style={{
+                  width: '100%',
+                  maxHeight: '80dvh',
+                  objectFit: 'contain',
+                  display: 'block',
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setActivePreviewUrl(null)}
+                style={{
+                  position: 'absolute',
+                  top: 14,
+                  right: 14,
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  background: 'rgba(0,0,0,0.65)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  zIndex: 2,
+                }}
+              >
+                <CloseIcon size={20} />
+              </button>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   )
 }

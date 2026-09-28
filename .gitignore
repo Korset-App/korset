@@ -24,3 +24,5 @@ public/profile-bgs/thumbs/
 scratch/
 .workbuddy-ai/
 screenshots/
+tmp-*/
+dist_verify_stage*/

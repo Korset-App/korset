@@ -1,17 +1,32 @@
 .shopping-page {
-  min-height: 100dvh;
-  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
+  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
   color: var(--text);
   background: var(--bg);
 }
 
+.shopping-page::-webkit-scrollbar {
+  display: none;
+}
+
 .shopping-page__header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: max(18px, env(safe-area-inset-top)) 20px 17px;
+  padding: max(18px, env(safe-area-inset-top, 0px)) 20px 17px;
   border-bottom: 1px solid var(--line-soft);
   background: var(--header-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .shopping-page__back {

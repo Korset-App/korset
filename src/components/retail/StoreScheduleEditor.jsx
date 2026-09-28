@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useI18n } from '../../i18n/index.js'
 import { DAY_DEFS } from '../../domain/stores/schedule.js'
 import { ClockIcon, AlertTriangleIcon } from '../icons/index.js'
@@ -38,6 +38,114 @@ const QUICK_REASONS = [
   { ru: 'Праздничный день', kz: 'Мерекелік күн' },
 ]
 
+export function parseScheduleState(openingHours = '', temporaryClosure = null) {
+  const raw = String(openingHours || '').trim()
+  const lower = raw.toLowerCase()
+
+  let mode = 'daily'
+  if (lower.includes('24/7') || lower.includes('круглосуточно') || lower.includes('тәулік')) {
+    mode = '24_7'
+  } else if (lower.includes('пн-пт') || lower.includes('будни') || lower.includes('дс-жм')) {
+    mode = 'weekdays'
+  } else if (
+    (lower.includes('пн:') || lower.includes('дс:')) &&
+    (lower.includes('вт:') || lower.includes('сс:'))
+  ) {
+    mode = 'custom'
+  }
+
+  const timeMatch = raw.match(/(\d{1,2}:\d{2})\s*[-—–]\s*(\d{1,2}:\d{2})/)
+  const defaultOpen = timeMatch?.[1] || '09:00'
+  const defaultClose = timeMatch?.[2] || '23:00'
+
+  const sundayOff =
+    lower.includes('вс: выходной') ||
+    lower.includes('вс - выходной') ||
+    lower.includes('жс: демалыс') ||
+    lower.includes('вс: демалыс')
+
+  let weekdaysOpen = defaultOpen
+  let weekdaysClose = defaultClose
+  let weekendOpen = '10:00'
+  let weekendClose = '22:00'
+  let weekendOff =
+    lower.includes('сб-вс: выходной') ||
+    lower.includes('сб-вс: демалыс') ||
+    lower.includes('сб-жс: демалыс')
+
+  const weekdaysMatch = raw.match(
+    /(?:пн-пт|будни|дс-жм)[^\d]*(\d{1,2}:\d{2})\s*[-—–]\s*(\d{1,2}:\d{2})/i
+  )
+  if (weekdaysMatch) {
+    weekdaysOpen = weekdaysMatch[1]
+    weekdaysClose = weekdaysMatch[2]
+  }
+
+  const weekendMatch = raw.match(
+    /(?:сб-вс|выходные|сб-жс)[^\d]*(\d{1,2}:\d{2})\s*[-—–]\s*(\d{1,2}:\d{2})/i
+  )
+  if (weekendMatch) {
+    weekendOpen = weekendMatch[1]
+    weekendClose = weekendMatch[2]
+  }
+
+  const daySchedule = DAY_DEFS.map((d, idx) => {
+    const dayRegex = new RegExp(
+      `(?:${d.shortRu}|${d.shortKz}|${d.dayRu}|${d.dayKz})[:\\s]+([^;]+)`,
+      'i'
+    )
+    const match = raw.match(dayRegex)
+    let isDayOff = idx === 6 && sundayOff
+    let open = defaultOpen
+    let close = defaultClose
+
+    if (match && match[1]) {
+      const part = match[1].toLowerCase()
+      if (part.includes('выходной') || part.includes('демалыс') || part.includes('жабық')) {
+        isDayOff = true
+      } else {
+        isDayOff = false
+        const tMatch = part.match(/(\d{1,2}:\d{2})\s*[-—–]\s*(\d{1,2}:\d{2})/)
+        if (tMatch) {
+          open = tMatch[1]
+          close = tMatch[2]
+        }
+      }
+    }
+
+    return {
+      dayKey: d.dayKey,
+      dayRu: d.dayRu,
+      dayKz: d.dayKz,
+      shortRu: d.shortRu,
+      shortKz: d.shortKz,
+      isDayOff,
+      open,
+      close,
+    }
+  })
+
+  const hasPlannedClosure = Boolean(temporaryClosure?.date && temporaryClosure?.is_active !== false)
+  const closureDate = temporaryClosure?.date ? String(temporaryClosure.date).slice(0, 10) : ''
+  const closureReason = temporaryClosure?.reason || 'Ревизия / переучёт'
+
+  return {
+    mode,
+    dailyOpen: defaultOpen,
+    dailyClose: defaultClose,
+    sundayOff,
+    weekdaysOpen,
+    weekdaysClose,
+    weekendOpen,
+    weekendClose,
+    weekendOff,
+    daySchedule,
+    hasPlannedClosure,
+    closureDate,
+    closureReason,
+  }
+}
+
 export default function StoreScheduleEditor({
   openingHours = '',
   temporaryClosure = null,
@@ -46,86 +154,75 @@ export default function StoreScheduleEditor({
   const { t, lang } = useI18n()
   const isKz = lang === 'kz'
 
-  // Parse initial state from openingHours string
-  const initialMode = useMemo(() => {
-    const raw = String(openingHours || '').toLowerCase()
-    if (raw.includes('24/7') || raw.includes('круглосуточно') || raw.includes('тәулік')) {
-      return '24_7'
-    }
-    if (raw.includes('пн-пт') || raw.includes('будни')) {
-      return 'weekdays'
-    }
-    if (raw.includes('пн') && raw.includes('вт')) {
-      return 'custom'
-    }
-    return 'daily'
-  }, [openingHours])
+  const parsed = parseScheduleState(openingHours, temporaryClosure)
 
-  const initialTimes = useMemo(() => {
-    const match = String(openingHours || '').match(/(\d{1,2}:\d{2})\s*[-—–]\s*(\d{1,2}:\d{2})/)
-    return {
-      open: match?.[1] || '09:00',
-      close: match?.[2] || '23:00',
-    }
-  }, [openingHours])
+  const [mode, setMode] = useState(parsed.mode)
+  const [dailyOpen, setDailyOpen] = useState(parsed.dailyOpen)
+  const [dailyClose, setDailyClose] = useState(parsed.dailyClose)
+  const [sundayOff, setSundayOff] = useState(parsed.sundayOff)
 
-  const [mode, setMode] = useState(initialMode)
-  const [dailyOpen, setDailyOpen] = useState(initialTimes.open)
-  const [dailyClose, setDailyClose] = useState(initialTimes.close)
+  const [weekdaysOpen, setWeekdaysOpen] = useState(parsed.weekdaysOpen)
+  const [weekdaysClose, setWeekdaysClose] = useState(parsed.weekdaysClose)
+  const [weekendOpen, setWeekendOpen] = useState(parsed.weekendOpen)
+  const [weekendClose, setWeekendClose] = useState(parsed.weekendClose)
+  const [weekendOff, setWeekendOff] = useState(parsed.weekendOff)
 
-  // Sunday day-off flag for daily mode
-  const [sundayOff, setSundayOff] = useState(() => {
-    const raw = String(openingHours || '').toLowerCase()
-    return raw.includes('вс: выходной') || raw.includes('вс - выходной')
-  })
+  const [daySchedule, setDaySchedule] = useState(parsed.daySchedule)
 
-  // Weekday + weekend mode
-  const [weekdaysOpen, setWeekdaysOpen] = useState(initialTimes.open)
-  const [weekdaysClose, setWeekdaysClose] = useState(initialTimes.close)
-  const [weekendOpen, setWeekendOpen] = useState('10:00')
-  const [weekendClose, setWeekendClose] = useState('22:00')
-  const [weekendOff, setWeekendOff] = useState(false)
+  const [hasPlannedClosure, setHasPlannedClosure] = useState(parsed.hasPlannedClosure)
+  const [closureDate, setClosureDate] = useState(parsed.closureDate)
+  const [closureReason, setClosureReason] = useState(parsed.closureReason)
 
-  // Individual days state
-  const [daySchedule, setDaySchedule] = useState(() => {
-    return DAY_DEFS.map((d, idx) => ({
-      dayKey: d.dayKey,
-      dayRu: d.dayRu,
-      dayKz: d.dayKz,
-      shortRu: d.shortRu,
-      shortKz: d.shortKz,
-      isDayOff: idx === 6 && String(openingHours).toLowerCase().includes('вс: выходной'),
-      open: initialTimes.open,
-      close: initialTimes.close,
-    }))
-  })
+  const isInternalChangeRef = useRef(false)
+  const prevPropsRef = useRef({ openingHours, temporaryClosure })
 
-  // Planned temporary closure state
-  const [hasPlannedClosure, setHasPlannedClosure] = useState(() => Boolean(temporaryClosure?.date))
-  const [closureDate, setClosureDate] = useState(() => temporaryClosure?.date || '')
-  const [closureReason, setClosureReason] = useState(
-    () => temporaryClosure?.reason || 'Ревизия / переучёт'
-  )
-
-  // Emit serialized schedule on changes
+  // Re-sync if props changed externally
   useEffect(() => {
+    if (
+      prevPropsRef.current.openingHours !== openingHours ||
+      prevPropsRef.current.temporaryClosure !== temporaryClosure
+    ) {
+      prevPropsRef.current = { openingHours, temporaryClosure }
+      if (isInternalChangeRef.current) {
+        isInternalChangeRef.current = false
+        return
+      }
+      const next = parseScheduleState(openingHours, temporaryClosure)
+      setMode(next.mode)
+      setDailyOpen(next.dailyOpen)
+      setDailyClose(next.dailyClose)
+      setSundayOff(next.sundayOff)
+      setWeekdaysOpen(next.weekdaysOpen)
+      setWeekdaysClose(next.weekdaysClose)
+      setWeekendOpen(next.weekendOpen)
+      setWeekendClose(next.weekendClose)
+      setWeekendOff(next.weekendOff)
+      setDaySchedule(next.daySchedule)
+      setHasPlannedClosure(next.hasPlannedClosure)
+      setClosureDate(next.closureDate)
+      setClosureReason(next.closureReason)
+    }
+  }, [openingHours, temporaryClosure])
+
+  const notifyChange = (nextState) => {
+    isInternalChangeRef.current = true
     let formattedHours = ''
-    if (mode === '24_7') {
+    if (nextState.mode === '24_7') {
       formattedHours = 'Круглосуточно (24/7)'
-    } else if (mode === 'daily') {
-      formattedHours = `${dailyOpen} - ${dailyClose}`
-      if (sundayOff) {
+    } else if (nextState.mode === 'daily') {
+      formattedHours = `${nextState.dailyOpen} - ${nextState.dailyClose}`
+      if (nextState.sundayOff) {
         formattedHours += '; Вс: выходной'
       }
-    } else if (mode === 'weekdays') {
-      formattedHours = `Пн-Пт: ${weekdaysOpen}-${weekdaysClose}`
-      if (weekendOff) {
+    } else if (nextState.mode === 'weekdays') {
+      formattedHours = `Пн-Пт: ${nextState.weekdaysOpen}-${nextState.weekdaysClose}`
+      if (nextState.weekendOff) {
         formattedHours += '; Сб-Вс: выходной'
       } else {
-        formattedHours += `; Сб-Вс: ${weekendOpen}-${weekendClose}`
+        formattedHours += `; Сб-Вс: ${nextState.weekendOpen}-${nextState.weekendClose}`
       }
-    } else if (mode === 'custom') {
-      const parts = daySchedule.map((d) => {
+    } else if (nextState.mode === 'custom') {
+      const parts = (nextState.daySchedule || []).map((d) => {
         const name = isKz ? d.shortKz : d.shortRu
         return d.isDayOff ? `${name}: выходной` : `${name}: ${d.open}-${d.close}`
       })
@@ -133,10 +230,10 @@ export default function StoreScheduleEditor({
     }
 
     const closurePayload =
-      hasPlannedClosure && closureDate
+      nextState.hasPlannedClosure && nextState.closureDate
         ? {
-            date: closureDate,
-            reason: closureReason.trim() || 'Ревизия',
+            date: nextState.closureDate,
+            reason: nextState.closureReason.trim() || 'Ревизия',
             is_active: true,
           }
         : null
@@ -145,7 +242,9 @@ export default function StoreScheduleEditor({
       opening_hours: formattedHours,
       temporary_closure: closurePayload,
     })
-  }, [
+  }
+
+  const getCurrentSnapshot = () => ({
     mode,
     dailyOpen,
     dailyClose,
@@ -159,21 +258,97 @@ export default function StoreScheduleEditor({
     hasPlannedClosure,
     closureDate,
     closureReason,
-    isKz,
-    onChange,
-  ])
+  })
+
+  const handleModeChange = (newMode) => {
+    setMode(newMode)
+    notifyChange({ ...getCurrentSnapshot(), mode: newMode })
+  }
+
+  const handleDailyOpenChange = (val) => {
+    setDailyOpen(val)
+    notifyChange({ ...getCurrentSnapshot(), dailyOpen: val })
+  }
+
+  const handleDailyCloseChange = (val) => {
+    setDailyClose(val)
+    notifyChange({ ...getCurrentSnapshot(), dailyClose: val })
+  }
+
+  const handleSundayOffChange = (checked) => {
+    setSundayOff(checked)
+    notifyChange({ ...getCurrentSnapshot(), sundayOff: checked })
+  }
+
+  const handleWeekdaysOpenChange = (val) => {
+    setWeekdaysOpen(val)
+    notifyChange({ ...getCurrentSnapshot(), weekdaysOpen: val })
+  }
+
+  const handleWeekdaysCloseChange = (val) => {
+    setWeekdaysClose(val)
+    notifyChange({ ...getCurrentSnapshot(), weekdaysClose: val })
+  }
+
+  const handleWeekendOpenChange = (val) => {
+    setWeekendOpen(val)
+    notifyChange({ ...getCurrentSnapshot(), weekendOpen: val })
+  }
+
+  const handleWeekendCloseChange = (val) => {
+    setWeekendClose(val)
+    notifyChange({ ...getCurrentSnapshot(), weekendClose: val })
+  }
+
+  const handleWeekendOffToggle = () => {
+    const nextVal = !weekendOff
+    setWeekendOff(nextVal)
+    notifyChange({ ...getCurrentSnapshot(), weekendOff: nextVal })
+  }
 
   const toggleDayOff = (dayKey) => {
-    setDaySchedule((prev) =>
-      prev.map((d) => (d.dayKey === dayKey ? { ...d, isDayOff: !d.isDayOff } : d))
-    )
+    const next = daySchedule.map((d) => (d.dayKey === dayKey ? { ...d, isDayOff: !d.isDayOff } : d))
+    setDaySchedule(next)
+    notifyChange({ ...getCurrentSnapshot(), daySchedule: next })
   }
 
   const updateDayTime = (dayKey, field, val) => {
-    setDaySchedule((prev) => prev.map((d) => (d.dayKey === dayKey ? { ...d, [field]: val } : d)))
+    const next = daySchedule.map((d) => (d.dayKey === dayKey ? { ...d, [field]: val } : d))
+    setDaySchedule(next)
+    notifyChange({ ...getCurrentSnapshot(), daySchedule: next })
+  }
+
+  const handlePlannedClosureToggle = () => {
+    const nextVal = !hasPlannedClosure
+    setHasPlannedClosure(nextVal)
+    notifyChange({ ...getCurrentSnapshot(), hasPlannedClosure: nextVal })
+  }
+
+  const handleClosureDateChange = (val) => {
+    setClosureDate(val)
+    notifyChange({ ...getCurrentSnapshot(), closureDate: val })
+  }
+
+  const handleClosureReasonChange = (val) => {
+    setClosureReason(val)
+    notifyChange({ ...getCurrentSnapshot(), closureReason: val })
   }
 
   const todayYmd = new Date().toISOString().slice(0, 10)
+
+  const SELECT_STYLE = {
+    width: '100%',
+    background: 'var(--surface)',
+    border: '1px solid var(--border)',
+    color: 'var(--text)',
+    padding: '9px 12px',
+    borderRadius: 10,
+    fontSize: 13,
+    fontWeight: 600,
+    outline: 'none',
+    boxSizing: 'border-box',
+    fontFamily: 'var(--font-body)',
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -183,10 +358,10 @@ export default function StoreScheduleEditor({
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
           gap: 6,
-          background: 'var(--input-bg)',
+          background: 'var(--surface)',
           padding: 4,
           borderRadius: 12,
-          border: '1px solid var(--input-border)',
+          border: '1px solid var(--border)',
         }}
       >
         {[
@@ -200,7 +375,7 @@ export default function StoreScheduleEditor({
             <button
               key={tab.id}
               type="button"
-              onClick={() => setMode(tab.id)}
+              onClick={() => handleModeChange(tab.id)}
               style={{
                 padding: '8px 10px',
                 borderRadius: 9,
@@ -211,6 +386,7 @@ export default function StoreScheduleEditor({
                 fontWeight: 600,
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
+                fontFamily: 'var(--font-display)',
               }}
             >
               {tab.label}
@@ -229,22 +405,12 @@ export default function StoreScheduleEditor({
               </div>
               <select
                 value={dailyOpen}
-                onChange={(e) => setDailyOpen(e.target.value)}
-                style={{
-                  width: '100%',
-                  background: 'var(--input-bg)',
-                  border: '1px solid var(--input-border)',
-                  color: 'var(--text)',
-                  padding: '10px 12px',
-                  borderRadius: 10,
-                  fontSize: 14,
-                  fontWeight: 600,
-                  outline: 'none',
-                }}
+                onChange={(e) => handleDailyOpenChange(e.target.value)}
+                style={SELECT_STYLE}
               >
-                {TIME_OPTIONS.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
+                {TIME_OPTIONS.map((time) => (
+                  <option key={time} value={time}>
+                    {time}
                   </option>
                 ))}
               </select>
@@ -260,22 +426,12 @@ export default function StoreScheduleEditor({
               </div>
               <select
                 value={dailyClose}
-                onChange={(e) => setDailyClose(e.target.value)}
-                style={{
-                  width: '100%',
-                  background: 'var(--input-bg)',
-                  border: '1px solid var(--input-border)',
-                  color: 'var(--text)',
-                  padding: '10px 12px',
-                  borderRadius: 10,
-                  fontSize: 14,
-                  fontWeight: 600,
-                  outline: 'none',
-                }}
+                onChange={(e) => handleDailyCloseChange(e.target.value)}
+                style={SELECT_STYLE}
               >
-                {TIME_OPTIONS.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
+                {TIME_OPTIONS.map((time) => (
+                  <option key={time} value={time}>
+                    {time}
                   </option>
                 ))}
               </select>
@@ -296,7 +452,7 @@ export default function StoreScheduleEditor({
             <input
               type="checkbox"
               checked={sundayOff}
-              onChange={(e) => setSundayOff(e.target.checked)}
+              onChange={(e) => handleSundayOffChange(e.target.checked)}
               style={{ width: 16, height: 16, accentColor: 'var(--retail-accent, #38BDF8)' }}
             />
             <span>{t('retail.settings.sundayDayOff') || 'Воскресенье — выходной'}</span>
@@ -336,40 +492,24 @@ export default function StoreScheduleEditor({
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <select
                 value={weekdaysOpen}
-                onChange={(e) => setWeekdaysOpen(e.target.value)}
-                style={{
-                  flex: 1,
-                  background: 'var(--input-bg)',
-                  border: '1px solid var(--input-border)',
-                  color: 'var(--text)',
-                  padding: '9px 12px',
-                  borderRadius: 10,
-                  fontSize: 13,
-                }}
+                onChange={(e) => handleWeekdaysOpenChange(e.target.value)}
+                style={SELECT_STYLE}
               >
-                {TIME_OPTIONS.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
+                {TIME_OPTIONS.map((time) => (
+                  <option key={time} value={time}>
+                    {time}
                   </option>
                 ))}
               </select>
               <span style={{ color: 'var(--text-dim)' }}>—</span>
               <select
                 value={weekdaysClose}
-                onChange={(e) => setWeekdaysClose(e.target.value)}
-                style={{
-                  flex: 1,
-                  background: 'var(--input-bg)',
-                  border: '1px solid var(--input-border)',
-                  color: 'var(--text)',
-                  padding: '9px 12px',
-                  borderRadius: 10,
-                  fontSize: 13,
-                }}
+                onChange={(e) => handleWeekdaysCloseChange(e.target.value)}
+                style={SELECT_STYLE}
               >
-                {TIME_OPTIONS.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
+                {TIME_OPTIONS.map((time) => (
+                  <option key={time} value={time}>
+                    {time}
                   </option>
                 ))}
               </select>
@@ -391,19 +531,22 @@ export default function StoreScheduleEditor({
               </span>
               <button
                 type="button"
-                onClick={() => setWeekendOff(!weekendOff)}
+                onClick={handleWeekendOffToggle}
                 style={{
-                  background: weekendOff ? 'rgba(239,68,68,0.1)' : 'transparent',
-                  border: `1px solid ${weekendOff ? 'rgba(239,68,68,0.3)' : 'var(--glass-border)'}`,
+                  background: weekendOff ? 'rgba(239,68,68,0.1)' : 'var(--surface)',
+                  border: `1px solid ${weekendOff ? 'rgba(239,68,68,0.3)' : 'var(--border)'}`,
                   color: weekendOff ? '#EF4444' : 'var(--text-dim)',
-                  padding: '2px 8px',
+                  padding: '3px 9px',
                   borderRadius: 6,
                   fontSize: 11,
                   cursor: 'pointer',
                   fontWeight: 600,
+                  fontFamily: 'var(--font-display)',
                 }}
               >
-                {weekendOff ? 'Выходные' : 'Рабочие дни'}
+                {weekendOff
+                  ? t('retail.settings.dayOff') || 'Выходной'
+                  : t('retail.settings.workingDays') || 'Рабочие дни'}
               </button>
             </div>
 
@@ -411,40 +554,24 @@ export default function StoreScheduleEditor({
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <select
                   value={weekendOpen}
-                  onChange={(e) => setWeekendOpen(e.target.value)}
-                  style={{
-                    flex: 1,
-                    background: 'var(--input-bg)',
-                    border: '1px solid var(--input-border)',
-                    color: 'var(--text)',
-                    padding: '9px 12px',
-                    borderRadius: 10,
-                    fontSize: 13,
-                  }}
+                  onChange={(e) => handleWeekendOpenChange(e.target.value)}
+                  style={SELECT_STYLE}
                 >
-                  {TIME_OPTIONS.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
+                  {TIME_OPTIONS.map((time) => (
+                    <option key={time} value={time}>
+                      {time}
                     </option>
                   ))}
                 </select>
                 <span style={{ color: 'var(--text-dim)' }}>—</span>
                 <select
                   value={weekendClose}
-                  onChange={(e) => setWeekendClose(e.target.value)}
-                  style={{
-                    flex: 1,
-                    background: 'var(--input-bg)',
-                    border: '1px solid var(--input-border)',
-                    color: 'var(--text)',
-                    padding: '9px 12px',
-                    borderRadius: 10,
-                    fontSize: 13,
-                  }}
+                  onChange={(e) => handleWeekendCloseChange(e.target.value)}
+                  style={SELECT_STYLE}
                 >
-                  {TIME_OPTIONS.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
+                  {TIME_OPTIONS.map((time) => (
+                    <option key={time} value={time}>
+                      {time}
                     </option>
                   ))}
                 </select>
@@ -456,77 +583,123 @@ export default function StoreScheduleEditor({
 
       {/* ── Mode 4: Individual Days ── */}
       {mode === 'custom' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {daySchedule.map((day) => {
-            const dayLabel = isKz ? day.dayKz : day.dayRu
+            const shortName = isKz ? day.shortKz : day.shortRu
+            const fullName = isKz ? day.dayKz : day.dayRu
+
             return (
               <div
                 key={day.dayKey}
                 style={{
-                  display: 'flex',
+                  display: 'grid',
+                  gridTemplateColumns: '72px 1fr 72px',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
                   gap: 8,
                   padding: '6px 10px',
                   borderRadius: 10,
-                  background: 'var(--input-bg)',
-                  border: '1px solid var(--input-border)',
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border)',
+                  minHeight: 44,
+                  boxSizing: 'border-box',
                 }}
               >
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', width: 105 }}>
-                  {dayLabel}
-                </span>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    minWidth: 0,
+                  }}
+                  title={fullName}
+                >
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 24,
+                      height: 24,
+                      borderRadius: 6,
+                      background: day.isDayOff
+                        ? 'rgba(239, 68, 68, 0.12)'
+                        : 'rgba(56, 189, 248, 0.12)',
+                      color: day.isDayOff ? '#EF4444' : 'var(--retail-accent, #38BDF8)',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {shortName}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: 'var(--text)',
+                      fontFamily: 'var(--font-display)',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {fullName.slice(0, 3)}
+                  </span>
+                </div>
 
                 {day.isDayOff ? (
                   <span
                     style={{
                       fontSize: 12,
                       color: '#EF4444',
-                      fontStyle: 'italic',
-                      flex: 1,
+                      fontWeight: 600,
                       textAlign: 'center',
+                      lineHeight: '32px',
                     }}
                   >
                     {t('retail.settings.dayOff') || 'Выходной'}
                   </span>
                 ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr auto 1fr',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                  >
                     <select
                       value={day.open}
                       onChange={(e) => updateDayTime(day.dayKey, 'open', e.target.value)}
                       style={{
-                        flex: 1,
-                        background: 'transparent',
-                        border: '1px solid var(--glass-border)',
-                        color: 'var(--text)',
+                        ...SELECT_STYLE,
+                        height: 32,
                         padding: '4px 6px',
-                        borderRadius: 6,
                         fontSize: 12,
                       }}
                     >
-                      {TIME_OPTIONS.map((t) => (
-                        <option key={t} value={t}>
-                          {t}
+                      {TIME_OPTIONS.map((time) => (
+                        <option key={time} value={time}>
+                          {time}
                         </option>
                       ))}
                     </select>
-                    <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>—</span>
+                    <span style={{ color: 'var(--text-dim)', fontSize: 11, textAlign: 'center' }}>
+                      —
+                    </span>
                     <select
                       value={day.close}
                       onChange={(e) => updateDayTime(day.dayKey, 'close', e.target.value)}
                       style={{
-                        flex: 1,
-                        background: 'transparent',
-                        border: '1px solid var(--glass-border)',
-                        color: 'var(--text)',
+                        ...SELECT_STYLE,
+                        height: 32,
                         padding: '4px 6px',
-                        borderRadius: 6,
                         fontSize: 12,
                       }}
                     >
-                      {TIME_OPTIONS.map((t) => (
-                        <option key={t} value={t}>
-                          {t}
+                      {TIME_OPTIONS.map((time) => (
+                        <option key={time} value={time}>
+                          {time}
                         </option>
                       ))}
                     </select>
@@ -537,17 +710,28 @@ export default function StoreScheduleEditor({
                   type="button"
                   onClick={() => toggleDayOff(day.dayKey)}
                   style={{
-                    background: day.isDayOff ? 'rgba(239,68,68,0.1)' : 'rgba(124,58,237,0.1)',
-                    border: `1px solid ${day.isDayOff ? 'rgba(239,68,68,0.25)' : 'rgba(124,58,237,0.25)'}`,
-                    color: day.isDayOff ? '#EF4444' : '#A78BFA',
+                    width: '100%',
+                    height: 30,
+                    padding: 0,
+                    borderRadius: 8,
+                    background: day.isDayOff ? 'rgba(239,68,68,0.1)' : 'rgba(56,189,248,0.1)',
+                    border: `1px solid ${
+                      day.isDayOff ? 'rgba(239,68,68,0.25)' : 'rgba(56,189,248,0.25)'
+                    }`,
+                    color: day.isDayOff ? '#EF4444' : 'var(--retail-accent, #38BDF8)',
                     fontSize: 11,
                     fontWeight: 600,
-                    padding: '4px 8px',
-                    borderRadius: 6,
                     cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontFamily: 'var(--font-display)',
+                    transition: 'all 0.15s ease',
                   }}
                 >
-                  {day.isDayOff ? 'Открыть' : 'Выходной'}
+                  {day.isDayOff
+                    ? t('retail.settings.openDay') || 'Открыть'
+                    : t('retail.settings.dayOff') || 'Выходной'}
                 </button>
               </div>
             )
@@ -563,8 +747,8 @@ export default function StoreScheduleEditor({
           borderRadius: 14,
           border: hasPlannedClosure
             ? '1px solid rgba(245, 158, 11, 0.3)'
-            : '1px dashed var(--glass-strong-border)',
-          background: hasPlannedClosure ? 'rgba(245, 158, 11, 0.05)' : 'rgba(255, 255, 255, 0.02)',
+            : '1px dashed var(--border-bright)',
+          background: hasPlannedClosure ? 'rgba(245, 158, 11, 0.05)' : 'var(--surface)',
           display: 'flex',
           flexDirection: 'column',
           gap: 12,
@@ -589,7 +773,7 @@ export default function StoreScheduleEditor({
 
           <button
             type="button"
-            onClick={() => setHasPlannedClosure(!hasPlannedClosure)}
+            onClick={handlePlannedClosureToggle}
             style={{
               padding: '6px 12px',
               borderRadius: 8,
@@ -599,9 +783,12 @@ export default function StoreScheduleEditor({
               fontSize: 12,
               fontWeight: 600,
               cursor: 'pointer',
+              fontFamily: 'var(--font-display)',
             }}
           >
-            {hasPlannedClosure ? 'Снять закрытие' : '+ Запланировать'}
+            {hasPlannedClosure
+              ? t('retail.settings.removeClosure') || 'Снять закрытие'
+              : t('retail.settings.planClosure') || '+ Запланировать'}
           </button>
         </div>
 
@@ -623,18 +810,9 @@ export default function StoreScheduleEditor({
                 type="date"
                 min={todayYmd}
                 value={closureDate}
-                onChange={(e) => setClosureDate(e.target.value)}
-                style={{
-                  width: '100%',
-                  background: 'var(--input-bg)',
-                  border: '1px solid var(--input-border)',
-                  color: 'var(--text)',
-                  padding: '8px 12px',
-                  borderRadius: 10,
-                  fontSize: 14,
-                  fontWeight: 600,
-                }}
-              />
+                onChange={(e) => handleClosureDateChange(e.target.value)}
+                style={SELECT_STYLE}
+              ></input>
             </div>
 
             {/* Quick Reason Chips */}
@@ -657,16 +835,17 @@ export default function StoreScheduleEditor({
                     <button
                       key={r.ru}
                       type="button"
-                      onClick={() => setClosureReason(text)}
+                      onClick={() => handleClosureReasonChange(text)}
                       style={{
                         padding: '4px 10px',
                         borderRadius: 8,
                         fontSize: 11,
                         fontWeight: 600,
-                        border: selected ? '1px solid #F59E0B' : '1px solid var(--glass-border)',
-                        background: selected ? 'rgba(245,158,11,0.15)' : 'var(--glass-subtle)',
+                        border: selected ? '1px solid #F59E0B' : '1px solid var(--border)',
+                        background: selected ? 'rgba(245,158,11,0.15)' : 'var(--surface)',
                         color: selected ? '#F59E0B' : 'var(--text-sub)',
                         cursor: 'pointer',
+                        fontFamily: 'var(--font-display)',
                       }}
                     >
                       {text}
@@ -681,17 +860,9 @@ export default function StoreScheduleEditor({
                   t('retail.settings.closureCustomReason') || 'Или введите свою причину...'
                 }
                 value={closureReason}
-                onChange={(e) => setClosureReason(e.target.value)}
+                onChange={(e) => handleClosureReasonChange(e.target.value)}
                 maxLength={80}
-                style={{
-                  width: '100%',
-                  background: 'var(--input-bg)',
-                  border: '1px solid var(--input-border)',
-                  color: 'var(--text)',
-                  padding: '8px 12px',
-                  borderRadius: 8,
-                  fontSize: 12,
-                }}
+                style={SELECT_STYLE}
               />
             </div>
 

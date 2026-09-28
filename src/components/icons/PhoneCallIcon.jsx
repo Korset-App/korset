@@ -3,7 +3,7 @@ export function PhoneCallIcon({ size = 20, color = 'currentColor', className, st
     <svg
       width={size}
       height={size}
-      viewBox="0 0 24 24"
+      viewBox="1.2 -1.6 24 24"
       fill="none"
       aria-hidden="true"
       className={className}

@@ -1575,8 +1575,9 @@
   color: #a5a5d0;
   cursor: pointer;
   flex-shrink: 0;
-  transition: all 130ms ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.12s ease;
   user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 :root[data-theme='light'] .home-ai-island__shuffle-btn {
@@ -1585,20 +1586,34 @@
   color: #7c3aed;
 }
 
-.home-ai-island__shuffle-btn:hover {
-  background: rgba(139, 92, 246, 0.22);
-  border-color: rgba(139, 92, 246, 0.50);
-  color: #ffffff;
-  transform: rotate(60deg);
-}
+@media (hover: hover) {
+  .home-ai-island__shuffle-btn:hover {
+    background: rgba(139, 92, 246, 0.22);
+    border-color: rgba(139, 92, 246, 0.50);
+    color: #ffffff;
+  }
 
-:root[data-theme='light'] .home-ai-island__shuffle-btn:hover {
-  background: rgba(124, 58, 237, 0.14);
-  color: #6d28d9;
+  :root[data-theme='light'] .home-ai-island__shuffle-btn:hover {
+    background: rgba(124, 58, 237, 0.14);
+    color: #6d28d9;
+  }
 }
 
 .home-ai-island__shuffle-btn:active {
-  transform: rotate(60deg) scale(0.93);
+  transform: scale(0.92);
+}
+
+.home-ai-island__shuffle-btn.is-spinning svg {
+  animation: home-ai-shuffle-spin 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes home-ai-shuffle-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Prompts Section */

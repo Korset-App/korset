@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { useI18n } from '../i18n/index.js'
@@ -20,6 +21,36 @@ import {
   AlertTriangleIcon,
 } from '../components/icons/index.js'
 import './StorePublicScreen.css'
+
+function getContactRoleLabel(role, customLabel, isKz) {
+  if (customLabel) return customLabel
+  switch (role) {
+    case 'admin':
+      return isKz ? 'Әкімші' : 'Администратор'
+    case 'sales':
+      return isKz ? 'Сату бөлімі' : 'Отдел продаж'
+    case 'delivery':
+      return isKz ? 'Жеткізу / Тапсырыстар' : 'Доставка / Заказы'
+    case 'main':
+    default:
+      return isKz ? 'Негізгі' : 'Основной'
+  }
+}
+
+function formatDisplayPhone(number) {
+  const digits = String(number || '').replace(/\D/g, '')
+  if (!digits) return ''
+  const local =
+    digits.length > 10 && (digits.startsWith('7') || digits.startsWith('8'))
+      ? digits.slice(1, 11)
+      : digits.slice(0, 10)
+  let res = '+7'
+  if (local.length > 0) res += ` (${local.slice(0, 3)}`
+  if (local.length >= 3) res += `) ${local.slice(3, 6)}`
+  if (local.length >= 6) res += `-${local.slice(6, 8)}`
+  if (local.length >= 8) res += `-${local.slice(8, 10)}`
+  return res
+}
 
 const STORE_FEATURE_DEFINITIONS = [
   { id: 'kaspi_qr', labelRu: 'Kaspi QR', labelKz: 'Kaspi QR' },
@@ -74,6 +105,35 @@ export default function StorePublicScreen() {
   const schedule = useMemo(() => {
     if (!store) return null
     return parseStoreSchedule(store)
+  }, [store])
+
+  const [activeContactsModal, setActiveContactsModal] = useState(null)
+
+  const phoneContacts = useMemo(() => {
+    if (!store) return []
+    const list = store.features?.contacts?.phones
+    if (Array.isArray(list) && list.length > 0) {
+      return list.filter((p) => Boolean(p.number))
+    }
+    return store.phone ? [{ number: store.phone, role: 'main' }] : []
+  }, [store])
+
+  const whatsappContacts = useMemo(() => {
+    if (!store) return []
+    const list = store.features?.contacts?.whatsapps
+    if (Array.isArray(list) && list.length > 0) {
+      return list.filter((w) => Boolean(w.number))
+    }
+    return store.whatsapp_number ? [{ number: store.whatsapp_number, role: 'main' }] : []
+  }, [store])
+
+  const amenitiesList = useMemo(() => {
+    if (!store?.features) return []
+    if (Array.isArray(store.features)) return store.features
+    const res = []
+    if (Array.isArray(store.features.amenities)) res.push(...store.features.amenities)
+    if (Array.isArray(store.features.payments)) res.push(...store.features.payments)
+    return res
   }, [store])
 
   if (isStoreLoading) {
@@ -235,9 +295,9 @@ export default function StorePublicScreen() {
 
         {/* Quick Contacts Grid */}
         <section className="store-public-actions-grid" aria-label={t('home.storeContacts')}>
-          {store.phone && (
+          {phoneContacts.length === 1 ? (
             <a
-              href={`tel:${store.phone.replace(/[^\d+]/g, '')}`}
+              href={`tel:${phoneContacts[0].number.replace(/[^\d+]/g, '')}`}
               className="store-public-action-btn"
             >
               <div
@@ -251,11 +311,54 @@ export default function StorePublicScreen() {
               </div>
               <span>{t('home.storeCall')}</span>
             </a>
-          )}
+          ) : phoneContacts.length > 1 ? (
+            <button
+              type="button"
+              onClick={() => setActiveContactsModal('phones')}
+              className="store-public-action-btn"
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              <div
+                className="store-public-action-btn__icon"
+                style={{
+                  background: 'rgba(74, 222, 128, 0.12)',
+                  color: '#4ade80',
+                  position: 'relative',
+                }}
+              >
+                <PhoneCallIcon size={18} />
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: -2,
+                    right: -2,
+                    background: '#10B981',
+                    color: '#fff',
+                    fontSize: 9,
+                    fontWeight: 700,
+                    width: 14,
+                    height: 14,
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {phoneContacts.length}
+                </span>
+              </div>
+              <span>{t('home.storeCall')}</span>
+            </button>
+          ) : null}
 
-          {store.whatsapp_number && (
+          {whatsappContacts.length === 1 ? (
             <a
-              href={`https://wa.me/${store.whatsapp_number.replace(/\D/g, '')}`}
+              href={`https://wa.me/${whatsappContacts[0].number.replace(/\D/g, '')}`}
               target="_blank"
               rel="noopener noreferrer"
               className="store-public-action-btn"
@@ -271,7 +374,50 @@ export default function StorePublicScreen() {
               </div>
               <span>{t('home.storeWhatsApp')}</span>
             </a>
-          )}
+          ) : whatsappContacts.length > 1 ? (
+            <button
+              type="button"
+              onClick={() => setActiveContactsModal('whatsapps')}
+              className="store-public-action-btn"
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              <div
+                className="store-public-action-btn__icon"
+                style={{
+                  background: 'rgba(37, 211, 102, 0.12)',
+                  color: '#25d366',
+                  position: 'relative',
+                }}
+              >
+                <WhatsAppIcon size={18} />
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: -2,
+                    right: -2,
+                    background: '#25D366',
+                    color: '#fff',
+                    fontSize: 9,
+                    fontWeight: 700,
+                    width: 14,
+                    height: 14,
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {whatsappContacts.length}
+                </span>
+              </div>
+              <span>{t('home.storeWhatsApp')}</span>
+            </button>
+          ) : null}
 
           {twoGisUrl && (
             <a
@@ -313,6 +459,173 @@ export default function StorePublicScreen() {
             </a>
           )}
         </section>
+
+        {/* Modal for Multiple Phones / WhatsApps */}
+        {activeContactsModal &&
+          typeof document !== 'undefined' &&
+          createPortal(
+            <div
+              onClick={() => setActiveContactsModal(null)}
+              style={{
+                position: 'fixed',
+                inset: 0,
+                zIndex: 9999,
+                background: 'rgba(0,0,0,0.75)',
+                backdropFilter: 'blur(8px)',
+                display: 'flex',
+                alignItems: 'flex-end',
+                justifyContent: 'center',
+                padding: '0 0 max(16px, env(safe-area-inset-bottom))',
+              }}
+            >
+              <div
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  background: 'var(--bg-card, #1e293b)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '24px 24px 18px 18px',
+                  width: '100%',
+                  maxWidth: 440,
+                  padding: '20px 20px 24px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 16,
+                  boxShadow: '0 20px 50px rgba(0,0,0,0.6)',
+                }}
+              >
+                <div
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
+                        background:
+                          activeContactsModal === 'phones'
+                            ? 'rgba(74, 222, 128, 0.15)'
+                            : 'rgba(37, 211, 102, 0.15)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: activeContactsModal === 'phones' ? '#4ade80' : '#25d366',
+                      }}
+                    >
+                      {activeContactsModal === 'phones' ? (
+                        <PhoneCallIcon size={18} />
+                      ) : (
+                        <WhatsAppIcon size={18} />
+                      )}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>
+                        {activeContactsModal === 'phones'
+                          ? isKz
+                            ? 'Байланыс телефондары'
+                            : 'Телефоны магазина'
+                          : isKz
+                            ? 'WhatsApp нөмірлері'
+                            : 'WhatsApp магазина'}
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--text-sub)' }}>
+                        {isKz ? 'Қажетті бөлімді таңдаңыз' : 'Выберите подходящий контакт'}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveContactsModal(null)}
+                    style={{
+                      background: 'var(--surface)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 10,
+                      color: 'var(--text-sub)',
+                      cursor: 'pointer',
+                      padding: 6,
+                      display: 'flex',
+                    }}
+                  >
+                    <CloseIcon size={18} />
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {(activeContactsModal === 'phones' ? phoneContacts : whatsappContacts).map(
+                    (contact, idx) => {
+                      const roleLabel = getContactRoleLabel(
+                        contact.role,
+                        contact.label || contact.customLabel,
+                        isKz
+                      )
+                      const isPhone = activeContactsModal === 'phones'
+                      const href = isPhone
+                        ? `tel:${contact.number.replace(/[^\d+]/g, '')}`
+                        : `https://wa.me/${contact.number.replace(/\D/g, '')}`
+
+                      return (
+                        <a
+                          key={contact.id || idx}
+                          href={href}
+                          target={isPhone ? '_self' : '_blank'}
+                          rel={isPhone ? undefined : 'noopener noreferrer'}
+                          onClick={() => setActiveContactsModal(null)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '12px 14px',
+                            borderRadius: 14,
+                            background: 'var(--surface)',
+                            border: '1px solid var(--border)',
+                            textDecoration: 'none',
+                            color: 'inherit',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <span
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 700,
+                                color: 'var(--retail-accent, #38bdf8)',
+                              }}
+                            >
+                              {roleLabel}
+                            </span>
+                            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
+                              {formatDisplayPhone(contact.number)}
+                            </span>
+                          </div>
+                          <div
+                            style={{
+                              padding: '6px 12px',
+                              borderRadius: 8,
+                              background: isPhone
+                                ? 'rgba(74, 222, 128, 0.15)'
+                                : 'rgba(37, 211, 102, 0.15)',
+                              color: isPhone ? '#4ade80' : '#25d366',
+                              fontSize: 12,
+                              fontWeight: 700,
+                            }}
+                          >
+                            {isPhone
+                              ? isKz
+                                ? 'Қоңырау'
+                                : 'Позвонить'
+                              : isKz
+                                ? 'Жазу'
+                                : 'Написать'}
+                          </div>
+                        </a>
+                      )
+                    }
+                  )}
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
 
         {/* Store Photos Gallery */}
         {store.images && store.images.length > 0 && (
@@ -411,13 +724,13 @@ export default function StorePublicScreen() {
         )}
 
         {/* Store Amenities and Payments */}
-        {Array.isArray(store.features) && store.features.length > 0 && (
+        {amenitiesList.length > 0 && (
           <section className="store-public-card">
             <h2 className="store-public-card__title">
               {t('home.storeAmenitiesTitle') || 'Особенности и сервис'}
             </h2>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {store.features.map((featureId) => {
+              {amenitiesList.map((featureId) => {
                 const def = STORE_FEATURE_DEFINITIONS.find((f) => f.id === featureId)
                 if (!def) return null
                 const label = isKz ? def.labelKz : def.labelRu

@@ -1,15 +1,8 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { checkProductFit, getAllCategoryKeys, getSubcategoryKeys } from '../utils/fitCheck.js'
 import { CATEGORY_SHOWCASE_ORDER } from '../domain/product/catalogShowcase.js'
-import {
-  sortCatalogSearchProducts,
-  analyzeCatalogSearchQuery,
-} from '../domain/product/searchQuality.js'
-import {
-  sortCatalogProducts,
-  mergeProductsBySearchKey,
-  FIT_VERDICT_ORDER,
-} from '../domain/catalog/catalogSorting.js'
+import { sortCatalogSearchProducts } from '../domain/product/searchQuality.js'
+import { sortCatalogProducts, FIT_VERDICT_ORDER } from '../domain/catalog/catalogSorting.js'
 
 export function useCatalogFilter({
   baseProducts = [],
@@ -121,10 +114,6 @@ export function useCatalogFilter({
     }
 
     if (isSearching) {
-      const searchQuery = analyzeCatalogSearchQuery(debouncedQuery)
-      if (searchQuery.intent?.category) {
-        arr = arr.filter((p) => p.category === searchQuery.intent.category)
-      }
       arr = sortCatalogSearchProducts(arr, debouncedQuery, (product) => {
         const fit = checkProductFit(product, profile)
         return FIT_VERDICT_ORDER[fit.verdict] ?? (fit.fits ? 0 : 3)
@@ -145,15 +134,15 @@ export function useCatalogFilter({
   const displayList = useMemo(() => {
     if (canUseServerSearch) {
       const activeServerResults = serverSearch.query === normalizedQuery ? serverSearch.results : []
-      const merged = mergeProductsBySearchKey(activeServerResults, list)
-      const rescored = sortCatalogSearchProducts(merged, debouncedQuery, (product) => {
-        const fit = checkProductFit(product, profile)
-        return FIT_VERDICT_ORDER[fit.verdict] ?? (fit.fits ? 0 : 3)
-      })
-      return sortCatalogProducts(rescored, sort, profile, true)
+      if (activeServerResults.length > 0) {
+        if (sort === 'cheap' || sort === 'pricey' || sort === 'protein' || sort === 'sugar') {
+          return sortCatalogProducts(activeServerResults, sort, profile, true)
+        }
+        return activeServerResults
+      }
     }
     return list
-  }, [canUseServerSearch, serverSearch, normalizedQuery, list, sort, profile, debouncedQuery])
+  }, [canUseServerSearch, serverSearch, normalizedQuery, list, sort, profile])
 
   useEffect(() => {
     return () => {

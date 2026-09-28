@@ -9,7 +9,7 @@ export function LocationPinIcon({
     <svg
       width={size}
       height={size}
-      viewBox="0 0 64 64"
+      viewBox="0 -2 64 68"
       fill="none"
       aria-hidden="true"
       className={className}

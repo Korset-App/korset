@@ -3,7 +3,7 @@ export function WhatsAppIcon({ size = 20, color = 'currentColor', className, sty
     <svg
       width={size}
       height={size}
-      viewBox="0 0 20 20"
+      viewBox="-0.6 -0.6 21.2 21.2"
       fill="none"
       aria-hidden="true"
       className={className}

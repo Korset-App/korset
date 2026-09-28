@@ -3,7 +3,7 @@ export function InstagramIcon({ size = 20, color = 'currentColor', className, st
     <svg
       width={size}
       height={size}
-      viewBox="0 0 24 24"
+      viewBox="1.9 1.9 20.2 20.2"
       fill="none"
       aria-hidden="true"
       className={className}

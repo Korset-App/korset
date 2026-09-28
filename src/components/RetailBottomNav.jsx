@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useI18n } from '../i18n/index.js'
 import { useStore } from '../contexts/StoreContext.jsx'
+import { StorefrontIcon, InventoryIcon, BarcodeScannerIcon, SlidersIcon } from './icons/index.js'
 
 export default function RetailBottomNav() {
   const navigate = useNavigate()
@@ -25,26 +26,26 @@ export default function RetailBottomNav() {
       id: 'dashboard',
       label: t('retail.nav.dashboard'),
       path: `/retail/${storeSlug}/dashboard`,
-      icon: 'dashboard',
+      Icon: StorefrontIcon,
     },
     {
       id: 'products',
       label: t('retail.nav.products'),
       path: `/retail/${storeSlug}/products`,
-      icon: 'shopping_bag',
+      Icon: InventoryIcon,
     },
     {
       id: 'eanRecovery',
       label: t('retail.nav.eanRecovery'),
       path: `/retail/${storeSlug}/ean-recovery`,
-      icon: 'qr_code_scanner',
+      Icon: BarcodeScannerIcon,
       accent: true,
     },
     {
       id: 'settings',
       label: t('retail.nav.settings'),
       path: `/retail/${storeSlug}/settings`,
-      icon: 'settings',
+      Icon: SlidersIcon,
     },
   ]
 
@@ -53,28 +54,37 @@ export default function RetailBottomNav() {
       style={{
         position: 'fixed',
         bottom: 0,
-        left: 0,
-        right: 0,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: '100%',
+        maxWidth: 430,
+        boxSizing: 'border-box',
         zIndex: 100,
         display: 'grid',
         gridTemplateColumns: '1fr 1fr 1fr 1fr',
         alignItems: 'end',
         columnGap: 4,
-        padding: `8px 8px calc(12px + env(safe-area-inset-bottom, 0px))`,
-        background: 'var(--retail-nav-bg)',
+        padding: '8px 8px calc(12px + env(safe-area-inset-bottom, 0px))',
+        background: 'var(--retail-nav-bg, var(--bg-card))',
         backdropFilter: 'blur(24px)',
         WebkitBackdropFilter: 'blur(24px)',
-        borderTop: '1px solid var(--retail-border)',
+        borderTop: '1px solid var(--retail-border, var(--border))',
         boxShadow: '0 -18px 48px rgba(15,23,42,0.12)',
       }}
     >
       {TABS.map((tab) => {
         const on = active === tab.id
-        const tabCol = on ? (tab.accent ? '#FB923C' : 'var(--retail-accent)') : 'var(--nav-muted)'
+        const tabCol = on
+          ? tab.accent
+            ? '#FB923C'
+            : 'var(--retail-accent, #38BDF8)'
+          : 'var(--nav-muted)'
+        const IconComponent = tab.Icon
 
         return (
           <button
             key={tab.id}
+            type="button"
             onClick={() => navigate(tab.path)}
             style={{
               display: 'flex',
@@ -90,22 +100,19 @@ export default function RetailBottomNav() {
               border: 'none',
               cursor: 'pointer',
               background: 'transparent',
+              outline: 'none',
             }}
           >
             <div
-              style={{ transition: 'transform 0.2s', transform: on ? 'translateY(-2px)' : 'none' }}
+              style={{
+                transition: 'transform 0.2s',
+                transform: on ? 'translateY(-2px)' : 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
             >
-              <span
-                className="material-symbols-outlined"
-                style={{
-                  fontSize: 22,
-                  color: tabCol,
-                  display: 'block',
-                  fontVariationSettings: on ? "'FILL' 1" : "'FILL' 0",
-                }}
-              >
-                {tab.icon}
-              </span>
+              <IconComponent size={22} color={tabCol} />
             </div>
             <span
               style={{

@@ -28,7 +28,6 @@ import {
   loadSeenStories,
   loadStoryProgress,
   recordStorySlideView,
-  clearSeenStories,
   sortStoriesBySeen,
 } from '../domain/home/homeScreenModel.js'
 import { parseStoreSchedule } from '../domain/stores/schedule.js'

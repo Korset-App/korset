@@ -30,7 +30,7 @@ test('buildRetailStoreSettingsPayload trims AI store notes and stores empty note
   assert.equal(payload.opening_hours, 'Mon-Sun 09:00-23:00 No breaks')
   assert.equal(payload.ai_store_notes.includes('\n'), false)
   assert.equal(payload.ai_store_notes.includes('\t'), false)
-  assert.equal(payload.ai_store_notes.length, 1200)
+  assert.equal(payload.ai_store_notes.length, 500)
 
   assert.equal(buildRetailStoreSettingsPayload({ ai_store_notes: '   ' }).ai_store_notes, null)
 })
@@ -65,4 +65,33 @@ test('omitStoreSettingsColumn drops only one unsupported field from the settings
     address: 'Abay 10',
   })
   assert.deepEqual(omitStoreSettingsColumn(payload, 'unknown'), payload)
+})
+
+test('buildRetailStoreSettingsPayload normalizes multiple contacts in features and keeps primary phone in sync', () => {
+  const payload = buildRetailStoreSettingsPayload({
+    name: 'Bereke',
+    features: {
+      payments: ['cash', 'kaspi_qr'],
+      contacts: {
+        phones: [
+          { number: '+7 (701) 111-22-33', role: 'main' },
+          { number: '87023334455', role: 'admin' },
+          { number: '7056667788', role: 'custom', customLabel: 'Склад' },
+          { number: 'invalid', role: 'sales' },
+        ],
+        whatsapps: [
+          { number: '+7 777 999 88 77', role: 'delivery' },
+        ],
+      },
+    },
+  })
+
+  assert.equal(payload.phone, '77011112233')
+  assert.equal(payload.whatsapp_number, '77779998877')
+  assert.equal(payload.features.contacts.phones.length, 3)
+  assert.equal(payload.features.contacts.phones[0].number, '77011112233')
+  assert.equal(payload.features.contacts.phones[0].role, 'main')
+  assert.equal(payload.features.contacts.phones[2].label, 'Склад')
+  assert.equal(payload.features.contacts.whatsapps[0].number, '77779998877')
+  assert.deepEqual(payload.features.payments, ['cash', 'kaspi_qr'])
 })

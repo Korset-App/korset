@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useI18n } from '../../i18n/index.js'
 import {
   KaspiQrIcon,
@@ -7,7 +7,7 @@ import {
   FreedomIcon,
   BankCardIcon,
   CashPaymentIcon,
-  StorefrontIcon,
+  HalalBadgeIcon,
   BakeryTandyrIcon,
   CookeryIcon,
   CoffeeToGoIcon,
@@ -26,6 +26,7 @@ import {
   WifiIcon,
   OrderPickupIcon,
   CheckCircleIcon,
+  ChevronDownIcon,
 } from '../icons/index.js'
 
 const PAYMENT_ITEMS = [
@@ -38,7 +39,7 @@ const PAYMENT_ITEMS = [
 ]
 
 const AMENITY_ITEMS = [
-  { id: 'halal', labelRu: 'Халал-отдел', labelKz: 'Халал бөлімі', icon: StorefrontIcon },
+  { id: 'halal', labelRu: 'Халал-отдел', labelKz: 'Халал бөлімі', icon: HalalBadgeIcon },
   {
     id: 'bakery',
     labelRu: 'Свежая выпечка (тандыр / пекарня)',
@@ -146,6 +147,8 @@ export default function StoreAmenitiesEditor({ selectedFeatures = [], onChange }
     [selectedSet, onChange]
   )
 
+  const [showAllAmenities, setShowAllAmenities] = useState(false)
+
   const clearGroup = useCallback(
     (items) => {
       const next = new Set(selectedSet)
@@ -154,6 +157,15 @@ export default function StoreAmenitiesEditor({ selectedFeatures = [], onChange }
     },
     [selectedSet, onChange]
   )
+
+  const displayedAmenities = useMemo(() => {
+    if (showAllAmenities) return AMENITY_ITEMS
+    // Show selected items first, or top 6 if fewer
+    const selected = AMENITY_ITEMS.filter((i) => selectedSet.has(i.id))
+    if (selected.length >= 6) return selected
+    const remaining = AMENITY_ITEMS.filter((i) => !selectedSet.has(i.id))
+    return [...selected, ...remaining.slice(0, 6 - selected.length)]
+  }, [showAllAmenities, selectedSet])
 
   const renderItem = (item) => {
     const isSelected = selectedSet.has(item.id)
@@ -168,46 +180,47 @@ export default function StoreAmenitiesEditor({ selectedFeatures = [], onChange }
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 10,
-          padding: '10px 14px',
-          borderRadius: 12,
+          justifyContent: 'space-between',
+          gap: 6,
+          padding: '8px 10px',
+          minHeight: 40,
+          boxSizing: 'border-box',
+          width: '100%',
+          borderRadius: 10,
           border: isSelected
-            ? '1.5px solid var(--retail-accent, #38bdf8)'
-            : '1px solid var(--input-border, rgba(255, 255, 255, 0.08))',
-          background: isSelected
-            ? 'rgba(56, 189, 248, 0.12)'
-            : 'var(--input-bg, rgba(255, 255, 255, 0.03))',
+            ? '1.5px solid var(--retail-accent, #38BDF8)'
+            : '1px solid var(--border)',
+          background: isSelected ? 'rgba(56, 189, 248, 0.12)' : 'var(--surface)',
           color: isSelected ? 'var(--text)' : 'var(--text-sub)',
           cursor: 'pointer',
           textAlign: 'left',
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: isSelected ? 600 : 500,
           transition: 'all 0.15s ease',
           outline: 'none',
-          position: 'relative',
         }}
       >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 28,
-            height: 28,
-            borderRadius: 8,
-            background: isSelected ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-            color: isSelected ? 'var(--retail-accent, #38bdf8)' : 'var(--text-dim)',
-            flexShrink: 0,
-          }}
-        >
-          <IconComponent size={16} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, flex: 1 }}>
+          <IconComponent
+            size={16}
+            color={isSelected ? 'var(--retail-accent, #38BDF8)' : 'var(--text-dim)'}
+            style={{ flexShrink: 0 }}
+          />
+          <span
+            style={{
+              fontSize: 12,
+              lineHeight: 1.25,
+              wordBreak: 'break-word',
+            }}
+          >
+            {label}
+          </span>
         </div>
-        <span style={{ flex: 1, lineHeight: 1.3 }}>{label}</span>
         {isSelected && (
           <CheckCircleIcon
-            size={16}
-            color="var(--retail-accent, #38bdf8)"
-            style={{ flexShrink: 0 }}
+            size={14}
+            color="var(--retail-accent, #38BDF8)"
+            style={{ flexShrink: 0, marginLeft: 4 }}
           />
         )}
       </button>
@@ -215,9 +228,9 @@ export default function StoreAmenitiesEditor({ selectedFeatures = [], onChange }
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       {/* ── Payments Section ── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span
@@ -282,7 +295,7 @@ export default function StoreAmenitiesEditor({ selectedFeatures = [], onChange }
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(136px, 1fr))',
             gap: 8,
           }}
         >
@@ -290,8 +303,10 @@ export default function StoreAmenitiesEditor({ selectedFeatures = [], onChange }
         </div>
       </div>
 
+      <div style={{ height: 1, background: 'var(--line-soft)' }} />
+
       {/* ── Amenities Section ── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span
@@ -302,7 +317,7 @@ export default function StoreAmenitiesEditor({ selectedFeatures = [], onChange }
                 fontFamily: 'var(--font-display)',
               }}
             >
-              {t('retail.settings.amenitiesTitle') || 'Сервис и удобства магазина'}
+              {t('retail.settings.amenitiesTitle') || 'Сервис и удобства'}
             </span>
             <span
               style={{
@@ -356,12 +371,45 @@ export default function StoreAmenitiesEditor({ selectedFeatures = [], onChange }
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(136px, 1fr))',
             gap: 8,
           }}
         >
-          {AMENITY_ITEMS.map(renderItem)}
+          {displayedAmenities.map(renderItem)}
         </div>
+
+        <button
+          type="button"
+          onClick={() => setShowAllAmenities(!showAllAmenities)}
+          style={{
+            alignSelf: 'flex-start',
+            marginTop: 4,
+            padding: '4px 8px',
+            borderRadius: 8,
+            background: 'none',
+            border: 'none',
+            color: 'var(--retail-accent, #38bdf8)',
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+          }}
+        >
+          <span>
+            {showAllAmenities
+              ? t('retail.settings.collapseAmenities') || 'Свернуть'
+              : `${t('retail.settings.showAllAmenities') || 'Все удобства'} (${AMENITY_ITEMS.length})`}
+          </span>
+          <ChevronDownIcon
+            size={14}
+            style={{
+              transform: showAllAmenities ? 'rotate(180deg)' : 'none',
+              transition: 'transform 0.2s',
+            }}
+          />
+        </button>
       </div>
     </div>
   )

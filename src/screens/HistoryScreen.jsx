@@ -131,7 +131,7 @@ export default function HistoryScreen() {
   }, [rows, query, lang])
 
   return (
-    <main className="shopping-page">
+    <main className="screen shopping-page">
       <header className="shopping-page__header">
         <button
           className="shopping-page__back"

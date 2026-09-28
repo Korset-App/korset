@@ -528,10 +528,25 @@ function findAliasMatches(normalized) {
   return { aliasTokens: [...new Set(aliasTokens.map(normalizeText).flatMap(tokenize))], intent }
 }
 
+function matchesPattern(normalized, pattern, tokens) {
+  const p = normalizeText(pattern)
+  if (!p) return false
+  if (p.includes(' ')) {
+    return includesPhrase(normalized, p)
+  }
+  return tokens.some((token) => {
+    if (token === p) return true
+    if (p.length >= 4 && token.startsWith(p)) return true
+    if (p.length >= 3 && token.startsWith(p) && token.length <= p.length + 2) return true
+    return false
+  })
+}
+
 function findIntent(normalized, aliasIntent) {
   if (aliasIntent) return aliasIntent
+  const tokens = tokenize(normalized)
   for (const rule of INTENT_RULES) {
-    if (rule.phrases.some((phrase) => normalized.includes(phrase.toLowerCase()))) {
+    if (rule.phrases.some((phrase) => matchesPattern(normalized, phrase, tokens))) {
       return { category: rule.category, subcategory: rule.subcategory }
     }
   }
@@ -762,12 +777,15 @@ export function scoreCatalogSearchProduct(queryInput, product) {
   }
 
   if (hasAllTokens) {
-    score += 1000 + matchedTokens * 120
-    relevanceTier = Math.min(relevanceTier, subcategoryMatch ? 1 : 3)
-    matchType = matchType || 'all_tokens_name'
+    score += 3000 + matchedTokens * 200
+    relevanceTier = Math.min(relevanceTier, 1)
+    matchType =
+      (subcategoryMatch ? 'intent_subcategory' : categoryMatch ? 'intent_category' : null) ||
+      matchType ||
+      'all_tokens_name'
   } else if (matchedTokens > 0) {
     score += matchedTokens * 180
-    relevanceTier = Math.min(relevanceTier, subcategoryMatch ? 2 : 5)
+    relevanceTier = Math.min(relevanceTier, subcategoryMatch ? 2 : 4)
     matchType = matchType || 'token_fuzzy'
   }
 

@@ -9,6 +9,7 @@ import {
   CheckCircleIcon,
   SparklesIcon,
 } from '../icons/index.js'
+import { searchKzAddresses } from '../../utils/addressSearch.js'
 
 // Helper to ensure Leaflet CSS and JS are loaded once
 const loadLeafletAssets = () => {
@@ -108,6 +109,50 @@ export default function StoreLocationModal({
       /* ignore reverse geocode errors */
     }
   }, [])
+
+  const [suggestions, setSuggestions] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+
+  // Real-time KZ address autocomplete
+  useEffect(() => {
+    const q = addressSearch?.trim() || ''
+    if (q.length < 2) return
+
+    const abortCtrl = new AbortController()
+    const timer = setTimeout(async () => {
+      const results = await searchKzAddresses(q, abortCtrl.signal)
+      setSuggestions(results)
+      setShowSuggestions(results.length > 0)
+    }, 320)
+
+    return () => {
+      clearTimeout(timer)
+      abortCtrl.abort()
+    }
+  }, [addressSearch])
+
+  const handleSearchInputChange = (val) => {
+    setAddressSearch(val)
+    if (!val || val.trim().length < 2) {
+      setSuggestions([])
+      setShowSuggestions(false)
+    }
+  }
+
+  const handleSelectSuggestion = (sug) => {
+    setCurrentLat(sug.lat)
+    setCurrentLon(sug.lon)
+    coordsRef.current = { lat: sug.lat, lon: sug.lon }
+    setAddressSearch(sug.shortAddress)
+    setDetectedAddress(sug.displayName.split(',').slice(0, 3).join(','))
+    setSuggestions([])
+    setShowSuggestions(false)
+
+    if (mapInstanceRef.current && markerRef.current) {
+      mapInstanceRef.current.setView([sug.lat, sug.lon], 17)
+      markerRef.current.setLatLng([sug.lat, sug.lon])
+    }
+  }
 
   // Address search via Nominatim
   const handleSearchAddress = async (e) => {
@@ -227,31 +272,48 @@ export default function StoreLocationModal({
           attribution: '© OpenStreetMap contributors',
         }).addTo(map)
 
+        const customPin = L.divIcon({
+          className: 'korset-map-pin',
+          html: `<div style="position:relative;width:32px;height:40px;filter:drop-shadow(0 4px 10px rgba(2,132,199,0.5));cursor:grab;"><svg width="32" height="40" viewBox="0 0 24 30" fill="none"><path d="M12 0C5.37258 0 0 5.37258 0 12C0 19.5 12 30 12 30C12 30 24 19.5 24 12C24 5.37258 18.6274 0 12 0Z" fill="#0284c7" /><circle cx="12" cy="11" r="5" fill="#ffffff" /></svg></div>`,
+          iconSize: [32, 40],
+          iconAnchor: [16, 40],
+        })
+
         const marker = L.marker([startLat, startLon], {
           draggable: true,
+          icon: customPin,
         }).addTo(map)
         markerRef.current = marker
 
         marker.on('dragend', () => {
           const { lat, lng } = marker.getLatLng()
-          setCurrentLat(lat)
-          setCurrentLon(lng)
-          reverseGeocode(lat, lng)
+          const nLat = Number(lat.toFixed(6))
+          const nLon = Number(lng.toFixed(6))
+          setCurrentLat(nLat)
+          setCurrentLon(nLon)
+          coordsRef.current = { lat: nLat, lon: nLon }
+          reverseGeocode(nLat, nLon)
         })
 
         map.on('click', (e) => {
           marker.setLatLng(e.latlng)
-          setCurrentLat(e.latlng.lat)
-          setCurrentLon(e.latlng.lng)
-          reverseGeocode(e.latlng.lat, e.latlng.lng)
+          const nLat = Number(e.latlng.lat.toFixed(6))
+          const nLon = Number(e.latlng.lng.toFixed(6))
+          setCurrentLat(nLat)
+          setCurrentLon(nLon)
+          coordsRef.current = { lat: nLat, lon: nLon }
+          reverseGeocode(nLat, nLon)
         })
 
+        map.invalidateSize()
+        setTimeout(() => active && map?.invalidateSize(), 50)
+        setTimeout(() => active && map?.invalidateSize(), 150)
         setTimeout(() => {
           if (active && map) {
             map.invalidateSize()
             setMapReady(true)
           }
-        }, 150)
+        }, 350)
       })
       .catch((err) => {
         console.error('Failed to load Leaflet:', err)
@@ -300,15 +362,15 @@ export default function StoreLocationModal({
     >
       <div
         style={{
-          background: 'var(--card-bg, #0f172a)',
-          border: '1px solid rgba(56, 189, 248, 0.25)',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border)',
           borderRadius: 24,
           width: '100%',
           maxWidth: 580,
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          boxShadow: '0 24px 64px rgba(0, 0, 0, 0.65)',
+          boxShadow: 'var(--shadow-card, 0 24px 64px rgba(0, 0, 0, 0.65))',
           maxHeight: '92vh',
         }}
         onClick={(e) => e.stopPropagation()}
@@ -320,7 +382,7 @@ export default function StoreLocationModal({
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            borderBottom: '1px solid var(--border)',
             background: 'linear-gradient(180deg, rgba(56, 189, 248, 0.08) 0%, transparent 100%)',
           }}
         >
@@ -352,8 +414,8 @@ export default function StoreLocationModal({
             type="button"
             onClick={onClose}
             style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: 'none',
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
               borderRadius: 10,
               color: 'var(--text-sub)',
               cursor: 'pointer',
@@ -370,8 +432,8 @@ export default function StoreLocationModal({
           onSubmit={handleSearchAddress}
           style={{
             padding: '12px 16px',
-            background: 'rgba(255, 255, 255, 0.02)',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+            background: 'var(--surface)',
+            borderBottom: '1px solid var(--border)',
             display: 'flex',
             gap: 8,
           }}
@@ -384,11 +446,11 @@ export default function StoreLocationModal({
                 'Поиск адреса (например: ул. Сыганак, 14)'
               }
               value={addressSearch}
-              onChange={(e) => setAddressSearch(e.target.value)}
+              onChange={(e) => handleSearchInputChange(e.target.value)}
               style={{
                 width: '100%',
-                background: 'var(--input-bg, rgba(255, 255, 255, 0.05))',
-                border: '1px solid var(--input-border, rgba(255, 255, 255, 0.1))',
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border)',
                 borderRadius: 12,
                 padding: '9px 12px 9px 34px',
                 fontSize: 13,
@@ -409,6 +471,56 @@ export default function StoreLocationModal({
             >
               <SearchIcon size={16} />
             </div>
+
+            {showSuggestions && suggestions.length > 0 && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 4px)',
+                  left: 0,
+                  right: 0,
+                  background: 'var(--bg-card, #1e293b)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 14,
+                  boxShadow: '0 12px 32px rgba(0, 0, 0, 0.55)',
+                  zIndex: 1200,
+                  maxHeight: 220,
+                  overflowY: 'auto',
+                  padding: 4,
+                }}
+              >
+                {suggestions.map((sug) => (
+                  <button
+                    key={sug.id}
+                    type="button"
+                    onClick={() => handleSelectSuggestion(sug)}
+                    style={{
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      border: 'none',
+                      background: 'transparent',
+                      color: 'var(--text)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 2,
+                      transition: 'background 0.12s',
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)')
+                    }
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
+                      {sug.shortAddress}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>{sug.fullSubtitle}</div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <button
@@ -442,8 +554,8 @@ export default function StoreLocationModal({
             style={{
               padding: '8px 12px',
               borderRadius: 12,
-              background: isLocating ? 'rgba(56, 189, 248, 0.3)' : 'rgba(255, 255, 255, 0.06)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
+              background: isLocating ? 'rgba(56, 189, 248, 0.3)' : 'var(--surface)',
+              border: '1px solid var(--border)',
               color: 'var(--text)',
               fontSize: 12,
               fontWeight: 600,
@@ -471,8 +583,8 @@ export default function StoreLocationModal({
             alignItems: 'center',
             gap: 6,
             overflowX: 'auto',
-            background: 'rgba(0, 0, 0, 0.2)',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+            background: 'var(--surface)',
+            borderBottom: '1px solid var(--border)',
             scrollbarWidth: 'none',
           }}
         >
@@ -487,8 +599,8 @@ export default function StoreLocationModal({
               style={{
                 padding: '4px 10px',
                 borderRadius: 16,
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border)',
                 color: 'var(--text-sub)',
                 fontSize: 11,
                 fontWeight: 500,
@@ -533,8 +645,8 @@ export default function StoreLocationModal({
         <div
           style={{
             padding: '16px 20px',
-            borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-            background: 'var(--card-bg, #0f172a)',
+            borderTop: '1px solid var(--border)',
+            background: 'var(--bg-card)',
             display: 'flex',
             flexDirection: 'column',
             gap: 12,
@@ -582,8 +694,8 @@ export default function StoreLocationModal({
                 flex: 1,
                 padding: '12px',
                 borderRadius: 12,
-                background: 'rgba(255, 255, 255, 0.06)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
                 color: 'var(--text)',
                 fontSize: 13,
                 fontWeight: 600,

@@ -8,8 +8,9 @@ import ConfirmDangerModal from '../components/ConfirmDangerModal.jsx'
 import Toggle from '../components/Toggle.jsx'
 import StorePhotosManager from '../components/retail/StorePhotosManager.jsx'
 import StoreScheduleEditor from '../components/retail/StoreScheduleEditor.jsx'
-import StoreLocationModal from '../components/retail/StoreLocationModal.jsx'
 import StoreAmenitiesEditor from '../components/retail/StoreAmenitiesEditor.jsx'
+import StoreContactsEditor from '../components/retail/StoreContactsEditor.jsx'
+import ImageCropModal from '../components/retail/ImageCropModal.jsx'
 import { compressImage } from '../utils/imageCompressor.js'
 import {
   buildRetailStoreSettingsPayload,
@@ -25,12 +26,10 @@ import {
   CameraIcon,
   InstallIcon,
   TrashIcon,
-  LocationPinIcon,
-  BarcodeScannerIcon,
-  InstagramIcon,
-  WhatsAppIcon,
   TwoGisIcon,
-  PhoneCallIcon,
+  QrCodeIcon,
+  SearchIcon,
+  ChevronDownIcon,
 } from '../components/icons/index.js'
 
 // ── Phone mask utilities ──────────────────────────────────────────
@@ -41,19 +40,26 @@ const initLocalPhone = (stored) => {
   return d.slice(0, 10)
 }
 
-const formatLocalPhone = (local) => {
-  if (!local) return ''
-  const d = local.slice(0, 10)
-  let r = '+7 (' + d.slice(0, Math.min(3, d.length))
-  if (d.length >= 3) r += ')'
-  if (d.length > 3) r += ' ' + d.slice(3, Math.min(6, d.length))
-  if (d.length > 6) r += '-' + d.slice(6, Math.min(8, d.length))
-  if (d.length > 8) r += '-' + d.slice(8, 10)
-  return r
+function getInitialContacts(store) {
+  const storePhones = store?.features?.contacts?.phones
+  const storeWhatsapps = store?.features?.contacts?.whatsapps
+
+  const phones =
+    Array.isArray(storePhones) && storePhones.length > 0
+      ? storePhones
+      : [{ id: 'p_1', number: store?.phone || '', role: 'main', customLabel: '' }]
+
+  const whatsapps =
+    Array.isArray(storeWhatsapps) && storeWhatsapps.length > 0
+      ? storeWhatsapps
+      : [{ id: 'w_1', number: store?.whatsapp_number || '', role: 'main', customLabel: '' }]
+
+  return { phones, whatsapps }
 }
 
 export default function RetailSettingsScreen() {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
+  const isKz = lang === 'kz'
   const { currentStore, updateStoreSettings } = useStore()
 
   const [settings, setSettings] = useState({
@@ -76,20 +82,26 @@ export default function RetailSettingsScreen() {
     is_published: currentStore?.is_published !== false,
     temporary_closure: currentStore?.temporary_closure || null,
     type: currentStore?.type || 'minimarket',
-    features: Array.isArray(currentStore?.features) ? currentStore.features : [],
+    features: currentStore?.features || {},
   })
+
+  const [phones, setPhones] = useState(() => getInitialContacts(currentStore).phones)
+  const [whatsapps, setWhatsapps] = useState(() => getInitialContacts(currentStore).whatsapps)
 
   const [showQR, setShowQR] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState(null) // 'ok' | 'error'
   const [saveErrorMessage, setSaveErrorMessage] = useState('')
+  const [isDirty, setIsDirty] = useState(false)
   const [savingToggle, setSavingToggle] = useState(null)
   const [showClearModal, setShowClearModal] = useState(false)
   const [isClearing, setIsClearing] = useState(false)
   const [logoUploading, setLogoUploading] = useState(false)
   const [logoUrl, setLogoUrl] = useState(currentStore?.logo_url || null)
-  const [showMapModal, setShowMapModal] = useState(false)
-  const [geocoding, setGeocoding] = useState(false)
+  const [showManualCoords, setShowManualCoords] = useState(false)
+  const [showSeoExplanation, setShowSeoExplanation] = useState(false)
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false)
+  const [cropImageSrc, setCropImageSrc] = useState(null)
 
   const logoInputRef = useRef(null)
   const qrRef = useRef(null)
@@ -100,6 +112,10 @@ export default function RetailSettingsScreen() {
     if (!currentStore) return
     if (currentStore.id === lastSyncedStoreIdRef.current) return
     lastSyncedStoreIdRef.current = currentStore.id
+
+    const syncedContacts = getInitialContacts(currentStore)
+    setPhones(syncedContacts.phones)
+    setWhatsapps(syncedContacts.whatsapps)
 
     setSettings({
       name: currentStore.name || '',
@@ -121,13 +137,63 @@ export default function RetailSettingsScreen() {
       is_published: currentStore.is_published !== false,
       temporary_closure: currentStore.temporary_closure || null,
       type: currentStore.type || 'minimarket',
-      features: Array.isArray(currentStore.features) ? currentStore.features : [],
+      features: currentStore.features || {},
     })
     setLogoUrl(currentStore.logo_url || null)
+    setIsDirty(false)
   }, [currentStore])
+
+  const handlePhonesChange = (nextPhones) => {
+    setPhones(nextPhones)
+    setSettings((prev) => {
+      const prevFeatures =
+        prev.features && typeof prev.features === 'object' && !Array.isArray(prev.features)
+          ? prev.features
+          : {}
+      return {
+        ...prev,
+        phone: nextPhones[0]?.number || '',
+        features: {
+          ...prevFeatures,
+          contacts: {
+            ...(prevFeatures.contacts || {}),
+            phones: nextPhones,
+            whatsapps,
+          },
+        },
+      }
+    })
+    setIsDirty(true)
+    setSaveStatus(null)
+  }
+
+  const handleWhatsappsChange = (nextWhatsapps) => {
+    setWhatsapps(nextWhatsapps)
+    setSettings((prev) => {
+      const prevFeatures =
+        prev.features && typeof prev.features === 'object' && !Array.isArray(prev.features)
+          ? prev.features
+          : {}
+      return {
+        ...prev,
+        whatsapp_number: nextWhatsapps[0]?.number || '',
+        features: {
+          ...prevFeatures,
+          contacts: {
+            ...(prevFeatures.contacts || {}),
+            phones,
+            whatsapps: nextWhatsapps,
+          },
+        },
+      }
+    })
+    setIsDirty(true)
+    setSaveStatus(null)
+  }
 
   const handleChange = useCallback((key, val) => {
     setSettings((p) => ({ ...p, [key]: val }))
+    setIsDirty(true)
     setSaveStatus(null)
     setSaveErrorMessage('')
   }, [])
@@ -149,22 +215,41 @@ export default function RetailSettingsScreen() {
     setIsSaving(true)
     setSaveStatus(null)
     setSaveErrorMessage('')
-    const payload = buildRetailStoreSettingsPayload(settings)
+
+    const prevFeatures =
+      settings.features &&
+      typeof settings.features === 'object' &&
+      !Array.isArray(settings.features)
+        ? settings.features
+        : {}
+
+    const payload = buildRetailStoreSettingsPayload({
+      ...settings,
+      features: {
+        ...prevFeatures,
+        contacts: {
+          phones,
+          whatsapps,
+        },
+      },
+    })
+
     const { error } = await updateStoreSettings(payload)
     setIsSaving(false)
     if (error) {
       setSaveStatus('error')
       setSaveErrorMessage(error)
     } else {
+      setIsDirty(false)
       setSaveStatus('ok')
       setTimeout(() => setSaveStatus(null), 3500)
     }
   }
 
-  // Logo upload with WebP compression
-  const handleLogoUpload = async (e) => {
+  // Logo file selection and crop handler
+  const handleLogoFileSelect = (e) => {
     const file = e.target.files?.[0]
-    if (!file || !currentStore?.id) return
+    if (!file) return
 
     const ALLOWED = ['image/png', 'image/jpeg', 'image/webp']
     if (!ALLOWED.includes(file.type)) {
@@ -173,10 +258,24 @@ export default function RetailSettingsScreen() {
       return
     }
 
+    const objUrl = URL.createObjectURL(file)
+    setCropImageSrc(objUrl)
+    setIsCropModalOpen(true)
+    if (logoInputRef.current) logoInputRef.current.value = ''
+  }
+
+  const handleCropConfirmed = async (croppedBlob) => {
+    setIsCropModalOpen(false)
+    if (cropImageSrc) {
+      URL.revokeObjectURL(cropImageSrc)
+      setCropImageSrc(null)
+    }
+    if (!croppedBlob || !currentStore?.id) return
+
     setLogoUploading(true)
-    let uploadFile = file
+    let uploadFile = croppedBlob
     try {
-      uploadFile = await compressImage(file, { maxWidth: 600, maxHeight: 600, quality: 0.85 })
+      uploadFile = await compressImage(croppedBlob, { maxWidth: 512, maxHeight: 512, quality: 0.9 })
     } catch (err) {
       console.warn('Logo compression fallback', err)
     }
@@ -190,7 +289,6 @@ export default function RetailSettingsScreen() {
 
     if (uploadError) {
       setLogoUploading(false)
-      if (logoInputRef.current) logoInputRef.current.value = ''
       alert((t('retail.settings.logoUploadError') || 'Ошибка загрузки: ') + uploadError.message)
       return
     }
@@ -201,7 +299,6 @@ export default function RetailSettingsScreen() {
       await updateStoreSettings({ logo_url: url })
       setLogoUrl(url + '?t=' + Date.now())
     }
-    if (logoInputRef.current) logoInputRef.current.value = ''
     setLogoUploading(false)
   }
 
@@ -214,51 +311,36 @@ export default function RetailSettingsScreen() {
     await updateStoreSettings({ logo_url: null })
   }
 
-  // Address geocoding helper with city context
-  const handleGeocode = async () => {
-    if (!settings.address) {
-      alert(t('retail.settings.addressEmptyError') || 'Пожалуйста, введите адрес сначала')
-      return
-    }
-    setGeocoding(true)
-    try {
-      const city = currentStore?.city || 'Астана'
-      const query = settings.address.toLowerCase().includes(city.toLowerCase())
-        ? `${settings.address}, Казахстан`
-        : `${city}, ${settings.address}, Казахстан`
+  const handle2GisUrlChange = (val) => {
+    handleChange('twogis_url', val)
+    if (!val) return
 
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
-          query
-        )}&format=json&limit=1&countrycodes=kz&accept-language=ru`
-      )
-      const data = await res.json()
-      if (data && data[0]) {
-        const lat = Number(Number(data[0].lat).toFixed(6))
-        const lon = Number(Number(data[0].lon).toFixed(6))
-        handleChange('latitude', lat)
-        handleChange('longitude', lon)
-        await updateStoreSettings({ latitude: lat, longitude: lon })
-        alert(
-          t('retail.settings.geocodeSuccess') || `Координаты успешно определены: ${lat}, ${lon}`
-        )
-      } else {
-        setShowMapModal(true)
+    try {
+      const decoded = decodeURIComponent(val)
+      const mMatch =
+        decoded.match(/[?&]m=([0-9.]+)[,/%2C]+([0-9.]+)/i) ||
+        decoded.match(/\/center\/([0-9.]+)[,/%2C]+([0-9.]+)/i) ||
+        decoded.match(/[?&]points=([0-9.]+)[,/%2C]+([0-9.]+)/i)
+      if (mMatch) {
+        const v1 = parseFloat(mMatch[1])
+        const v2 = parseFloat(mMatch[2])
+        let lat = null
+        let lon = null
+        if (v2 >= 40 && v2 <= 56 && v1 >= 46 && v1 <= 88) {
+          lat = v2
+          lon = v1
+        } else if (v1 >= 40 && v1 <= 56 && v2 >= 46 && v2 <= 88) {
+          lat = v1
+          lon = v2
+        }
+        if (lat && lon) {
+          handleChange('latitude', lat)
+          handleChange('longitude', lon)
+        }
       }
     } catch {
-      setShowMapModal(true)
-    } finally {
-      setGeocoding(false)
+      // Ignore URL decode error
     }
-  }
-
-  const handleLocationConfirmed = async ({ latitude, longitude, detectedAddress }) => {
-    handleChange('latitude', latitude)
-    handleChange('longitude', longitude)
-    if (detectedAddress && !settings.address) {
-      handleChange('address', detectedAddress)
-    }
-    await updateStoreSettings({ latitude, longitude })
   }
 
   // Store invite URL for QR code
@@ -266,7 +348,64 @@ export default function RetailSettingsScreen() {
     ? `${window.location.origin}/join/${currentStore.code}`
     : `${window.location.origin}/join/demo-store`
 
-  const downloadQR = () => {
+  const downloadQRSvg = () => {
+    const svg = qrRef.current?.querySelector('svg')
+    if (!svg) return
+
+    const storeName = (currentStore?.name || 'Körset').replace(/[<>&"]/g, '')
+    const storeCode = currentStore?.code || 'store'
+    const inviteUrl = storeInviteUrl.replace(/[<>&"]/g, '')
+    const scanLabel = (
+      t('retail.settings.scanWithCamera') || 'Отсканируйте камерой телефона'
+    ).replace(/[<>&"]/g, '')
+    const innerQr = svg.innerHTML
+
+    const svgWidth = 440
+    const svgHeight = 520
+    const qrSize = 300
+    const qrX = (svgWidth - qrSize) / 2
+    const qrY = 70
+
+    const svgContent = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}">
+  <defs>
+    <style>
+      .bg { fill: #ffffff; }
+      .border { fill: none; stroke: #E2E8F0; stroke-width: 2; rx: 24; }
+      .title { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 20px; font-weight: 800; fill: #0F172A; text-anchor: middle; }
+      .brand-badge { fill: #0284c7; rx: 12; }
+      .brand-text { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; font-weight: 900; fill: #ffffff; letter-spacing: 1.5px; text-anchor: middle; }
+      .subtext { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; font-weight: 600; fill: #475569; text-anchor: middle; }
+      .url { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; font-weight: 500; fill: #94A3B8; text-anchor: middle; }
+    </style>
+  </defs>
+
+  <rect width="${svgWidth}" height="${svgHeight}" rx="24" class="bg" />
+  <rect x="2" y="2" width="${svgWidth - 4}" height="${svgHeight - 4}" class="border" />
+
+  <text x="${svgWidth / 2}" y="44" class="title">${storeName}</text>
+
+  <g transform="translate(${qrX}, ${qrY}) scale(${qrSize / 180})">
+    ${innerQr}
+  </g>
+
+  <rect x="${(svgWidth - 110) / 2}" y="${qrY + qrSize - 16}" width="110" height="26" class="brand-badge" />
+  <text x="${svgWidth / 2}" y="${qrY + qrSize + 2}" class="brand-text">KÖRSET</text>
+
+  <text x="${svgWidth / 2}" y="${qrY + qrSize + 52}" class="subtext">${scanLabel}</text>
+  <text x="${svgWidth / 2}" y="${qrY + qrSize + 76}" class="url">${inviteUrl}</text>
+</svg>`.trim()
+
+    const blob = new window.Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.download = `korset-qr-${storeCode}.svg`
+    a.href = url
+    a.click()
+    setTimeout(() => window.URL.revokeObjectURL(url), 1000)
+  }
+
+  const downloadQRPng = () => {
     const svg = qrRef.current?.querySelector('svg')
     if (!svg) return
     const svgData = new XMLSerializer().serializeToString(svg)
@@ -274,24 +413,60 @@ export default function RetailSettingsScreen() {
     const ctx = canvas.getContext('2d')
     const img = new Image()
 
+    const w = 880
+    const h = 1040
+    canvas.width = w
+    canvas.height = h
+
     img.onload = () => {
-      canvas.width = 400
-      canvas.height = 400
-      ctx.fillStyle = '#fff'
-      ctx.fillRect(0, 0, 400, 400)
-      ctx.drawImage(img, 40, 40, 320, 320)
-      ctx.fillStyle = '#7C3AED'
-      ctx.fillRect(130, 350, 140, 30)
-      ctx.fillStyle = '#fff'
-      ctx.font = 'bold 14px sans-serif'
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, w, h)
+
+      ctx.fillStyle = '#0F172A'
+      ctx.font =
+        '800 40px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
       ctx.textAlign = 'center'
-      ctx.fillText('KÖRSET', 200, 370)
+      ctx.fillText(currentStore?.name || 'Körset', w / 2, 88)
+
+      const qrSize = 600
+      const qrX = (w - qrSize) / 2
+      const qrY = 140
+      ctx.drawImage(img, qrX, qrY, qrSize, qrSize)
+
+      const badgeW = 220
+      const badgeH = 52
+      ctx.fillStyle = '#0284c7'
+      if (typeof ctx.roundRect === 'function') {
+        ctx.beginPath()
+        ctx.roundRect((w - badgeW) / 2, qrY + qrSize - 32, badgeW, badgeH, 26)
+        ctx.fill()
+      } else {
+        ctx.fillRect((w - badgeW) / 2, qrY + qrSize - 32, badgeW, badgeH)
+      }
+
+      ctx.fillStyle = '#ffffff'
+      ctx.font =
+        '900 22px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+      ctx.fillText('KÖRSET', w / 2, qrY + qrSize + 2)
+
+      ctx.fillStyle = '#475569'
+      ctx.font =
+        '600 26px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+      ctx.fillText(
+        t('retail.settings.scanWithCamera') || 'Отсканируйте камерой телефона',
+        w / 2,
+        qrY + qrSize + 110
+      )
+
+      ctx.fillStyle = '#94A3B8'
+      ctx.font = '500 22px monospace'
+      ctx.fillText(storeInviteUrl, w / 2, qrY + qrSize + 155)
 
       const pngFile = canvas.toDataURL('image/png')
-      const downloadLink = document.createElement('a')
-      downloadLink.download = `korset-store-${currentStore?.code || 'invite'}.png`
-      downloadLink.href = pngFile
-      downloadLink.click()
+      const a = document.createElement('a')
+      a.download = `korset-qr-${currentStore?.code || 'store'}.png`
+      a.href = pngFile
+      a.click()
     }
 
     img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)))
@@ -308,25 +483,6 @@ export default function RetailSettingsScreen() {
     } catch (e) {
       setIsClearing(false)
       alert(t('retail.settings.clearError') + e.message)
-    }
-  }
-
-  // Phone input formatting
-  const handlePhoneInput = (key, newDisplayValue) => {
-    const prevLocal = key === 'phone' ? settings.phone : settings.whatsapp_number
-    const expectedDisplay = formatLocalPhone(prevLocal)
-    if (newDisplayValue.length > expectedDisplay.length + 1) {
-      const all = newDisplayValue.replace(/\D/g, '')
-      const local =
-        all.length > 10 && (all.startsWith('7') || all.startsWith('8'))
-          ? all.slice(1, 11)
-          : all.slice(0, 10)
-      handleChange(key, local)
-    } else if (newDisplayValue.length > expectedDisplay.length) {
-      const newChar = newDisplayValue.replace(/\D/g, '').slice(-1)
-      if (/\d/.test(newChar)) handleChange(key, (prevLocal + newChar).slice(0, 10))
-    } else {
-      handleChange(key, prevLocal.slice(0, -1))
     }
   }
 
@@ -389,31 +545,35 @@ export default function RetailSettingsScreen() {
         loading={isClearing}
       />
 
-      <StoreLocationModal
-        isOpen={showMapModal}
-        initialAddress={settings.address}
-        initialCity={currentStore?.city || 'Астана'}
-        initialLat={settings.latitude}
-        initialLon={settings.longitude}
-        onConfirm={handleLocationConfirmed}
-        onClose={() => setShowMapModal(false)}
+      <ImageCropModal
+        key={cropImageSrc || 'cropper'}
+        isOpen={isCropModalOpen}
+        imageSrc={cropImageSrc}
+        onConfirm={handleCropConfirmed}
+        onClose={() => {
+          setIsCropModalOpen(false)
+          if (cropImageSrc) {
+            URL.revokeObjectURL(cropImageSrc)
+            setCropImageSrc(null)
+          }
+        }}
       />
 
-      {/* ── Brand Sticky Topbar in Sky/Turquoise Gradient ── */}
+      {/* ── Brand Sticky Topbar in Solid Retail Blue ── */}
       <div
         style={{
           position: 'sticky',
           top: 0,
           zIndex: 25,
-          padding: 'calc(14px + env(safe-area-inset-top, 0px)) 20px 18px',
-          background: 'linear-gradient(135deg, #0284c7 0%, #0ea5e9 60%, #38bdf8 100%)',
-          borderBottomLeftRadius: 24,
-          borderBottomRightRadius: 24,
-          boxShadow: '0 10px 24px rgba(2, 132, 199, 0.22)',
+          padding: 'calc(14px + env(safe-area-inset-top, 0px)) 16px 14px',
+          background: '#0ea5e9',
+          borderBottomLeftRadius: 26,
+          borderBottomRightRadius: 26,
+          boxShadow: '0 8px 24px rgba(14, 165, 233, 0.22)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          gap: 12,
+          gap: 10,
         }}
       >
         {/* Overscroll bleed element to prevent white ceiling when pulled down */}
@@ -424,90 +584,132 @@ export default function RetailSettingsScreen() {
             left: 0,
             right: 0,
             height: 800,
-            background: 'inherit',
+            background: '#0ea5e9',
             pointerEvents: 'none',
           }}
           aria-hidden="true"
         />
 
-        <div>
+        <div style={{ minWidth: 0, flex: 1 }}>
           <h1
             style={{
               margin: 0,
-              fontSize: 22,
+              fontSize: 18,
               fontWeight: 800,
               fontFamily: 'var(--font-display)',
               color: '#ffffff',
               letterSpacing: '-0.3px',
               lineHeight: 1.2,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
           >
             {t('retail.settings.title') || 'Настройки профиля'}
           </h1>
           <div
             style={{
-              margin: '3px 0 0',
-              fontSize: 12,
+              margin: '2px 0 0',
+              fontSize: 11,
               fontWeight: 500,
-              color: 'rgba(255, 255, 255, 0.9)',
+              color: 'rgba(255, 255, 255, 0.92)',
               lineHeight: 1.3,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
           >
             {t('retail.settings.subtitle') || 'Управление витриной и данными магазина'}
           </div>
         </div>
 
-        {currentStore?.slug ? (
-          <a
-            href={`/s/${currentStore.slug}#store-about`}
-            target="_blank"
-            rel="noopener noreferrer"
-            title={t('retail.viewStoreFront') || 'Открыть витрину покупателя'}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          {currentStore?.slug ? (
+            <a
+              href={`/s/${currentStore.slug}#store-about`}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={t('retail.viewStoreFront') || 'Открыть витрину покупателя'}
+              style={{
+                height: 34,
+                boxSizing: 'border-box',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '0 10px',
+                borderRadius: 10,
+                background: 'rgba(255, 255, 255, 0.18)',
+                border: '1px solid rgba(255, 255, 255, 0.35)',
+                color: '#ffffff',
+                fontSize: 12,
+                fontWeight: 700,
+                textDecoration: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <EyeIcon size={14} color="#ffffff" />
+              <span>{t('retail.settings.previewStoreBtn') || 'Витрина'}</span>
+            </a>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving}
             style={{
+              height: 34,
+              boxSizing: 'border-box',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 7,
-              padding: '8px 14px',
-              borderRadius: 12,
-              background: 'rgba(255, 255, 255, 0.2)',
-              border: '1px solid rgba(255, 255, 255, 0.35)',
-              color: '#ffffff',
-              fontSize: 13,
-              fontWeight: 700,
-              textDecoration: 'none',
-              cursor: 'pointer',
+              justifyContent: 'center',
+              gap: 5,
+              padding: '0 12px',
+              borderRadius: 10,
+              background: '#ffffff',
+              border: 'none',
+              color: '#0284c7',
+              fontSize: 12,
+              fontWeight: 800,
+              fontFamily: 'var(--font-display)',
+              cursor: isSaving ? 'default' : 'pointer',
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.12)',
-              flexShrink: 0,
               transition: 'all 0.15s ease',
+              position: 'relative',
             }}
           >
-            <EyeIcon size={16} color="#ffffff" />
-            <span>{t('retail.settings.previewStoreBtn') || 'Витрина'}</span>
-          </a>
-        ) : (
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 7,
-              padding: '8px 14px',
-              borderRadius: 12,
-              background: 'rgba(255, 255, 255, 0.15)',
-              color: 'rgba(255, 255, 255, 0.7)',
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: 'default',
-            }}
-          >
-            <EyeIcon size={16} color="currentColor" />
-            <span>{t('retail.settings.previewStoreBtn') || 'Витрина'}</span>
-          </span>
-        )}
+            {isSaving ? (
+              <SyncIcon size={13} style={{ animation: 'spin 1s linear infinite' }} />
+            ) : saveStatus === 'ok' ? (
+              <CheckCircleIcon size={14} color="#10B981" />
+            ) : null}
+            <span>
+              {isSaving
+                ? t('retail.settings.saving') || '...'
+                : saveStatus === 'ok'
+                  ? t('retail.settings.saved') || 'Готово'
+                  : t('retail.settings.save') || 'Сохранить'}
+            </span>
+            {isDirty && saveStatus !== 'ok' && !isSaving && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: -2,
+                  right: -2,
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  background: '#EF4444',
+                  boxShadow: '0 0 0 2px #0ea5e9',
+                }}
+                title={t('retail.settings.unsavedChanges') || 'Есть несохраненные изменения'}
+              />
+            )}
+          </button>
+        </div>
       </div>
 
-      <div
-        style={{ padding: '20px 16px 120px', display: 'flex', flexDirection: 'column', gap: 20 }}
-      >
+      <div style={{ padding: '20px 16px 40px', display: 'flex', flexDirection: 'column', gap: 20 }}>
         {/* ── 1. ОСНОВНАЯ ИНФОРМАЦИЯ ── */}
         <div>
           <div style={SECTION_LABEL_STYLE}>
@@ -524,30 +726,61 @@ export default function RetailSettingsScreen() {
               }}
             >
               <div
+                onClick={() => logoInputRef.current?.click()}
+                title={
+                  logoUrl
+                    ? t('retail.settings.replaceLogo') || 'Изменить логотип'
+                    : t('retail.settings.logoUpload') || 'Загрузить логотип'
+                }
                 style={{
-                  width: 88,
-                  height: 88,
+                  width: 80,
+                  height: 80,
                   borderRadius: 20,
-                  border: '1.5px solid var(--border-bright)',
+                  border: '1.5px solid var(--border)',
                   background: 'var(--surface)',
-                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.16)',
+                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.12)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   overflow: 'hidden',
                   flexShrink: 0,
                   position: 'relative',
+                  cursor: 'pointer',
+                  transition: 'border-color 0.15s ease',
                 }}
               >
                 {logoUrl ? (
                   <img
                     src={logoUrl}
                     alt="logo"
-                    style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 6 }}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                 ) : (
-                  <StorefrontIcon size={36} color="var(--text-dim)" />
+                  <StorefrontIcon size={32} color="var(--text-dim)" />
                 )}
+
+                {/* Subtle camera hover overlay */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: logoUrl ? 'rgba(0, 0, 0, 0.38)' : 'transparent',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    opacity: logoUrl ? 0 : 1,
+                    transition: 'opacity 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (logoUrl) e.currentTarget.style.opacity = '1'
+                  }}
+                  onMouseLeave={(e) => {
+                    if (logoUrl) e.currentTarget.style.opacity = '0'
+                  }}
+                >
+                  {logoUrl && <CameraIcon size={26} color="#ffffff" />}
+                </div>
+
                 {logoUploading && (
                   <div
                     style={{
@@ -557,6 +790,7 @@ export default function RetailSettingsScreen() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
+                      zIndex: 3,
                     }}
                   >
                     <SyncIcon
@@ -571,7 +805,7 @@ export default function RetailSettingsScreen() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div
                   style={{
-                    fontSize: 16,
+                    fontSize: 15,
                     color: 'var(--text)',
                     fontWeight: 700,
                     fontFamily: 'var(--font-display)',
@@ -582,13 +816,15 @@ export default function RetailSettingsScreen() {
                 </div>
                 <div
                   style={{
-                    fontSize: 12,
-                    color: 'var(--text-sub)',
+                    fontSize: 11,
+                    color: 'var(--text-dim)',
                     lineHeight: 1.35,
                     marginBottom: 10,
                   }}
                 >
-                  Отображается на витрине, в поиске и в карточках товаров
+                  {isKz
+                    ? '1:1 форматы · Кадрирлеу және авто-қысу'
+                    : 'Квадрат 1:1 · Автоматическое сжатие без ограничений'}
                 </div>
 
                 <input
@@ -596,19 +832,19 @@ export default function RetailSettingsScreen() {
                   type="file"
                   accept="image/png,image/jpeg,image/webp"
                   style={{ display: 'none' }}
-                  onChange={handleLogoUpload}
+                  onChange={handleLogoFileSelect}
                 />
 
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <button
                     type="button"
                     onClick={() => logoInputRef.current?.click()}
                     disabled={logoUploading}
                     style={{
-                      padding: '8px 14px',
+                      padding: '7px 12px',
                       borderRadius: 10,
-                      background: 'rgba(56, 189, 248, 0.12)',
-                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                      background: 'rgba(56, 189, 248, 0.1)',
+                      border: '1px solid rgba(56, 189, 248, 0.25)',
                       color: 'var(--retail-accent, #38BDF8)',
                       fontSize: 12,
                       fontWeight: 600,
@@ -621,13 +857,15 @@ export default function RetailSettingsScreen() {
                     }}
                   >
                     {logoUploading ? (
-                      <SyncIcon size={15} style={{ animation: 'spin 1s linear infinite' }} />
+                      <SyncIcon size={16} style={{ animation: 'spin 1s linear infinite' }} />
                     ) : (
-                      <CameraIcon size={15} />
+                      <CameraIcon size={17} />
                     )}
-                    {logoUrl
-                      ? t('retail.settings.replaceLogo') || 'Заменить'
-                      : t('retail.settings.logoUpload') || 'Загрузить логотип'}
+                    <span>
+                      {logoUrl
+                        ? t('retail.settings.replaceLogo') || 'Изменить'
+                        : t('retail.settings.logoUpload') || 'Загрузить'}
+                    </span>
                   </button>
 
                   {logoUrl && (
@@ -636,10 +874,10 @@ export default function RetailSettingsScreen() {
                       onClick={handleLogoDelete}
                       disabled={logoUploading}
                       style={{
-                        padding: '8px 12px',
+                        padding: '7px 11px',
                         borderRadius: 10,
-                        background: 'rgba(239, 68, 68, 0.1)',
-                        border: '1px solid rgba(239, 68, 68, 0.25)',
+                        background: 'rgba(239, 68, 68, 0.08)',
+                        border: '1px solid rgba(239, 68, 68, 0.2)',
                         color: 'var(--error-bright, #EF4444)',
                         fontSize: 12,
                         fontWeight: 600,
@@ -652,13 +890,11 @@ export default function RetailSettingsScreen() {
                       }}
                     >
                       <TrashIcon size={14} />
-                      {t('retail.settings.deleteLogo') || 'Удалить'}
+                      <span>
+                        {t('retail.settings.deleteLogo') || t('common.delete') || 'Удалить'}
+                      </span>
                     </button>
                   )}
-                </div>
-
-                <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 8 }}>
-                  {t('retail.settings.logoHint') || 'PNG, JPG, WEBP · До 2MB'}
                 </div>
               </div>
             </div>
@@ -711,51 +947,55 @@ export default function RetailSettingsScreen() {
                   {t('retail.settings.storeTypeHint') || '(Формат торговой точки)'}
                 </span>
               </div>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-                  gap: 8,
-                  marginTop: 6,
-                }}
-              >
-                {[
-                  { id: 'minimarket', label: t('stores.type.minimarket') || 'Минимаркет' },
-                  { id: 'supermarket', label: t('stores.type.supermarket') || 'Супермаркет' },
-                  { id: 'halal', label: t('stores.type.halal') || 'Халал маркет' },
-                  { id: 'specialty', label: t('stores.type.specialty') || 'Специализированный' },
-                  { id: 'other', label: t('stores.type.other') || 'Магазин у дома' },
-                ].map((item) => {
-                  const isSelected = (settings.type || 'minimarket') === item.id
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => handleChange('type', item.id)}
-                      style={{
-                        padding: '10px 12px',
-                        borderRadius: 12,
-                        border: isSelected
-                          ? '1.5px solid var(--retail-accent, #38BDF8)'
-                          : '1px solid var(--border)',
-                        background: isSelected ? 'rgba(56, 189, 248, 0.12)' : 'var(--surface)',
-                        color: isSelected ? 'var(--retail-accent, #38BDF8)' : 'var(--text)',
-                        fontSize: 13,
-                        fontWeight: isSelected ? 600 : 400,
-                        fontFamily: 'var(--font-display)',
-                        cursor: 'pointer',
-                        textAlign: 'center',
-                        transition: 'all 0.15s ease',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        lineHeight: 1.25,
-                      }}
-                    >
-                      {item.label}
-                    </button>
-                  )
-                })}
+              <div style={{ position: 'relative', marginTop: 6 }}>
+                <select
+                  value={settings.type || 'minimarket'}
+                  onChange={(e) => handleChange('type', e.target.value)}
+                  style={{
+                    ...INPUT_STYLE,
+                    appearance: 'none',
+                    WebkitAppearance: 'none',
+                    paddingRight: 36,
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                  }}
+                >
+                  <option value="minimarket">
+                    {t('retail.settings.typeMinimarket') ||
+                      t('stores.type.minimarket') ||
+                      'Минимаркет'}
+                  </option>
+                  <option value="supermarket">
+                    {t('retail.settings.typeSupermarket') ||
+                      t('stores.type.supermarket') ||
+                      'Супермаркет'}
+                  </option>
+                  <option value="halal">
+                    {t('retail.settings.typeHalal') || t('stores.type.halal') || 'Халал маркет'}
+                  </option>
+                  <option value="specialty">
+                    {t('retail.settings.typeSpecialty') ||
+                      t('stores.type.specialty') ||
+                      'Специализированный'}
+                  </option>
+                  <option value="other">
+                    {t('retail.settings.typeOther') || t('stores.type.other') || 'Магазин у дома'}
+                  </option>
+                </select>
+                <div
+                  style={{
+                    position: 'absolute',
+                    right: 12,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    pointerEvents: 'none',
+                    color: 'var(--text-dim)',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <ChevronDownIcon size={16} />
+                </div>
               </div>
             </div>
 
@@ -788,119 +1028,26 @@ export default function RetailSettingsScreen() {
           <div style={SECTION_LABEL_STYLE}>
             {t('retail.settings.contactsTitle') || 'КОНТАКТЫ И СОЦСЕТИ'}
           </div>
-          <div style={{ ...CARD_STYLE, padding: 0, overflow: 'hidden' }}>
-            {[
-              {
-                key: 'phone',
-                label: t('retail.settings.phoneLabel') || 'Телефон магазина',
-                subLabel: t('retail.settings.phoneSubLabel') || 'Номер для звонков покупателей',
-                icon: PhoneCallIcon,
-                placeholder: '+7 (700) 000-00-00',
-                type: 'tel',
-                isPhone: true,
-              },
-              {
-                key: 'whatsapp_number',
-                label: 'WhatsApp',
-                subLabel:
-                  t('retail.settings.whatsappSubLabel') || 'Для быстрых сообщений и заказов',
-                icon: WhatsAppIcon,
-                placeholder: '+7 (700) 000-00-00',
-                type: 'tel',
-                isPhone: true,
-              },
-              {
-                key: 'instagram_url',
-                label: 'Instagram',
-                subLabel: t('retail.settings.instagramSubLabel') || 'Профиль магазина или никнейм',
-                icon: InstagramIcon,
-                placeholder: 'https://instagram.com/store или @store',
-                type: 'text',
-              },
-              {
-                key: 'twogis_url',
-                label: '2GIS',
-                subLabel:
-                  t('retail.settings.twogisSubLabel') || 'Ссылка на карточку филиала в 2GIS',
-                icon: TwoGisIcon,
-                placeholder: 'https://2gis.kz/astana/firm/...',
-                type: 'url',
-              },
-            ].map((field, idx, arr) => {
-              const IconComp = field.icon
-              return (
-                <div key={field.key}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 12,
-                      padding: '12px 16px',
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 38,
-                        height: 38,
-                        borderRadius: 10,
-                        background: 'rgba(56, 189, 248, 0.1)',
-                        border: '1px solid rgba(56, 189, 248, 0.2)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'var(--retail-accent, #38BDF8)',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <IconComp size={18} />
-                    </div>
-
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div
-                        style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 2 }}
-                      >
-                        <span style={{ fontSize: 13, color: 'var(--text)', fontWeight: 600 }}>
-                          {field.label}
-                        </span>
-                        <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>
-                          {field.subLabel}
-                        </span>
-                      </div>
-                      <input
-                        type={field.type}
-                        value={
-                          field.isPhone
-                            ? formatLocalPhone(settings[field.key])
-                            : settings[field.key] || ''
-                        }
-                        onChange={(e) => {
-                          if (field.isPhone) handlePhoneInput(field.key, e.target.value)
-                          else handleChange(field.key, e.target.value)
-                        }}
-                        placeholder={field.placeholder}
-                        style={{
-                          ...INPUT_STYLE,
-                          padding: '7px 10px',
-                          fontSize: 13,
-                        }}
-                      />
-                    </div>
-                  </div>
-                  {idx < arr.length - 1 && (
-                    <div style={{ height: 1, background: 'var(--line-soft)', margin: '0 16px' }} />
-                  )}
-                </div>
-              )
-            })}
-          </div>
+          <StoreContactsEditor
+            phones={phones}
+            whatsapps={whatsapps}
+            instagramUrl={settings.instagram_url}
+            twogisUrl={settings.twogis_url}
+            onPhonesChange={handlePhonesChange}
+            onWhatsappsChange={handleWhatsappsChange}
+            onInstagramChange={(val) => handleChange('instagram_url', val)}
+            onTwogisChange={(val) => handleChange('twogis_url', val)}
+            disabled={isSaving}
+          />
         </div>
 
-        {/* ── 3. ФАКТИЧЕСКИЙ АДРЕС И КАРТА ── */}
+        {/* ── 3. ФАКТИЧЕСКИЙ АДРЕС И 2GIS ── */}
         <div>
           <div style={SECTION_LABEL_STYLE}>
-            {t('retail.settings.addressLabel') || 'ФАКТИЧЕСКИЙ АДРЕС И КАРТА'}
+            {isKz ? 'ФАКТІЛІК МЕКЕНЖАЙ ЖӘНЕ 2GIS' : 'ФАКТИЧЕСКИЙ АДРЕС И 2GIS'}
           </div>
-          <div style={{ ...CARD_STYLE, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ ...CARD_STYLE, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* 3.1 Фактический адрес */}
             <div>
               <div style={FIELD_LABEL}>
                 {t('retail.settings.addressLabel') || 'Фактический адрес'}
@@ -909,85 +1056,276 @@ export default function RetailSettingsScreen() {
                 type="text"
                 value={settings.address}
                 onChange={(e) => handleChange('address', e.target.value)}
-                placeholder="Например: ул. Сыганак, 14"
+                placeholder={
+                  isKz
+                    ? 'Мысалы: Сығанақ көшесі, 14, «Лазурный квартал» ТК'
+                    : 'Например: ул. Сыганак, 14, ЖК Лазурный квартал'
+                }
                 style={INPUT_STYLE}
               />
+            </div>
 
-              <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+            {/* 3.2 Привязка карточки в 2GIS */}
+            <div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 6,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: 6,
+                      background: 'rgba(56, 189, 248, 0.12)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--retail-accent, #38BDF8)',
+                    }}
+                  >
+                    <TwoGisIcon size={14} />
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
+                    {isKz ? '2GIS сілтемесі (координаттар мен бағыт)' : 'Ссылка на карточку в 2GIS'}
+                  </span>
+                </div>
+
+                {settings.twogis_url && (
+                  <a
+                    href={
+                      settings.twogis_url.startsWith('http')
+                        ? settings.twogis_url
+                        : `https://${settings.twogis_url}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      fontSize: 12,
+                      color: 'var(--retail-accent, #38BDF8)',
+                      textDecoration: 'none',
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    <span>{isKz ? '2GIS-те ашу ↗' : 'Открыть в 2GIS ↗'}</span>
+                  </a>
+                )}
+              </div>
+
+              <input
+                type="text"
+                value={settings.twogis_url || ''}
+                onChange={(e) => handle2GisUrlChange(e.target.value)}
+                placeholder="https://2gis.kz/astana/firm/... немесе go.2gis.com/..."
+                style={INPUT_STYLE}
+              />
+              <div
+                style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4, lineHeight: 1.35 }}
+              >
+                {isKz
+                  ? '2GIS-те дүкен парақшасын ашып, «Бөлісу» түймесінен сілтемені көшіріп қойыңыз. Координаттар автоматты түрде анықталады.'
+                  : 'Откройте филиал в 2GIS и нажмите «Поделиться». Координаты для покупателей определятся автоматически.'}
+              </div>
+            </div>
+
+            {/* Координаты статус и ручная правка */}
+            {settings.latitude && settings.longitude ? (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 8,
+                  fontSize: 12,
+                  color: 'var(--text)',
+                  padding: '9px 12px',
+                  borderRadius: 10,
+                  background: 'rgba(16, 185, 129, 0.08)',
+                  border: '1px solid rgba(16, 185, 129, 0.25)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+                  <CheckCircleIcon size={15} color="#10B981" />
+                  <span>
+                    {isKz ? 'Координаттар бекітілді:' : 'Координаты зафиксированы:'}{' '}
+                    <b style={{ fontFamily: 'monospace' }}>
+                      {Number(settings.latitude).toFixed(4)},{' '}
+                      {Number(settings.longitude).toFixed(4)}
+                    </b>
+                  </span>
+                </div>
                 <button
                   type="button"
-                  onClick={handleGeocode}
-                  disabled={geocoding}
+                  onClick={() => setShowManualCoords(!showManualCoords)}
                   style={{
-                    flex: 1,
-                    minWidth: 140,
-                    padding: '9px 12px',
-                    borderRadius: 10,
-                    background: 'rgba(56, 189, 248, 0.1)',
-                    border: '1px solid rgba(56, 189, 248, 0.25)',
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-dim)',
+                    fontSize: 11,
+                    textDecoration: 'underline',
+                    cursor: 'pointer',
+                    padding: 0,
+                  }}
+                >
+                  {showManualCoords ? (isKz ? 'Жасыру' : 'Скрыть') : isKz ? 'Өзгерту' : 'Изменить'}
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowManualCoords(!showManualCoords)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
                     color: 'var(--retail-accent, #38BDF8)',
                     fontSize: 12,
                     fontWeight: 600,
-                    cursor: geocoding ? 'default' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6,
-                  }}
-                >
-                  {geocoding ? (
-                    <SyncIcon size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                  ) : (
-                    <LocationPinIcon size={14} />
-                  )}
-                  {t('retail.settings.findCoords') || 'Определить координаты'}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setShowMapModal(true)}
-                  style={{
-                    flex: 1,
-                    minWidth: 140,
-                    padding: '9px 12px',
-                    borderRadius: 10,
-                    background: 'rgba(124, 58, 237, 0.1)',
-                    border: '1px solid rgba(124, 58, 237, 0.25)',
-                    color: '#A78BFA',
-                    fontSize: 12,
-                    fontWeight: 600,
                     cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6,
+                    padding: 0,
                   }}
                 >
-                  <LocationPinIcon size={14} />
-                  {t('retail.settings.viewOnMap') || 'Указать на карте'}
+                  {isKz ? '+ Координаттарды қолмен енгізу' : '+ Ввести координаты вручную'}
                 </button>
               </div>
+            )}
 
-              {settings.latitude && settings.longitude && (
+            {/* Manual Lat/Lon fields */}
+            {showManualCoords && (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: 10,
+                  padding: '10px 12px',
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 10,
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 4 }}>
+                    {isKz ? 'Ендік (Latitude)' : 'Широта (Latitude)'}
+                  </div>
+                  <input
+                    type="number"
+                    step="any"
+                    value={settings.latitude || ''}
+                    onChange={(e) => handleChange('latitude', e.target.value)}
+                    placeholder="51.1693"
+                    style={{ ...INPUT_STYLE, padding: '7px 10px', fontSize: 13 }}
+                  />
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 4 }}>
+                    {isKz ? 'Бойлық (Longitude)' : 'Долгота (Longitude)'}
+                  </div>
+                  <input
+                    type="number"
+                    step="any"
+                    value={settings.longitude || ''}
+                    onChange={(e) => handleChange('longitude', e.target.value)}
+                    placeholder="71.4490"
+                    style={{ ...INPUT_STYLE, padding: '7px 10px', fontSize: 13 }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Minimalist Collapsible Local SEO Hint */}
+            <div
+              style={{
+                marginTop: 2,
+                borderRadius: 12,
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                overflow: 'hidden',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setShowSeoExplanation(!showSeoExplanation)}
+                style={{
+                  width: '100%',
+                  padding: '11px 13px',
+                  background: 'transparent',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  gap: 10,
+                  textAlign: 'left',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                  <SearchIcon size={15} color="var(--text-dim)" />
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: 'var(--text)',
+                    }}
+                  >
+                    {t('retail.settings.seoTitle') || 'Влияние адреса на локальный поиск (SEO)'}
+                  </span>
+                </div>
+                <ChevronDownIcon
+                  size={14}
+                  color="var(--text-dim)"
+                  style={{
+                    transform: showSeoExplanation ? 'rotate(180deg)' : 'none',
+                    transition: 'transform 0.2s ease',
+                    flexShrink: 0,
+                  }}
+                />
+              </button>
+
+              {showSeoExplanation && (
                 <div
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
+                    padding: '0 13px 12px',
                     fontSize: 12,
-                    color: '#10B981',
-                    marginTop: 10,
-                    padding: '8px 12px',
-                    borderRadius: 8,
-                    background: 'rgba(16, 185, 129, 0.08)',
-                    border: '1px solid rgba(16, 185, 129, 0.2)',
+                    color: 'var(--text-sub)',
+                    lineHeight: 1.5,
+                    borderTop: '1px solid var(--line-soft)',
+                    paddingTop: 10,
                   }}
                 >
-                  <CheckCircleIcon size={14} color="#10B981" />
-                  <span>
-                    {t('retail.settings.coordsSet') || 'Координаты зафиксированы:'}{' '}
-                    {Number(settings.latitude).toFixed(5)}, {Number(settings.longitude).toFixed(5)}
-                  </span>
+                  <div style={{ marginBottom: 8, color: 'var(--text)', fontWeight: 500 }}>
+                    {t('retail.settings.seoBrief') ||
+                      'Точные координаты выводят витрину магазина в топ выдачи Google и на картах рядом с покупателем.'}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 11.5 }}>
+                    <div>
+                      <strong style={{ color: 'var(--text)' }}>2GIS, Google & Яндекс: </strong>
+                      <span>
+                        {t('retail.settings.seoP1Desc') ||
+                          'Поисковые алгоритмы показывают магазин в карточках выдачи для пользователей поблизости.'}
+                      </span>
+                    </div>
+                    <div>
+                      <strong style={{ color: 'var(--text)' }}>Навигация 2GIS: </strong>
+                      <span>
+                        {t('retail.settings.seoP2Desc') ||
+                          'Покупатели видят расстояние в метрах и переходят в 2GIS прямо до входа.'}
+                      </span>
+                    </div>
+                    <div>
+                      <strong style={{ color: 'var(--text)' }}>Штрихкод-сканер: </strong>
+                      <span>
+                        {t('retail.settings.seoP3Desc') ||
+                          'При сканировании товаров покупатели мгновенно привязываются к вашему магазину.'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -995,18 +1333,30 @@ export default function RetailSettingsScreen() {
         </div>
 
         {/* ── 4. ФОТОГРАФИИ МАГАЗИНА (ПО ЗОНАМ) ── */}
-        <StorePhotosManager
-          storeId={currentStore?.id}
-          images={settings.images}
-          onChange={(imgs) => handleChange('images', imgs)}
-          onAutoSave={(imgs) => updateStoreSettings({ images: imgs })}
-        />
+        <div>
+          <div style={SECTION_LABEL_STYLE}>
+            {t('retail.settings.imagesTitle') || 'ФОТОГРАФИИ МАГАЗИНА'}
+          </div>
+          <StorePhotosManager
+            storeId={currentStore?.id}
+            images={settings.images}
+            onChange={(imgs) => handleChange('images', imgs)}
+            onAutoSave={(imgs) => updateStoreSettings({ images: imgs })}
+          />
+        </div>
 
         {/* ── 5. ОСОБЕННОСТИ И СЕРВИС МАГАЗИНА ── */}
-        <StoreAmenitiesEditor
-          selectedFeatures={settings.features}
-          onChange={(feats) => handleChange('features', feats)}
-        />
+        <div>
+          <div style={SECTION_LABEL_STYLE}>
+            {t('retail.settings.amenitiesSectionTitle') || 'ОСОБЕННОСТИ И СЕРВИС МАГАЗИНА'}
+          </div>
+          <div style={CARD_STYLE}>
+            <StoreAmenitiesEditor
+              selectedFeatures={settings.features}
+              onChange={(feats) => handleChange('features', feats)}
+            />
+          </div>
+        </div>
 
         {/* ── 6. ЗАМЕТКИ ДЛЯ KÖRSET AI ── */}
         <div>
@@ -1091,14 +1441,15 @@ export default function RetailSettingsScreen() {
                   width: 40,
                   height: 40,
                   borderRadius: 10,
-                  background: 'rgba(124,58,237,0.15)',
-                  border: '1px solid rgba(124,58,237,0.3)',
+                  background: 'rgba(56, 189, 248, 0.12)',
+                  border: '1px solid rgba(56, 189, 248, 0.25)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  color: 'var(--retail-accent, #38BDF8)',
                 }}
               >
-                <BarcodeScannerIcon size={20} color="#A78BFA" />
+                <QrCodeIcon size={22} color="var(--retail-accent, #38BDF8)" />
               </div>
               <div>
                 <div style={{ fontSize: 14, color: 'var(--text)', fontWeight: 600 }}>
@@ -1117,9 +1468,9 @@ export default function RetailSettingsScreen() {
                 width: '100%',
                 padding: '10px 14px',
                 borderRadius: 10,
-                background: 'rgba(124,58,237,0.1)',
-                border: '1px solid rgba(124,58,237,0.25)',
-                color: '#A78BFA',
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                color: 'var(--text)',
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -1127,6 +1478,7 @@ export default function RetailSettingsScreen() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 8,
+                transition: 'all 0.15s ease',
               }}
             >
               <EyeIcon size={16} />
@@ -1143,7 +1495,8 @@ export default function RetailSettingsScreen() {
                   alignItems: 'center',
                   gap: 14,
                   padding: '16px',
-                  background: 'var(--input-bg)',
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border)',
                   borderRadius: 12,
                   marginTop: 12,
                 }}
@@ -1152,9 +1505,10 @@ export default function RetailSettingsScreen() {
                   ref={qrRef}
                   style={{
                     background: '#fff',
-                    borderRadius: 12,
-                    padding: 12,
+                    borderRadius: 14,
+                    padding: 14,
                     position: 'relative',
+                    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)',
                   }}
                 >
                   <QRCode
@@ -1167,7 +1521,7 @@ export default function RetailSettingsScreen() {
                   <div
                     style={{
                       position: 'absolute',
-                      bottom: 16,
+                      bottom: 18,
                       left: '50%',
                       transform: 'translateX(-50%)',
                       background: 'var(--primary)',
@@ -1176,6 +1530,7 @@ export default function RetailSettingsScreen() {
                       borderRadius: 99,
                       fontSize: 10,
                       fontWeight: 700,
+                      letterSpacing: 0.5,
                     }}
                   >
                     KÖRSET
@@ -1184,7 +1539,7 @@ export default function RetailSettingsScreen() {
 
                 <div style={{ textAlign: 'center', width: '100%' }}>
                   <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 4 }}>
-                    {t('retail.settings.linkLabel') || 'Прямая ссылка на магазин:'}
+                    {t('retail.settings.linkLabel') || 'Прямая ссылка на витрину магазина:'}
                   </div>
                   <div
                     style={{
@@ -1192,7 +1547,7 @@ export default function RetailSettingsScreen() {
                       color: 'var(--retail-accent, #38BDF8)',
                       fontFamily: 'monospace',
                       background: 'rgba(56,189,248,0.08)',
-                      padding: '6px 10px',
+                      padding: '7px 10px',
                       borderRadius: 8,
                       wordBreak: 'break-all',
                     }}
@@ -1201,17 +1556,24 @@ export default function RetailSettingsScreen() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+                {/* Actions row: Copy Link, SVG Download, PNG Download */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                    gap: 8,
+                    width: '100%',
+                  }}
+                >
                   <button
                     type="button"
                     onClick={() => navigator.clipboard?.writeText(storeInviteUrl)}
                     style={{
-                      flex: 1,
                       padding: '8px 12px',
                       borderRadius: 8,
-                      background: 'rgba(56,189,248,0.12)',
-                      border: '1px solid rgba(56,189,248,0.25)',
-                      color: 'var(--retail-accent, #38BDF8)',
+                      background: 'var(--surface)',
+                      border: '1px solid var(--border)',
+                      color: 'var(--text)',
                       fontSize: 12,
                       fontWeight: 600,
                       cursor: 'pointer',
@@ -1222,19 +1584,19 @@ export default function RetailSettingsScreen() {
                     }}
                   >
                     <ShareIcon size={14} />
-                    {t('retail.settings.copy') || 'Копировать'}
+                    <span>{t('retail.settings.copy') || 'Копировать'}</span>
                   </button>
 
                   <button
                     type="button"
-                    onClick={downloadQR}
+                    onClick={downloadQRSvg}
+                    title={t('retail.settings.qrSvgHint') || 'Для типографий, наклеек и витрин'}
                     style={{
-                      flex: 1,
                       padding: '8px 12px',
                       borderRadius: 8,
-                      background: 'rgba(124,58,237,0.15)',
-                      border: '1px solid rgba(124,58,237,0.3)',
-                      color: '#A78BFA',
+                      background: 'rgba(56, 189, 248, 0.12)',
+                      border: '1px solid rgba(56, 189, 248, 0.28)',
+                      color: 'var(--retail-accent, #38BDF8)',
                       fontSize: 12,
                       fontWeight: 600,
                       cursor: 'pointer',
@@ -1245,8 +1607,42 @@ export default function RetailSettingsScreen() {
                     }}
                   >
                     <InstallIcon size={14} />
-                    {t('retail.settings.downloadPng') || 'Скачать PNG'}
+                    <span>{t('retail.settings.downloadSvg') || 'Векторный SVG'}</span>
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={downloadQRPng}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      background: 'var(--surface)',
+                      border: '1px solid var(--border)',
+                      color: 'var(--text)',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                    }}
+                  >
+                    <InstallIcon size={14} />
+                    <span>{t('retail.settings.downloadPngHighRes') || 'Печать PNG (HD)'}</span>
+                  </button>
+                </div>
+
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: 'var(--text-dim)',
+                    textAlign: 'center',
+                    lineHeight: 1.35,
+                  }}
+                >
+                  {t('retail.settings.qrSvgHint') ||
+                    'SVG подходит для типографий, наклеек и витринных баннеров — масштабируется без потери качества.'}
                 </div>
               </div>
             )}
@@ -1321,10 +1717,11 @@ export default function RetailSettingsScreen() {
           </div>
           <div
             style={{
-              background: 'var(--card-bg, #0f172a)',
-              border: '1px solid rgba(239, 68, 68, 0.25)',
-              borderRadius: 16,
-              padding: 16,
+              background: 'var(--bg-card)',
+              border: '1px solid rgba(239, 68, 68, 0.28)',
+              borderRadius: 18,
+              padding: 18,
+              boxShadow: 'var(--shadow-card)',
               display: 'flex',
               flexDirection: 'column',
               gap: 14,
@@ -1424,109 +1821,96 @@ export default function RetailSettingsScreen() {
             </div>
           </div>
         </div>
-      </div>
+        {/* ── СОХРАНИТЬ НАСТРОЙКИ (В ПОТОКЕ ФОРМЫ) ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 6 }}>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving}
+            style={{
+              width: '100%',
+              padding: '14px 20px',
+              borderRadius: 14,
+              background: isSaving ? 'rgba(2, 132, 199, 0.6)' : '#0284c7',
+              border: 'none',
+              color: '#ffffff',
+              fontSize: 15,
+              fontWeight: 700,
+              cursor: isSaving ? 'default' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              boxShadow: '0 4px 16px rgba(2, 132, 199, 0.28)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {isSaving ? (
+              <>
+                <SyncIcon size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                <span>{t('retail.settings.saving') || 'Сохраняем...'}</span>
+              </>
+            ) : (
+              <>
+                <CheckCircleIcon size={16} color="#ffffff" />
+                <span>{t('retail.settings.save') || 'Сохранить настройки'}</span>
+                {isDirty && (
+                  <span
+                    style={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: '50%',
+                      background: '#ffffff',
+                      opacity: 0.8,
+                      marginLeft: 2,
+                    }}
+                    title={t('retail.settings.unsavedChanges') || 'Есть несохраненные изменения'}
+                  />
+                )}
+              </>
+            )}
+          </button>
 
-      {/* ── STICKY BOTTOM ACTION BAR (ВСЕГДА ПОД РУКОЙ) ── */}
-      <div
-        style={{
-          position: 'fixed',
-          bottom: 'calc(62px + env(safe-area-inset-bottom, 0px))',
-          left: 0,
-          right: 0,
-          zIndex: 90,
-          padding: '10px 16px',
-          background: 'var(--card-bg, #0f172a)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          borderTop: '1px solid var(--retail-border, rgba(56,189,248,0.15))',
-          boxShadow: '0 -10px 30px rgba(0,0,0,0.3)',
-          display: 'flex',
-          alignItems: 'center',
-        }}
-      >
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={isSaving}
-          style={{
-            width: '100%',
-            padding: '12px 18px',
-            borderRadius: 12,
-            background: isSaving ? 'rgba(56, 189, 248, 0.5)' : 'var(--retail-accent, #38BDF8)',
-            border: 'none',
-            color: '#07070F',
-            fontSize: 14,
-            fontWeight: 700,
-            cursor: isSaving ? 'default' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            boxShadow: '0 4px 14px rgba(56, 189, 248, 0.3)',
-            transition: 'all 0.15s ease',
-          }}
-        >
-          {isSaving ? (
-            <>
-              <SyncIcon size={16} style={{ animation: 'spin 1s linear infinite' }} />
-              <span>{t('retail.settings.saving') || 'Сохраняем...'}</span>
-            </>
-          ) : (
-            <>
-              <CheckCircleIcon size={16} color="#07070F" />
-              <span>{t('retail.settings.save') || 'Сохранить настройки'}</span>
-            </>
+          {saveStatus === 'ok' && (
+            <div
+              style={{
+                padding: '10px 14px',
+                borderRadius: 10,
+                background: 'rgba(16, 185, 129, 0.12)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                color: '#10B981',
+                fontSize: 13,
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              <CheckCircleIcon size={16} color="#10B981" />
+              <span>{t('retail.settings.saved') || 'Настройки успешно сохранены'}</span>
+            </div>
           )}
-        </button>
 
-        {/* Floating status feedback */}
-        {saveStatus === 'ok' && (
-          <div
-            style={{
-              position: 'absolute',
-              top: -40,
-              left: 16,
-              right: 16,
-              padding: '8px 12px',
-              borderRadius: 8,
-              background: 'rgba(16, 185, 129, 0.95)',
-              color: '#fff',
-              fontSize: 12,
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-            }}
-          >
-            <CheckCircleIcon size={16} color="#fff" />
-            <span>{t('retail.settings.saved') || 'Настройки успешно сохранены'}</span>
-          </div>
-        )}
-
-        {saveStatus === 'error' && (
-          <div
-            style={{
-              position: 'absolute',
-              top: -40,
-              left: 16,
-              right: 16,
-              padding: '8px 12px',
-              borderRadius: 8,
-              background: 'rgba(239, 68, 68, 0.95)',
-              color: '#fff',
-              fontSize: 12,
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-            }}
-          >
-            <AlertTriangleIcon size={16} color="#fff" />
-            <span>{saveErrorMessage || t('retail.settings.saveError')}</span>
-          </div>
-        )}
+          {saveStatus === 'error' && (
+            <div
+              style={{
+                padding: '10px 14px',
+                borderRadius: 10,
+                background: 'rgba(239, 68, 68, 0.12)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#EF4444',
+                fontSize: 13,
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              <AlertTriangleIcon size={16} color="#EF4444" />
+              <span>{saveErrorMessage || t('retail.settings.saveError')}</span>
+            </div>
+          )}
+        </div>
       </div>
     </>
   )

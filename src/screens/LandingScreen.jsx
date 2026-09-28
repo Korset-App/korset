@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import { useTheme } from '../utils/theme.js'
 import './LandingScreen.css'
 import { useI18n } from '../i18n/index.js'
 import useReveal from '../hooks/useReveal.js'
 import { useOverlayLock } from '../hooks/useOverlayLock.js'
-import Phone3D from '../components/landing/Phone3D.jsx'
 
 function collectStrArr(t, exists, prefix) {
   const arr = []
@@ -772,7 +770,6 @@ export default function LandingScreen() {
   useOverlayLock(menuOpen)
 
   const [activeFaq, setActiveFaq] = useState(null)
-  const { theme, toggleTheme } = useTheme()
   const [videoModalOpen, setVideoModalOpen] = useState(false)
 
   const menuOpenRef = useRef(false)
@@ -984,34 +981,6 @@ export default function LandingScreen() {
             </nav>
 
             <div className="lp-header__actions">
-              <button
-                className="lp-theme-toggle"
-                onClick={toggleTheme}
-                aria-label={d.nav.themeToggle}
-                title={d.nav.themeToggle}
-              >
-                {theme === 'light' ? (
-                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-                    <path
-                      d="M9 2.25v1.5M9 14.25v1.5M2.25 9h1.5M14.25 9h1.5M4.23 4.23l1.06 1.06M12.71 12.71l1.06 1.06M4.23 13.77l1.06-1.06M12.71 5.29l1.06-1.06"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                    />
-                    <circle cx="9" cy="9" r="3.75" stroke="currentColor" strokeWidth="1.5" />
-                  </svg>
-                ) : (
-                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-                    <path
-                      d="M15.2 9.84A6 6 0 0 1 8.16 2.8 6 6 0 1 0 15.2 9.84z"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                )}
-              </button>
               <a className="lp-btn lp-btn--primary lp-btn--sm" href="/stores">
                 <span>{d.hero.primary}</span>
                 <ArrowIcon />
@@ -1159,9 +1128,9 @@ export default function LandingScreen() {
               </div>
             </div>
 
-            {/* Right: 3D phone model */}
+            {/* Right: Demo phone mockup */}
             <div className="lp-demo__device lp-reveal lp-reveal--scale lp-reveal--delay-2">
-              <Phone3D />
+              <DemoPhone texts={d.demo.phone} />
             </div>
           </div>
         </section>

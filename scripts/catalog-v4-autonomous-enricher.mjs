@@ -28,6 +28,14 @@ const AGG_V3_PATH = path.join(__dirname, '..', 'data', 'v3_cache', 'aggregated_c
 const GLOBAL_ARCHIVE_PATH = path.join(__dirname, '..', 'data', 'archive', 'global_products_2026-09-24.jsonl.gz');
 const MATCHES_LOG_PATH = path.join(__dirname, '..', 'data', 'enrichment_matches.jsonl');
 
+export function korzinaDonorName(row) {
+  return row.productName || row.name;
+}
+
+export function korzinaDonorId(row) {
+  return row.quantumNumber ?? row.id;
+}
+
 // Load API Keys
 let dsKey = null;
 if (fs.existsSync(path.join(__dirname, '..', '.env.local'))) {
@@ -284,7 +292,7 @@ export async function runAutonomousEnrichment({ maxPairs = 500, batchSize = 15 }
           nutr = { energy_kcal: kcal, protein_100g: p, fat_100g: f, carbohydrates_100g: c };
         }
       }
-      indexDonor('korzina', k.id, k.name, k.brand, k.barcode, k.composition, nutr, k.storageConditions, k.shelfLife, null, null);
+      indexDonor('korzina', korzinaDonorId(k), korzinaDonorName(k), k.brand, k.barcode, k.composition, nutr, k.storageConditions, k.shelfLife, null, null);
     }
   }
 

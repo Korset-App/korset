@@ -1,4 +1,4 @@
-const AI_STORE_NOTES_LIMIT = 1200
+const AI_STORE_NOTES_LIMIT = 500
 const STORE_SETTINGS_COLUMNS = new Set([
   'name',
   'address',
@@ -42,20 +42,60 @@ function normalizeKzPhone(localPhone) {
   return local.length === 10 ? `7${local}` : null
 }
 
+function normalizeContactList(list, max = 4) {
+  if (!Array.isArray(list)) return []
+  return list
+    .slice(0, max)
+    .map((item, idx) => {
+      if (!item) return null
+      const rawNumber = typeof item === 'string' ? item : item.number
+      const normNumber = normalizeKzPhone(rawNumber)
+      if (!normNumber) return null
+      const label = cleanString(item.customLabel || item.label, 40) || null
+      return {
+        id: item.id || `c_${idx + 1}`,
+        number: normNumber,
+        role: typeof item.role === 'string' && item.role.trim() ? item.role.trim() : 'main',
+        label,
+        customLabel: label,
+      }
+    })
+    .filter(Boolean)
+}
+
+function normalizeFeatures(features) {
+  if (!features || typeof features !== 'object') return null
+  const result = { ...features }
+  if (result.contacts && typeof result.contacts === 'object') {
+    result.contacts = {
+      phones: normalizeContactList(result.contacts.phones),
+      whatsapps: normalizeContactList(result.contacts.whatsapps),
+    }
+  }
+  return result
+}
+
 export function getAIStoreNotesLimit() {
   return AI_STORE_NOTES_LIMIT
 }
 
 export function buildRetailStoreSettingsPayload(settings = {}) {
+  const normFeatures = normalizeFeatures(settings.features)
+  const primaryPhone =
+    normalizeKzPhone(settings.phone) || (normFeatures?.contacts?.phones?.[0]?.number ?? null)
+  const primaryWhatsapp =
+    normalizeKzPhone(settings.whatsapp_number) ||
+    (normFeatures?.contacts?.whatsapps?.[0]?.number ?? null)
+
   return {
     name: cleanString(settings.name, 160),
     address: cleanString(settings.address, 240),
-    phone: normalizeKzPhone(settings.phone),
+    phone: primaryPhone,
     opening_hours: cleanString(settings.opening_hours, 240),
     short_description: cleanString(settings.short_description, 240),
     description: cleanString(settings.description, 1200),
     instagram_url: cleanString(settings.instagram_url, 300),
-    whatsapp_number: normalizeKzPhone(settings.whatsapp_number),
+    whatsapp_number: primaryWhatsapp,
     twogis_url: cleanString(settings.twogis_url, 300),
     ai_store_notes: cleanString(settings.ai_store_notes, AI_STORE_NOTES_LIMIT),
     images: Array.isArray(settings.images) ? settings.images : [],
@@ -72,7 +112,7 @@ export function buildRetailStoreSettingsPayload(settings = {}) {
       settings.temporary_closure && typeof settings.temporary_closure === 'object'
         ? settings.temporary_closure
         : null,
-    features: settings.features && typeof settings.features === 'object' ? settings.features : null,
+    features: normFeatures,
     type: cleanString(settings.type, 40) || 'minimarket',
   }
 }
