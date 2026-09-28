@@ -487,3 +487,12 @@
     font-size: 9px;
   }
 }
+
+.search-highlight {
+  background: color-mix(in srgb, var(--primary-bright) 24%, transparent);
+  color: inherit;
+  font-weight: 600;
+  border-radius: 4px;
+  padding: 0 2px;
+}
+

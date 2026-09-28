@@ -1,11 +1,6 @@
 import { memo, useLayoutEffect, useRef } from 'react'
-import {
-  BarcodeScannerIcon,
-  CloseIcon,
-  ArrowBackIcon,
-  SearchIcon,
-  HistoryIcon,
-} from '../icons/index.js'
+import { BarcodeScannerIcon, CloseIcon, ArrowBackIcon, SearchIcon } from '../icons/index.js'
+import { CatalogSearchSuggestions } from './CatalogSearchSuggestions.jsx'
 
 const IconListActive = (
   <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
@@ -57,8 +52,11 @@ function CatalogTopBarComponent({
   isSearchFocused,
   setIsSearchFocused,
   onRememberSearch,
-  showRecentSearches,
   recentSearches,
+  serverSearch,
+  onSelectCategory,
+  onRemoveHistoryEntry,
+  onClearHistory,
   onScanClick,
   showCategories,
   showSubcategories,
@@ -70,6 +68,7 @@ function CatalogTopBarComponent({
   fitChips = [],
   fitCount = null,
   onOpenFitDrawer,
+  lang,
   t,
 }) {
   const compositionButtonRef = useRef(null)
@@ -301,26 +300,25 @@ function CatalogTopBarComponent({
         )}
       </div>
 
-      {showRecentSearches && (
-        <div className="catalog-search-history-row" aria-label={t('catalog.recentSearches')}>
-          <span className="catalog-search-history-label">{t('catalog.recentSearches')}</span>
-          {recentSearches.map((item) => (
-            <button
-              key={`${item.storeKey}:${item.query}`}
-              type="button"
-              className="catalog-search-history-chip"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => {
-                setQ(item.query)
-                setIsSearchFocused(false)
-              }}
-            >
-              <HistoryIcon size={13} />
-              <span>{item.query}</span>
-            </button>
-          ))}
-        </div>
-      )}
+      <CatalogSearchSuggestions
+        isOpen={isSearchFocused}
+        q={q}
+        hasQuery={q.trim().length > 0}
+        recentSearches={recentSearches}
+        serverSearch={serverSearch}
+        onSelectQuery={(query) => {
+          setQ(query)
+          setIsSearchFocused(false)
+        }}
+        onSelectCategory={(categoryKey) => {
+          onSelectCategory(categoryKey)
+          setIsSearchFocused(false)
+        }}
+        onRemoveHistoryEntry={onRemoveHistoryEntry}
+        onClearHistory={onClearHistory}
+        lang={lang}
+        t={t}
+      />
     </header>
   )
 }

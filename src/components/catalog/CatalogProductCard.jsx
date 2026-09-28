@@ -4,6 +4,7 @@ import { CloseIcon } from '../icons/CloseIcon.jsx'
 import { CompareIcon } from '../icons/CompareIcon.jsx'
 import { DietIcon } from '../icons/DietIcon.jsx'
 import ShoppingListButton from '../ShoppingListButton.jsx'
+import { HighlightMatch } from './HighlightMatch.jsx'
 import './CatalogProductCard.css'
 
 function ProductThumb({ product }) {
@@ -146,6 +147,7 @@ export default function CatalogProductCard({
   compareLabel,
   searchDiagnosticsAttrs,
   isFavorite = false,
+  highlightQuery = '',
   onOpen,
   onCompare,
   onToggleFavorite,
@@ -170,7 +172,11 @@ export default function CatalogProductCard({
         </div>
 
         <div className="catalog-product-card__title catalog-product-card__title--grid">
-          {productName}
+          {highlightQuery ? (
+            <HighlightMatch text={productName} query={highlightQuery} />
+          ) : (
+            productName
+          )}
         </div>
 
         <div className="catalog-product-card__meta catalog-product-card__meta--grid">
@@ -222,7 +228,11 @@ export default function CatalogProductCard({
       <div className="catalog-product-card__body">
         <div className="catalog-product-card__header">
           <div className="catalog-product-card__title catalog-product-card__title--list">
-            {productName}
+            {highlightQuery ? (
+              <HighlightMatch text={productName} query={highlightQuery} />
+            ) : (
+              productName
+            )}
           </div>
         </div>
 

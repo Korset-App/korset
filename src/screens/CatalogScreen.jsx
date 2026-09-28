@@ -169,6 +169,8 @@ export default function CatalogScreen() {
     isSearchFocused,
     setIsSearchFocused,
     rememberCatalogSearch,
+    clearSearchHistory,
+    removeSearchHistoryEntry,
   } = useCatalogSearch({
     storeId,
     storeSlug: currentStore?.slug || storeSlug,
@@ -353,8 +355,6 @@ export default function CatalogScreen() {
     currentStore?.name ||
     (storeSlug ? `${storeSlug.charAt(0).toUpperCase()}${storeSlug.slice(1)}` : 'Körset')
 
-  const showRecentSearches = isSearchFocused && !hasQuery && recentSearches.length > 0
-
   const handleToggleSubcategory = useCallback(
     (subKey) => {
       setSelectedSubcategories((prev) =>
@@ -425,13 +425,25 @@ export default function CatalogScreen() {
           compareLabel={compareLabel}
           searchDiagnosticsAttrs={searchDiagnosticsAttrs}
           isFavorite={favoriteEans.has(product.ean)}
+          highlightQuery={hasQuery ? q : ''}
           onOpen={() => handleNavigate(product)}
           onCompare={(e) => handleCompare(product, e)}
           onToggleFavorite={toggleFavorite}
         />
       )
     },
-    [profile, comparePin, handleCompare, handleNavigate, t, lang, favoriteEans, toggleFavorite]
+    [
+      profile,
+      comparePin,
+      handleCompare,
+      handleNavigate,
+      t,
+      lang,
+      favoriteEans,
+      toggleFavorite,
+      hasQuery,
+      q,
+    ]
   )
 
   const renderListItem = useCallback(
@@ -471,13 +483,25 @@ export default function CatalogScreen() {
           compareLabel={compareLabel}
           searchDiagnosticsAttrs={searchDiagnosticsAttrs}
           isFavorite={favoriteEans.has(product.ean)}
+          highlightQuery={hasQuery ? q : ''}
           onOpen={() => handleNavigate(product)}
           onCompare={(e) => handleCompare(product, e)}
           onToggleFavorite={toggleFavorite}
         />
       )
     },
-    [profile, comparePin, handleCompare, handleNavigate, t, lang, favoriteEans, toggleFavorite]
+    [
+      profile,
+      comparePin,
+      handleCompare,
+      handleNavigate,
+      t,
+      lang,
+      favoriteEans,
+      toggleFavorite,
+      hasQuery,
+      q,
+    ]
   )
 
   return (
@@ -494,8 +518,11 @@ export default function CatalogScreen() {
         isSearchFocused={isSearchFocused}
         setIsSearchFocused={setIsSearchFocused}
         onRememberSearch={rememberCatalogSearch}
-        showRecentSearches={showRecentSearches}
         recentSearches={recentSearches}
+        serverSearch={serverSearch}
+        onSelectCategory={handleCategoryClick}
+        onRemoveHistoryEntry={removeSearchHistoryEntry}
+        onClearHistory={clearSearchHistory}
         onScanClick={handleScanClick}
         showCategories={showCategories}
         showSubcategories={showSubcategories}
@@ -507,8 +534,8 @@ export default function CatalogScreen() {
         fitChips={fitChips}
         fitCount={fitCount}
         onOpenFitDrawer={() => setFitDrawerOpen(true)}
-        t={t}
         lang={lang}
+        t={t}
       />
 
       {catalogLoadError && isOnline && (

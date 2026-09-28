@@ -63,3 +63,18 @@ export function appendCatalogSearchQuery(storeKey, query, limit = 6) {
   writeRawSearchHistory([...foreign, ...nextScoped])
   return nextScoped
 }
+
+export function clearCatalogSearchHistory(storeKey) {
+  const scope = normalizeStoreKey(storeKey)
+  const list = readRawSearchHistory().map(normalizeSearchEntry).filter(Boolean)
+  writeRawSearchHistory(list.filter((entry) => entry.storeKey !== scope))
+}
+
+export function removeCatalogSearchQuery(storeKey, query) {
+  const scope = normalizeStoreKey(storeKey)
+  const norm = normalizeSearchQuery(query).toLowerCase()
+  const list = readRawSearchHistory().map(normalizeSearchEntry).filter(Boolean)
+  writeRawSearchHistory(
+    list.filter((entry) => !(entry.storeKey === scope && entry.query.toLowerCase() === norm))
+  )
+}

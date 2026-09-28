@@ -1,0 +1,260 @@
+/* ============================================================
+   CatalogSearchSuggestions — live search dropdown
+   Positioned absolutely inside .catalog-topbar (position:relative)
+   z-index 30 sits above the topbar's own z-index 25 stack.
+   ============================================================ */
+
+.csr-overlay {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  background: var(--bg-card);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  box-shadow:
+    0 8px 32px color-mix(in srgb, var(--shadow-color, #000) 18%, transparent),
+    0 2px 8px color-mix(in srgb, var(--shadow-color, #000) 8%, transparent);
+  overflow: hidden;
+  /* slide-in animation */
+  animation: csr-slide-in 160ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes csr-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ── Section headers ── */
+.csr-section {
+  padding: 0;
+}
+
+.csr-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 6px;
+}
+
+.csr-section__title {
+  font: 600 0.6875rem/1.2 var(--font-body);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+}
+
+.csr-section__action {
+  border: 0;
+  background: transparent;
+  padding: 2px 0;
+  font: 500 0.75rem/1.2 var(--font-body);
+  color: var(--primary-bright);
+  cursor: pointer;
+}
+
+.csr-section__action:hover {
+  text-decoration: underline;
+}
+
+/* ── Generic row ── */
+.csr-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: 400 0.9375rem/1.3 var(--font-body);
+  text-align: left;
+  cursor: pointer;
+  transition: background 100ms ease;
+}
+
+.csr-row:hover,
+.csr-row:active {
+  background: var(--glass-muted);
+}
+
+.csr-row__icon {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+
+.csr-row__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.csr-row__meta {
+  flex-shrink: 0;
+  font: 400 0.75rem/1.2 var(--font-body);
+  color: var(--text-soft);
+}
+
+.csr-row__price {
+  flex-shrink: 0;
+  font: 600 0.875rem/1.2 var(--font-body);
+  color: var(--text);
+}
+
+.csr-row__chevron {
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  color: var(--text-dim);
+  line-height: 1;
+}
+
+/* ── History row with remove button ── */
+.csr-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.csr-history-row {
+  display: flex;
+  align-items: center;
+}
+
+.csr-history-row .csr-row {
+  flex: 1;
+  min-width: 0;
+  padding-right: 4px;
+}
+
+.csr-history-remove {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 44px;
+  padding: 0;
+  margin-right: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  border-radius: 10px;
+  transition: background 100ms ease, color 100ms ease;
+}
+
+.csr-history-remove:hover {
+  background: var(--glass-muted);
+  color: var(--text);
+}
+
+/* ── Popular chips ── */
+.csr-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 14px 14px;
+}
+
+.csr-chip {
+  padding: 6px 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  background: var(--glass-muted);
+  color: var(--text);
+  font: 400 0.875rem/1.2 var(--font-body);
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.csr-chip:hover {
+  background: var(--glass-bg);
+  border-color: var(--badge-border);
+}
+
+/* ── Brand / category hint rows ── */
+.csr-row--hint {
+  border-top: 1px solid var(--glass-soft-border);
+}
+
+.csr-brand-badge {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--primary);
+  color: var(--text-inverse);
+  font: 700 0.625rem/1 var(--font-body);
+  letter-spacing: 0;
+}
+
+.csr-row--brand .csr-row__label {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.csr-row--category .csr-row__label {
+  color: var(--text-soft);
+  font-size: 0.875rem;
+}
+
+/* ── Product rows ── */
+.csr-section--results {
+  border-top: 1px solid var(--glass-soft-border);
+}
+
+.csr-row--product {
+  gap: 10px;
+  align-items: center;
+}
+
+.csr-product-thumb {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  object-fit: contain;
+  background: var(--glass-muted);
+}
+
+.csr-product-thumb--empty {
+  display: block;
+  background: var(--glass-muted);
+}
+
+/* ── All results footer ── */
+.csr-row--all {
+  border-top: 1px solid var(--glass-soft-border);
+  font-weight: 500;
+  color: var(--primary-bright);
+}
+
+.csr-row--all:hover {
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+
+/* ── Highlight from HighlightMatch ── (inherits from CatalogProductCard.css) */
+.csr-overlay .search-highlight {
+  background: color-mix(in srgb, var(--primary) 22%, transparent);
+  border-radius: 3px;
+  padding: 0 1px;
+}
+
+/* ── Light theme adjustments ── */
+:root[data-theme='light'] .csr-overlay {
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.06);
+}

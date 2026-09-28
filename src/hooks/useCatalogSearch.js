@@ -3,6 +3,8 @@ import { searchStoreProductsRPC } from '../domain/product/search.js'
 import {
   appendCatalogSearchQuery,
   readCatalogSearchHistory,
+  clearCatalogSearchHistory,
+  removeCatalogSearchQuery,
 } from '../domain/product/searchHistory.js'
 import { buildSearchSuggestions } from '../domain/catalog/catalogSorting.js'
 
@@ -90,6 +92,19 @@ export function useCatalogSearch({ storeId, storeSlug, isOnline, location }) {
     setRecentSearchesVersion((v) => v + 1)
   }, [isSearchPending, normalizedQuery, searchStoreKey])
 
+  const clearSearchHistory = useCallback(() => {
+    clearCatalogSearchHistory(searchStoreKey)
+    setRecentSearchesVersion((v) => v + 1)
+  }, [searchStoreKey])
+
+  const removeSearchHistoryEntry = useCallback(
+    (query) => {
+      removeCatalogSearchQuery(searchStoreKey, query)
+      setRecentSearchesVersion((v) => v + 1)
+    },
+    [searchStoreKey]
+  )
+
   return {
     q,
     setQ,
@@ -105,5 +120,7 @@ export function useCatalogSearch({ storeId, storeSlug, isOnline, location }) {
     isSearchFocused,
     setIsSearchFocused,
     rememberCatalogSearch,
+    clearSearchHistory,
+    removeSearchHistoryEntry,
   }
 }
