@@ -121,7 +121,7 @@ test.describe('compare AI cost control', () => {
       productB: kefir,
     })
 
-    await expect(page.locator('.compare-verdict-card')).toBeVisible()
+    await expect(page.locator('.compare-outcome')).toBeVisible()
     await expect.poll(() => compareInserts.length).toBe(1)
 
     const insert = compareInserts[0]
@@ -178,7 +178,7 @@ test.describe('compare AI cost control', () => {
 
     await page.locator('.compare-ai-ask').click()
     await expect(page.locator('.compare-ai-error')).toBeVisible()
-    await expect(page.locator('.compare-verdict-card')).toBeVisible()
+    await expect(page.locator('.compare-outcome')).toBeVisible()
   })
 })
 

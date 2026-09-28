@@ -4,6 +4,7 @@ import assert from 'node:assert/strict'
 import {
   mapAlternativeEventsSummaryRpcRow,
   summarizeAlternativeEvents,
+  mapCompareEventsSummaryRpcRow,
 } from '../../src/utils/retailAnalytics.js'
 
 test('summarizeAlternativeEvents returns owner-safe aggregate counts', () => {
@@ -80,4 +81,36 @@ test('mapAlternativeEventsSummaryRpcRow maps RPC aggregate contract', () => {
       topSource: { ean: '4601751002907', count: 5 },
     }
   )
+})
+
+test('mapCompareEventsSummaryRpcRow maps compare aggregate contract', () => {
+  assert.deepEqual(
+    mapCompareEventsSummaryRpcRow({
+      total_count: 20,
+      winner_count: 12,
+      draw_count: 5,
+      blocked_count: 3,
+      top_ean_a: '4601751002907',
+      top_ean_b: '4870209471118',
+      top_pair_count: 4,
+    }),
+    {
+      total: 20,
+      winnerCount: 12,
+      drawCount: 5,
+      blockedCount: 3,
+      topPair: { eanA: '4601751002907', eanB: '4870209471118', count: 4 },
+    }
+  )
+})
+
+test('mapCompareEventsSummaryRpcRow tolerates an empty result', () => {
+  assert.deepEqual(mapCompareEventsSummaryRpcRow(undefined), {
+    total: 0,
+    winnerCount: 0,
+    drawCount: 0,
+    blockedCount: 0,
+    topPair: null,
+  })
+  assert.deepEqual(mapCompareEventsSummaryRpcRow({ total_count: 3 }).topPair, null)
 })

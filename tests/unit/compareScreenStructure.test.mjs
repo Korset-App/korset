@@ -45,26 +45,47 @@ test('CompareScreen uses SVG icons, not Material Symbols ligatures', () => {
 
 test('CompareScreen exposes clear visual verdict states', () => {
   assert.match(source, /getVerdictStateClass/)
-  assert.match(source, /compare-verdict-card--winner-a/)
-  assert.match(source, /compare-verdict-card--winner-b/)
-  assert.match(source, /compare-verdict-card--draw/)
-  assert.match(source, /compare-verdict-card--blocked/)
-  assert.match(cssSource, /\.compare-verdict-card--winner-a/)
-  assert.match(cssSource, /\.compare-verdict-card--winner-b/)
-  assert.match(cssSource, /\.compare-verdict-card--draw/)
-  assert.match(cssSource, /\.compare-verdict-card--blocked/)
+  assert.match(source, /compare-outcome--winner-a/)
+  assert.match(source, /compare-outcome--winner-b/)
+  assert.match(source, /compare-outcome--draw/)
+  assert.match(source, /compare-outcome--blocked/)
+  assert.match(cssSource, /\.compare-outcome--winner-a/)
+  assert.match(cssSource, /\.compare-outcome--winner-b/)
+  assert.match(cssSource, /\.compare-outcome--draw/)
+  assert.match(cssSource, /\.compare-outcome--blocked/)
 })
 
-test('CompareScreen always renders factor rows for all states', () => {
+test('CompareScreen renders the decisive factors as chips for all states', () => {
   assert.equal(source.includes('visibleFactors'), false)
   assert.match(source, /comparisonView\.topFactors\.map\(\(factor\)/)
+  assert.match(source, /compare-outcome-factor-chips/)
+})
+
+test('CompareScreen leads with a prominent outcome heading', () => {
+  assert.match(source, /compare-outcome-title/)
+  assert.match(source, /t\('compare\.section\.outcome'\)/)
+  assert.match(cssSource, /\.compare-outcome-title/)
+})
+
+test('CompareScreen shows the winner as a product card', () => {
+  assert.match(source, /compare-winner-card/)
+  assert.match(source, /compare-winner-photo/)
+  assert.match(source, /compare-winner-price/)
+  assert.equal(source.includes('compare-side-labels'), false)
+})
+
+test('CompareScreen keeps the two AI actions visually and semantically distinct', () => {
+  assert.match(source, /compare-ai-head/)
+  assert.match(source, /compare\.action\.openAssistant/)
+  assert.match(source, /name=\{isBlocked \? 'explore' : 'chat'\}/)
+  assert.equal(source.includes("t('compare.askMore')"), false)
 })
 
 test('CompareScreen renders concrete data rows before the verdict', () => {
   assert.match(source, /comparisonView\.dataRows\.map\(\(row\)/)
   assert.match(source, /compare-data-grid/)
   assert.match(source, /compare-data-row/)
-  assert.ok(source.indexOf('compare-data-section') < source.indexOf('className={`compare-verdict-card'))
+  assert.ok(source.indexOf('compare-data-section') < source.indexOf('className={`compare-outcome'))
 })
 
 test('CompareScreen has no AI fallback text rendered on error', () => {

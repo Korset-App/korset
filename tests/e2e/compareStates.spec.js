@@ -11,6 +11,7 @@ const yogurt = {
   category: 'dairy_eggs',
   categoryId: 'dairy_eggs',
   priceKzt: 520,
+  price_kzt: 520,
   stockStatus: 'in_stock',
   ingredients: 'молоко, закваска, сахар',
   allergens: ['milk'],
@@ -24,6 +25,7 @@ const kefir = {
   category: 'dairy_eggs',
   categoryId: 'dairy_eggs',
   priceKzt: 480,
+  price_kzt: 480,
   stockStatus: 'in_stock',
   ingredients: 'молоко, закваска',
   allergens: ['milk'],
@@ -37,6 +39,7 @@ const sparse = {
   category: 'dairy_eggs',
   categoryId: 'dairy_eggs',
   priceKzt: 470,
+  price_kzt: 470,
   stockStatus: 'in_stock',
 }
 
@@ -75,7 +78,7 @@ test('captures the comparison states for review', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 1400 })
 
   await open(page, { productA: yogurt, productB: kefir })
-  await expect(page.locator('.compare-verdict-card')).toBeVisible()
+  await expect(page.locator('.compare-outcome')).toBeVisible()
   await page.screenshot({ path: `${OUT}/01-winner-dark.png`, fullPage: true })
 
   await open(page, { productA: yogurt, productB: sparse })
@@ -90,10 +93,35 @@ test('captures the comparison states for review', async ({ page }) => {
     productA: yogurt,
     productB: { ...kefir, category: 'household', categoryId: 'household', name: 'Шампунь 250 мл' },
   })
-  await expect(page.locator('.compare-verdict-card--blocked')).toBeVisible()
+  await expect(page.locator('.compare-outcome--blocked')).toBeVisible()
   await page.screenshot({ path: `${OUT}/04-blocked-dark.png`, fullPage: true })
 
   await open(page, { productA: yogurt, productB: kefir, lang: 'kz' })
   await expect(page.locator('.compare-title')).toContainText('Салыстыру')
   await page.screenshot({ path: `${OUT}/05-kazakh-dark.png`, fullPage: true })
+})
+
+test('captures the light theme for review', async ({ page }) => {
+  await mockBackend(page)
+  await page.setViewportSize({ width: 390, height: 1400 })
+
+  await open(page, { productA: yogurt, productB: kefir, theme: 'light' })
+  await expect(page.locator('.compare-outcome')).toBeVisible()
+  await page.screenshot({ path: `${OUT}/06-winner-light.png`, fullPage: true })
+
+  await open(page, { productA: yogurt, productB: sparse, theme: 'light' })
+  await expect(page.locator('.compare-chip--data')).toBeVisible()
+  await page.screenshot({ path: `${OUT}/07-sparse-data-light.png`, fullPage: true })
+
+  await open(page, {
+    productA: yogurt,
+    productB: { ...kefir, category: 'household', categoryId: 'household', name: 'Шампунь 250 мл' },
+    theme: 'light',
+  })
+  await expect(page.locator('.compare-outcome--blocked')).toBeVisible()
+  await page.screenshot({ path: `${OUT}/08-blocked-light.png`, fullPage: true })
+
+  await open(page, { productA: yogurt, productB: kefir, lang: 'kz', theme: 'light' })
+  await expect(page.locator('.compare-title')).toContainText('Салыстыру')
+  await page.screenshot({ path: `${OUT}/09-kazakh-light.png`, fullPage: true })
 })

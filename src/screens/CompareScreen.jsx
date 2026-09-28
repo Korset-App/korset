@@ -15,6 +15,7 @@ import { buildProductComparison } from '../domain/product/comparison.js'
 import { buildProductComparisonViewModel } from '../domain/product/comparisonViewModel.js'
 import { getFitBadgeMeta, resolveFitSeverityKey } from '../domain/product/fitVerdict.js'
 import { CompareIcon } from '../components/icons/CompareIcon.jsx'
+import { formatPrice } from '../utils/formatPrice.js'
 import './CompareScreen.css'
 
 function getComparisonBarSplit(comparisonView) {
@@ -24,11 +25,11 @@ function getComparisonBarSplit(comparisonView) {
 }
 
 function getVerdictStateClass(comparisonView) {
-  if (comparisonView?.status === 'blocked') return 'compare-verdict-card--blocked'
-  if (comparisonView?.status === 'draw') return 'compare-verdict-card--draw'
-  if (comparisonView?.winnerSide === 'A') return 'compare-verdict-card--winner-a'
-  if (comparisonView?.winnerSide === 'B') return 'compare-verdict-card--winner-b'
-  return 'compare-verdict-card--draw'
+  if (comparisonView?.status === 'blocked') return 'compare-outcome--blocked'
+  if (comparisonView?.status === 'draw') return 'compare-outcome--draw'
+  if (comparisonView?.winnerSide === 'A') return 'compare-outcome--winner-a'
+  if (comparisonView?.winnerSide === 'B') return 'compare-outcome--winner-b'
+  return 'compare-outcome--draw'
 }
 
 function getVerdictMark(comparisonView) {
@@ -37,11 +38,12 @@ function getVerdictMark(comparisonView) {
   return comparisonView?.winnerSide || '≈'
 }
 
-function getSideLabelKey(label) {
-  if (label === 'best_choice') return 'compare.label.best'
-  if (label === 'fits_but_check') return 'compare.label.check'
-  if (label === 'choose_another') return 'compare.label.avoid'
-  return 'compare.label.good'
+function pluralRuFactors(count) {
+  const mod10 = count % 10
+  const mod100 = count % 100
+  if (mod10 === 1 && mod100 !== 11) return 'one'
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'few'
+  return 'many'
 }
 
 function getProductImage(product) {
@@ -147,6 +149,16 @@ function Icon({ name, className = '' }) {
     )
   }
 
+  if (name === 'chat') {
+    return (
+      <svg className={iconClass} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H10l-4 3.5V17H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" />
+        <path d="M8 10h8" />
+        <path d="M8 13h5" />
+      </svg>
+    )
+  }
+
   return (
     <svg className={iconClass} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <circle cx="12" cy="12" r="8" />
@@ -205,25 +217,6 @@ function ProductPanel({ product, productName, fit, side, sideLabel, t }) {
         {t(badge.labelKey)}
       </div>
     </section>
-  )
-}
-
-function FactorCard({ factor, localNameA, localNameB, t }) {
-  const winnerName =
-    factor.winnerSide === 'A' ? localNameA : factor.winnerSide === 'B' ? localNameB : null
-
-  return (
-    <article
-      className={`compare-factor ${factor.winnerSide ? 'compare-factor--decisive' : 'compare-factor--neutral'}`}
-    >
-      <div className="compare-factor-head">
-        <span className="compare-factor-label">{t(factor.labelKey)}</span>
-        {winnerName && <span className="compare-factor-side">{winnerName}</span>}
-      </div>
-      {factor.reasonKey && (
-        <p className="compare-factor-copy">{t(factor.reasonKey, { name: winnerName || '' })}</p>
-      )}
-    </article>
   )
 }
 
@@ -452,7 +445,7 @@ export default function CompareScreen() {
   const isSameProduct = comparisonView.status === 'same_product'
   const actionProduct = winnerProduct || productA
   const actionLabel =
-    isBlocked || isSameProduct ? t(comparisonView.actionKey) : t('compare.askMore')
+    isBlocked || isSameProduct ? t(comparisonView.actionKey) : t('compare.action.openAssistant')
 
   function handlePrimaryAction() {
     if (isBlocked) {
@@ -549,34 +542,21 @@ export default function CompareScreen() {
           </section>
         )}
 
-        {comparisonView.topFactors.length > 0 && (
-          <section className="compare-factors" aria-labelledby="compare-factors-title">
-            <h2 id="compare-factors-title">{t('compare.section.decision')}</h2>
-            <div className="compare-factor-list">
-              {comparisonView.topFactors.map((factor) => (
-                <FactorCard
-                  key={factor.id}
-                  factor={factor}
-                  localNameA={localNameA}
-                  localNameB={localNameB}
-                  t={t}
-                />
-              ))}
-            </div>
-          </section>
-        )}
-
         <section
-          className={`compare-verdict-card ${getVerdictStateClass(comparisonView)}`}
-          aria-labelledby="compare-verdict-title"
+          className={`compare-outcome ${getVerdictStateClass(comparisonView)}`}
+          aria-labelledby="compare-outcome-title"
         >
-          <div className="compare-verdict-topline">
-            <span>{t(`compare.confidence.${comparisonView.confidence}`)}</span>
-            <span>{t(comparisonView.sections[0]?.titleKey || 'compare.section.decision')}</span>
-          </div>
+          <header className="compare-outcome-head">
+            <h1 id="compare-outcome-title" className="compare-outcome-title">
+              {t('compare.section.outcome')}
+            </h1>
+            <span className="compare-outcome-confidence">
+              {t(`compare.confidence.${comparisonView.confidence}`)}
+            </span>
+          </header>
 
           {(comparisonView.dataNote || comparisonView.sourceNote) && (
-            <div className="compare-verdict-chips">
+            <div className="compare-outcome-chips">
               {comparisonView.dataNote && (
                 <span
                   className="compare-chip compare-chip--data"
@@ -595,11 +575,11 @@ export default function CompareScreen() {
 
           {comparisonView.status === 'winner' ? (
             <div className="compare-rail" aria-hidden="true">
-              <span>{localNameA}</span>
+              <span className="compare-rail-side">A</span>
               <div className="compare-rail-track">
                 <div className="compare-rail-fill" style={{ '--compare-split': `${barSplit}%` }} />
               </div>
-              <span>{localNameB}</span>
+              <span className="compare-rail-side">B</span>
             </div>
           ) : (
             <div className="compare-state-strip" aria-hidden="true">
@@ -608,31 +588,56 @@ export default function CompareScreen() {
             </div>
           )}
 
-          <div className="compare-verdict-main">
-            <div className="compare-verdict-icon">
-              <CompareIcon active={winner === 'B'} size={30} />
-              <span className="compare-verdict-mark">{getVerdictMark(comparisonView)}</span>
-            </div>
-            <div className="compare-verdict-copy">
-              <h1 id="compare-verdict-title">
-                {t(comparisonView.verdictKey)}
-                {winnerName ? `: ${winnerName}` : ''}
-              </h1>
-              <p>
-                {comparisonView.reasonKey
-                  ? t(comparisonView.reasonKey, { name: winnerName })
-                  : t('compare.reason.similar_fit', { name: winnerName })}
-              </p>
-            </div>
-          </div>
+          {comparisonView.status === 'winner' && winnerProduct && (
+            <article className="compare-winner-card">
+              <div className="compare-winner-photo">
+                <ProductPhoto product={winnerProduct} />
+              </div>
+              <div className="compare-winner-body">
+                <span className="compare-winner-badge">
+                  <Icon name="check" />
+                  {t('compare.outcome.winnerBadge')}
+                </span>
+                <div className="compare-winner-name">{winnerName}</div>
+                {winnerProduct.price_kzt != null && (
+                  <div className="compare-winner-price">{formatPrice(winnerProduct.price_kzt)}</div>
+                )}
+              </div>
+            </article>
+          )}
 
-          <div className="compare-side-labels" aria-label={t('compare.section.profile')}>
-            <span className={winner === 'A' ? 'is-active' : ''}>
-              {t(getSideLabelKey(comparison.a.label))}
-            </span>
-            <span className={winner === 'B' ? 'is-active' : ''}>
-              {t(getSideLabelKey(comparison.b.label))}
-            </span>
+          {comparisonView.status !== 'winner' && (
+            <p className="compare-outcome-verdict">{t(comparisonView.verdictKey)}</p>
+          )}
+
+          <div className="compare-outcome-reason">
+            {comparisonView.topFactors.length > 0 && (
+              <p className="compare-outcome-factors-count">
+                {t(`compare.outcome.factors.${pluralRuFactors(comparisonView.topFactors.length)}`, {
+                  count: comparisonView.topFactors.length,
+                })}
+              </p>
+            )}
+            <p className="compare-outcome-reason-text">
+              {comparisonView.reasonKey
+                ? t(comparisonView.reasonKey, { name: winnerName })
+                : t('compare.reason.similar_fit', { name: winnerName })}
+            </p>
+            {comparisonView.topFactors.length > 0 && (
+              <ul className="compare-outcome-factor-chips">
+                {comparisonView.topFactors.map((factor) => (
+                  <li
+                    key={factor.id}
+                    className={`compare-factor-chip ${factor.winnerSide ? `compare-factor-chip--${factor.winnerSide}` : ''}`}
+                  >
+                    <span>{t(factor.labelKey)}</span>
+                    {factor.winnerSide && (
+                      <span className="compare-factor-chip-mark">{factor.winnerSide}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </section>
 
@@ -642,6 +647,12 @@ export default function CompareScreen() {
           aria-live="polite"
           aria-label={t('compare.ai.title')}
         >
+          <header className="compare-ai-head">
+            <Icon name="ai" />
+            <span className="compare-ai-head-title">{t('compare.ai.title')}</span>
+            <span className="compare-ai-head-hint">{t('compare.outcome.aiInlineHint')}</span>
+          </header>
+
           {!aiText && !aiLoading && !aiError && (
             <button
               className="compare-ai-ask"
@@ -649,7 +660,6 @@ export default function CompareScreen() {
               onClick={handleExplain}
               disabled={aiLoading}
             >
-              <Icon name="ai" />
               {t('compare.ai.ask')}
             </button>
           )}
@@ -674,7 +684,7 @@ export default function CompareScreen() {
         </section>
 
         <button className="compare-primary-action" type="button" onClick={handlePrimaryAction}>
-          <Icon name={isBlocked ? 'explore' : 'ai'} />
+          <Icon name={isBlocked ? 'explore' : 'chat'} />
           {actionLabel}
         </button>
       </section>

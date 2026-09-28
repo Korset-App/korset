@@ -77,7 +77,7 @@ test.describe('compare flow', () => {
     await expect(rows.first()).toBeVisible()
     expect(await rows.count()).toBeGreaterThan(3)
 
-    await expect(page.locator('.compare-verdict-card')).toBeVisible()
+    await expect(page.locator('.compare-outcome')).toBeVisible()
     await expect(page.locator('.compare-primary-action')).toBeVisible()
   })
 
@@ -95,7 +95,7 @@ test.describe('compare flow', () => {
     await openCompare(page, { productA: yogurt, productB: null })
 
     await expect(page.locator('.compare-empty')).toBeVisible()
-    await expect(page.locator('.compare-verdict-card')).toHaveCount(0)
+    await expect(page.locator('.compare-outcome')).toHaveCount(0)
   })
 
   test('renders in Kazakh when the language is kz', async ({ page }) => {
