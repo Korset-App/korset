@@ -82,7 +82,8 @@
 }
 
 .csr-row:hover,
-.csr-row:active {
+.csr-row:active,
+.csr-row.is-active {
   background: var(--glass-muted);
 }
 
@@ -177,7 +178,8 @@
   transition: background 120ms ease, border-color 120ms ease;
 }
 
-.csr-chip:hover {
+.csr-chip:hover,
+.csr-chip.is-active {
   background: var(--glass-bg);
   border-color: var(--badge-border);
 }

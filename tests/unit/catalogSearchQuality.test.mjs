@@ -4,6 +4,8 @@ import {
   analyzeCatalogSearchQuery,
   scoreCatalogSearchProduct,
   sortCatalogSearchProducts,
+  extractAttributeIntent,
+  getEffectiveSearchQuery,
 } from '../../src/domain/product/searchQuality.js'
 
 test('analyzeCatalogSearchQuery normalizes text, aliases, intent, mode, and quantity', () => {
@@ -132,4 +134,112 @@ test('scoreCatalogSearchProduct supports conservative attribute matching', () =>
 
   assert.equal(tagged.matchType, 'attribute_tag')
   assert.ok(tagged.score > accidental.score)
+})
+
+test('extractAttributeIntent decouples dietary properties in RU and KZ', () => {
+  const halal = extractAttributeIntent('халал сосиски')
+  assert.equal(halal.attribute, 'halal')
+  assert.equal(halal.cleanQuery, 'сосиски')
+
+  const halalSuffix = extractAttributeIntent('сосиски халал')
+  assert.equal(halalSuffix.attribute, 'halal')
+  assert.equal(halalSuffix.cleanQuery, 'сосиски')
+
+  const halyal = extractAttributeIntent('халяль курица')
+  assert.equal(halyal.attribute, 'halal')
+  assert.equal(halyal.cleanQuery, 'курица')
+
+  const sugarFree = extractAttributeIntent('печенье без сахара')
+  assert.equal(sugarFree.attribute, 'sugar_free')
+  assert.equal(sugarFree.cleanQuery, 'печенье')
+
+  const sugarFreeKz = extractAttributeIntent('қантсыз печенье')
+  assert.equal(sugarFreeKz.attribute, 'sugar_free')
+  assert.equal(sugarFreeKz.cleanQuery, 'печенье')
+
+  const lactoseFree = extractAttributeIntent('безлактозное молоко')
+  assert.equal(lactoseFree.attribute, 'lactose_free')
+  assert.equal(lactoseFree.cleanQuery, 'молоко')
+
+  const glutenFree = extractAttributeIntent('хлеб без глютена')
+  assert.equal(glutenFree.attribute, 'gluten_free')
+  assert.equal(glutenFree.cleanQuery, 'хлеб')
+
+  const pureAttribute = extractAttributeIntent('халал')
+  assert.equal(pureAttribute.attribute, 'halal')
+  assert.equal(pureAttribute.cleanQuery, '')
+
+  const noAttribute = extractAttributeIntent('молоко эмиль')
+  assert.equal(noAttribute.attribute, null)
+  assert.equal(noAttribute.cleanQuery, 'молоко эмиль')
+})
+
+test('getEffectiveSearchQuery extracts clean search query or corrects typos for server RPC', () => {
+  assert.equal(getEffectiveSearchQuery('халал сосиски'), 'сосиски')
+  assert.equal(getEffectiveSearchQuery('сосиски халал'), 'сосиски')
+  assert.equal(getEffectiveSearchQuery('печенье без сахара'), 'печенье')
+  assert.equal(getEffectiveSearchQuery('малако'), 'молоко')
+  assert.equal(getEffectiveSearchQuery('малако 3.2%'), 'молоко 3 2%')
+  assert.equal(getEffectiveSearchQuery('хлеп'), 'хлеб')
+  assert.equal(getEffectiveSearchQuery('халал'), 'халал')
+  assert.equal(getEffectiveSearchQuery('молоко'), 'молоко')
+})
+
+test('scoreCatalogSearchProduct boosts verified attribute matches and excludes irrelevant products', () => {
+  const query = analyzeCatalogSearchQuery('халал сосиски')
+
+  const halalSausage = scoreCatalogSearchProduct(query, {
+    name: 'Сосиски Султан Говяжьи 450г',
+    category: 'deli',
+    subcategory: 'sausage',
+    halalStatus: 'verified',
+  })
+
+  const regularSausage = scoreCatalogSearchProduct(query, {
+    name: 'Сосиски Докторские 450г',
+    category: 'deli',
+    subcategory: 'sausage',
+    halalStatus: 'unknown',
+  })
+
+  const halalMilk = scoreCatalogSearchProduct(query, {
+    name: 'Молоко Эмиль 3.2% 1л',
+    category: 'dairy_eggs',
+    subcategory: 'milk',
+    halalStatus: 'verified',
+  })
+
+  assert.ok(halalSausage.score > regularSausage.score)
+  assert.equal(halalSausage.relevanceTier, 1)
+  assert.equal(halalMilk.score, 0) // Disqualified: milk does not match sausage query
+})
+
+test('sortCatalogSearchProducts handles typos and attribute filters synergy', () => {
+  const products = [
+    {
+      name: 'Сосиски Докторские Мираторг',
+      category: 'deli',
+      subcategory: 'sausage',
+      halalStatus: 'unknown',
+    },
+    {
+      name: 'Сосиски Мусульманские Халал',
+      category: 'deli',
+      subcategory: 'sausage',
+      halalStatus: 'verified',
+    },
+    {
+      name: 'Шоколад молочный без сахара',
+      category: 'sweets',
+      subcategory: 'chocolate',
+      halalStatus: 'verified',
+    },
+  ]
+
+  // User typed with typo "сасиски" + attribute "халал"
+  const sorted = sortCatalogSearchProducts(products, 'сасиски халал')
+
+  assert.equal(sorted.length, 2) // chocolate is excluded
+  assert.equal(sorted[0].name, 'Сосиски Мусульманские Халал')
+  assert.equal(sorted[1].name, 'Сосиски Докторские Мираторг')
 })

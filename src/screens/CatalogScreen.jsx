@@ -33,8 +33,10 @@ import FitCheckDrawer from '../components/home/FitCheckDrawer.jsx'
 import { CatalogTopBar } from '../components/catalog/CatalogTopBar.jsx'
 import { CategoryShowcaseGrid } from '../components/catalog/CategoryShowcaseGrid.jsx'
 import { CatalogSubcategoryNav } from '../components/catalog/CatalogSubcategoryNav.jsx'
+import { CatalogSearchResultsBar } from '../components/catalog/CatalogSearchResultsBar.jsx'
 import { CatalogCompareBar } from '../components/catalog/CatalogCompareBar.jsx'
 import { CatalogEmptyView } from '../components/catalog/CatalogEmptyView.jsx'
+import CatalogFilterDrawer from '../components/catalog/CatalogFilterDrawer.jsx'
 import '../components/catalog/CatalogScreen.css'
 
 function getVerdictConfig(fit, t) {
@@ -194,6 +196,16 @@ export default function CatalogScreen() {
     subcategoryCountMap,
     activeSubcategoryKeys,
     displayList,
+    searchCategoryFilter,
+    setSearchCategoryFilter,
+    searchCategoryCounts,
+    rawSearchCount,
+    extraFilters,
+    handleToggleExtraFilter,
+    totalActiveFilterCount,
+    resetAllFilters,
+    isFilterDrawerOpen,
+    setIsFilterDrawerOpen,
     handleCategoryClick,
     handleBackToCategories,
   } = useCatalogFilter({
@@ -504,6 +516,26 @@ export default function CatalogScreen() {
     ]
   )
 
+  const handleCategoryFromEmptyState = useCallback(
+    (catKey) => {
+      setQ('')
+      handleCategoryClick(catKey)
+    },
+    [setQ, handleCategoryClick]
+  )
+
+  const popularProducts = useMemo(() => {
+    if (!baseProducts || baseProducts.length === 0) return []
+    const result = []
+    for (let i = 0; i < baseProducts.length && result.length < 6; i += 1) {
+      if (baseProducts[i]?.image) {
+        result.push(baseProducts[i])
+      }
+    }
+    if (result.length >= 4) return result
+    return baseProducts.slice(0, 6)
+  }, [baseProducts])
+
   return (
     <div
       className="screen"
@@ -568,8 +600,30 @@ export default function CatalogScreen() {
           onSelectSort={setSort}
           isSortMenuOpen={isSortMenuOpen}
           setIsSortMenuOpen={setIsSortMenuOpen}
+          onOpenFilterDrawer={() => setIsFilterDrawerOpen(true)}
+          totalActiveFilterCount={totalActiveFilterCount}
+          onResetAllFilters={resetAllFilters}
           t={t}
           lang={lang}
+        />
+      )}
+
+      {hasQuery && displayList.length > 0 && (
+        <CatalogSearchResultsBar
+          resultsCount={displayList.length}
+          rawResultsCount={rawSearchCount}
+          categoryCounts={searchCategoryCounts}
+          selectedCategoryFilter={searchCategoryFilter}
+          onSelectCategoryFilter={setSearchCategoryFilter}
+          sort={sort}
+          onSelectSort={setSort}
+          isSortMenuOpen={isSortMenuOpen}
+          setIsSortMenuOpen={setIsSortMenuOpen}
+          onOpenFilterDrawer={() => setIsFilterDrawerOpen(true)}
+          totalActiveFilterCount={totalActiveFilterCount}
+          onResetAllFilters={resetAllFilters}
+          lang={lang}
+          t={t}
         />
       )}
 
@@ -605,13 +659,21 @@ export default function CatalogScreen() {
           {displayList.length === 0 ? (
             <CatalogEmptyView
               hasQuery={hasQuery}
+              isQueryTooShort={hasQuery && !isSearching}
               serverSearchStatus={serverSearch.status}
               isSearchPending={isSearchPending}
               q={q}
               searchSuggestions={searchSuggestions}
               onSelectSuggestion={(s) => setQ(s)}
               onClearQuery={() => setQ('')}
+              onSelectCategory={handleCategoryFromEmptyState}
+              onBackToCategories={handleBackToCategoriesFromUI}
+              activeCategoryKeys={activeCategoryKeys}
+              popularProducts={popularProducts}
+              renderProductCard={renderGridItem}
+              storeName={storeTitle}
               isCatalogLoading={isCatalogLoading}
+              lang={lang}
               t={t}
             />
           ) : viewMode === 'grid' ? (
@@ -652,6 +714,26 @@ export default function CatalogScreen() {
         onOpenFullPreferences={() =>
           navigate(`${buildProfilePath(activeStoreSlug)}?tab=preferences`)
         }
+      />
+
+      <CatalogFilterDrawer
+        isOpen={isFilterDrawerOpen}
+        onClose={() => setIsFilterDrawerOpen(false)}
+        totalResultsCount={displayList.length}
+        sort={sort}
+        onSelectSort={setSort}
+        selectedCategory={selectedCategory}
+        activeSubcategoryKeys={activeSubcategoryKeys}
+        subcategoryCountMap={subcategoryCountMap}
+        selectedSubcategories={selectedSubcategories}
+        onToggleSubcategory={handleToggleSubcategory}
+        onResetSubcategories={handleResetSubcategories}
+        extraFilters={extraFilters}
+        onToggleExtraFilter={handleToggleExtraFilter}
+        totalActiveFilterCount={totalActiveFilterCount}
+        onResetAllFilters={resetAllFilters}
+        lang={lang}
+        t={t}
       />
     </div>
   )

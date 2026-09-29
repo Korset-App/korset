@@ -3,6 +3,8 @@ import {
   ChevronDownIcon,
   FilterIcon,
   FilterIconActive,
+  SlidersIcon,
+  ResetArrowIcon,
   SortFitIcon,
   SortCheapIcon,
   SortPriceyIcon,
@@ -40,6 +42,9 @@ function CatalogSubcategoryNavComponent({
   onSelectSort,
   isSortMenuOpen,
   setIsSortMenuOpen,
+  onOpenFilterDrawer,
+  totalActiveFilterCount = 0,
+  onResetAllFilters,
   t,
   lang,
 }) {
@@ -97,7 +102,7 @@ function CatalogSubcategoryNavComponent({
             setIsSortMenuOpen(!isSortMenuOpen)
             setIsSubMenuOpen(false)
           }}
-          style={{ flex: activeSubcategoryKeys.length > 1 ? '1' : '1 0 100%' }}
+          style={{ flex: 1 }}
         >
           <ActiveSortIcon size={16} />
           <span
@@ -119,7 +124,39 @@ function CatalogSubcategoryNavComponent({
             }}
           />
         </button>
+
+        {onOpenFilterDrawer && (
+          <button
+            type="button"
+            className={`catalog-filter-btn${totalActiveFilterCount > 0 ? ' active' : ''}`}
+            onClick={onOpenFilterDrawer}
+            aria-label={t('catalog.filtersButton')}
+            title={t('catalog.filtersButton')}
+          >
+            <SlidersIcon size={16} />
+            <span className="catalog-filter-btn-text">{t('catalog.filtersButton')}</span>
+            {totalActiveFilterCount > 0 && (
+              <span className="catalog-filter-btn-badge">{totalActiveFilterCount}</span>
+            )}
+          </button>
+        )}
       </div>
+
+      {totalActiveFilterCount > 0 && onResetAllFilters && (
+        <div className="catalog-active-filters-bar">
+          <span className="catalog-active-filters-text">
+            {t('catalog.selectedCount', { count: totalActiveFilterCount })}
+          </span>
+          <button
+            type="button"
+            className="catalog-active-filters-reset-btn"
+            onClick={onResetAllFilters}
+          >
+            <ResetArrowIcon size={12} />
+            <span>{t('catalog.quickReset')}</span>
+          </button>
+        </div>
+      )}
 
       {isSubMenuOpen && activeSubcategoryKeys.length > 1 && (
         <div

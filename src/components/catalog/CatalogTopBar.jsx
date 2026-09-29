@@ -1,4 +1,4 @@
-import { memo, useLayoutEffect, useRef } from 'react'
+import { memo, useState, useLayoutEffect, useRef } from 'react'
 import { BarcodeScannerIcon, CloseIcon, ArrowBackIcon, SearchIcon } from '../icons/index.js'
 import { CatalogSearchSuggestions } from './CatalogSearchSuggestions.jsx'
 
@@ -74,6 +74,10 @@ function CatalogTopBarComponent({
   const compositionButtonRef = useRef(null)
   const invitationRef = useRef(null)
   const invitationArrowRef = useRef(null)
+
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1)
+  const [totalSuggestionsCount, setTotalSuggestionsCount] = useState(0)
+  const [triggerSelectIndex, setTriggerSelectIndex] = useState(null)
 
   useLayoutEffect(() => {
     const button = compositionButtonRef.current
@@ -229,13 +233,46 @@ function CatalogTopBarComponent({
           <input
             className="catalog-search-input"
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={(e) => {
+              setQ(e.target.value)
+              setActiveSuggestionIndex(-1)
+              setTriggerSelectIndex(null)
+            }}
             onFocus={() => setIsSearchFocused(true)}
             onBlur={() => setTimeout(() => setIsSearchFocused(false), 140)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                onRememberSearch()
+              if (e.key === 'ArrowDown') {
+                e.preventDefault()
+                if (totalSuggestionsCount > 0) {
+                  setIsSearchFocused(true)
+                  setActiveSuggestionIndex((prev) =>
+                    prev + 1 < totalSuggestionsCount ? prev + 1 : 0
+                  )
+                }
+              } else if (e.key === 'ArrowUp') {
+                e.preventDefault()
+                if (totalSuggestionsCount > 0) {
+                  setIsSearchFocused(true)
+                  setActiveSuggestionIndex((prev) =>
+                    prev > 0 ? prev - 1 : totalSuggestionsCount - 1
+                  )
+                }
+              } else if (e.key === 'Escape') {
+                e.preventDefault()
+                setIsSearchFocused(false)
+                setActiveSuggestionIndex(-1)
+                setTriggerSelectIndex(null)
                 e.currentTarget.blur()
+              } else if (e.key === 'Enter') {
+                if (activeSuggestionIndex >= 0) {
+                  e.preventDefault()
+                  setTriggerSelectIndex(activeSuggestionIndex)
+                  setActiveSuggestionIndex(-1)
+                  e.currentTarget.blur()
+                } else {
+                  onRememberSearch()
+                  e.currentTarget.blur()
+                }
               }
             }}
             placeholder={t('catalog.searchPlaceholder')}
@@ -249,7 +286,11 @@ function CatalogTopBarComponent({
             <button
               type="button"
               className="catalog-search-clear"
-              onClick={onClearQuery}
+              onClick={() => {
+                onClearQuery()
+                setActiveSuggestionIndex(-1)
+                setTriggerSelectIndex(null)
+              }}
               aria-label={t('catalog.clearSearch')}
             >
               <CloseIcon size={14} />
@@ -309,13 +350,20 @@ function CatalogTopBarComponent({
         onSelectQuery={(query) => {
           setQ(query)
           setIsSearchFocused(false)
+          setActiveSuggestionIndex(-1)
+          setTriggerSelectIndex(null)
         }}
         onSelectCategory={(categoryKey) => {
           onSelectCategory(categoryKey)
           setIsSearchFocused(false)
+          setActiveSuggestionIndex(-1)
+          setTriggerSelectIndex(null)
         }}
         onRemoveHistoryEntry={onRemoveHistoryEntry}
         onClearHistory={onClearHistory}
+        activeIndex={activeSuggestionIndex}
+        onTotalItemsChange={setTotalSuggestionsCount}
+        triggerSelectIndex={triggerSelectIndex}
         lang={lang}
         t={t}
       />

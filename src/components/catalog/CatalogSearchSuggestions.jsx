@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useMemo, useEffect } from 'react'
 import { HistoryIcon, CloseIcon, SearchIcon } from '../icons/index.js'
 import './CatalogSearchSuggestions.css'
 import { HighlightMatch } from './HighlightMatch.jsx'
@@ -46,15 +46,75 @@ function CatalogSearchSuggestionsComponent({
   onSelectCategory,
   onRemoveHistoryEntry,
   onClearHistory,
+  activeIndex = -1,
+  onTotalItemsChange,
+  triggerSelectIndex = null,
   lang,
   t,
 }) {
-  if (!isOpen) return null
-
   const topResults = (serverSearch?.results || []).slice(0, 3)
   const totalCount = (serverSearch?.results || []).length
   const detectedBrand = hasQuery ? detectBrandFromResults(serverSearch?.results) : null
   const detectedCategory = hasQuery ? detectCategoryFromResults(serverSearch?.results, lang) : null
+
+  const items = useMemo(() => {
+    if (!isOpen) return []
+    if (!hasQuery) {
+      const list = []
+      for (const item of recentSearches) {
+        list.push({ key: `hist-${item.query}`, onSelect: () => onSelectQuery(item.query) })
+      }
+      for (const chip of POPULAR_CHIPS) {
+        list.push({ key: `chip-${chip}`, onSelect: () => onSelectQuery(chip) })
+      }
+      return list
+    }
+    const list = []
+    if (detectedBrand) {
+      list.push({ key: 'brand', onSelect: () => onSelectQuery(q) })
+    } else if (detectedCategory) {
+      list.push({ key: 'cat', onSelect: () => onSelectCategory(detectedCategory.key) })
+    }
+    for (const product of topResults) {
+      const name = getLocalName(product)
+      list.push({ key: `prod-${product.ean}`, onSelect: () => onSelectQuery(name) })
+    }
+    if (totalCount > 0) {
+      list.push({ key: 'all', onSelect: () => onSelectQuery(q) })
+    }
+    return list
+  }, [
+    isOpen,
+    hasQuery,
+    recentSearches,
+    detectedBrand,
+    detectedCategory,
+    topResults,
+    totalCount,
+    q,
+    onSelectQuery,
+    onSelectCategory,
+  ])
+
+  useEffect(() => {
+    if (onTotalItemsChange) {
+      onTotalItemsChange(items.length)
+    }
+  }, [items.length, onTotalItemsChange])
+
+  useEffect(() => {
+    if (
+      triggerSelectIndex != null &&
+      triggerSelectIndex >= 0 &&
+      triggerSelectIndex < items.length
+    ) {
+      items[triggerSelectIndex].onSelect()
+    }
+  }, [triggerSelectIndex, items])
+
+  const hintOffset = hasQuery && (detectedBrand || detectedCategory) ? 1 : 0
+
+  if (!isOpen) return null
 
   return (
     <div className="csr-overlay" role="listbox" aria-label={t('catalog.search')}>
@@ -75,30 +135,34 @@ function CatalogSearchSuggestionsComponent({
                 </button>
               </div>
               <ul className="csr-list" role="group">
-                {recentSearches.map((item) => (
-                  <li key={`${item.storeKey}:${item.query}`} className="csr-history-row">
-                    <button
-                      type="button"
-                      className="csr-row csr-row--history"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => onSelectQuery(item.query)}
-                    >
-                      <span className="csr-row__icon" aria-hidden="true">
-                        <HistoryIcon size={15} />
-                      </span>
-                      <span className="csr-row__label">{item.query}</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="csr-history-remove"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => onRemoveHistoryEntry(item.query)}
-                      aria-label={`${t('catalog.recentSearchRemove')}: ${item.query}`}
-                    >
-                      <CloseIcon size={12} />
-                    </button>
-                  </li>
-                ))}
+                {recentSearches.map((item, i) => {
+                  const isSelected = activeIndex === i
+                  return (
+                    <li key={`${item.storeKey}:${item.query}`} className="csr-history-row">
+                      <button
+                        type="button"
+                        className={`csr-row csr-row--history${isSelected ? ' is-active' : ''}`}
+                        aria-selected={isSelected}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => onSelectQuery(item.query)}
+                      >
+                        <span className="csr-row__icon" aria-hidden="true">
+                          <HistoryIcon size={15} />
+                        </span>
+                        <span className="csr-row__label">{item.query}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="csr-history-remove"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => onRemoveHistoryEntry(item.query)}
+                        aria-label={`${t('catalog.recentSearchRemove')}: ${item.query}`}
+                      >
+                        <CloseIcon size={12} />
+                      </button>
+                    </li>
+                  )
+                })}
               </ul>
             </section>
           )}
@@ -108,17 +172,21 @@ function CatalogSearchSuggestionsComponent({
               <span className="csr-section__title">{t('catalog.popularSearches')}</span>
             </div>
             <div className="csr-chips">
-              {POPULAR_CHIPS.map((chip) => (
-                <button
-                  key={chip}
-                  type="button"
-                  className="csr-chip"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => onSelectQuery(chip)}
-                >
-                  {chip}
-                </button>
-              ))}
+              {POPULAR_CHIPS.map((chip, chipIdx) => {
+                const isSelected = activeIndex === recentSearches.length + chipIdx
+                return (
+                  <button
+                    key={chip}
+                    type="button"
+                    className={`csr-chip${isSelected ? ' is-active' : ''}`}
+                    aria-selected={isSelected}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => onSelectQuery(chip)}
+                  >
+                    {chip}
+                  </button>
+                )
+              })}
             </div>
           </section>
         </>
@@ -131,7 +199,8 @@ function CatalogSearchSuggestionsComponent({
           {detectedBrand && (
             <button
               type="button"
-              className="csr-row csr-row--hint csr-row--brand"
+              className={`csr-row csr-row--hint csr-row--brand${activeIndex === 0 ? ' is-active' : ''}`}
+              aria-selected={activeIndex === 0}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => onSelectQuery(q)}
             >
@@ -148,7 +217,8 @@ function CatalogSearchSuggestionsComponent({
           {detectedCategory && !detectedBrand && (
             <button
               type="button"
-              className="csr-row csr-row--hint csr-row--category"
+              className={`csr-row csr-row--hint csr-row--category${activeIndex === 0 ? ' is-active' : ''}`}
+              aria-selected={activeIndex === 0}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => onSelectCategory(detectedCategory.key)}
             >
@@ -165,13 +235,15 @@ function CatalogSearchSuggestionsComponent({
           {topResults.length > 0 && (
             <section className="csr-section csr-section--results">
               <ul className="csr-list" role="group">
-                {topResults.map((product) => {
+                {topResults.map((product, prodIdx) => {
                   const name = getLocalName(product)
+                  const isSelected = activeIndex === hintOffset + prodIdx
                   return (
                     <li key={product.ean}>
                       <button
                         type="button"
-                        className="csr-row csr-row--product"
+                        className={`csr-row csr-row--product${isSelected ? ' is-active' : ''}`}
+                        aria-selected={isSelected}
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => onSelectQuery(name)}
                       >
@@ -207,7 +279,8 @@ function CatalogSearchSuggestionsComponent({
           {totalCount > 0 && (
             <button
               type="button"
-              className="csr-row csr-row--all"
+              className={`csr-row csr-row--all${activeIndex === hintOffset + topResults.length ? ' is-active' : ''}`}
+              aria-selected={activeIndex === hintOffset + topResults.length}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => onSelectQuery(q)}
             >

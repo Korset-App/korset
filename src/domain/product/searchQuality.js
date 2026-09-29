@@ -1,22 +1,130 @@
 import { parseQuantityTokens } from '../../utils/parseQuantity.js'
 import { NAME_KEYWORDS, DEACTIVATE } from './categoryMap.js'
+import { correctGroceryTypos } from './searchNormalization.js'
 
 const CATEGORY_MAP_DEACTIVATE = DEACTIVATE || '__deactivate__'
 
-const ATTRIBUTE_ALIASES = [
-  { key: 'sugar_free', phrases: ['без сахара', 'б сах', 'б.сах', 'sugar free', 'sugar-free'] },
+export const ATTRIBUTE_ALIASES = [
+  {
+    key: 'sugar_free',
+    phrases: [
+      'без сахара',
+      'б сах',
+      'б.сах',
+      'безсахарный',
+      'безсахарное',
+      'безсахарная',
+      'без сахора',
+      'кантсыз',
+      'қантсыз',
+      'секерсиз',
+      'шекерсиз',
+      'sugar free',
+      'sugar-free',
+      'zero sugar',
+      'no sugar',
+      'без добавления сахара',
+    ],
+  },
   {
     key: 'gluten_free',
-    phrases: ['без глютена', 'без глютен', 'безглютен', 'gluten free', 'gluten-free'],
+    phrases: [
+      'без глютена',
+      'без глютен',
+      'безглютен',
+      'безглютеновый',
+      'безглютеновое',
+      'безглютеновая',
+      'глютенсиз',
+      'глютенсіз',
+      'gluten free',
+      'gluten-free',
+    ],
   },
-  { key: 'lactose_free', phrases: ['без лактозы', 'безлактоз', 'lactose free', 'lactose-free'] },
-  { key: 'halal', phrases: ['халал', 'halal'] },
-  { key: 'protein', phrases: ['протеин', 'белковый', 'protein'] },
-  { key: 'vegan', phrases: ['веган', 'vegan', 'растительный'] },
-  { key: 'organic', phrases: ['органик', 'organic', 'органика', 'био'] },
-  { key: 'keto', phrases: ['кето', 'keto', 'кетогенный'] },
-  { key: 'palm_oil', phrases: ['пальмовое масло', 'пальмовый жир', 'palm oil'] },
-  { key: 'low_calorie', phrases: ['низкокалорийный', 'низкая калорийность', 'low calorie'] },
+  {
+    key: 'lactose_free',
+    phrases: [
+      'без лактозы',
+      'безлактоз',
+      'безлактозный',
+      'безлактозное',
+      'безлактозная',
+      'лактозасыз',
+      'lactose free',
+      'lactose-free',
+    ],
+  },
+  {
+    key: 'halal',
+    phrases: ['халал', 'халяль', 'халял', 'halal'],
+  },
+  {
+    key: 'protein',
+    phrases: [
+      'протеин',
+      'протеиновый',
+      'протеиновое',
+      'протеиновая',
+      'белковый',
+      'белковое',
+      'акуызды',
+      'ақуызды',
+      'белокты',
+      'protein',
+      'high protein',
+    ],
+  },
+  {
+    key: 'vegan',
+    phrases: [
+      'веган',
+      'веганский',
+      'веганское',
+      'веганская',
+      'растительный',
+      'растительное',
+      'растительная',
+      'постный',
+      'постное',
+      'постная',
+      'vegan',
+    ],
+  },
+  {
+    key: 'organic',
+    phrases: [
+      'органик',
+      'органика',
+      'органический',
+      'органическое',
+      'органическая',
+      'био',
+      'organic',
+      'bio',
+    ],
+  },
+  {
+    key: 'keto',
+    phrases: ['кето', 'кетогенный', 'кетогенное', 'keto'],
+  },
+  {
+    key: 'palm_oil',
+    phrases: ['без пальмового масла', 'пальмовое масло', 'пальмовый жир', 'palm oil'],
+  },
+  {
+    key: 'low_calorie',
+    phrases: [
+      'низкокалорийный',
+      'низкокалорийное',
+      'низкая калорийность',
+      'диет',
+      'диетический',
+      'диетическое',
+      'лайт',
+      'light',
+      'low calorie',
+    ],
+  },
 ]
 
 const QUERY_ALIASES = [
@@ -243,6 +351,16 @@ const QUERY_ALIASES = [
     phrases: ['dilmah'],
     tokens: ['дилма'],
     intent: { category: 'tea_coffee', subcategory: 'tea' },
+  },
+  {
+    phrases: ['роллтон', 'ролтон', 'rollton'],
+    tokens: ['роллтон', 'rollton'],
+    intent: { category: 'ready_meals', subcategory: 'instant' },
+  },
+  {
+    phrases: ['доширак', 'дошик', 'doshirak'],
+    tokens: ['доширак', 'doshirak'],
+    intent: { category: 'ready_meals', subcategory: 'instant' },
   },
   {
     phrases: ['эмил', 'эмиль'],
@@ -508,12 +626,36 @@ function includesPhrase(text, phrase) {
   return ` ${text} `.includes(` ${normalizeText(phrase)} `)
 }
 
-function findAttribute(normalized) {
-  for (const attribute of ATTRIBUTE_ALIASES) {
-    if (attribute.phrases.some((phrase) => normalized.includes(phrase.toLowerCase())))
-      return attribute.key
+export function extractAttributeIntent(rawText) {
+  if (!rawText || typeof rawText !== 'string') {
+    return { attribute: null, matchedPhrase: null, cleanQuery: '' }
   }
-  return null
+
+  const normalized = normalizeText(rawText)
+  const padded = ` ${normalized} `
+
+  for (const attr of ATTRIBUTE_ALIASES) {
+    const sortedPhrases = [...attr.phrases].sort((a, b) => b.length - a.length)
+    for (const phrase of sortedPhrases) {
+      const p = normalizeText(phrase)
+      if (!p) continue
+      const target = ` ${p} `
+      if (padded.includes(target)) {
+        const cleaned = padded.replace(target, ' ').replace(/\s+/g, ' ').trim()
+        return {
+          attribute: attr.key,
+          matchedPhrase: phrase,
+          cleanQuery: cleaned,
+        }
+      }
+    }
+  }
+
+  return {
+    attribute: null,
+    matchedPhrase: null,
+    cleanQuery: normalized,
+  }
 }
 
 function findAliasMatches(normalized) {
@@ -555,7 +697,6 @@ function findIntent(normalized, aliasIntent) {
 
 function classifyMode(attribute, intent, digitsOnly) {
   if (digitsOnly.length >= 6) return 'ean'
-  if (attribute && intent) return 'mixed'
   if (attribute) return 'attribute'
   if (intent) return 'product'
   return 'mixed'
@@ -574,19 +715,19 @@ function buildAliasOriginSet(normalized) {
 }
 
 export function analyzeCatalogSearchQuery(query) {
-  const normalized = normalizeText(query)
-  const quantity = findQuantity(normalized)
+  const rawNormalized = normalizeText(query)
+  const normalized = correctGroceryTypos(rawNormalized)
+  const { attribute, matchedPhrase, cleanQuery } = extractAttributeIntent(normalized)
+  const productText = attribute ? cleanQuery : normalized
+
+  const quantity = findQuantity(productText)
   const digitsOnly = normalized.replace(/\D/g, '')
-  const aliasMatches = findAliasMatches(normalized)
-  const attribute = findAttribute(normalized)
-  let intent = findIntent(normalized, aliasMatches.intent)
-  if (attribute && intent) {
-    intent = null
-  }
-  const tokens = tokenize(normalized).filter(
+  const aliasMatches = findAliasMatches(productText)
+  const intent = findIntent(productText, aliasMatches.intent)
+  const tokens = tokenize(productText).filter(
     (token) => !/^\d/.test(token) && !['мл', 'л', 'г', 'кг'].includes(token)
   )
-  const aliasedOriginSet = buildAliasOriginSet(normalized)
+  const aliasedOriginSet = buildAliasOriginSet(productText)
   const unaliasedTokens = tokens.filter((t) => !aliasedOriginSet.has(t))
   const allTokens =
     aliasMatches.aliasTokens.length > 0
@@ -595,6 +736,8 @@ export function analyzeCatalogSearchQuery(query) {
   return {
     original: String(query || ''),
     normalized,
+    cleanQuery,
+    matchedPhrase,
     tokens,
     aliasTokens: aliasMatches.aliasTokens,
     allTokens,
@@ -658,56 +801,142 @@ function getProductQuantity(product) {
     : findQuantity([product?.quantity, product?.name, product?.nameKz].filter(Boolean).join(' '))
 }
 
-function hasAttributeMatch(query, product, productText) {
-  if (!query.attribute) return false
-  if (query.attribute === 'halal')
-    return (
-      ['yes', 'halal'].includes(String(product?.halalStatus || '').toLowerCase()) ||
-      productText.includes('халал') ||
-      productText.includes('halal')
-    )
+export function hasAttributeMatch(query, product, productText) {
+  if (!query?.attribute) return false
+  const attr = query.attribute
+
+  if (attr === 'halal') {
+    if (product?.halal === true || product?.is_halal === true) return true
+    const status = String(product?.halalStatus || product?.halal_status || '').toLowerCase()
+    if (['yes', 'halal', 'verified'].includes(status)) return true
+    const pText = productText || getProductText(product)
+    if (
+      pText.includes('халал') ||
+      pText.includes('халяль') ||
+      pText.includes('халял') ||
+      pText.includes('halal')
+    ) {
+      return true
+    }
+    const dietTags = Array.isArray(product?.dietTags) ? product.dietTags : []
+    if (dietTags.some((t) => String(t).toLowerCase().includes('halal'))) return true
+    return false
+  }
+
   const values = [
     ...(Array.isArray(product?.tags) ? product.tags : []),
     ...(Array.isArray(product?.dietTags) ? product.dietTags : []),
     ...(Array.isArray(product?.categoriesTags) ? product.categoriesTags : []),
     product?.name,
+    product?.nameKz,
     product?.ingredients,
-  ].map(normalizeText)
-  if (query.attribute === 'sugar_free')
+    product?.ingredientsKz,
+    product?.subcategory,
+  ]
+    .filter(Boolean)
+    .map(normalizeText)
+
+  if (attr === 'sugar_free') {
+    if (
+      values.some(
+        (v) =>
+          v.includes('без сахара') ||
+          v.includes('кантсыз') ||
+          v.includes('қантсыз') ||
+          v.includes('секерсиз') ||
+          v.includes('шекерсиз') ||
+          v.includes('sugar_free') ||
+          v.includes('sugar free') ||
+          v.includes('zero sugar') ||
+          v.includes('no sugar') ||
+          v.includes('без добавления сахара') ||
+          v.includes('безсахарн')
+      )
+    ) {
+      return true
+    }
+    const sugar = product?.nutritionPer100?.sugar ?? product?.nutritionPer100?.sugars
+    if (
+      sugar !== undefined &&
+      sugar !== null &&
+      Number(sugar) === 0 &&
+      (product?.category === 'sweets' || product?.category === 'water_beverages')
+    ) {
+      return true
+    }
+    return false
+  }
+
+  if (attr === 'gluten_free') {
     return values.some(
-      (value) =>
-        value.includes('без сахара') || value.includes('sugar_free') || value.includes('sugar free')
+      (v) =>
+        v.includes('без глютен') ||
+        v.includes('безглютен') ||
+        v.includes('глютенсиз') ||
+        v.includes('глютенсіз') ||
+        v.includes('gluten_free') ||
+        v.includes('gluten free')
     )
-  if (query.attribute === 'gluten_free')
+  }
+
+  if (attr === 'lactose_free') {
     return values.some(
-      (value) =>
-        value.includes('без глютен') ||
-        value.includes('gluten_free') ||
-        value.includes('gluten free')
+      (v) =>
+        v.includes('без лактоз') ||
+        v.includes('безлактоз') ||
+        v.includes('лактозасыз') ||
+        v.includes('lactose_free') ||
+        v.includes('lactose free')
     )
-  if (query.attribute === 'lactose_free')
+  }
+
+  if (attr === 'protein') {
     return values.some(
-      (value) =>
-        value.includes('без лактоз') ||
-        value.includes('lactose_free') ||
-        value.includes('lactose free')
+      (v) =>
+        v.includes('протеин') ||
+        v.includes('белков') ||
+        v.includes('акуыз') ||
+        v.includes('ақуыз') ||
+        v.includes('protein')
     )
-  if (query.attribute === 'protein')
+  }
+
+  if (attr === 'vegan') {
     return values.some(
-      (value) => value.includes('протеин') || value.includes('белков') || value.includes('protein')
+      (v) =>
+        v.includes('веган') ||
+        v.includes('vegan') ||
+        v.includes('растительн') ||
+        v.includes('постн')
     )
-  if (query.attribute === 'vegan')
-    return values.some((value) => value.includes('веган') || value.includes('vegan'))
-  if (query.attribute === 'organic')
+  }
+
+  if (attr === 'organic') {
     return values.some(
-      (value) => value.includes('органик') || value.includes('organic') || value.includes('био')
+      (v) =>
+        v.includes('органик') || v.includes('organic') || v.includes('био') || v.includes('bio')
     )
-  if (query.attribute === 'keto')
-    return values.some((value) => value.includes('кето') || value.includes('keto'))
-  if (query.attribute === 'palm_oil')
-    return values.some((value) => value.includes('пальмов') || value.includes('palm oil'))
-  if (query.attribute === 'low_calorie')
-    return values.some((value) => value.includes('низкокалорийн') || value.includes('low calorie'))
+  }
+
+  if (attr === 'keto') {
+    return values.some((v) => v.includes('кето') || v.includes('keto'))
+  }
+
+  if (attr === 'palm_oil') {
+    return values.some((v) => v.includes('пальмов') || v.includes('palm oil'))
+  }
+
+  if (attr === 'low_calorie') {
+    return values.some(
+      (v) =>
+        v.includes('низкокалорийн') ||
+        v.includes('low calorie') ||
+        v.includes('диет') ||
+        v.includes('лайт') ||
+        v.includes('light')
+    )
+  }
+
   return false
 }
 
@@ -760,9 +989,11 @@ export function scoreCatalogSearchProduct(queryInput, product) {
     matchType = 'ean_prefix'
   }
 
-  if (attributeMatch) {
-    score += 1600
-    relevanceTier = Math.min(relevanceTier, query.intent ? 2 : 1)
+  const hasProductMatch = query.allTokens.length === 0 || matchedTokens > 0 || categoryMatch
+
+  if (attributeMatch && hasProductMatch) {
+    score += 2500
+    relevanceTier = Math.min(relevanceTier, 1)
     matchType = 'attribute_tag'
   }
 
@@ -797,6 +1028,8 @@ export function scoreCatalogSearchProduct(queryInput, product) {
 
   if (matchedQuantity) score += 350
   if (query.intent && !categoryMatch && matchedTokens > 0) score -= 250
+  if (query.allTokens.length === 0 && !attributeMatch) score = 0
+  if (query.allTokens.length > 0 && matchedTokens === 0 && !categoryMatch && !query.ean) score = 0
   if (score < MIN_RELEVANCE_SCORE) score = 0
   if (score <= 0) relevanceTier = 99
 
@@ -834,4 +1067,13 @@ export function sortCatalogSearchProducts(products, queryInput, getFitScore = ()
       matchType: item.search.matchType,
       relevanceTier: item.search.relevanceTier,
     }))
+}
+
+export function getEffectiveSearchQuery(rawQuery) {
+  if (!rawQuery || typeof rawQuery !== 'string') return ''
+  const analysis = analyzeCatalogSearchQuery(rawQuery)
+  if (analysis.cleanQuery && analysis.cleanQuery.length >= 2) {
+    return analysis.cleanQuery
+  }
+  return analysis.normalized || rawQuery.trim()
 }

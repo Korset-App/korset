@@ -1,0 +1,375 @@
+.catalog-filter-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  animation: filterOverlayFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes filterOverlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.catalog-filter-drawer-sheet {
+  width: 100%;
+  max-width: 480px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.35);
+  animation: filterSheetSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  overflow: hidden;
+  border-top: 1px solid var(--glass-border);
+}
+
+@keyframes filterSheetSlideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.catalog-filter-drawer-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--glass-border);
+  margin: 10px auto 4px;
+  flex-shrink: 0;
+}
+
+.catalog-filter-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px 14px;
+  border-bottom: 1px solid var(--glass-soft-border, var(--glass-border));
+  flex-shrink: 0;
+}
+
+.catalog-filter-drawer-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.catalog-filter-drawer-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.catalog-filter-drawer-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--primary);
+  color: var(--text-inverse);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.catalog-filter-drawer-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.catalog-filter-drawer-reset-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--primary-bright);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.catalog-filter-drawer-reset-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  color: var(--text-dim);
+}
+
+.catalog-filter-drawer-reset-btn:not(:disabled):hover {
+  background: var(--glass-bg);
+}
+
+.catalog-filter-drawer-close-btn {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  color: var(--text-soft);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.catalog-filter-drawer-close-btn:hover {
+  background: var(--glass-muted);
+  color: var(--text);
+}
+
+.catalog-filter-drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px 18px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.catalog-filter-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.catalog-filter-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.catalog-filter-section-title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+
+.catalog-filter-section-clear {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary-bright);
+  cursor: pointer;
+}
+
+/* Sort Pills */
+.catalog-filter-sort-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.catalog-filter-sort-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  color: var(--text-soft);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.catalog-filter-sort-pill:hover {
+  background: var(--glass-muted);
+  color: var(--text);
+}
+
+.catalog-filter-sort-pill.is-active {
+  background: var(--badge-bg);
+  border-color: var(--badge-border);
+  color: var(--primary-bright);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--primary) 15%, transparent);
+}
+
+/* Subcategory Chips Grid */
+.catalog-filter-chips-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.catalog-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 13px;
+  border-radius: 12px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  color: var(--text-soft);
+  font-size: 0.8125rem;
+  font-weight: 550;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.catalog-filter-chip:hover {
+  background: var(--glass-muted);
+  color: var(--text);
+}
+
+.catalog-filter-chip.is-active {
+  background: var(--badge-bg);
+  border-color: var(--badge-border);
+  color: var(--primary-bright);
+}
+
+.catalog-filter-chip-count {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  opacity: 0.75;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--text-soft) 12%, transparent);
+}
+
+.catalog-filter-chip.is-active .catalog-filter-chip-count {
+  background: color-mix(in srgb, var(--primary) 20%, transparent);
+  color: var(--primary-bright);
+  opacity: 1;
+}
+
+/* Toggle Rows List */
+.catalog-filter-toggles-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.catalog-filter-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 16px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  user-select: none;
+}
+
+.catalog-filter-toggle-row:not(:last-child) {
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.catalog-filter-toggle-row:hover {
+  background: var(--glass-muted);
+}
+
+.catalog-filter-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.catalog-filter-icon--halal {
+  color: var(--primary-bright);
+  flex-shrink: 0;
+}
+
+.catalog-filter-toggle-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.catalog-filter-toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 26px;
+  border-radius: 13px;
+  background: var(--glass-border);
+  transition: background 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+}
+
+.catalog-filter-toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--text-inverse);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.catalog-filter-toggle-input:checked + .catalog-filter-toggle-switch {
+  background: var(--primary);
+}
+
+.catalog-filter-toggle-input:checked + .catalog-filter-toggle-switch::after {
+  transform: translateX(18px);
+}
+
+/* Sticky Footer */
+.catalog-filter-drawer-footer {
+  padding: 12px 18px calc(14px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--glass-border);
+  background: var(--bg-card);
+  flex-shrink: 0;
+}
+
+.catalog-filter-drawer-apply-btn {
+  width: 100%;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 14px;
+  background: var(--primary);
+  color: var(--text-inverse);
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--primary) 30%, transparent);
+  transition: all 0.15s ease;
+}
+
+.catalog-filter-drawer-apply-btn:active {
+  transform: scale(0.98);
+}

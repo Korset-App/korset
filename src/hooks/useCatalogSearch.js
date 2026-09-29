@@ -7,9 +7,17 @@ import {
   removeCatalogSearchQuery,
 } from '../domain/product/searchHistory.js'
 import { buildSearchSuggestions } from '../domain/catalog/catalogSorting.js'
+import { getEffectiveSearchQuery } from '../domain/product/searchQuality.js'
 
 export function useCatalogSearch({ storeId, storeSlug, isOnline, location }) {
-  const [q, setQ] = useState(() => sessionStorage.getItem('korset_catalog_q') || '')
+  const [q, setQ] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const urlQ = params.get('q')
+      if (urlQ) return urlQ
+    }
+    return sessionStorage.getItem('korset_catalog_q') || ''
+  })
   const [debouncedQuery, setDebouncedQuery] = useState(q)
   const [serverSearch, setServerSearch] = useState({ results: [], query: '', status: 'idle' })
   const [recentSearchesVersion, setRecentSearchesVersion] = useState(0)
@@ -36,7 +44,11 @@ export function useCatalogSearch({ storeId, storeSlug, isOnline, location }) {
 
   // Persist query to session
   useEffect(() => {
-    sessionStorage.setItem('korset_catalog_q', q)
+    if (q) {
+      sessionStorage.setItem('korset_catalog_q', q)
+    } else {
+      sessionStorage.removeItem('korset_catalog_q')
+    }
   }, [q])
 
   // Debounce search query (250ms)
@@ -45,19 +57,41 @@ export function useCatalogSearch({ storeId, storeSlug, isOnline, location }) {
     return () => clearTimeout(timer)
   }, [q])
 
+  // Sync debounced query to URL query string so searches are shareable and reload-safe
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const url = new URL(window.location.href)
+    const currentQ = url.searchParams.get('q') || ''
+    const trimmed = debouncedQuery.trim()
+    if (trimmed && currentQ !== trimmed) {
+      url.searchParams.set('q', trimmed)
+      window.history.replaceState(window.history.state, '', url.pathname + url.search)
+    } else if (!trimmed && currentQ) {
+      url.searchParams.delete('q')
+      window.history.replaceState(window.history.state, '', url.pathname + (url.search || ''))
+    }
+  }, [debouncedQuery])
+
   const hasQuery = q.trim().length > 0
-  const isSearching = debouncedQuery.trim().length > 0
+  // Numeric-only input is treated as a barcode scan: require ≥4 digits before searching.
+  // Regular text queries require ≥3 characters to avoid hammering Supabase on every keystroke.
+  const isBarcode = /^\d+$/.test(debouncedQuery.trim())
+  const minLen = isBarcode ? 4 : 3
+  const isSearching = debouncedQuery.trim().length >= minLen
   const normalizedQuery = debouncedQuery.trim()
   const searchStoreKey = storeId || storeSlug || 'global'
-  const canUseServerSearch =
-    isSearching && isOnline && Boolean(storeId) && normalizedQuery.length >= 2
+  const canUseServerSearch = isSearching && isOnline && Boolean(storeId)
 
   // Server RPC search execution
   useEffect(() => {
-    if (!canUseServerSearch) return undefined
+    if (!canUseServerSearch) {
+      setServerSearch({ results: [], query: '', status: 'idle' })
+      return undefined
+    }
     let cancelled = false
     setServerSearch((state) => ({ ...state, status: 'pending' }))
-    searchStoreProductsRPC(storeId, normalizedQuery, { limit: 60 })
+    const effectiveQuery = getEffectiveSearchQuery(normalizedQuery) || normalizedQuery
+    searchStoreProductsRPC(storeId, effectiveQuery, { limit: 60 })
       .then((products) => {
         if (cancelled) return
         setServerSearch({ results: products, query: normalizedQuery, status: 'success' })
@@ -87,7 +121,7 @@ export function useCatalogSearch({ storeId, storeSlug, isOnline, location }) {
   )
 
   const rememberCatalogSearch = useCallback(() => {
-    if (normalizedQuery.length < 2 || isSearchPending) return
+    if (normalizedQuery.length < 3 || isSearchPending) return
     appendCatalogSearchQuery(searchStoreKey, normalizedQuery)
     setRecentSearchesVersion((v) => v + 1)
   }, [isSearchPending, normalizedQuery, searchStoreKey])

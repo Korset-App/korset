@@ -129,6 +129,9 @@ export function buildSearchSuggestions(query) {
   }
 
   const sq = analyzeCatalogSearchQuery(normalized)
+  if (sq.normalized && sq.normalized !== normalized) {
+    addSuggestion(sq.normalized)
+  }
   if (sq.intent?.category) {
     if (sq.intent.subcategory === 'milk') {
       addSuggestion(normalized + ' 1л')

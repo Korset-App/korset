@@ -4,6 +4,8 @@ import {
   appendCatalogSearchQuery,
   CATALOG_SEARCH_HISTORY_STORAGE_KEY,
   readCatalogSearchHistory,
+  clearCatalogSearchHistory,
+  removeCatalogSearchQuery,
 } from '../../src/domain/product/searchHistory.js'
 
 const storage = new Map()
@@ -55,5 +57,39 @@ test('catalog search history survives malformed storage', () => {
   assert.deepEqual(
     appendCatalogSearchQuery('store-a', 'сыр').map((item) => item.query),
     ['сыр']
+  )
+})
+
+test('removeCatalogSearchQuery removes only targeted query in targeted store', () => {
+  localStorage.clear()
+
+  appendCatalogSearchQuery('store-a', 'молоко')
+  appendCatalogSearchQuery('store-a', 'сыр')
+  appendCatalogSearchQuery('store-b', 'сыр')
+
+  removeCatalogSearchQuery('store-a', 'МОЛОКО')
+  assert.deepEqual(
+    readCatalogSearchHistory('store-a').map((i) => i.query),
+    ['сыр']
+  )
+  // store-b should be untouched
+  assert.deepEqual(
+    readCatalogSearchHistory('store-b').map((i) => i.query),
+    ['сыр']
+  )
+})
+
+test('clearCatalogSearchHistory clears only targeted store', () => {
+  localStorage.clear()
+
+  appendCatalogSearchQuery('store-a', 'молоко')
+  appendCatalogSearchQuery('store-a', 'сыр')
+  appendCatalogSearchQuery('store-b', 'чай')
+
+  clearCatalogSearchHistory('store-a')
+  assert.deepEqual(readCatalogSearchHistory('store-a'), [])
+  assert.deepEqual(
+    readCatalogSearchHistory('store-b').map((i) => i.query),
+    ['чай']
   )
 })
