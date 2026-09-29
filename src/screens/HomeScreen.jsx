@@ -7,7 +7,7 @@ import ShoppingListButton from '../components/ShoppingListButton.jsx'
 import KorsetAvatar from '../components/KorsetAvatar.jsx'
 import SegmentedToggle from '../components/SegmentedToggle.jsx'
 import { useOverlayLock } from '../hooks/useOverlayLock.js'
-import StoryViewer from '../components/home/StoryViewer.jsx'
+import HomeBannerCarousel from '../components/home/HomeBannerCarousel.jsx'
 import FitCheckDrawer from '../components/home/FitCheckDrawer.jsx'
 import InstallAppSheet from '../components/home/InstallAppSheet.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
@@ -15,7 +15,6 @@ import { useProfile } from '../contexts/ProfileContext.jsx'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { useUserData } from '../contexts/UserDataContext.jsx'
 import {
-  HOME_STORY_KEYS,
   HOME_DEPARTMENTS,
   AI_PROMPT_SETS,
   getRotatedAIPrompts,
@@ -25,10 +24,7 @@ import {
   getStorePopularityMap,
   recordProductView,
   recordProductFavorite,
-  loadSeenStories,
-  loadStoryProgress,
-  recordStorySlideView,
-  sortStoriesBySeen,
+  getHomeBanners,
 } from '../domain/home/homeScreenModel.js'
 import { parseStoreSchedule } from '../domain/stores/schedule.js'
 import { setLang, useI18n } from '../i18n/index.js'
@@ -37,8 +33,6 @@ import { buildProductPath, buildProfileEditPath } from '../utils/routes.js'
 import {
   StorefrontIcon,
   BarcodeScannerIcon,
-  InventoryIcon,
-  SparklesIcon,
   ResetArrowIcon,
   DietIcon,
   SlidersIcon,
@@ -231,41 +225,6 @@ function HomeIcon({ name, className = '' }) {
       {name}
     </span>
   )
-}
-
-function StoryCardIcon({ name, size = 13 }) {
-  switch (name) {
-    case 'storefront':
-      return <StorefrontIcon size={size} color="#ffffff" />
-    case 'auto_stories':
-      return <InventoryIcon size={size} color="#ffffff" strokeWidth={1.8} />
-    case 'barcode_scanner':
-      return <BarcodeScannerIcon size={size} color="#ffffff" strokeWidth={1.8} />
-    case 'shield_with_heart':
-      return (
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#ffffff"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-          <path
-            d="M12 8a2.2 2.2 0 0 0-3.1 0 2.2 2.2 0 0 0 0 3.1L12 14.2l3.1-3.1a2.2 2.2 0 0 0 0-3.1 2.2 2.2 0 0 0-3.1 0z"
-            fill="rgba(255,255,255,0.3)"
-          />
-        </svg>
-      )
-    case 'sparkles':
-      return <SparklesIcon size={size} color="#ffffff" />
-    default:
-      return <HomeIcon name={name} />
-  }
 }
 
 function BottomNavAiIcon({ size = 18, className = '' }) {
@@ -539,16 +498,6 @@ export default function HomeScreen() {
   const storeInfoRef = useRef(null)
   const screenRef = useRef(null)
 
-  const [activeStoryKey, setActiveStoryKey] = useState(null)
-  const [activeSlideIndex, setActiveSlideIndex] = useState(0)
-  const [seenStories, setSeenStories] = useState(() =>
-    isStoreApp && currentStore?.slug ? loadSeenStories(currentStore.slug) : new Set()
-  )
-  const [storyProgress, setStoryProgress] = useState(() =>
-    isStoreApp && currentStore?.slug ? loadStoryProgress(currentStore.slug) : {}
-  )
-  const seenStoreRef = useRef(null)
-
   const [activePhotoIndex, setActivePhotoIndex] = useState(null)
   const [heroPhotoIndex, setHeroPhotoIndex] = useState(0)
   const [isHeroPaused, setIsHeroPaused] = useState(false)
@@ -660,7 +609,9 @@ export default function HomeScreen() {
     if (e) e.preventDefault()
     const text = homeSearchQuery.trim()
     if (text) {
-      navigate(`${routes.catalog}?q=${encodeURIComponent(text)}`, { state: { q: text } })
+      navigate(`${routes.catalog}?q=${encodeURIComponent(text)}`, {
+        state: { q: text, resetCategory: true },
+      })
     } else {
       navigate(routes.catalog, { state: { resetCategory: true, resetAll: true } })
     }
@@ -792,41 +743,6 @@ export default function HomeScreen() {
     }
   }, [currentStore?.slug])
 
-  // Sync seen stories and progress with active store slug
-  useEffect(() => {
-    if (!isStoreApp || !currentStore?.slug) return
-    const slug = currentStore.slug
-    if (seenStoreRef.current === slug) return
-    seenStoreRef.current = slug
-    setSeenStories(loadSeenStories(slug))
-    setStoryProgress(loadStoryProgress(slug))
-  }, [isStoreApp, currentStore?.slug])
-
-  // Track progress on individual slide views
-  const handleStorySlideView = (storyKey, slideIndex, totalSlides) => {
-    if (!currentStore?.slug || !storyKey) return
-    const { progressMap, isFullySeen } = recordStorySlideView(
-      currentStore.slug,
-      storyKey,
-      slideIndex,
-      totalSlides
-    )
-    setStoryProgress(progressMap)
-    if (isFullySeen) {
-      setSeenStories((prev) => {
-        if (prev.has(storyKey)) return prev
-        const next = new Set(prev)
-        next.add(storyKey)
-        return next
-      })
-    }
-  }
-
-  const sortedStories = useMemo(
-    () => sortStoriesBySeen(HOME_STORY_KEYS, seenStories, storyProgress),
-    [seenStories, storyProgress]
-  )
-
   const popularityMap = useMemo(
     () => getStorePopularityMap(currentStore?.slug),
     [currentStore?.slug]
@@ -861,6 +777,9 @@ export default function HomeScreen() {
     const hasExplicitNo = Boolean(profile.noDietPreferences && profile.noAllergies)
     return hasDiet || hasAllergen || hasExplicitNo
   }, [profile])
+
+  // Promotional and explainer banners
+  const banners = useMemo(() => getHomeBanners({ isFitConfigured }), [isFitConfigured])
 
   const QUICK_TOGGLES = useMemo(() => {
     const toggleDiet = (goalId) => {
@@ -1022,6 +941,28 @@ export default function HomeScreen() {
     }
   }, [activePhotoIndex, handleNextPhoto, handlePrevPhoto])
 
+  const handleBannerAction = useCallback(
+    (banner) => {
+      if (!banner) return
+      if (banner.actionType === 'scan') {
+        if (routes?.scan) navigate(routes.scan)
+        return
+      }
+      if (banner.actionType === 'fitCheck') {
+        setFitDrawerOpen(true)
+        return
+      }
+      if (banner.actionType === 'ai') {
+        if (routes?.ai) navigate(routes.ai)
+        return
+      }
+      if (banner.path) {
+        navigate(banner.path)
+      }
+    },
+    [navigate, routes]
+  )
+
   if (!isStoreApp) {
     return <LandingScreen />
   }
@@ -1077,42 +1018,6 @@ export default function HomeScreen() {
     currentStore?.instagram ||
     currentStore?.phone
   )
-
-  const activeStory = activeStoryKey
-    ? HOME_STORY_KEYS.find((s) => s.key === activeStoryKey) || null
-    : null
-
-  function moveStorySlide(direction) {
-    if (!activeStory) return
-    const next = activeSlideIndex + direction
-    if (next >= 0 && next < activeStory.slides.length) {
-      setActiveSlideIndex(next)
-      return
-    }
-    const currentIndex = sortedStories.findIndex((s) => s.key === activeStory.key)
-    const nextIndex = currentIndex + direction
-    if (nextIndex >= 0 && nextIndex < sortedStories.length) {
-      const nextStory = sortedStories[nextIndex]
-      setActiveStoryKey(nextStory.key)
-      setActiveSlideIndex(direction > 0 ? 0 : nextStory.slides.length - 1)
-      return
-    }
-    setActiveStoryKey(null)
-    setActiveSlideIndex(0)
-  }
-
-  function handleStoryCta() {
-    if (!activeStory) return
-    if (activeStory.cta === 'scan') navigate(routes.scan)
-    if (activeStory.cta === 'fit') setFitDrawerOpen(true)
-    if (activeStory.cta === 'catalog') navigate(routes.catalog)
-    if (activeStory.cta === 'ai') navigate(routes.ai)
-    if (activeStory.cta === 'store') {
-      storeInfoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-    setActiveStoryKey(null)
-    setActiveSlideIndex(0)
-  }
 
   function handleThemeChange(nextTheme) {
     if (nextTheme === theme) return
@@ -1399,59 +1304,8 @@ export default function HomeScreen() {
         </header>
         <div className="home-top-bar-divider" aria-hidden="true" />
 
-        {/* 2. STORIES SECTION (RECTANGULAR HERO CARDS) */}
-        <section className="home-stories-bar" aria-label={t('home.storiesLabel')}>
-          {sortedStories.map((story) => {
-            const totalSlides = story.slides?.length || 3
-            const viewedCount =
-              storyProgress[story.key] !== undefined
-                ? storyProgress[story.key]
-                : seenStories.has(story.key)
-                  ? totalSlides
-                  : 0
-            const isFullySeen = viewedCount >= totalSlides || seenStories.has(story.key)
-            const isPartiallySeen = viewedCount > 0 && !isFullySeen
-            const resumeSlide = viewedCount > 0 && viewedCount < totalSlides ? viewedCount : 0
-
-            return (
-              <button
-                key={story.key}
-                type="button"
-                className={`home-story-card story-tone--${story.tone}${isFullySeen ? ' is-seen' : isPartiallySeen ? ' is-partial' : ' is-unseen'}`}
-                onClick={() => {
-                  setActiveStoryKey(story.key)
-                  setActiveSlideIndex(resumeSlide)
-                }}
-              >
-                {/* Top Micro Progress Dashes: dynamic segment indicators */}
-                <div className="home-story-card__dashes" aria-hidden="true">
-                  {Array.from({ length: totalSlides }).map((_, idx) => {
-                    const isViewed = idx < viewedCount
-                    return (
-                      <span
-                        key={idx}
-                        className={`home-story-card__dash ${isViewed ? 'is-viewed' : 'is-unviewed'}`}
-                      />
-                    )
-                  })}
-                </div>
-
-                <div className="home-story-card__media">
-                  <img src={story.image} alt="" loading="lazy" />
-                  <span className="home-story-card__overlay" />
-                </div>
-                <div className="home-story-card__footer">
-                  <span className="home-story-card__badge" aria-hidden="true">
-                    <StoryCardIcon name={story.icon} size={13} />
-                  </span>
-                  <span className="home-story-card__title">
-                    {t(`home.stories.${story.key}.title`, { storeName })}
-                  </span>
-                </div>
-              </button>
-            )
-          })}
-        </section>
+        {/* 2. PROMOTIONAL & EXPLAINER BANNERS */}
+        <HomeBannerCarousel banners={banners} onBannerAction={handleBannerAction} t={t} />
 
         {/* 3. SMART SEARCH & SCAN BAR */}
         <div className="home-search-container">
@@ -2722,25 +2576,6 @@ export default function HomeScreen() {
         installPrompt={installPrompt}
         onPromptUsed={() => setInstallPrompt(null)}
       />
-
-      {/* MODAL: Standalone Cinematic Story Viewer */}
-      {activeStory && (
-        <StoryViewer
-          story={activeStory}
-          storyIndex={sortedStories.findIndex((s) => s.key === activeStory.key)}
-          slideIndex={activeSlideIndex}
-          store={currentStore}
-          catalogProducts={catalogProducts}
-          t={t}
-          onClose={() => {
-            setActiveStoryKey(null)
-            setActiveSlideIndex(0)
-          }}
-          onSlide={moveStorySlide}
-          onSlideView={handleStorySlideView}
-          onCta={handleStoryCta}
-        />
-      )}
     </main>
   )
 }

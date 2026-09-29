@@ -3,7 +3,7 @@ import { DIET_PREFERENCES } from '../../constants/dietGoals.js'
 
 export const HOME_SCREEN_SECTIONS = [
   'header',
-  'stories',
+  'banners',
   'scan',
   'fitCheck',
   'quickActions',
@@ -11,56 +11,55 @@ export const HOME_SCREEN_SECTIONS = [
   'store',
 ]
 
-export const HOME_STORY_KEYS = [
+export const DEFAULT_PROTOTYPE_BANNER_IMAGE = '/Изображение ChatGPT 29 сент. 2026 г., 14_50_41.png'
+
+export const HOME_BANNERS = [
   {
-    key: 'store',
-    icon: 'storefront',
+    id: 'scan',
     tone: 'emerald',
-    image: '/stories/store.webp',
-    cta: 'catalog',
-    slides: ['store.0', 'store.1', 'store.2'],
-    slideImages: ['/stories/store-0.webp', '/stories/store-1.webp', '/stories/store-2.webp'],
+    image: DEFAULT_PROTOTYPE_BANNER_IMAGE,
+    kickerKey: 'home.banners.scan.kicker',
+    headlineKey: 'home.banners.scan.headline',
+    descriptionKey: 'home.banners.scan.description',
+    ctaKey: 'home.banners.scan.cta',
+    ctaIcon: 'scan',
+    actionType: 'scan',
   },
   {
-    key: 'catalog',
-    icon: 'auto_stories',
-    tone: 'cyan',
-    image: '/stories/catalog.webp',
-    cta: 'catalog',
-    slides: ['catalog.0', 'catalog.1', 'catalog.2', 'catalog.3'],
-  },
-  {
-    key: 'scan',
-    icon: 'barcode_scanner',
-    tone: 'amber',
-    image: '/stories/scan.webp',
-    cta: 'scan',
-    slides: ['scan.0', 'scan.1', 'scan.2'],
-  },
-  {
-    key: 'fit',
-    icon: 'shield_with_heart',
+    id: 'fitCheck',
     tone: 'teal',
-    image: '/stories/fit.webp',
-    cta: 'fit',
-    slides: ['fit.0', 'fit.1', 'fit.2', 'fit.3', 'fit.4'],
+    image: DEFAULT_PROTOTYPE_BANNER_IMAGE,
+    kickerKey: 'home.banners.fitCheck.kicker',
+    headlineKey: 'home.banners.fitCheck.headline',
+    descriptionKey: 'home.banners.fitCheck.description',
+    ctaKey: 'home.banners.fitCheck.cta',
+    ctaConfiguredKey: 'home.banners.fitCheck.ctaConfigured',
+    ctaIcon: 'fit',
+    actionType: 'fitCheck',
   },
   {
-    key: 'ai',
-    icon: 'auto_awesome',
+    id: 'ai',
     tone: 'violet',
-    image: '/stories/ai.webp',
-    cta: 'ai',
-    slides: ['ai.0', 'ai.1', 'ai.2', 'ai.3'],
+    image: DEFAULT_PROTOTYPE_BANNER_IMAGE,
+    kickerKey: 'home.banners.ai.kicker',
+    headlineKey: 'home.banners.ai.headline',
+    descriptionKey: 'home.banners.ai.description',
+    ctaKey: 'home.banners.ai.cta',
+    ctaIcon: 'ai',
+    actionType: 'ai',
   },
 ]
 
-export function getStorySlideMedia(story, slideIndex = 0) {
-  if (!story) return null
-  if (Array.isArray(story.slideImages) && story.slideImages[slideIndex]) {
-    return story.slideImages[slideIndex]
-  }
-  return story.image || null
+export function getHomeBanners({ isFitConfigured = false } = {}) {
+  return HOME_BANNERS.map((banner) => {
+    if (banner.id === 'fitCheck' && isFitConfigured && banner.ctaConfiguredKey) {
+      return {
+        ...banner,
+        ctaKey: banner.ctaConfiguredKey,
+      }
+    }
+    return banner
+  })
 }
 
 export const HOME_DEPT_SHORT_LABELS = {
@@ -477,120 +476,6 @@ export function getShowcaseProducts(catalogProducts = [], limit = 12, popularity
     }
     return p
   })
-}
-
-const STORY_SEEN_PREFIX = 'korset_story_seen_'
-const STORY_PROGRESS_PREFIX = 'korset_story_progress_'
-
-export function loadSeenStories(slug) {
-  if (typeof window === 'undefined') return new Set()
-  try {
-    const raw = window.localStorage.getItem(STORY_SEEN_PREFIX + slug)
-    return raw ? new Set(JSON.parse(raw)) : new Set()
-  } catch {
-    return new Set()
-  }
-}
-
-export function saveSeenStories(slug, seenSet) {
-  if (typeof window === 'undefined') return
-  try {
-    window.localStorage.setItem(STORY_SEEN_PREFIX + slug, JSON.stringify([...seenSet]))
-  } catch {
-    /* quota exceeded — silently ignore */
-  }
-}
-
-export function loadStoryProgress(slug) {
-  if (typeof window === 'undefined' || !slug) return {}
-  try {
-    const raw = window.localStorage.getItem(STORY_PROGRESS_PREFIX + slug)
-    return raw ? JSON.parse(raw) : {}
-  } catch {
-    return {}
-  }
-}
-
-export function saveStoryProgress(slug, progressMap) {
-  if (typeof window === 'undefined' || !slug) return
-  try {
-    window.localStorage.setItem(STORY_PROGRESS_PREFIX + slug, JSON.stringify(progressMap || {}))
-  } catch {
-    /* quota exceeded — silently ignore */
-  }
-}
-
-export function recordStorySlideView(slug, storyKey, slideIndex, totalSlides = 3) {
-  if (!slug || !storyKey) return { progressMap: {}, isFullySeen: false }
-  const current = loadStoryProgress(slug)
-  const currentViewed = Number(current[storyKey]) || 0
-  const nextViewed = Math.min(totalSlides, Math.max(currentViewed, Number(slideIndex) + 1))
-  const updated = { ...current, [storyKey]: nextViewed }
-  saveStoryProgress(slug, updated)
-
-  let isFullySeen = false
-  if (nextViewed >= totalSlides) {
-    isFullySeen = true
-    markStorySeen(slug, storyKey)
-  }
-  return { progressMap: updated, isFullySeen }
-}
-
-export function markStorySeen(slug, storyKey) {
-  const seen = loadSeenStories(slug)
-  if (!seen.has(storyKey)) {
-    seen.add(storyKey)
-    saveSeenStories(slug, seen)
-  }
-  // Also set progress to full if available
-  const currentProgress = loadStoryProgress(slug)
-  const storyDef = HOME_STORY_KEYS.find((s) => s.key === storyKey)
-  const total = storyDef?.slides?.length || 3
-  if ((currentProgress[storyKey] || 0) < total) {
-    saveStoryProgress(slug, { ...currentProgress, [storyKey]: total })
-  }
-  return seen
-}
-
-export function clearSeenStories(slug) {
-  if (typeof window === 'undefined') return
-  try {
-    if (slug) {
-      window.localStorage.removeItem(STORY_SEEN_PREFIX + slug)
-      window.localStorage.removeItem(STORY_PROGRESS_PREFIX + slug)
-    } else {
-      const keys = Object.keys(window.localStorage)
-      for (const k of keys) {
-        if (k.startsWith(STORY_SEEN_PREFIX) || k.startsWith(STORY_PROGRESS_PREFIX)) {
-          window.localStorage.removeItem(k)
-        }
-      }
-    }
-  } catch {
-    /* ignore */
-  }
-}
-
-export function sortStoriesBySeen(stories, seenSet, progressMap = {}) {
-  const unseen = []
-  const seen = []
-  for (const story of stories) {
-    const total = story.slides?.length || 3
-    const viewed =
-      progressMap[story.key] !== undefined
-        ? progressMap[story.key]
-        : seenSet.has(story.key)
-          ? total
-          : 0
-    const isFullySeen = viewed >= total || seenSet.has(story.key)
-
-    if (isFullySeen) {
-      seen.push(story)
-    } else {
-      unseen.push(story)
-    }
-  }
-  return [...unseen, ...seen]
 }
 
 export function buildHomeQuickActions({ routes = {} } = {}) {

@@ -15,7 +15,6 @@ import {
   readLocalScanHistory,
 } from '../utils/localHistory.js'
 import { loadSoundSettings, saveSoundSettings } from '../utils/soundSettings.js'
-import { clearSeenStories } from '../domain/home/homeScreenModel.js'
 import {
   browserNotificationStatus,
   DEFAULT_NOTIFICATION_SETTINGS,
@@ -183,13 +182,6 @@ export default function ProfileScreen() {
   const [supportOpen, setSupportOpen] = useState(false)
   const [scannerSettingsExpanded, setScannerSettingsExpanded] = useState(false)
   const [notificationsExpanded, setNotificationsExpanded] = useState(false)
-  const [resetStoriesDone, setResetStoriesDone] = useState(false)
-
-  const handleResetStories = () => {
-    clearSeenStories(currentStore?.slug)
-    setResetStoriesDone(true)
-    setTimeout(() => setResetStoriesDone(false), 2500)
-  }
 
   const activeTabRef = useRef(activeTab)
   const authPromptOpenRef = useRef(authPromptOpen)
@@ -1769,37 +1761,6 @@ export default function ProfileScreen() {
                         />
                       </div>
                     </div>
-                  ),
-                },
-                {
-                  icon: (
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="var(--primary)"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M1 4v6h6M23 20v-6h-6" />
-                      <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" />
-                    </svg>
-                  ),
-                  label: t('profile.resetStories') || 'Сбросить историю сторис',
-                  onClick: handleResetStories,
-                  right: (
-                    <span
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 600,
-                        color: resetStoriesDone ? 'var(--primary-bright)' : 'var(--text-dim)',
-                      }}
-                    >
-                      {resetStoriesDone ? '✓ ' + (t('common.done') || 'Готово') : ''}
-                    </span>
                   ),
                 },
               ],

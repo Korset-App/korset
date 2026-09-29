@@ -11,7 +11,7 @@ import {
 test('home screen pilot order keeps scan before profile and secondary actions', () => {
   assert.deepEqual(HOME_SCREEN_SECTIONS, [
     'header',
-    'stories',
+    'banners',
     'scan',
     'fitCheck',
     'quickActions',
@@ -135,108 +135,53 @@ test('getShowcaseProducts prioritizes popular KZ brands and enforces category di
   assert.ok(bakeryItems.length <= 1)
 })
 
-test('clearSeenStories resets seen stories correctly', async () => {
-  const { markStorySeen, loadSeenStories, clearSeenStories } = await import(
+test('home banners model exposes three core pilot banners with required metadata', async () => {
+  const { HOME_BANNERS, getHomeBanners } = await import(
     '../../src/domain/home/homeScreenModel.js'
   )
 
-  const mockStorage = {}
-  globalThis.window = {
-    localStorage: {
-      getItem: (k) => mockStorage[k] || null,
-      setItem: (k, v) => {
-        mockStorage[k] = v
-      },
-      removeItem: (k) => {
-        delete mockStorage[k]
-      },
-    },
-  }
+  assert.equal(Array.isArray(HOME_BANNERS), true)
+  assert.equal(HOME_BANNERS.length, 3)
 
-  markStorySeen('test-store', 'scan')
-  assert.ok(loadSeenStories('test-store').has('scan'))
+  const bannerIds = HOME_BANNERS.map((b) => b.id)
+  assert.deepEqual(bannerIds, ['scan', 'fitCheck', 'ai'])
 
-  clearSeenStories('test-store')
-  assert.equal(loadSeenStories('test-store').size, 0)
-})
+  HOME_BANNERS.forEach((banner) => {
+    assert.ok(banner.id, 'Banner must have an id')
+    assert.ok(banner.image, `Banner ${banner.id} must have an image`)
+    assert.ok(banner.kickerKey, `Banner ${banner.id} must have a kickerKey`)
+    assert.ok(banner.headlineKey, `Banner ${banner.id} must have a headlineKey`)
+    assert.ok(banner.descriptionKey, `Banner ${banner.id} must have a descriptionKey`)
+    assert.ok(banner.ctaKey, `Banner ${banner.id} must have a ctaKey`)
+    assert.ok(banner.actionType, `Banner ${banner.id} must have an actionType`)
+  })
 
-test('recordStorySlideView tracks slide progress and marks fully seen only on completion', async () => {
-  const {
-    recordStorySlideView,
-    loadStoryProgress,
-    loadSeenStories,
-    sortStoriesBySeen,
-    clearSeenStories,
-  } = await import('../../src/domain/home/homeScreenModel.js')
+  // First banner is scanner
+  const scanBanner = HOME_BANNERS.find((b) => b.id === 'scan')
+  assert.equal(scanBanner.actionType, 'scan')
+  assert.equal(scanBanner.ctaIcon, 'scan')
 
-  const mockStorage = {}
-  globalThis.window = {
-    localStorage: {
-      getItem: (k) => mockStorage[k] || null,
-      setItem: (k, v) => {
-        mockStorage[k] = v
-      },
-      removeItem: (k) => {
-        delete mockStorage[k]
-      },
-    },
-  }
+  // Second banner is Fit-Check
+  const fitBanner = HOME_BANNERS.find((b) => b.id === 'fitCheck')
+  assert.equal(fitBanner.actionType, 'fitCheck')
+  assert.equal(fitBanner.ctaIcon, 'fit')
 
-  // 1. Viewing slide 0 out of 3 -> progress 1, not fully seen
-  const res1 = recordStorySlideView('test-store', 'store', 0, 3)
-  assert.equal(res1.isFullySeen, false)
-  assert.equal(res1.progressMap.store, 1)
-  assert.equal(loadSeenStories('test-store').has('store'), false)
+  // Third banner is AI
+  const aiBanner = HOME_BANNERS.find((b) => b.id === 'ai')
+  assert.equal(aiBanner.actionType, 'ai')
+  assert.equal(aiBanner.ctaIcon, 'ai')
 
-  // 2. Sorting keeps partially seen story in front group
-  const mockStories = [{ key: 'store', slides: [0, 1, 2] }, { key: 'scan', slides: [0, 1, 2] }]
-  const sorted = sortStoriesBySeen(mockStories, loadSeenStories('test-store'), res1.progressMap)
-  assert.equal(sorted[0].key, 'store')
+  // Unconfigured profile uses base CTA key
+  const defaultBanners = getHomeBanners({ isFitConfigured: false })
+  assert.equal(
+    defaultBanners.find((b) => b.id === 'fitCheck').ctaKey,
+    'home.banners.fitCheck.cta'
+  )
 
-  // 3. Completing slide 2 (last slide) -> marks fully seen
-  const res2 = recordStorySlideView('test-store', 'store', 2, 3)
-  assert.equal(res2.isFullySeen, true)
-  assert.equal(res2.progressMap.store, 3)
-  assert.ok(loadSeenStories('test-store').has('store'))
-
-  // 4. clearSeenStories resets both progress and seen set
-  clearSeenStories('test-store')
-  assert.equal(loadStoryProgress('test-store').store, undefined)
-  assert.equal(loadSeenStories('test-store').size, 0)
-})
-
-test('recordStorySlideView supports variable slide counts (4 and 5 slides)', async () => {
-  const {
-    recordStorySlideView,
-    loadStoryProgress,
-    loadSeenStories,
-    clearSeenStories,
-  } = await import('../../src/domain/home/homeScreenModel.js')
-
-  const mockStorage = {}
-  globalThis.window = {
-    localStorage: {
-      getItem: (k) => mockStorage[k] || null,
-      setItem: (k, v) => {
-        mockStorage[k] = v
-      },
-      removeItem: (k) => {
-        delete mockStorage[k]
-      },
-    },
-  }
-
-  // Story with 5 slides: viewing slide 3 out of 5 -> 4 viewed, not fully seen
-  const res1 = recordStorySlideView('store-5', 'fit', 3, 5)
-  assert.equal(res1.isFullySeen, false)
-  assert.equal(res1.progressMap.fit, 4)
-  assert.equal(loadSeenStories('store-5').has('fit'), false)
-
-  // Viewing final slide 4 out of 5 -> 5 viewed, marked fully seen
-  const res2 = recordStorySlideView('store-5', 'fit', 4, 5)
-  assert.equal(res2.isFullySeen, true)
-  assert.equal(res2.progressMap.fit, 5)
-  assert.ok(loadSeenStories('store-5').has('fit'))
-
-  clearSeenStories('store-5')
+  // Configured profile adapts Fit-Check CTA key
+  const configuredBanners = getHomeBanners({ isFitConfigured: true })
+  assert.equal(
+    configuredBanners.find((b) => b.id === 'fitCheck').ctaKey,
+    'home.banners.fitCheck.ctaConfigured'
+  )
 })

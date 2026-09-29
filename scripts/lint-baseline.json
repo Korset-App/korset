@@ -14,9 +14,6 @@
   "src/components/home/FitCheckDrawer.jsx": {
     "react-hooks/set-state-in-effect": 1
   },
-  "src/components/home/StoryViewer.jsx": {
-    "no-unused-vars": 1
-  },
   "src/components/icons/LocationPinIcon.jsx": {
     "no-unused-vars": 1
   },
