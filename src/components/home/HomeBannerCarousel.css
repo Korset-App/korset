@@ -1,6 +1,7 @@
 /* -------------------------------------------------------------------------- */
 /* KÖRSET — HOME BANNER CAROUSEL                                              */
-/* Production-ready promotional banner with focus on scan reveal visual asset */
+/* Digital Storefront Hero Carousel with 4 Distinct Branded Narratives        */
+/* Mobile-first, GPU-accelerated, zero-jank, dark & light theme perfection    */
 /* -------------------------------------------------------------------------- */
 
 .home-banner-carousel {
@@ -25,6 +26,7 @@
   scroll-padding-inline: 16px;
   overscroll-behavior-x: contain;
   outline: none;
+  contain: layout paint;
 }
 
 .home-banner-carousel__track::-webkit-scrollbar {
@@ -38,16 +40,16 @@
 }
 
 /* -------------------------------------------------------------------------- */
-/* BANNER CARD                                                                */
+/* BANNER CARD BASE                                                           */
 /* -------------------------------------------------------------------------- */
 
 .home-banner-card {
   position: relative;
   flex: 0 0 calc(100% - 28px);
   max-width: 488px;
-  height: 184px;
-  min-height: 184px;
-  max-height: 184px;
+  height: 188px;
+  min-height: 188px;
+  max-height: 188px;
   border-radius: var(--home-radius, 20px);
   overflow: hidden;
   background: #ffffff;
@@ -60,7 +62,7 @@
   cursor: pointer;
   scroll-snap-align: start;
   scroll-snap-stop: always;
-  transition: transform 180ms cubic-bezier(0.2, 0.9, 0.2, 1), box-shadow 200ms ease;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   box-sizing: border-box;
@@ -76,31 +78,44 @@
   .home-banner-card {
     flex: 0 0 calc(100% - 18px);
     padding: 14px 12px 14px 14px;
-    height: 188px;
-    min-height: 188px;
-    max-height: 188px;
+    height: 194px;
+    min-height: 194px;
+    max-height: 194px;
   }
 }
 
-@media (hover: hover) {
+/* Smooth desktop hover without jumping/jitter */
+@media (hover: hover) and (pointer: fine) {
   .home-banner-card:hover {
-    border-color: rgba(124, 58, 237, 0.25);
-    box-shadow: 0 6px 18px -4px rgba(15, 23, 42, 0.09), 0 2px 6px rgba(15, 23, 42, 0.04);
+    border-color: rgba(124, 58, 237, 0.28);
+    box-shadow: 0 6px 20px -3px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
+  }
+
+  .home-banner-card--teal:hover {
+    border-color: rgba(13, 148, 136, 0.32);
+  }
+
+  .home-banner-card--blue:hover {
+    border-color: rgba(37, 99, 235, 0.32);
+  }
+
+  .home-banner-card--violet:hover {
+    border-color: rgba(124, 58, 237, 0.32);
   }
 
   :root:not([data-theme='light']) .home-banner-card:hover {
-    border-color: rgba(167, 139, 250, 0.3);
+    border-color: rgba(167, 139, 250, 0.32);
     box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.6);
   }
 }
 
 .home-banner-card:active {
-  transform: scale(0.985);
+  transform: scale(0.988);
+  transition: transform 100ms ease;
 }
 
 /* -------------------------------------------------------------------------- */
-/* CARD MEDIA & FRAMING                                                       */
-/* Focus strictly on barcode, laser beam, & allergen silhouette on the pouch  */
+/* CARD MEDIA & OPTIMIZED WEB-P VISUALS                                       */
 /* -------------------------------------------------------------------------- */
 
 .home-banner-card__media {
@@ -109,23 +124,28 @@
   overflow: hidden;
   border-radius: inherit;
   z-index: 1;
+  pointer-events: none;
 }
 
 .home-banner-card__media img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: right 14% center;
+  object-position: right center;
   display: block;
 }
 
 @media (max-width: 360px) {
   .home-banner-card__media img {
-    object-position: right 8% center;
+    object-position: right 4% center;
   }
 }
 
-/* Feather-soft gradient overlay: seamless contrast transition without boxing text */
+/* -------------------------------------------------------------------------- */
+/* TAILORED CONTRAST OVERLAYS                                                 */
+/* Seamless text legibility with 0 color banding                              */
+/* -------------------------------------------------------------------------- */
+
 .home-banner-card__overlay {
   position: absolute;
   inset: 0;
@@ -133,9 +153,9 @@
   background: linear-gradient(
     90deg,
     rgba(255, 255, 255, 0.98) 0%,
-    rgba(255, 255, 255, 0.94) 38%,
-    rgba(255, 255, 255, 0.40) 60%,
-    rgba(255, 255, 255, 0) 78%
+    rgba(255, 255, 255, 0.94) 40%,
+    rgba(255, 255, 255, 0.45) 62%,
+    rgba(255, 255, 255, 0) 80%
   );
 }
 
@@ -143,9 +163,93 @@
   background: linear-gradient(
     90deg,
     rgba(14, 14, 26, 0.98) 0%,
+    rgba(14, 14, 26, 0.93) 40%,
+    rgba(14, 14, 26, 0.40) 62%,
+    rgba(14, 14, 26, 0) 80%
+  );
+}
+
+/* Scan Banner Overlay: subtle tint */
+.home-banner-card__overlay--scan {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.99) 0%,
+    rgba(255, 255, 255, 0.94) 38%,
+    rgba(255, 255, 255, 0.38) 60%,
+    rgba(255, 255, 255, 0) 78%
+  );
+}
+
+:root:not([data-theme='light']) .home-banner-card__overlay--scan {
+  background: linear-gradient(
+    90deg,
+    rgba(14, 14, 26, 0.98) 0%,
     rgba(14, 14, 26, 0.92) 38%,
     rgba(14, 14, 26, 0.35) 60%,
     rgba(14, 14, 26, 0) 78%
+  );
+}
+
+/* Fit-Check Banner Overlay: fresh minty soft gradient */
+.home-banner-card__overlay--fitCheck {
+  background: linear-gradient(
+    90deg,
+    rgba(244, 248, 250, 0.98) 0%,
+    rgba(244, 248, 250, 0.93) 38%,
+    rgba(244, 248, 250, 0.40) 60%,
+    rgba(244, 248, 250, 0) 78%
+  );
+}
+
+:root:not([data-theme='light']) .home-banner-card__overlay--fitCheck {
+  background: linear-gradient(
+    90deg,
+    rgba(12, 22, 24, 0.98) 0%,
+    rgba(12, 22, 24, 0.92) 38%,
+    rgba(12, 22, 24, 0.40) 60%,
+    rgba(12, 22, 24, 0) 78%
+  );
+}
+
+/* Store Banner Overlay: warm ivory tint */
+.home-banner-card__overlay--store {
+  background: linear-gradient(
+    90deg,
+    rgba(253, 251, 248, 0.98) 0%,
+    rgba(253, 251, 248, 0.93) 38%,
+    rgba(253, 251, 248, 0.40) 60%,
+    rgba(253, 251, 248, 0) 78%
+  );
+}
+
+:root:not([data-theme='light']) .home-banner-card__overlay--store {
+  background: linear-gradient(
+    90deg,
+    rgba(18, 18, 30, 0.98) 0%,
+    rgba(18, 18, 30, 0.92) 38%,
+    rgba(18, 18, 30, 0.40) 60%,
+    rgba(18, 18, 30, 0) 78%
+  );
+}
+
+/* AI Banner Overlay: lavender / amethyst soft tint */
+.home-banner-card__overlay--ai {
+  background: linear-gradient(
+    90deg,
+    rgba(247, 244, 255, 0.98) 0%,
+    rgba(247, 244, 255, 0.92) 38%,
+    rgba(247, 244, 255, 0.35) 60%,
+    rgba(247, 244, 255, 0) 78%
+  );
+}
+
+:root:not([data-theme='light']) .home-banner-card__overlay--ai {
+  background: linear-gradient(
+    90deg,
+    rgba(22, 16, 42, 0.98) 0%,
+    rgba(22, 16, 42, 0.92) 38%,
+    rgba(22, 16, 42, 0.40) 60%,
+    rgba(22, 16, 42, 0) 78%
   );
 }
 
@@ -167,8 +271,8 @@
 
 @media (max-width: 360px) {
   .home-banner-card__content {
-    width: 62%;
-    max-width: 225px;
+    width: 63%;
+    max-width: 228px;
   }
 }
 
@@ -213,12 +317,12 @@
 
 .home-banner-card__headline {
   font-family: var(--font-display);
-  font-size: clamp(14.5px, 4.1vw, 17px);
+  font-size: clamp(14px, 4.0vw, 16.5px);
   font-weight: 700;
   line-height: 1.22;
   letter-spacing: -0.012em;
   color: #111827;
-  margin: 0 0 6px 0;
+  margin: 0 0 5px 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -230,21 +334,52 @@
 }
 
 /* -------------------------------------------------------------------------- */
-/* UNIQUE BANNER SUB-COMPONENTS                                               */
+/* UNIQUE SUB-COMPONENTS PER BANNER TYPE                                      */
 /* -------------------------------------------------------------------------- */
 
+/* 1. Scan Badge */
+.home-banner-card__scan-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2.5px 8px;
+  margin-bottom: 7px;
+  border-radius: 999px;
+  background: rgba(124, 58, 237, 0.08);
+  border: 1px solid rgba(124, 58, 237, 0.18);
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 600;
+  color: #6d28d9;
+}
+
+:root:not([data-theme='light']) .home-banner-card__scan-badge {
+  background: rgba(167, 139, 250, 0.15);
+  border-color: rgba(167, 139, 250, 0.32);
+  color: #ddd6fe;
+}
+
+.home-banner-card__scan-laser-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #a855f7;
+  box-shadow: 0 0 6px #c084fc;
+}
+
+/* 2. Fit-Check Chips */
 .home-banner-card__chips-preview {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  margin-bottom: 10px;
+  margin-bottom: 7px;
 }
 
 .home-banner-card__chip {
   display: inline-flex;
   align-items: center;
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 600;
   padding: 2px 7px;
   border-radius: 999px;
@@ -272,43 +407,18 @@
   border-color: rgba(52, 211, 153, 0.4);
 }
 
-.home-banner-card__prompt-bubble {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 9px;
-  margin-bottom: 10px;
-  border-radius: 12px;
-  background: rgba(124, 58, 237, 0.08);
-  border: 1px solid rgba(124, 58, 237, 0.18);
-  font-family: var(--font-body);
-  font-size: 11px;
-  font-weight: 500;
-  color: #6d28d9;
-}
-
-:root:not([data-theme='light']) .home-banner-card__prompt-bubble {
-  background: rgba(167, 139, 250, 0.14);
-  border-color: rgba(167, 139, 250, 0.3);
-  color: #ddd6fe;
-}
-
-.home-banner-card__prompt-sparkle {
-  font-size: 11px;
-  line-height: 1;
-}
-
+/* 3. Store Live Pulse Pill */
 .home-banner-card__store-pill {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 3px 8px;
-  margin-bottom: 8px;
+  padding: 2.5px 8px;
+  margin-bottom: 7px;
   border-radius: 999px;
-  background: rgba(37, 99, 235, 0.1);
-  border: 1px solid rgba(37, 99, 235, 0.2);
+  background: rgba(37, 99, 235, 0.09);
+  border: 1px solid rgba(37, 99, 235, 0.20);
   font-family: var(--font-display);
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 600;
   color: #1d4ed8;
 }
@@ -325,14 +435,55 @@
   border-radius: 50%;
   background: #16a34a;
   box-shadow: 0 0 6px #22c55e;
+  animation: banner-pulse-dot 2.2s infinite ease-in-out;
 }
 
+@keyframes banner-pulse-dot {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 1;
+    box-shadow: 0 0 9px #22c55e;
+  }
+}
+
+/* 4. AI Speech Prompt Bubble */
+.home-banner-card__prompt-bubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  margin-bottom: 7px;
+  border-radius: 10px;
+  background: rgba(124, 58, 237, 0.08);
+  border: 1px solid rgba(124, 58, 237, 0.18);
+  font-family: var(--font-body);
+  font-size: 10.5px;
+  font-weight: 500;
+  color: #6d28d9;
+}
+
+:root:not([data-theme='light']) .home-banner-card__prompt-bubble {
+  background: rgba(167, 139, 250, 0.14);
+  border-color: rgba(167, 139, 250, 0.3);
+  color: #ddd6fe;
+}
+
+.home-banner-card__prompt-sparkle {
+  font-size: 11px;
+  line-height: 1;
+}
+
+/* Card Description */
 .home-banner-card__description {
   font-family: var(--font-body);
-  font-size: clamp(10.5px, 2.95vw, 11.5px);
-  line-height: 1.38;
+  font-size: clamp(10px, 2.8vw, 11px);
+  line-height: 1.34;
   color: #4b5563;
-  margin: 0 0 11px 0;
+  margin: 0 0 9px 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -343,6 +494,10 @@
   color: rgba(226, 232, 240, 0.85);
 }
 
+/* -------------------------------------------------------------------------- */
+/* UNIQUE CTA BUTTONS PER BANNER                                              */
+/* -------------------------------------------------------------------------- */
+
 .home-banner-card__actions {
   pointer-events: auto;
 }
@@ -351,8 +506,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 33px;
-  padding: 0 15px;
+  height: 32px;
+  padding: 0 14px;
   border-radius: 999px;
   border: none;
   background: var(--primary);
@@ -363,7 +518,7 @@
   letter-spacing: 0.01em;
   cursor: pointer;
   box-shadow: 0 2px 9px rgba(124, 58, 237, 0.30);
-  transition: transform 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+  transition: transform 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -372,11 +527,51 @@
   flex-shrink: 0;
 }
 
-@media (hover: hover) {
+/* CTA Color Variations */
+.home-banner-card__cta--scan {
+  background: var(--primary);
+  box-shadow: 0 2px 9px rgba(124, 58, 237, 0.30);
+}
+
+.home-banner-card__cta--fitCheck {
+  background: #0d9488;
+  box-shadow: 0 2px 9px rgba(13, 148, 136, 0.30);
+}
+
+:root:not([data-theme='light']) .home-banner-card__cta--fitCheck {
+  background: #0f766e;
+}
+
+.home-banner-card__cta--store {
+  background: #2563eb;
+  box-shadow: 0 2px 9px rgba(37, 99, 235, 0.30);
+}
+
+:root:not([data-theme='light']) .home-banner-card__cta--store {
+  background: #1d4ed8;
+}
+
+.home-banner-card__cta--ai {
+  background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+  box-shadow: 0 2px 9px rgba(124, 58, 237, 0.35);
+}
+
+@media (hover: hover) and (pointer: fine) {
   .home-banner-card__cta:hover {
-    background: var(--primary-mid);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.40);
+    filter: brightness(1.06);
+    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.38);
+  }
+
+  .home-banner-card__cta--fitCheck:hover {
+    box-shadow: 0 4px 14px rgba(13, 148, 136, 0.38);
+  }
+
+  .home-banner-card__cta--store:hover {
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.38);
+  }
+
+  .home-banner-card__cta--ai:hover {
+    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.42);
   }
 }
 
@@ -391,24 +586,24 @@
 
 /* -------------------------------------------------------------------------- */
 /* INLINE PAGINATION INDICATOR                                                */
-/* Clean, subtle dots inside bottom banner frame                              */
+/* Subtle frosted glass navigation dots inside bottom banner frame            */
 /* -------------------------------------------------------------------------- */
 
 .home-banner-carousel__pagination {
   position: absolute;
-  bottom: 16px;
+  bottom: 14px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 3px 7px;
+  padding: 3px 8px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.20);
+  background: rgba(0, 0, 0, 0.22);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   pointer-events: auto;
 }
 
@@ -427,9 +622,9 @@
 }
 
 .home-banner-carousel__dot.is-active {
-  width: 16px;
+  width: 17px;
   background: #ffffff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
 .home-banner-carousel__dot:focus-visible {
@@ -449,7 +644,9 @@
   .home-banner-card,
   .home-banner-card__media img,
   .home-banner-card__cta,
-  .home-banner-carousel__dot {
+  .home-banner-carousel__dot,
+  .home-banner-card__store-dot {
     transition: none !important;
+    animation: none !important;
   }
 }

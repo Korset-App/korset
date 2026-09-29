@@ -11,15 +11,21 @@ export const HOME_SCREEN_SECTIONS = [
   'store',
 ]
 
-export const DEFAULT_PROTOTYPE_BANNER_IMAGE = '/banners/scan-barcode-reveal.webp'
+export const BANNER_IMAGE_SCAN = '/banners/banner-scan.webp'
+export const BANNER_IMAGE_FIT = '/banners/banner-fit.webp'
+export const BANNER_IMAGE_STORE = '/banners/banner-store.webp'
+export const BANNER_IMAGE_AI = '/banners/banner-ai.webp'
+
+export const DEFAULT_PROTOTYPE_BANNER_IMAGE = BANNER_IMAGE_SCAN
 
 export const HOME_BANNERS = [
   {
     id: 'scan',
     tone: 'purple',
-    image: DEFAULT_PROTOTYPE_BANNER_IMAGE,
+    image: BANNER_IMAGE_SCAN,
     kickerKey: 'home.banners.scan.kicker',
     headlineKey: 'home.banners.scan.headline',
+    badgeKey: 'home.banners.scan.badge',
     descriptionKey: 'home.banners.scan.description',
     ctaKey: 'home.banners.scan.cta',
     ctaIcon: 'scan',
@@ -28,7 +34,7 @@ export const HOME_BANNERS = [
   {
     id: 'fitCheck',
     tone: 'teal',
-    image: DEFAULT_PROTOTYPE_BANNER_IMAGE,
+    image: BANNER_IMAGE_FIT,
     kickerKey: 'home.banners.fitCheck.kicker',
     headlineKey: 'home.banners.fitCheck.headline',
     descriptionKey: 'home.banners.fitCheck.description',
@@ -40,9 +46,10 @@ export const HOME_BANNERS = [
   {
     id: 'ai',
     tone: 'violet',
-    image: DEFAULT_PROTOTYPE_BANNER_IMAGE,
+    image: BANNER_IMAGE_AI,
     kickerKey: 'home.banners.ai.kicker',
     headlineKey: 'home.banners.ai.headline',
+    bubbleKey: 'home.banners.ai.bubble',
     descriptionKey: 'home.banners.ai.description',
     ctaKey: 'home.banners.ai.cta',
     ctaIcon: 'ai',
@@ -51,9 +58,10 @@ export const HOME_BANNERS = [
   {
     id: 'store',
     tone: 'blue',
-    image: DEFAULT_PROTOTYPE_BANNER_IMAGE,
+    image: BANNER_IMAGE_STORE,
     kickerKey: 'home.banners.store.kicker',
     headlineKey: 'home.banners.store.headline',
+    badgeKey: 'home.banners.store.badge',
     descriptionKey: 'home.banners.store.description',
     ctaKey: 'home.banners.store.cta',
     ctaIcon: 'store',

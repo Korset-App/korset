@@ -956,6 +956,10 @@ export default function HomeScreen() {
         if (routes?.ai) navigate(routes.ai)
         return
       }
+      if (banner.actionType === 'catalog') {
+        if (routes?.catalog) navigate(routes.catalog)
+        return
+      }
       if (banner.path) {
         navigate(banner.path)
       }

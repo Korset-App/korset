@@ -18,7 +18,7 @@ function BannerCtaIcon({ icon, size = 14 }) {
   return null
 }
 
-const AUTOPLAY_INTERVAL_MS = 5500
+const AUTOPLAY_INTERVAL_MS = 6500
 
 export default function HomeBannerCarousel({ banners = [], onBannerAction, t }) {
   const [activeIndex, setActiveIndex] = useState(0)
@@ -159,6 +159,8 @@ export default function HomeBannerCarousel({ banners = [], onBannerAction, t }) 
           const isActive = index === activeIndex
           const headlineText = t(banner.headlineKey)
           const kickerText = t(banner.kickerKey)
+          const badgeText = banner.badgeKey ? t(banner.badgeKey) : null
+          const bubbleText = banner.bubbleKey ? t(banner.bubbleKey) : null
           const descriptionText = t(banner.descriptionKey)
           const ctaText = t(banner.ctaKey)
 
@@ -178,13 +180,14 @@ export default function HomeBannerCarousel({ banners = [], onBannerAction, t }) 
                 <img
                   src={banner.image}
                   alt=""
+                  width={1200}
+                  height={675}
                   loading={index === 0 ? 'eager' : 'lazy'}
                   decoding="async"
                   {...(index === 0 ? { fetchpriority: 'high' } : {})}
                 />
-                <span className="home-banner-card__overlay" />
                 <span
-                  className={`home-banner-card__visual-graphic home-banner-card__visual-graphic--${banner.id}`}
+                  className={`home-banner-card__overlay home-banner-card__overlay--${banner.id}`}
                 />
               </div>
 
@@ -192,38 +195,51 @@ export default function HomeBannerCarousel({ banners = [], onBannerAction, t }) 
                 {kickerText && <span className="home-banner-card__kicker">{kickerText}</span>}
                 <h2 className="home-banner-card__headline">{headlineText}</h2>
 
-                {banner.id === 'fitCheck' && (
-                  <div className="home-banner-card__chips-preview" aria-hidden="true">
-                    <span className="home-banner-card__chip home-banner-card__chip--halal">
-                      ✓ Халал
-                    </span>
-                    <span className="home-banner-card__chip">✓ Без сахара</span>
-                    <span className="home-banner-card__chip">✓ Аллергены</span>
+                {banner.id === 'scan' && badgeText && (
+                  <div className="home-banner-card__scan-badge" aria-hidden="true">
+                    <span className="home-banner-card__scan-laser-dot" />
+                    <span>{badgeText}</span>
                   </div>
                 )}
 
-                {banner.id === 'ai' && (
-                  <div className="home-banner-card__prompt-bubble" aria-hidden="true">
-                    <span className="home-banner-card__prompt-sparkle">✨</span>
-                    <span className="home-banner-card__prompt-text">«Собери ужин до 3 500 ₸»</span>
+                {banner.id === 'fitCheck' && (
+                  <div className="home-banner-card__chips-preview" aria-hidden="true">
+                    <span className="home-banner-card__chip home-banner-card__chip--halal">
+                      {t('home.banners.fitCheck.tagHalal') || '✓ Халал'}
+                    </span>
+                    <span className="home-banner-card__chip">
+                      {t('home.banners.fitCheck.tagSugarFree') || '✓ Без сахара'}
+                    </span>
+                    <span className="home-banner-card__chip">
+                      {t('home.banners.fitCheck.tagAllergens') || '✓ 0 аллергенов'}
+                    </span>
                   </div>
                 )}
 
                 {banner.id === 'store' && (
                   <div className="home-banner-card__store-pill" aria-hidden="true">
                     <span className="home-banner-card__store-dot" />
-                    <span>Каталог & цены у полки</span>
+                    <span>{badgeText || t('home.banners.store.badge')}</span>
                   </div>
                 )}
 
-                {descriptionText && banner.id !== 'fitCheck' && banner.id !== 'ai' && (
+                {banner.id === 'ai' && (
+                  <div className="home-banner-card__prompt-bubble" aria-hidden="true">
+                    <span className="home-banner-card__prompt-sparkle">✨</span>
+                    <span className="home-banner-card__prompt-text">
+                      {bubbleText || t('home.banners.ai.bubble')}
+                    </span>
+                  </div>
+                )}
+
+                {descriptionText && (
                   <p className="home-banner-card__description">{descriptionText}</p>
                 )}
 
                 <div className="home-banner-card__actions">
                   <button
                     type="button"
-                    className="home-banner-card__cta"
+                    className={`home-banner-card__cta home-banner-card__cta--${banner.id}`}
                     onClick={(e) => {
                       e.stopPropagation()
                       if (onBannerAction) onBannerAction(banner)

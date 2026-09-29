@@ -9,7 +9,7 @@ import {
 test('default prototype banner image exists and matches public asset name', () => {
   assert.equal(
     DEFAULT_PROTOTYPE_BANNER_IMAGE,
-    '/banners/scan-barcode-reveal.webp'
+    '/banners/banner-scan.webp'
   )
 })
 
