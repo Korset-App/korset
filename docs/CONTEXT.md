@@ -36,7 +36,15 @@ nurly, kalina; наличие, публикацию, цены и остатки 
 
 - Приоритеты: `docs/ROADMAP_PILOT_V1.md` и
   `docs/vault/plans/2026-09-18-pilot-revival-master-plan.md`.
-- Каталог: `docs/vault/plans/2026-09-27-food-catalog-quality-plan.md` (актуальный статус: 5 193 активных КБЖУ / 5 762 в базе, 4 786 с КБЖУ+составом, 17 369 активных пищевых товаров с фото (+945 воскрешено из архива); OFF stream (7 500) + Arbuz enriched (3 368) применены: 12 048 с составом, 11 177 стран, 4 625 сроков годности, 5 678 условий хранения, 2 372 фото упаковок, 1 096 Nutri-Score, 1 832 Nova). Прежний: `docs/vault/plans/2026-09-25-catalog-v4-enrichment-handoff.md`.
+- Каталог: `docs/vault/plans/2026-09-27-food-catalog-quality-plan.md`.
+  **Статус на 30.09.2026 02:00 AST** — коммит `6ae3de0`:
+  Активных: 23 947 (+42 воскрешено за сессию). КБЖУ всего: 6 079; активная еда с КБЖУ: ~5 325.
+  С составом: ~15 655. Стран: ~11 451. Сроков годности: ~4 980. Условий хранения: ~5 938.
+  Пайплайны: OFF full-dump stream, Arbuz KZ, Staples ГОСТ-эталоны (214),
+  Official Manufacturers (163, 42 воскрешено), Korzina v Dom text (444, без фото).
+  Korzina images — запрещены (водяные знаки). Galmart — заморожен. Halal Damu — применён ранее.
+  Следующий шаг: нормализация названий/полей. Фаза 1 (rule-based) безопасна для ночного запуска.
+  Полный план: `docs/vault/plans/2026-09-30-catalog-normalization-plan.md`
 - Профиль и списки по магазинам: `docs/vault/plans/2026-09-26-store-scoped-shopping-profile-plan.md`
   (локальная реализация готова, миграции ещё не применены; прежняя попытка — `docs/vault/plans/2026-09-25-profile-screen-redesign-handoff-and-stages.md`).
 - Сравнение: `docs/vault/plans/2026-09-23-compare-feature-master-plan.md`.
