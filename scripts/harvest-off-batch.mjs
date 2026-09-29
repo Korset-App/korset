@@ -190,8 +190,8 @@ async function main() {
       };
       cached.set(t.ean, rawItem);
       rawStream.write(JSON.stringify(rawItem) + '\n');
-      // Polite pacing: 850ms delay between API requests
-      await sleep(850);
+      // Polite pacing: 500ms delay between API requests (safe 2 req/s)
+      await sleep(500);
     }
 
     if (rawItem.status === 200 && rawItem.product) {

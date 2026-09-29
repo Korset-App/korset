@@ -43,8 +43,22 @@ async function main() {
 
   console.log(`Total active food products with photo: ${data.length}`);
 
+  const RAW_LOG_PATH = path.join(__dirname, '..', 'scratch', 'off-harvest-raw.jsonl');
+  const cachedEans = new Set();
+  if (fs.existsSync(RAW_LOG_PATH)) {
+    const rawLines = fs.readFileSync(RAW_LOG_PATH, 'utf8').trim().split('\n').filter(Boolean);
+    rawLines.forEach(l => {
+      try {
+        const item = JSON.parse(l);
+        if (item.ean) cachedEans.add(item.ean);
+      } catch {}
+    });
+  }
+  console.log(`Loaded ${cachedEans.size} already processed EANs to exclude.`);
+
   const candidates = data.filter(p => {
     if (!p.ean || !/^\d{8,14}$/.test(p.ean)) return false;
+    if (cachedEans.has(p.ean)) return false;
     const n = p.nutriments_json;
     const hasKbju = n && (
       (n.energy_kcal != null || n.kcal != null) &&
@@ -57,17 +71,21 @@ async function main() {
     return !hasKbju || !hasIng || !p.nutriscore || !p.allergens_json || p.allergens_json.length === 0;
   });
 
-  console.log(`Candidates needing enrichment: ${candidates.length}`);
+  console.log(`Fresh candidates needing enrichment: ${candidates.length}`);
 
   // Sort candidates: famous brands and categories first
   const priorityBrandRegex = /danone|heinz|nestle|сады придонья|махеев|рахат|санта бремор|яшкино|gerber|увелка|инмарко|фрутоняня|роллтон|село зеленое|бабушкино лукошко|чим-чим|кублей|maccoffee|maggi|чудо|greenfield|tassay|черноголовка|царь|kdv|foodmaster|ferrero|mars|snickers|twix|bounty|milka|oreo|barilla|hochland|president|viola|добрый|любимый|простоквашино|слобода|доширак|мистраль|любятово|ahmad|tess|lipton|jacobs|jardin|carte noire|nutella|kinder|lays|pringles|cheetos|alpro|campina/i;
 
   candidates.sort((a, b) => {
+    const aNeedKbju = !(a.nutriments_json && (a.nutriments_json.energy_kcal != null || a.nutriments_json.kcal != null));
+    const bNeedKbju = !(b.nutriments_json && (b.nutriments_json.energy_kcal != null || b.nutriments_json.kcal != null));
     const aPri = priorityBrandRegex.test(a.brand || '') || priorityBrandRegex.test(a.name || '');
     const bPri = priorityBrandRegex.test(b.brand || '') || priorityBrandRegex.test(b.name || '');
-    if (aPri && !bPri) return -1;
-    if (!aPri && bPri) return 1;
-    return 0;
+
+    const scoreA = (aNeedKbju ? 2 : 0) + (aPri ? 1 : 0);
+    const scoreB = (bNeedKbju ? 2 : 0) + (bPri ? 1 : 0);
+
+    return scoreB - scoreA;
   });
 
   const priorityCount = candidates.filter(p => priorityBrandRegex.test(p.brand || '') || priorityBrandRegex.test(p.name || '')).length;
