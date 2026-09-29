@@ -877,63 +877,63 @@
   white-space: nowrap;
 }
 
-/* Modern Minimalist Department Pastel Tones (matching catalog showcase) */
+/* Modern Minimalist Department Pastel Tones (harmonized with custom 3D gourmet illustrations) */
 .tone-dairy_eggs,
 .tone-dairy {
-  --dept-hue: #d4e5ee;
+  --dept-hue: #e4eff9;
 }
 .tone-water_beverages,
 .tone-water {
-  --dept-hue: #b5dfce;
-}
-.tone-sweets {
-  --dept-hue: #dcc8ef;
-}
-.tone-meat {
-  --dept-hue: #edb5a5;
-}
-.tone-bread {
-  --dept-hue: #e0c69d;
-}
-.tone-snacks {
-  --dept-hue: #f1d48e;
+  --dept-hue: #d9f3ec;
 }
 .tone-fruits_veg,
 .tone-fruits {
-  --dept-hue: #c3dc9c;
+  --dept-hue: #e3f2e4;
 }
-.tone-deli {
-  --dept-hue: #edb5a5;
-}
-.tone-frozen {
-  --dept-hue: #c1d7f1;
-}
-.tone-tea_coffee {
-  --dept-hue: #e0c69d;
+.tone-bread {
+  --dept-hue: #f9eedb;
 }
 .tone-grocery {
-  --dept-hue: #e6d5ad;
-}
-.tone-fish {
-  --dept-hue: #c4e0e5;
+  --dept-hue: #f3efe0;
 }
 .tone-ready_meals {
-  --dept-hue: #f1d48e;
+  --dept-hue: #fbeae0;
+}
+.tone-snacks {
+  --dept-hue: #fdf1d5;
+}
+.tone-sweets {
+  --dept-hue: #f4e5f0;
+}
+.tone-tea_coffee {
+  --dept-hue: #ece4da;
+}
+.tone-fish {
+  --dept-hue: #dcedf7;
+}
+.tone-meat {
+  --dept-hue: #fce6e2;
+}
+.tone-deli {
+  --dept-hue: #fce8e4;
+}
+.tone-frozen {
+  --dept-hue: #dfeffb;
 }
 .tone-baby_food {
-  --dept-hue: #f0dfb7;
+  --dept-hue: #fff1da;
 }
 .tone-sauces_spices {
-  --dept-hue: #e9bd9e;
+  --dept-hue: #fbe7db;
 }
 .tone-healthy {
-  --dept-hue: #b4d696;
+  --dept-hue: #e0f4e8;
 }
 .tone-personal_care {
-  --dept-hue: #dcc8ef;
+  --dept-hue: #ebe7f7;
 }
 .tone-household {
-  --dept-hue: #c1d7f1;
+  --dept-hue: #e1edf7;
 }
 
 /* Final Catalog Tile */

@@ -851,12 +851,16 @@ export default function HomeScreen() {
     const FALLBACK_COUNTS = {
       dairy_eggs: 480,
       water_beverages: 650,
-      sweets: 820,
-      meat: 340,
-      bread: 210,
-      drinks: 650,
       fruits_veg: 290,
+      bread: 210,
       grocery: 1150,
+      ready_meals: 180,
+      snacks: 360,
+      sweets: 820,
+      tea_coffee: 240,
+      fish: 190,
+      meat: 340,
+      drinks: 650,
       frozen: 310,
     }
     return FALLBACK_COUNTS[deptKey] || 280

@@ -84,11 +84,15 @@ export function getHomeBanners({ isFitConfigured = false } = {}) {
 export const HOME_DEPT_SHORT_LABELS = {
   dairy_eggs: { ru: 'Молочные продукты', kz: 'Сүт өнімдері' },
   water_beverages: { ru: 'Вода и напитки', kz: 'Су және сусындар' },
-  sweets: { ru: 'Сладости', kz: 'Тәттілер' },
-  meat: { ru: 'Мясо и птица', kz: 'Ет және құс' },
-  bread: { ru: 'Хлеб и выпечка', kz: 'Нан өнімдері' },
-  snacks: { ru: 'Снеки и орехи', kz: 'Снектер мен жаңғақтар' },
   fruits_veg: { ru: 'Фрукты и овощи', kz: 'Жемістер мен көкөністер' },
+  bread: { ru: 'Хлеб и выпечка', kz: 'Нан өнімдері' },
+  grocery: { ru: 'Бакалея', kz: 'Бакалея' },
+  ready_meals: { ru: 'Кулинария', kz: 'Аспаздық' },
+  snacks: { ru: 'Снеки и орехи', kz: 'Снектер мен жаңғақтар' },
+  sweets: { ru: 'Сладости', kz: 'Тәттілер' },
+  tea_coffee: { ru: 'Чай и кофе', kz: 'Шай және кофе' },
+  fish: { ru: 'Рыба и морепродукты', kz: 'Балық және теңіз өнімдері' },
+  meat: { ru: 'Мясо и птица', kz: 'Ет және құс' },
   deli: { ru: 'Колбасы и деликатесы', kz: 'Шұжықтар мен деликатестер' },
   frozen: { ru: 'Заморозка', kz: 'Мұздатылған өнімдер' },
 }
@@ -109,6 +113,46 @@ export const HOME_DEPARTMENTS = [
     key: 'water_beverages',
     shape: 'square',
     image: '/catalog-categories/category-water-beverages-square.webp',
+  },
+  {
+    key: 'fruits_veg',
+    shape: 'square',
+    image: '/catalog-categories/category-fruits-veg-square.webp',
+  },
+  {
+    key: 'bread',
+    shape: 'square',
+    image: '/catalog-categories/category-bread-square.webp',
+  },
+  {
+    key: 'grocery',
+    shape: 'square',
+    image: '/catalog-categories/category-grocery-square.webp',
+  },
+  {
+    key: 'ready_meals',
+    shape: 'square',
+    image: '/catalog-categories/category-ready-meals-square.webp',
+  },
+  {
+    key: 'snacks',
+    shape: 'square',
+    image: '/catalog-categories/category-snacks-square.webp',
+  },
+  {
+    key: 'sweets',
+    shape: 'square',
+    image: '/catalog-categories/category-sweets-square.webp',
+  },
+  {
+    key: 'tea_coffee',
+    shape: 'square',
+    image: '/catalog-categories/category-tea-coffee-square.webp',
+  },
+  {
+    key: 'fish',
+    shape: 'square',
+    image: '/catalog-categories/category-fish-square.webp',
   },
 ].map((dept) => {
   const showcase = getCategoryShowcase(dept.key)
