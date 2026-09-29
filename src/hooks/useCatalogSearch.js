@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { searchStoreProductsRPC } from '../domain/product/search.js'
+import { useStore } from '../contexts/StoreContext.jsx'
 import {
   appendCatalogSearchQuery,
   readCatalogSearchHistory,
@@ -10,16 +11,31 @@ import { buildSearchSuggestions } from '../domain/catalog/catalogSorting.js'
 import { getEffectiveSearchQuery } from '../domain/product/searchQuality.js'
 
 export function useCatalogSearch({ storeId, storeSlug, isOnline, location }) {
-  const [q, setQ] = useState(() => {
+  const { getCachedCatalogSearch, setCachedCatalogSearch } = useStore() || {}
+
+  const initialQ = useMemo(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search)
       const urlQ = params.get('q')
       if (urlQ) return urlQ
     }
-    return sessionStorage.getItem('korset_catalog_q') || ''
+    return (
+      (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('korset_catalog_q')) || ''
+    )
+  }, [])
+
+  const [q, setQ] = useState(initialQ)
+  const [debouncedQuery, setDebouncedQuery] = useState(initialQ)
+  const [serverSearch, setServerSearch] = useState(() => {
+    const trimmed = initialQ.trim()
+    if (storeId && trimmed.length >= 3 && getCachedCatalogSearch) {
+      const cached = getCachedCatalogSearch(storeId, trimmed)
+      if (cached && Array.isArray(cached.results)) {
+        return { results: cached.results, query: trimmed, status: 'success' }
+      }
+    }
+    return { results: [], query: '', status: 'idle' }
   })
-  const [debouncedQuery, setDebouncedQuery] = useState(q)
-  const [serverSearch, setServerSearch] = useState({ results: [], query: '', status: 'idle' })
   const [recentSearchesVersion, setRecentSearchesVersion] = useState(0)
   const [isSearchFocused, setIsSearchFocused] = useState(false)
 
@@ -82,28 +98,51 @@ export function useCatalogSearch({ storeId, storeSlug, isOnline, location }) {
   const searchStoreKey = storeId || storeSlug || 'global'
   const canUseServerSearch = isSearching && isOnline && Boolean(storeId)
 
-  // Server RPC search execution
+  // Server RPC search execution with instant cache restoration & silent background revalidation
   useEffect(() => {
     if (!canUseServerSearch) {
       setServerSearch({ results: [], query: '', status: 'idle' })
       return undefined
     }
     let cancelled = false
-    setServerSearch((state) => ({ ...state, status: 'pending' }))
+
+    const cached = getCachedCatalogSearch ? getCachedCatalogSearch(storeId, normalizedQuery) : null
+    if (cached && Array.isArray(cached.results)) {
+      setServerSearch({ results: cached.results, query: normalizedQuery, status: 'success' })
+      if (Date.now() - (cached.timestamp || 0) < 60 * 1000) {
+        return undefined
+      }
+    } else {
+      setServerSearch((state) =>
+        state.query === normalizedQuery && state.results.length > 0
+          ? state
+          : { results: [], query: normalizedQuery, status: 'pending' }
+      )
+    }
+
     const effectiveQuery = getEffectiveSearchQuery(normalizedQuery) || normalizedQuery
     searchStoreProductsRPC(storeId, effectiveQuery, { limit: 60 })
       .then((products) => {
         if (cancelled) return
-        setServerSearch({ results: products, query: normalizedQuery, status: 'success' })
+        const nextState = { results: products, query: normalizedQuery, status: 'success' }
+        setServerSearch(nextState)
+        if (setCachedCatalogSearch) {
+          setCachedCatalogSearch(storeId, normalizedQuery, nextState)
+        }
       })
       .catch(() => {
         if (cancelled) return
-        setServerSearch({ results: [], query: normalizedQuery, status: 'error' })
+        setServerSearch((prev) => {
+          if (prev.query === normalizedQuery && prev.results.length > 0) {
+            return prev
+          }
+          return { results: [], query: normalizedQuery, status: 'error' }
+        })
       })
     return () => {
       cancelled = true
     }
-  }, [canUseServerSearch, normalizedQuery, storeId])
+  }, [canUseServerSearch, normalizedQuery, storeId, getCachedCatalogSearch, setCachedCatalogSearch])
 
   const isSearchPending =
     canUseServerSearch &&

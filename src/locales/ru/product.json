@@ -292,5 +292,7 @@
   "catalog.fitLoadedCount": "Подходят из загруженных: {{count}}",
   "catalog.fitOnCards": "Проверка — в карточках товаров",
   "catalog.searchTypingHint": "Продолжайте вводить…",
-  "catalog.searchTypingHintSub": "Поиск начнётся от 3 символов"
+  "catalog.searchTypingHintSub": "Поиск начнётся от 3 символов",
+  "catalog.searchPromptTitle": "Поиск по каталогу",
+  "catalog.searchPromptSub": "Выберите популярный запрос или продолжите ввод"
 }

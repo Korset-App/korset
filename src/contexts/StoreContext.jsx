@@ -226,6 +226,42 @@ export function StoreProvider({ children }) {
   const [isCatalogLoading, setIsCatalogLoading] = useState(false)
   const [catalogLoadError, setCatalogLoadError] = useState(false)
 
+  const catalogSearchCacheRef = useRef(new Map())
+
+  const getCachedCatalogSearch = useCallback((storeId, query) => {
+    if (!storeId || !query) return null
+    const key = `${storeId}:${query.trim().toLowerCase()}`
+    const cached = catalogSearchCacheRef.current.get(key)
+    if (cached && Date.now() - cached.timestamp < 5 * 60 * 1000) {
+      return cached
+    }
+    try {
+      const raw = sessionStorage.getItem(`korset_sc_${key}`)
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (parsed && Date.now() - parsed.timestamp < 5 * 60 * 1000) {
+          catalogSearchCacheRef.current.set(key, parsed)
+          return parsed
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return null
+  }, [])
+
+  const setCachedCatalogSearch = useCallback((storeId, query, data) => {
+    if (!storeId || !query || !data) return
+    const key = `${storeId}:${query.trim().toLowerCase()}`
+    const entry = { ...data, timestamp: Date.now() }
+    catalogSearchCacheRef.current.set(key, entry)
+    try {
+      sessionStorage.setItem(`korset_sc_${key}`, JSON.stringify(entry))
+    } catch {
+      // ignore
+    }
+  }, [])
+
   useEffect(() => {
     const syncStorage = () => {
       setRememberedStoreSlug(localStorage.getItem(STORE_KEY) || null)
@@ -437,6 +473,8 @@ export function StoreProvider({ children }) {
       rememberStore,
       clearRememberedStore,
       isStoreOwnerOrAdmin,
+      getCachedCatalogSearch,
+      setCachedCatalogSearch,
       appPath: (subPath = '') => {
         if (!currentStore) return subPath || '/'
         if (!subPath || subPath === '/') return `/s/${currentStore.slug}`
@@ -471,6 +509,8 @@ export function StoreProvider({ children }) {
       rememberStore,
       clearRememberedStore,
       isStoreOwnerOrAdmin,
+      getCachedCatalogSearch,
+      setCachedCatalogSearch,
     ]
   )
 

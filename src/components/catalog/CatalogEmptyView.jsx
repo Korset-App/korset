@@ -1,29 +1,9 @@
 import { memo } from 'react'
-import { ExploreIcon, InventoryIcon, CloseIcon, ArrowBackIcon } from '../icons/index.js'
+import { InventoryIcon, CloseIcon, ArrowBackIcon, SearchIcon } from '../icons/index.js'
 import { getCategoryLabel } from '../../utils/fitCheck.js'
 import './CatalogEmptyView.css'
 
 const POPULAR_SEARCH_CHIPS = ['Молоко', 'Хлеб', 'Сыр', 'Вода', 'Чипсы', 'Чай', 'Шоколад']
-
-function CloudOffIcon({ size = 36, style }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.75}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      style={style}
-    >
-      <path d="M22.61 16.95A5 5 0 0 0 18 10h-1.26a8 8 0 0 0-7.05-6M5 5a8 8 0 0 0-4 7h1.26a5 5 0 0 0 9.74 1.5" />
-      <line x1="1" y1="1" x2="23" y2="23" />
-    </svg>
-  )
-}
 
 function SearchOffIcon({ size = 36, style }) {
   return (
@@ -49,7 +29,7 @@ function SearchOffIcon({ size = 36, style }) {
 function CatalogEmptyViewComponent({
   hasQuery = false,
   isQueryTooShort = false,
-  serverSearchStatus = 'idle',
+  serverSearchStatus: _serverSearchStatus = 'idle',
   isSearchPending = false,
   q = '',
   searchSuggestions = [],
@@ -81,52 +61,6 @@ function CatalogEmptyViewComponent({
     )
   }
 
-  if (hasQuery && serverSearchStatus === 'error') {
-    return (
-      <div className="catalog-empty-view-scroll">
-        <div className="catalog-empty-hero">
-          <div className="catalog-empty-icon-bubble" aria-hidden="true">
-            <CloudOffIcon />
-          </div>
-          <div className="catalog-empty-hero-copy">
-            <h2 className="catalog-empty-title">{t('catalog.searchError') || 'Ошибка поиска'}</h2>
-            <p className="catalog-empty-desc">
-              {t('catalog.searchErrorHint') || 'Показаны локальные результаты'}
-            </p>
-          </div>
-          {onClearQuery && (
-            <div className="catalog-empty-actions">
-              <button
-                type="button"
-                className="catalog-empty-btn catalog-empty-btn--secondary"
-                onClick={onClearQuery}
-              >
-                <CloseIcon size={14} />
-                <span>{t('catalog.clearSearch')}</span>
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    )
-  }
-
-  if (hasQuery && isSearchPending) {
-    return (
-      <div className="catalog-empty-view-scroll" role="status">
-        <div className="catalog-empty-hero">
-          <div className="catalog-empty-icon-bubble" aria-hidden="true">
-            <ExploreIcon size={36} />
-          </div>
-          <div className="catalog-empty-hero-copy">
-            <h2 className="catalog-empty-title">{t('catalog.searchLoadingTitle')}</h2>
-            <p className="catalog-empty-desc">{t('catalog.searchLoadingSub')}</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   const queryTrimmed = q.trim()
   const displayChips = Array.from(
     new Set([
@@ -140,19 +74,44 @@ function CatalogEmptyViewComponent({
     ? t('catalog.popularInStoreWithName', { storeName })
     : t('catalog.popularInStore')
 
+  // Actively searching on server: smooth modern radar animation
+  if (hasQuery && isSearchPending) {
+    return (
+      <div className="catalog-empty-view-scroll" role="status">
+        <div className="catalog-empty-hero">
+          <div className="catalog-search-radar" aria-hidden="true">
+            <div className="catalog-search-radar-ping" />
+            <div className="catalog-search-radar-ring" />
+            <div className="catalog-search-radar-core">
+              <SearchIcon size={26} />
+            </div>
+          </div>
+          <div className="catalog-empty-hero-copy">
+            <h2 className="catalog-empty-title">
+              {t('catalog.searchLoadingTitle')}{' '}
+              {queryTrimmed && <span className="catalog-empty-query">«{queryTrimmed}»</span>}
+            </h2>
+            <p className="catalog-empty-desc">{t('catalog.searchLoadingSub')}</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // 1-2 characters typed: clean discovery state with quick chips (no patronizing instructions)
   if (hasQuery && isQueryTooShort) {
     return (
       <div className="catalog-empty-view-scroll">
         <section className="catalog-empty-hero">
-          <div className="catalog-empty-icon-bubble" aria-hidden="true">
-            <ExploreIcon size={36} />
+          <div className="catalog-search-ready-icon" aria-hidden="true">
+            <SearchIcon size={28} />
           </div>
           <div className="catalog-empty-hero-copy">
             <h2 className="catalog-empty-title">
-              {t('catalog.searchTypingHint') || 'Продолжайте вводить…'}
+              {t('catalog.searchPromptTitle') || 'Поиск по каталогу'}
             </h2>
             <p className="catalog-empty-desc">
-              {t('catalog.searchTypingHintSub') || 'Поиск начнётся от 3 символов'}
+              {t('catalog.searchPromptSub') || 'Выберите популярный запрос или продолжите ввод'}
             </p>
           </div>
         </section>
@@ -170,6 +129,25 @@ function CatalogEmptyViewComponent({
                   onClick={() => onSelectSuggestion(chip)}
                 >
                   <span>{chip}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+        {topCategories.length > 0 && onSelectCategory && (
+          <section className="catalog-empty-section">
+            <div className="catalog-empty-section-header">
+              <span className="catalog-empty-section-title">{t('catalog.browseCategories')}</span>
+            </div>
+            <div className="catalog-empty-category-pills">
+              {topCategories.map((catKey) => (
+                <button
+                  key={catKey}
+                  type="button"
+                  className="catalog-empty-category-pill"
+                  onClick={() => onSelectCategory(catKey)}
+                >
+                  <span>{getCategoryLabel(catKey, lang)}</span>
                 </button>
               ))}
             </div>

@@ -292,5 +292,7 @@
   "catalog.fitLoadedCount": "Жүктелгендерден сәйкес: {{count}}",
   "catalog.fitOnCards": "Тексеру — тауар карточкаларында",
   "catalog.searchTypingHint": "Жалғастырыңыз…",
-  "catalog.searchTypingHintSub": "Іздеу 3 таңбадан басталады"
+  "catalog.searchTypingHintSub": "Іздеу 3 таңбадан басталады",
+  "catalog.searchPromptTitle": "Каталог бойынша іздеу",
+  "catalog.searchPromptSub": "Танымал сұранысты таңдаңыз немесе жазуды жалғастырыңыз"
 }

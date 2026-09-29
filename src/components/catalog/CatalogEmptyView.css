@@ -40,6 +40,88 @@
   box-shadow: 0 4px 20px color-mix(in srgb, var(--primary) 10%, transparent);
 }
 
+/* ── Modern search radar pulse & spin ── */
+.catalog-search-radar {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+}
+
+.catalog-search-radar-ping {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--primary) 22%, transparent);
+  animation: radarPing 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+  pointer-events: none;
+}
+
+.catalog-search-radar-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: var(--primary-bright);
+  border-right-color: color-mix(in srgb, var(--primary-bright) 35%, transparent);
+  animation: radarSpin 0.9s linear infinite;
+}
+
+.catalog-search-radar-core {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--primary) 15%, var(--glass-muted));
+  border: 1px solid var(--glass-soft-border);
+  color: var(--primary-bright);
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--primary) 18%, transparent);
+  animation: radarPulse 2s ease-in-out infinite;
+}
+
+.catalog-search-ready-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--primary) 10%, var(--glass-muted));
+  border: 1px solid var(--glass-soft-border);
+  color: var(--primary-bright);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+@keyframes radarPing {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+  75%, 100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
+@keyframes radarSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes radarPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
 .catalog-empty-hero-copy {
   display: flex;
   flex-direction: column;
