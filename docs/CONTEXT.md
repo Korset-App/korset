@@ -43,7 +43,8 @@ nurly, kalina; наличие, публикацию, цены и остатки 
   Пайплайны: OFF full-dump stream, Arbuz KZ, Staples ГОСТ-эталоны (214),
   Official Manufacturers (163, 42 воскрешено), Korzina v Dom text (444, без фото).
   Korzina images — запрещены (водяные знаки). Galmart — заморожен. Halal Damu — применён ранее.
-  Следующий шаг: нормализация названий/полей. Фаза 1 (rule-based) безопасна для ночного запуска.
+  Фаза 1 нормализации названий (rule-based): завершена 30.09.2026. Обработано 23 947 активных, обновлено 22 233 (93%) без AI, 1 712 без изменений, 0 ошибок.
+  Следующий шаг: Фаза 2 (детекция свапа description vs ingredients).
   Полный план: `docs/vault/plans/2026-09-30-catalog-normalization-plan.md`
 - Профиль и списки по магазинам: `docs/vault/plans/2026-09-26-store-scoped-shopping-profile-plan.md`
   (локальная реализация готова, миграции ещё не применены; прежняя попытка — `docs/vault/plans/2026-09-25-profile-screen-redesign-handoff-and-stages.md`).

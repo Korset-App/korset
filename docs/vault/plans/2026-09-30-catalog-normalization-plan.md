@@ -35,12 +35,12 @@
 
 ## Фазы (по порядку запуска)
 
-### Фаза 1 — Rule-based name cleaning (БЕЗ AI) ← **запустить ночью**
+### Фаза 1 — Rule-based name cleaning (БЕЗ AI) — ✅ ВЫПОЛНЕНО (30.09.2026)
 
-**Скрипт:** `scratch/normalize-names-rules.mjs`  
-**Прогон:** все 23 947 активных, batch по 500 → Supabase upsert  
-**Занимает:** ~15–30 мин  
-**Риск:** низкий (правила детерминированы, все изменения логируются в JSONL)
+**Скрипт:** `scratch/normalize-names-rules.mjs`
+**Итоги:** 23 947 активных проверено, 22 233 (93%) нормализовано и записано в Supabase, 1 712 без изменений, 2 пропущено (<4 симв), 0 ошибок.
+**Время выполнения:** ~12 мин
+**Лог аудита:** `scratch/normalize-log-2026-09-29.jsonl`
 
 **Правила (применять в порядке):**
 
@@ -121,14 +121,13 @@
 ## Чеклист для нового чата
 
 ```
-1. Прочитать AGENTS.md + docs/CONTEXT.md
-2. Проверить git status --short
-3. Проверить: есть ли колонка name_kz в global_products
-   (SELECT column_name FROM information_schema.columns WHERE table_name='global_products' AND column_name='name_kz')
-4. Запустить Фазу 1 в режиме dry_run — проверить первые 100 изменений
-5. Если выглядит корректно → запустить с --apply
-6. Залогировать количество изменений
-7. git commit "catalog: rule-based name normalization phase 1 — N products updated"
+1. Прочитать AGENTS.md + docs/CONTEXT.md [x]
+2. Проверить git status --short [x]
+3. Проверить: есть ли колонка name_kz в global_products [x] (есть)
+4. Запустить Фазу 1 в режиме dry_run — проверить первые 100-200 изменений [x]
+5. Если выглядит корректно → запустить с --apply [x] (22 233 товаров обновлено)
+6. Залогировать количество изменений [x] (scratch/normalize-log-2026-09-29.jsonl)
+7. git commit "catalog: rule-based name normalization phase 1 — 22233 products updated"
 ```
 
 ---
