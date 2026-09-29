@@ -25,16 +25,15 @@ export function getStoredTheme() {
 }
 
 export function getSystemTheme() {
-  if (typeof window === 'undefined') return THEMES.dark
-  return window.matchMedia?.('(prefers-color-scheme: light)').matches ? THEMES.light : THEMES.dark
+  return THEMES.light
 }
 
 export function getInitialTheme() {
-  return getStoredTheme() || getSystemTheme()
+  return getStoredTheme() || THEMES.light
 }
 
 export function applyTheme(theme, { persist = false, animate = false } = {}) {
-  const nextTheme = isTheme(theme) ? theme : THEMES.dark
+  const nextTheme = isTheme(theme) ? theme : THEMES.light
   if (typeof document === 'undefined') return nextTheme
 
   const root = document.documentElement
@@ -67,14 +66,14 @@ export function applyTheme(theme, { persist = false, animate = false } = {}) {
 }
 
 export function initializeTheme() {
-  if (typeof document === 'undefined') return THEMES.dark
+  if (typeof document === 'undefined') return THEMES.light
   return applyTheme(getInitialTheme())
 }
 
 export function useTheme() {
   const [theme, setThemeState] = useState(() =>
     typeof document === 'undefined'
-      ? THEMES.dark
+      ? THEMES.light
       : document.documentElement.dataset.theme || getInitialTheme()
   )
 

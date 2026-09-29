@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#07070F" />
+    <meta name="theme-color" content="#F5F8FF" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Körset" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -25,19 +25,14 @@
       ;(() => {
         try {
           const saved = localStorage.getItem('korset_theme')
-          const theme =
-            saved === 'light' || saved === 'dark'
-              ? saved
-              : window.matchMedia?.('(prefers-color-scheme: light)').matches
-                ? 'light'
-                : 'dark'
+          const theme = saved === 'light' || saved === 'dark' ? saved : 'light'
           document.documentElement.dataset.theme = theme
           document.documentElement.style.colorScheme = theme
           document
             .querySelector('meta[name="theme-color"]')
             ?.setAttribute('content', theme === 'light' ? '#F5F8FF' : '#07070F')
         } catch {
-          document.documentElement.dataset.theme = 'dark'
+          document.documentElement.dataset.theme = 'light'
         }
       })()
       ;(() => {

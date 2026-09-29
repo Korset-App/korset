@@ -796,18 +796,21 @@
 }
 
 .home-dept-tile {
+  width: 88px;
+  height: 88px;
   border-radius: 20px;
   position: relative;
   overflow: hidden;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32), inset 0 1px 1px rgba(255, 255, 255, 0.35);
-  transition: transform 120ms ease, box-shadow 120ms ease;
+  border: 1px solid color-mix(in srgb, var(--dept-hue, #e2e8f0) 28%, transparent);
+  background: var(--dept-hue, #f3f4f6);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 140ms ease;
 }
 
 .home-dept-item:active .home-dept-tile {
-  transform: scale(0.94);
+  transform: scale(0.95);
 }
 
 .home-dept-tile.is-square {
@@ -816,7 +819,7 @@
 }
 
 .home-dept-tile.is-wide {
-  width: 148px;
+  width: 88px;
   height: 88px;
 }
 
@@ -825,19 +828,17 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  object-fit: contain;
-  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.38));
-  pointer-events: none;
-}
-
-.home-dept-tile.is-square img {
   width: 72px;
   height: 72px;
+  object-fit: contain;
+  pointer-events: none;
+  transition: transform 180ms ease;
 }
 
+.home-dept-tile.is-square img,
 .home-dept-tile.is-wide img {
-  width: 132px;
-  height: 68px;
+  width: 72px;
+  height: 72px;
 }
 
 .home-dept-meta {
@@ -876,56 +877,63 @@
   white-space: nowrap;
 }
 
-/* Vibrant Food Gradients with tactile colored depth */
+/* Modern Minimalist Department Pastel Tones (matching catalog showcase) */
 .tone-dairy_eggs,
 .tone-dairy {
-  background:
-    radial-gradient(circle at 75% 20%, #7dd3fc 0%, transparent 60%),
-    linear-gradient(145deg, #0284c7 0%, #0369a1 100%);
-  box-shadow: 0 8px 22px rgba(2, 132, 199, 0.35), 0 2px 6px rgba(0, 0, 0, 0.2), inset 0 1px 1.5px rgba(255, 255, 255, 0.45);
+  --dept-hue: #d4e5ee;
+}
+.tone-water_beverages,
+.tone-water {
+  --dept-hue: #b5dfce;
 }
 .tone-sweets {
-  background:
-    radial-gradient(circle at 75% 20%, #f472b6 0%, transparent 60%),
-    linear-gradient(145deg, #be185d 0%, #831843 100%);
-  box-shadow: 0 8px 22px rgba(190, 24, 93, 0.35), 0 2px 6px rgba(0, 0, 0, 0.2), inset 0 1px 1.5px rgba(255, 255, 255, 0.45);
+  --dept-hue: #dcc8ef;
 }
 .tone-meat {
-  background:
-    radial-gradient(circle at 75% 20%, #f87171 0%, transparent 60%),
-    linear-gradient(145deg, #dc2626 0%, #991b1b 100%);
-  box-shadow: 0 8px 22px rgba(220, 38, 38, 0.35), 0 2px 6px rgba(0, 0, 0, 0.2), inset 0 1px 1.5px rgba(255, 255, 255, 0.45);
+  --dept-hue: #edb5a5;
 }
 .tone-bread {
-  background:
-    radial-gradient(circle at 75% 20%, #fde047 0%, transparent 60%),
-    linear-gradient(145deg, #d97706 0%, #92400e 100%);
-  box-shadow: 0 8px 22px rgba(217, 119, 6, 0.35), 0 2px 6px rgba(0, 0, 0, 0.2), inset 0 1px 1.5px rgba(255, 255, 255, 0.45);
+  --dept-hue: #e0c69d;
 }
 .tone-snacks {
-  background:
-    radial-gradient(circle at 75% 20%, #fb923c 0%, transparent 60%),
-    linear-gradient(145deg, #ea580c 0%, #9a3412 100%);
-  box-shadow: 0 8px 22px rgba(234, 88, 12, 0.35), 0 2px 6px rgba(0, 0, 0, 0.2), inset 0 1px 1.5px rgba(255, 255, 255, 0.45);
+  --dept-hue: #f1d48e;
 }
 .tone-fruits_veg,
 .tone-fruits {
-  background:
-    radial-gradient(circle at 75% 20%, #86efac 0%, transparent 60%),
-    linear-gradient(145deg, #16a34a 0%, #14532d 100%);
-  box-shadow: 0 8px 22px rgba(22, 163, 74, 0.35), 0 2px 6px rgba(0, 0, 0, 0.2), inset 0 1px 1.5px rgba(255, 255, 255, 0.45);
+  --dept-hue: #c3dc9c;
 }
 .tone-deli {
-  background:
-    radial-gradient(circle at 75% 20%, #fb7185 0%, transparent 60%),
-    linear-gradient(145deg, #b91c1c 0%, #701a75 100%);
-  box-shadow: 0 8px 22px rgba(185, 28, 28, 0.35), 0 2px 6px rgba(0, 0, 0, 0.2), inset 0 1px 1.5px rgba(255, 255, 255, 0.45);
+  --dept-hue: #edb5a5;
 }
 .tone-frozen {
-  background:
-    radial-gradient(circle at 75% 20%, #67e8f9 0%, transparent 60%),
-    linear-gradient(145deg, #0284c7 0%, #0f766e 100%);
-  box-shadow: 0 8px 22px rgba(2, 132, 199, 0.35), 0 2px 6px rgba(0, 0, 0, 0.2), inset 0 1px 1.5px rgba(255, 255, 255, 0.45);
+  --dept-hue: #c1d7f1;
+}
+.tone-tea_coffee {
+  --dept-hue: #e0c69d;
+}
+.tone-grocery {
+  --dept-hue: #e6d5ad;
+}
+.tone-fish {
+  --dept-hue: #c4e0e5;
+}
+.tone-ready_meals {
+  --dept-hue: #f1d48e;
+}
+.tone-baby_food {
+  --dept-hue: #f0dfb7;
+}
+.tone-sauces_spices {
+  --dept-hue: #e9bd9e;
+}
+.tone-healthy {
+  --dept-hue: #b4d696;
+}
+.tone-personal_care {
+  --dept-hue: #dcc8ef;
+}
+.tone-household {
+  --dept-hue: #c1d7f1;
 }
 
 /* Final Catalog Tile */
@@ -933,53 +941,82 @@
   width: 88px;
   height: 88px;
   border-radius: 20px;
-  border: 1px solid rgba(124, 58, 237, 0.35);
-  background:
-    radial-gradient(circle at 50% 25%, rgba(124, 58, 237, 0.22) 0%, transparent 65%),
-    linear-gradient(165deg, rgba(26, 24, 52, 0.92) 0%, rgba(15, 14, 30, 0.96) 100%);
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
+  background: var(--surface-card, #ffffff);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  color: var(--primary-bright);
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28), inset 0 1px 1px rgba(255, 255, 255, 0.15);
-  transition: transform 120ms ease;
+  color: var(--primary, #6d5dfc);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 140ms ease;
 }
 
 .home-dept-item:active .all-tile {
-  transform: scale(0.94);
+  transform: scale(0.95);
 }
 
 .all-tile__icon {
-  color: var(--primary-bright);
-  stroke: var(--primary-bright);
+  color: var(--primary, #6d5dfc);
+  stroke: var(--primary, #6d5dfc);
 }
 
 .all-tile__title {
   font-family: var(--font-display);
   font-size: 11.5px;
   font-weight: 700;
+  color: var(--primary, #6d5dfc);
 }
 
-/* Light Theme Enhancements */
+@media (hover: hover) {
+  .home-dept-item:hover .home-dept-tile,
+  .home-dept-item:hover .all-tile {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  }
+  .home-dept-item:hover .home-dept-tile img {
+    transform: translate(-50%, -50%) scale(1.05);
+  }
+}
+
+/* Theme Adaptations */
 :root[data-theme='light'] .home-dept-tile {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  border: 1px solid color-mix(in srgb, var(--dept-hue, #000) 24%, transparent);
 }
 
 :root[data-theme='light'] .all-tile {
-  background:
-    radial-gradient(circle at 50% 25%, rgba(109, 93, 252, 0.12) 0%, transparent 65%),
-    linear-gradient(165deg, #ffffff 0%, #f4f7ff 100%);
-  border: 1px solid rgba(109, 93, 252, 0.28);
-  box-shadow: 0 6px 16px rgba(109, 93, 252, 0.1), inset 0 1px 1px #fff;
-  color: var(--primary);
+  background: #ffffff;
+  border: 1px solid rgba(109, 93, 252, 0.22);
+  box-shadow: 0 2px 10px rgba(109, 93, 252, 0.06);
+  color: var(--primary, #6d5dfc);
 }
 
 :root[data-theme='light'] .all-tile__icon {
-  color: var(--primary);
-  stroke: var(--primary);
+  color: var(--primary, #6d5dfc);
+  stroke: var(--primary, #6d5dfc);
+}
+
+:root[data-theme='dark'] .home-dept-tile {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+:root[data-theme='dark'] .all-tile {
+  background: var(--surface-card, #131226);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  color: var(--primary-bright, #a78bfa);
+}
+
+:root[data-theme='dark'] .all-tile__icon {
+  color: var(--primary-bright, #a78bfa);
+  stroke: var(--primary-bright, #a78bfa);
+}
+
+:root[data-theme='dark'] .all-tile__title {
+  color: var(--primary-bright, #a78bfa);
 }
 
 /* 6. LIVE SHOWCASE SHELF */

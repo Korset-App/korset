@@ -850,6 +850,7 @@ export default function HomeScreen() {
     if (real && real > 0) return real
     const FALLBACK_COUNTS = {
       dairy_eggs: 480,
+      water_beverages: 650,
       sweets: 820,
       meat: 340,
       bread: 210,

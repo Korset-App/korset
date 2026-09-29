@@ -83,6 +83,7 @@ export function getHomeBanners({ isFitConfigured = false } = {}) {
 
 export const HOME_DEPT_SHORT_LABELS = {
   dairy_eggs: { ru: 'Молочные продукты', kz: 'Сүт өнімдері' },
+  water_beverages: { ru: 'Вода и напитки', kz: 'Су және сусындар' },
   sweets: { ru: 'Сладости', kz: 'Тәттілер' },
   meat: { ru: 'Мясо и птица', kz: 'Ет және құс' },
   bread: { ru: 'Хлеб и выпечка', kz: 'Нан өнімдері' },
@@ -99,19 +100,21 @@ export function getHomeDeptLabel(key, lang) {
 }
 
 export const HOME_DEPARTMENTS = [
-  { key: 'dairy_eggs', shape: 'wide' },
-  { key: 'sweets', shape: 'square' },
-  { key: 'meat', shape: 'square' },
-  { key: 'bread', shape: 'wide' },
-  { key: 'snacks', shape: 'square' },
-  { key: 'fruits_veg', shape: 'wide' },
-  { key: 'deli', shape: 'square' },
-  { key: 'frozen', shape: 'square' },
+  {
+    key: 'dairy_eggs',
+    shape: 'square',
+    image: '/catalog-categories/category-dairy-eggs-square.webp',
+  },
+  {
+    key: 'water_beverages',
+    shape: 'square',
+    image: '/catalog-categories/category-water-beverages-square.webp',
+  },
 ].map((dept) => {
   const showcase = getCategoryShowcase(dept.key)
   return {
     ...dept,
-    image: showcase.image,
+    image: dept.image || showcase.image,
     tone: dept.key,
   }
 })
