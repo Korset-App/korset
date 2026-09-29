@@ -135,16 +135,16 @@ test('getShowcaseProducts prioritizes popular KZ brands and enforces category di
   assert.ok(bakeryItems.length <= 1)
 })
 
-test('home banners model exposes three core pilot banners with required metadata', async () => {
+test('home banners model exposes four core pilot banners with required metadata', async () => {
   const { HOME_BANNERS, getHomeBanners } = await import(
     '../../src/domain/home/homeScreenModel.js'
   )
 
   assert.equal(Array.isArray(HOME_BANNERS), true)
-  assert.equal(HOME_BANNERS.length, 3)
+  assert.equal(HOME_BANNERS.length, 4)
 
   const bannerIds = HOME_BANNERS.map((b) => b.id)
-  assert.deepEqual(bannerIds, ['scan', 'fitCheck', 'ai'])
+  assert.deepEqual(bannerIds, ['scan', 'fitCheck', 'ai', 'store'])
 
   HOME_BANNERS.forEach((banner) => {
     assert.ok(banner.id, 'Banner must have an id')

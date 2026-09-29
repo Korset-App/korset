@@ -9,18 +9,18 @@ import {
 test('default prototype banner image exists and matches public asset name', () => {
   assert.equal(
     DEFAULT_PROTOTYPE_BANNER_IMAGE,
-    '/Изображение ChatGPT 29 сент. 2026 г., 14_50_41.png'
+    '/banners/scan-barcode-reveal.webp'
   )
 })
 
-test('HOME_BANNERS defines exactly 3 initial banners with proper tones and actions', () => {
-  assert.equal(HOME_BANNERS.length, 3)
+test('HOME_BANNERS defines exactly 4 initial banners with proper tones and actions', () => {
+  assert.equal(HOME_BANNERS.length, 4)
 
-  const [scanBanner, fitBanner, aiBanner] = HOME_BANNERS
+  const [scanBanner, fitBanner, aiBanner, storeBanner] = HOME_BANNERS
 
   // Scanner Banner
   assert.equal(scanBanner.id, 'scan')
-  assert.equal(scanBanner.tone, 'emerald')
+  assert.equal(scanBanner.tone, 'purple')
   assert.equal(scanBanner.actionType, 'scan')
   assert.equal(scanBanner.ctaIcon, 'scan')
   assert.equal(scanBanner.kickerKey, 'home.banners.scan.kicker')
@@ -48,6 +48,16 @@ test('HOME_BANNERS defines exactly 3 initial banners with proper tones and actio
   assert.equal(aiBanner.headlineKey, 'home.banners.ai.headline')
   assert.equal(aiBanner.descriptionKey, 'home.banners.ai.description')
   assert.equal(aiBanner.ctaKey, 'home.banners.ai.cta')
+
+  // Store Catalog Banner
+  assert.equal(storeBanner.id, 'store')
+  assert.equal(storeBanner.tone, 'blue')
+  assert.equal(storeBanner.actionType, 'catalog')
+  assert.equal(storeBanner.ctaIcon, 'store')
+  assert.equal(storeBanner.kickerKey, 'home.banners.store.kicker')
+  assert.equal(storeBanner.headlineKey, 'home.banners.store.headline')
+  assert.equal(storeBanner.descriptionKey, 'home.banners.store.description')
+  assert.equal(storeBanner.ctaKey, 'home.banners.store.cta')
 })
 
 test('getHomeBanners dynamically resolves fit-check CTA key based on configuration state', () => {

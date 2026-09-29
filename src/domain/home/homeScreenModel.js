@@ -11,12 +11,12 @@ export const HOME_SCREEN_SECTIONS = [
   'store',
 ]
 
-export const DEFAULT_PROTOTYPE_BANNER_IMAGE = '/Изображение ChatGPT 29 сент. 2026 г., 14_50_41.png'
+export const DEFAULT_PROTOTYPE_BANNER_IMAGE = '/banners/scan-barcode-reveal.webp'
 
 export const HOME_BANNERS = [
   {
     id: 'scan',
-    tone: 'emerald',
+    tone: 'purple',
     image: DEFAULT_PROTOTYPE_BANNER_IMAGE,
     kickerKey: 'home.banners.scan.kicker',
     headlineKey: 'home.banners.scan.headline',
@@ -47,6 +47,17 @@ export const HOME_BANNERS = [
     ctaKey: 'home.banners.ai.cta',
     ctaIcon: 'ai',
     actionType: 'ai',
+  },
+  {
+    id: 'store',
+    tone: 'blue',
+    image: DEFAULT_PROTOTYPE_BANNER_IMAGE,
+    kickerKey: 'home.banners.store.kicker',
+    headlineKey: 'home.banners.store.headline',
+    descriptionKey: 'home.banners.store.description',
+    ctaKey: 'home.banners.store.cta',
+    ctaIcon: 'store',
+    actionType: 'catalog',
   },
 ]
 

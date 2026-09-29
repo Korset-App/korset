@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { BarcodeScannerIcon, SlidersIcon, SparklesIcon } from '../icons/index.js'
+import { BarcodeScannerIcon, SlidersIcon, SparklesIcon, StorefrontIcon } from '../icons/index.js'
 import './HomeBannerCarousel.css'
 
 function BannerCtaIcon({ icon, size = 14 }) {
@@ -12,13 +12,26 @@ function BannerCtaIcon({ icon, size = 14 }) {
   if (icon === 'ai') {
     return <SparklesIcon size={size} color="currentColor" />
   }
+  if (icon === 'store') {
+    return <StorefrontIcon size={size} color="currentColor" />
+  }
   return null
 }
+
+const AUTOPLAY_INTERVAL_MS = 5500
 
 export default function HomeBannerCarousel({ banners = [], onBannerAction, t }) {
   const [activeIndex, setActiveIndex] = useState(0)
   const trackRef = useRef(null)
   const slideRefs = useRef([])
+  const isHoveredRef = useRef(false)
+  const isTouchingRef = useRef(false)
+  const isFocusedRef = useRef(false)
+  const activeIndexRef = useRef(0)
+
+  useEffect(() => {
+    activeIndexRef.current = activeIndex
+  }, [activeIndex])
 
   const scrollToSlide = useCallback((targetIndex) => {
     const slideEl = slideRefs.current[targetIndex]
@@ -35,6 +48,34 @@ export default function HomeBannerCarousel({ banners = [], onBannerAction, t }) 
     })
     setActiveIndex(targetIndex)
   }, [])
+
+  // Auto-advance with pause on interaction / hidden tab / reduced-motion
+  useEffect(() => {
+    if (banners.length <= 1) return
+    if (typeof window === 'undefined') return
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (prefersReducedMotion) return
+
+    const tick = () => {
+      if (
+        isHoveredRef.current ||
+        isTouchingRef.current ||
+        isFocusedRef.current ||
+        document.hidden
+      ) {
+        return
+      }
+      const nextIndex = (activeIndexRef.current + 1) % banners.length
+      scrollToSlide(nextIndex)
+    }
+
+    const timerId = setInterval(tick, AUTOPLAY_INTERVAL_MS)
+
+    return () => {
+      clearInterval(timerId)
+    }
+  }, [banners.length, scrollToSlide])
 
   // Detect active slide using IntersectionObserver (lightweight, decoupled from scroll loop)
   useEffect(() => {
@@ -69,11 +110,11 @@ export default function HomeBannerCarousel({ banners = [], onBannerAction, t }) 
   const handleKeyDown = (event) => {
     if (event.key === 'ArrowRight') {
       event.preventDefault()
-      const next = Math.min(banners.length - 1, activeIndex + 1)
+      const next = (activeIndex + 1) % banners.length
       scrollToSlide(next)
     } else if (event.key === 'ArrowLeft') {
       event.preventDefault()
-      const prev = Math.max(0, activeIndex - 1)
+      const prev = (activeIndex - 1 + banners.length) % banners.length
       scrollToSlide(prev)
     }
   }
@@ -84,7 +125,28 @@ export default function HomeBannerCarousel({ banners = [], onBannerAction, t }) 
   const paginationLabel = t('home.banners.paginationLabel') || 'Навигация по баннерам'
 
   return (
-    <section className="home-banner-carousel" aria-label={sectionLabel}>
+    <section
+      className="home-banner-carousel"
+      aria-label={sectionLabel}
+      onMouseEnter={() => {
+        isHoveredRef.current = true
+      }}
+      onMouseLeave={() => {
+        isHoveredRef.current = false
+      }}
+      onTouchStart={() => {
+        isTouchingRef.current = true
+      }}
+      onTouchEnd={() => {
+        isTouchingRef.current = false
+      }}
+      onFocusCapture={() => {
+        isFocusedRef.current = true
+      }}
+      onBlurCapture={() => {
+        isFocusedRef.current = false
+      }}
+    >
       <div
         ref={trackRef}
         className="home-banner-carousel__track"
@@ -106,7 +168,7 @@ export default function HomeBannerCarousel({ banners = [], onBannerAction, t }) 
               ref={(el) => {
                 if (el) slideRefs.current[index] = el
               }}
-              className={`home-banner-card home-banner-card--${banner.tone}${isActive ? ' is-active' : ''}`}
+              className={`home-banner-card home-banner-card--${banner.tone} home-banner-card--${banner.id}${isActive ? ' is-active' : ''}`}
               role="group"
               aria-roledescription="slide"
               aria-label={headlineText}
@@ -121,14 +183,43 @@ export default function HomeBannerCarousel({ banners = [], onBannerAction, t }) 
                   {...(index === 0 ? { fetchpriority: 'high' } : {})}
                 />
                 <span className="home-banner-card__overlay" />
+                <span
+                  className={`home-banner-card__visual-graphic home-banner-card__visual-graphic--${banner.id}`}
+                />
               </div>
 
               <div className="home-banner-card__content">
                 {kickerText && <span className="home-banner-card__kicker">{kickerText}</span>}
                 <h2 className="home-banner-card__headline">{headlineText}</h2>
-                {descriptionText && (
+
+                {banner.id === 'fitCheck' && (
+                  <div className="home-banner-card__chips-preview" aria-hidden="true">
+                    <span className="home-banner-card__chip home-banner-card__chip--halal">
+                      ✓ Халал
+                    </span>
+                    <span className="home-banner-card__chip">✓ Без сахара</span>
+                    <span className="home-banner-card__chip">✓ Аллергены</span>
+                  </div>
+                )}
+
+                {banner.id === 'ai' && (
+                  <div className="home-banner-card__prompt-bubble" aria-hidden="true">
+                    <span className="home-banner-card__prompt-sparkle">✨</span>
+                    <span className="home-banner-card__prompt-text">«Собери ужин до 3 500 ₸»</span>
+                  </div>
+                )}
+
+                {banner.id === 'store' && (
+                  <div className="home-banner-card__store-pill" aria-hidden="true">
+                    <span className="home-banner-card__store-dot" />
+                    <span>Каталог & цены у полки</span>
+                  </div>
+                )}
+
+                {descriptionText && banner.id !== 'fitCheck' && banner.id !== 'ai' && (
                   <p className="home-banner-card__description">{descriptionText}</p>
                 )}
+
                 <div className="home-banner-card__actions">
                   <button
                     type="button"
