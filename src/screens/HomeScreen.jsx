@@ -1436,7 +1436,7 @@ export default function HomeScreen() {
         </div>
 
         <div className="home-departments-scroll">
-          {HOME_DEPARTMENTS.map((dept) => {
+          {HOME_DEPARTMENTS.map((dept, index) => {
             const label = getHomeDeptLabel(dept.key, lang)
             const count = getDeptProductCount(dept.key)
             return (
@@ -1448,7 +1448,13 @@ export default function HomeScreen() {
                 aria-label={label}
               >
                 <div className={`home-dept-tile is-${dept.shape} tone-${dept.key}`}>
-                  <img src={dept.image} alt="" loading="lazy" decoding="async" />
+                  <img
+                    src={dept.image}
+                    alt=""
+                    loading={index < 4 ? 'eager' : 'lazy'}
+                    fetchPriority={index < 2 ? 'high' : 'auto'}
+                    decoding="async"
+                  />
                 </div>
                 <div className="home-dept-meta">
                   <span className="home-dept-label">{label}</span>

@@ -1,53 +1,12 @@
-.catalog-category-card[data-category='tea_coffee'],
-.catalog-category-card[data-category='ready_meals'],
-.catalog-category-card[data-category='healthy'] {
+/* Base card insets and overflow containment for seamless edge bleed */
+.catalog-category-card {
   --artwork-side-inset: 12px;
   --artwork-bottom-inset: 10px;
   --artwork-top-inset: 14px;
-  overflow: hidden;
-}
-
-.catalog-category-card[data-category='tea_coffee'] .catalog-category-media {
-  margin-inline: calc(-1 * var(--artwork-side-inset));
-  margin-bottom: calc(-1 * var(--artwork-bottom-inset));
-}
-
-.catalog-category-card[data-category='tea_coffee'] .catalog-category-media img {
-  object-fit: cover;
-  object-position: center bottom;
-}
-
-.catalog-category-card[data-category='ready_meals'] {
-  grid-template-rows: minmax(68px, 1fr) auto;
-}
-
-.catalog-category-card[data-category='ready_meals'] .catalog-category-copy {
-  grid-row: 2;
-}
-
-.catalog-category-card[data-category='ready_meals'] .catalog-category-media {
-  grid-row: 1;
-  margin-top: calc(-1 * var(--artwork-top-inset));
-}
-
-.catalog-category-card[data-category='ready_meals'] .catalog-category-media img {
-  object-position: center top;
-}
-
-.catalog-category-card[data-category='healthy'] .catalog-category-media {
-  min-height: clamp(110px, 22vw, 155px);
-  margin-right: calc(-1 * var(--artwork-side-inset));
-  margin-bottom: calc(-1 * var(--artwork-bottom-inset));
-}
-
-.catalog-category-card[data-category='healthy'] .catalog-category-media img {
-  object-position: right bottom;
 }
 
 @media (max-width: 359px) {
-  .catalog-category-card[data-category='tea_coffee'],
-  .catalog-category-card[data-category='ready_meals'],
-  .catalog-category-card[data-category='healthy'] {
+  .catalog-category-card {
     --artwork-side-inset: 10px;
     --artwork-bottom-inset: 8px;
     --artwork-top-inset: 12px;
@@ -55,11 +14,168 @@
 }
 
 @media (min-width: 600px) {
-  .catalog-category-card[data-category='tea_coffee'],
-  .catalog-category-card[data-category='ready_meals'],
-  .catalog-category-card[data-category='healthy'] {
+  .catalog-category-card {
     --artwork-side-inset: 18px;
     --artwork-bottom-inset: 14px;
     --artwork-top-inset: 18px;
   }
+}
+
+/* Full Bleed across width & bottom-touching categories */
+.catalog-category-card[data-category='sweets'],
+.catalog-category-card[data-category='tea_coffee'],
+.catalog-category-card[data-category='water_beverages'],
+.catalog-category-card[data-category='dairy_eggs'],
+.catalog-category-card[data-category='fish'],
+.catalog-category-card[data-category='grocery'],
+.catalog-category-card[data-category='frozen'],
+.catalog-category-card[data-category='ready_meals'],
+.catalog-category-card[data-category='bread'],
+.catalog-category-card[data-category='sauces_spices'],
+.catalog-category-card[data-category='personal_care'],
+.catalog-category-card[data-category='household'],
+.catalog-category-card[data-category='meat'],
+.catalog-category-card[data-category='deli'],
+.catalog-category-card[data-category='baby_food'],
+.catalog-category-card[data-category='fruits_veg'],
+.catalog-category-card[data-category='healthy'] {
+  overflow: hidden;
+}
+
+/* Standard full-width media bleed */
+.catalog-category-card[data-category='sweets'] .catalog-category-media,
+.catalog-category-card[data-category='tea_coffee'] .catalog-category-media,
+.catalog-category-card[data-category='water_beverages'] .catalog-category-media,
+.catalog-category-card[data-category='dairy_eggs'] .catalog-category-media,
+.catalog-category-card[data-category='fish'] .catalog-category-media,
+.catalog-category-card[data-category='grocery'] .catalog-category-media,
+.catalog-category-card[data-category='frozen'] .catalog-category-media,
+.catalog-category-card[data-category='ready_meals'] .catalog-category-media,
+.catalog-category-card[data-category='bread'] .catalog-category-media,
+.catalog-category-card[data-category='sauces_spices'] .catalog-category-media,
+.catalog-category-card[data-category='personal_care'] .catalog-category-media,
+.catalog-category-card[data-category='household'] .catalog-category-media {
+  margin-inline: calc(-1 * var(--artwork-side-inset));
+  margin-bottom: calc(-1 * var(--artwork-bottom-inset));
+}
+
+.catalog-category-card[data-category='sweets'] .catalog-category-media img,
+.catalog-category-card[data-category='tea_coffee'] .catalog-category-media img,
+.catalog-category-card[data-category='water_beverages'] .catalog-category-media img,
+.catalog-category-card[data-category='dairy_eggs'] .catalog-category-media img,
+.catalog-category-card[data-category='fish'] .catalog-category-media img,
+.catalog-category-card[data-category='grocery'] .catalog-category-media img,
+.catalog-category-card[data-category='frozen'] .catalog-category-media img,
+.catalog-category-card[data-category='ready_meals'] .catalog-category-media img,
+.catalog-category-card[data-category='bread'] .catalog-category-media img,
+.catalog-category-card[data-category='sauces_spices'] .catalog-category-media img,
+.catalog-category-card[data-category='personal_care'] .catalog-category-media img,
+.catalog-category-card[data-category='household'] .catalog-category-media img {
+  object-fit: cover;
+  object-position: center bottom;
+}
+
+/* Category-specific fine tunings */
+
+/* 1. Мясо и птица: текст в 1 ряд, максимальное заполнение стейком */
+.catalog-category-card[data-category='meat'] .catalog-category-title {
+  font-size: 0.8125rem;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.catalog-category-card[data-category='meat'] .catalog-category-media {
+  margin-inline: calc(-1 * var(--artwork-side-inset));
+  margin-bottom: calc(-1 * var(--artwork-bottom-inset));
+}
+.catalog-category-card[data-category='meat'] .catalog-category-media img {
+  object-fit: cover;
+  object-position: center bottom;
+  transform: scale(1.16);
+  transform-origin: center bottom;
+}
+
+/* 2. Колбасы и деликатесы: деликатное увеличение */
+.catalog-category-card[data-category='deli'] .catalog-category-media {
+  margin-inline: calc(-1 * var(--artwork-side-inset));
+  margin-bottom: calc(-1 * var(--artwork-bottom-inset));
+}
+.catalog-category-card[data-category='deli'] .catalog-category-media img {
+  object-fit: cover;
+  object-position: center bottom;
+  transform: scale(1.12);
+  transform-origin: center bottom;
+}
+
+/* 3. Детское питание: заголовок компактно выше в 1 ряд, увеличенная иллюстрация */
+.catalog-category-card[data-category='baby_food'] {
+  padding-top: calc(var(--artwork-top-inset) - 4px);
+}
+.catalog-category-card[data-category='baby_food'] .catalog-category-title {
+  font-size: 0.8125rem;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.catalog-category-card[data-category='baby_food'] .catalog-category-media {
+  margin-inline: calc(-1 * var(--artwork-side-inset));
+  margin-bottom: calc(-1 * var(--artwork-bottom-inset));
+}
+.catalog-category-card[data-category='baby_food'] .catalog-category-media img {
+  object-fit: cover;
+  object-position: center bottom;
+  transform: scale(1.14);
+  transform-origin: center bottom;
+}
+
+/* 4. Фрукты и овощи: заголовок смещён вправо на чистый фон, гранат слева, авокадо справа */
+.catalog-category-card[data-category='fruits_veg'] .catalog-category-copy {
+  text-align: right;
+  margin-left: auto;
+  z-index: 2;
+}
+.catalog-category-card[data-category='fruits_veg'] .catalog-category-media {
+  margin-inline: calc(-1 * var(--artwork-side-inset));
+  margin-bottom: calc(-1 * var(--artwork-bottom-inset));
+}
+.catalog-category-card[data-category='fruits_veg'] .catalog-category-media img {
+  object-fit: cover;
+  object-position: center bottom;
+}
+
+/* 5. Здоровое питание: крупнее, нижний край чаши выходит за пределы рамки вниз */
+.catalog-category-card[data-category='healthy'] .catalog-category-media {
+  margin-inline: calc(-1 * var(--artwork-side-inset));
+  margin-bottom: calc(-1 * var(--artwork-bottom-inset) - 14px);
+}
+.catalog-category-card[data-category='healthy'] .catalog-category-media img {
+  object-fit: cover;
+  object-position: right 60%;
+  transform: scale(1.16);
+  transform-origin: right bottom;
+}
+
+/* 6. Хлеб, соусы, заморозка, рыба: увеличение заполнения */
+.catalog-category-card[data-category='bread'] .catalog-category-media img {
+  transform: scale(1.08);
+  transform-origin: center bottom;
+}
+.catalog-category-card[data-category='fish'] .catalog-category-media img {
+  transform: scale(1.08);
+  transform-origin: center bottom;
+}
+.catalog-category-card[data-category='frozen'] .catalog-category-media img {
+  transform: scale(1.12);
+  transform-origin: center bottom;
+}
+.catalog-category-card[data-category='sauces_spices'] .catalog-category-media img {
+  transform: scale(1.08);
+  transform-origin: center bottom;
+}
+.catalog-category-card[data-category='personal_care'] .catalog-category-media img,
+.catalog-category-card[data-category='household'] .catalog-category-media img {
+  transform: scale(1.08);
+  transform-origin: center bottom;
 }

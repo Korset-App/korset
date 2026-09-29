@@ -105,6 +105,11 @@ export function getHomeDeptLabel(key, lang) {
 
 export const HOME_DEPARTMENTS = [
   {
+    key: 'sweets',
+    shape: 'square',
+    image: '/catalog-categories/category-sweets-square.webp',
+  },
+  {
     key: 'dairy_eggs',
     shape: 'square',
     image: '/catalog-categories/category-dairy-eggs-square.webp',
@@ -125,11 +130,6 @@ export const HOME_DEPARTMENTS = [
     image: '/catalog-categories/category-bread-square.webp',
   },
   {
-    key: 'grocery',
-    shape: 'square',
-    image: '/catalog-categories/category-grocery-square.webp',
-  },
-  {
     key: 'ready_meals',
     shape: 'square',
     image: '/catalog-categories/category-ready-meals-square.webp',
@@ -140,9 +140,9 @@ export const HOME_DEPARTMENTS = [
     image: '/catalog-categories/category-snacks-square.webp',
   },
   {
-    key: 'sweets',
+    key: 'grocery',
     shape: 'square',
-    image: '/catalog-categories/category-sweets-square.webp',
+    image: '/catalog-categories/category-grocery-square.webp',
   },
   {
     key: 'tea_coffee',

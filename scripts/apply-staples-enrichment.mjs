@@ -72,7 +72,7 @@ async function main() {
           const { error } = await sb
             .from('global_products')
             .update(payload)
-            .eq('ean', item.ean);
+            .eq('id', item.id);
 
           if (!error) {
             success++;
