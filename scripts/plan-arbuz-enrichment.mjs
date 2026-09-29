@@ -55,33 +55,57 @@ async function main() {
     process.exit(1);
   }
 
-  console.log('Fetching products lacking KBJU/ingredients from Supabase...');
-  let offset = 0;
-  const limit = 1000;
+  const TARGETS_CACHE = path.join(__dirname, '..', 'scratch', 'all-58k-targets.json');
   const targetMap = new Map();
 
-  while (true) {
-    const { data, error } = await sb.from('global_products')
-      .select('ean, name, brand, category, image_url, is_active, nutriments_json, ingredients_raw, country_of_origin, shelf_life, storage_conditions')
-      .range(offset, offset + limit - 1);
-
-    if (error) {
-      console.error('Error fetching targets:', error);
-      break;
+  if (fs.existsSync(TARGETS_CACHE)) {
+    console.log(`Loading targets from cache: ${TARGETS_CACHE}...`);
+    const cached = JSON.parse(fs.readFileSync(TARGETS_CACHE, 'utf8'));
+    for (const [k, v] of Object.entries(cached)) {
+      if (v.isFood) {
+        targetMap.set(k, {
+          id: v.id,
+          ean: v.db_ean || k,
+          name: v.name,
+          brand: v.brand,
+          hasKbju: v.hasKbju,
+          hasIng: v.hasIngredients,
+          hasOrigin: v.hasOrigin,
+          hasShelfLife: false,
+          hasStorage: false
+        });
+      }
     }
-    if (!data || data.length === 0) break;
+  } else {
+    console.log('Fetching targets from Supabase via primary key cursor...');
+    let lastId = '00000000-0000-0000-0000-000000000000';
+    const limit = 1000;
 
-    for (const p of data) {
-      if (!p.is_active || ['household', 'personal_care'].includes(p.category) || !p.image_url) continue;
-      const ean = String(p.ean).replace(/\D/g, '');
-      if (ean.length < 8) continue;
+    while (true) {
+      const { data, error } = await sb.from('global_products')
+        .select('id, ean, name, brand, category, image_url, is_active, nutriments_json, ingredients_raw, country_of_origin, shelf_life, storage_conditions')
+        .gt('id', lastId)
+        .order('id', { ascending: true })
+        .limit(limit);
 
-      const fullKbju = hasFullKbju(p.nutriments_json);
-      const hasIng = p.ingredients_raw && p.ingredients_raw.trim().length > 0;
+      if (error) {
+        console.error('Error fetching targets:', error);
+        break;
+      }
+      if (!data || data.length === 0) break;
 
-      if (!fullKbju || !hasIng || !p.country_of_origin || !p.shelf_life || !p.storage_conditions) {
+      for (const p of data) {
+        lastId = p.id;
+        if (['household', 'personal_care'].includes(p.category)) continue;
+        const ean = String(p.ean).replace(/\D/g, '');
+        if (ean.length < 8) continue;
+
+        const fullKbju = hasFullKbju(p.nutriments_json);
+        const hasIng = p.ingredients_raw && p.ingredients_raw.trim().length > 0;
+
         targetMap.set(ean, {
-          ean,
+          id: p.id,
+          ean: p.ean,
           name: p.name,
           brand: p.brand,
           hasKbju: fullKbju,
@@ -91,10 +115,9 @@ async function main() {
           hasStorage: !!p.storage_conditions
         });
       }
-    }
 
-    offset += limit;
-    if (data.length < limit) break;
+      if (data.length < limit) break;
+    }
   }
 
   console.log(`Found ${targetMap.size} candidate target products in Supabase.`);
@@ -171,7 +194,8 @@ async function main() {
       if (Object.keys(updates).length > 0) {
         matchedTargets++;
         proposal.push({
-          ean,
+          product_id: target.id,
+          ean: target.ean || ean,
           target_name: target.name,
           arbuz_name: a.name,
           updates,

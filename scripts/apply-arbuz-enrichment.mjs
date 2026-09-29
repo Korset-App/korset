@@ -39,17 +39,17 @@ async function main() {
   let shelfLifeCount = 0;
   let storageCount = 0;
 
-  const CONCURRENCY = 20;
+  const CONCURRENCY = 30;
   for (let i = 0; i < items.length; i += CONCURRENCY) {
     const chunk = items.slice(i, i + CONCURRENCY);
     await Promise.all(
       chunk.map(async (item) => {
-        const { ean, updates, provenance } = item;
-        const { data: existing } = await sb
-          .from('global_products')
-          .select('id, specs_json')
-          .eq('ean', ean)
-          .single();
+        const { product_id, ean, updates, provenance } = item;
+        const querySelect = product_id
+          ? sb.from('global_products').select('id, specs_json').eq('id', product_id).single()
+          : sb.from('global_products').select('id, specs_json').eq('ean', ean).single();
+
+        const { data: existing } = await querySelect;
 
         const mergedSpecs = {
           ...(existing?.specs_json || {}),
@@ -62,10 +62,11 @@ async function main() {
           updated_at: new Date().toISOString()
         };
 
-        const { error } = await sb
-          .from('global_products')
-          .update(payload)
-          .eq('ean', ean);
+        const queryUpdate = product_id
+          ? sb.from('global_products').update(payload).eq('id', product_id)
+          : sb.from('global_products').update(payload).eq('ean', ean);
+
+        const { error } = await queryUpdate;
 
         if (!error) {
           appliedCount++;
@@ -75,13 +76,13 @@ async function main() {
           if (updates.shelf_life) shelfLifeCount++;
           if (updates.storage_conditions) storageCount++;
         } else {
-          console.error(`Error updating ${ean}:`, error.message);
+          console.error(`Error updating ${ean || product_id}:`, error.message);
         }
       })
     );
 
     if ((i + CONCURRENCY) % 300 === 0 || i + CONCURRENCY >= items.length) {
-      console.log(`[Progress ${Math.min(i + CONCURRENCY, items.length)}/${items.length}] Applied: ${appliedCount} | Origin: +${originCount} | ShelfLife: +${shelfLifeCount} | Storage: +${storageCount}`);
+      console.log(`[Progress ${Math.min(i + CONCURRENCY, items.length)}/${items.length}] Applied: ${appliedCount} | KBJU: +${kbjuCount} | Ing: +${ingCount} | Origin: +${originCount}`);
     }
   }
 

@@ -36,7 +36,7 @@ nurly, kalina; наличие, публикацию, цены и остатки 
 
 - Приоритеты: `docs/ROADMAP_PILOT_V1.md` и
   `docs/vault/plans/2026-09-18-pilot-revival-master-plan.md`.
-- Каталог: `docs/vault/plans/2026-09-27-food-catalog-quality-plan.md` (актуальный статус: 5 121 активных КБЖУ / 5 219 в базе, 4 655 с КБЖУ+составом, 17 369 активных пищевых товаров с фото (+945 воскрешено из архива); полный stream дамп Open Food Facts применён: 11 983 с составом, 2 372 фото упаковок, 1 096 Nutri-Score, 1 832 Nova, 7 500 с OFF provenance). Прежний: `docs/vault/plans/2026-09-25-catalog-v4-enrichment-handoff.md`.
+- Каталог: `docs/vault/plans/2026-09-27-food-catalog-quality-plan.md` (актуальный статус: 5 193 активных КБЖУ / 5 762 в базе, 4 786 с КБЖУ+составом, 17 369 активных пищевых товаров с фото (+945 воскрешено из архива); OFF stream (7 500) + Arbuz enriched (3 368) применены: 12 048 с составом, 11 177 стран, 4 625 сроков годности, 5 678 условий хранения, 2 372 фото упаковок, 1 096 Nutri-Score, 1 832 Nova). Прежний: `docs/vault/plans/2026-09-25-catalog-v4-enrichment-handoff.md`.
 - Профиль и списки по магазинам: `docs/vault/plans/2026-09-26-store-scoped-shopping-profile-plan.md`
   (локальная реализация готова, миграции ещё не применены; прежняя попытка — `docs/vault/plans/2026-09-25-profile-screen-redesign-handoff-and-stages.md`).
 - Сравнение: `docs/vault/plans/2026-09-23-compare-feature-master-plan.md`.
