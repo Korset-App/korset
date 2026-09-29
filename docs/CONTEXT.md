@@ -36,7 +36,7 @@ nurly, kalina; наличие, публикацию, цены и остатки 
 
 - Приоритеты: `docs/ROADMAP_PILOT_V1.md` и
   `docs/vault/plans/2026-09-18-pilot-revival-master-plan.md`.
-- Каталог: `docs/vault/plans/2026-09-27-food-catalog-quality-plan.md` (актуальный статус: 4 190 КБЖУ, 4 020 с КБЖУ+составом; V4 мастер + базовые товары + тексты + OFF батчи 11–16 применены; 13 413 с составом). Прежний: `docs/vault/plans/2026-09-25-catalog-v4-enrichment-handoff.md`.
+- Каталог: `docs/vault/plans/2026-09-27-food-catalog-quality-plan.md` (актуальный статус: 4 543 КБЖУ, 4 320 с КБЖУ+составом; полный bulk dump Open Food Facts (4,53M строк) обработан и применён; 11 313 активных продуктов с составом, 1 456 фото упаковок, 717 Nutri-Score, 1 259 Nova, 7 231 страна). Прежний: `docs/vault/plans/2026-09-25-catalog-v4-enrichment-handoff.md`.
 - Профиль и списки по магазинам: `docs/vault/plans/2026-09-26-store-scoped-shopping-profile-plan.md`
   (локальная реализация готова, миграции ещё не применены; прежняя попытка — `docs/vault/plans/2026-09-25-profile-screen-redesign-handoff-and-stages.md`).
 - Сравнение: `docs/vault/plans/2026-09-23-compare-feature-master-plan.md`.
