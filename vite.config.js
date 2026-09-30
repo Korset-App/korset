@@ -1,7 +1,30 @@
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { sentryVitePlugin } from '@sentry/vite-plugin'
+
+// `@undecaf/barcode-detector-polyfill` imports zbar-wasm from a hard-coded
+// jsDelivr URL. Left alone that makes camera startup depend on a third-party CDN:
+// if the request is slow or blocked the scanner awaits a module that never
+// arrives and the viewfinder stays grey forever. Resolve it to the locally
+// installed package so the WASM ships with the app and works offline.
+const LOCAL_ZBAR_WASM = fileURLToPath(
+  new URL('./node_modules/@undecaf/zbar-wasm/dist/main.js', import.meta.url)
+)
+
+function localZbarWasm() {
+  return {
+    name: 'korset-local-zbar-wasm',
+    enforce: 'pre',
+    resolveId(source) {
+      if (source.startsWith('https://') && source.includes('zbar-wasm')) {
+        return LOCAL_ZBAR_WASM
+      }
+      return null
+    },
+  }
+}
 
 // ЛОКАЛЬНЫЙ DEV С API:
 // `npm run dev` — только Vite (5173). Серверные функции /api/* не работают → в UI будут ошибки на AI/импорт/etc.
@@ -13,6 +36,7 @@ import { sentryVitePlugin } from '@sentry/vite-plugin'
 export default defineConfig({
   plugins: [
     react(),
+    localZbarWasm(),
     VitePWA({
       registerType: 'autoUpdate',
       srcDir: 'src',
@@ -20,7 +44,7 @@ export default defineConfig({
       strategies: 'injectManifest',
       injectManifest: {
         globPatterns: [
-          '**/*.{js,css,html}',
+          '**/*.{js,css,html,wasm}',
           'favicon.png',
           'pwa-192x192.png',
           'pwa-512x512.png',
@@ -95,6 +119,14 @@ export default defineConfig({
     }),
   ],
   base: '/',
+  esbuild: {
+    jsx: 'automatic',
+  },
+  optimizeDeps: {
+    // Must not be pre-bundled: esbuild keeps the jsDelivr URL external, which
+    // would make dev hit the CDN while prod uses the local WASM build.
+    exclude: ['@undecaf/barcode-detector-polyfill'],
+  },
   server: {
     proxy: {
       '/api': {

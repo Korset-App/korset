@@ -4,6 +4,8 @@
   border: 1px solid var(--glass-soft-border);
   border-radius: 18px;
   cursor: pointer;
+  contain: content;
+  box-sizing: border-box;
   transition:
     border-color 0.18s ease,
     background 0.18s ease,
@@ -26,10 +28,10 @@
 
 .catalog-product-card--list {
   display: grid;
-  grid-template-columns: 80px minmax(0, 1fr);
-  align-items: start;
+  grid-template-columns: 80px minmax(0, 1fr) auto;
+  align-items: stretch;
   gap: 12px;
-  margin: 0 20px 10px;
+  margin: 0;
   padding: 12px;
   min-height: 106px;
 }
@@ -110,7 +112,6 @@
   font-size: 14px;
   line-height: 1.35;
   -webkit-line-clamp: 2;
-  padding-right: 68px;
 }
 
 .catalog-product-card__badges {
@@ -130,7 +131,6 @@
 
 .catalog-product-card--list .catalog-product-card__badges {
   margin-top: auto;
-  padding-right: 48px;
 }
 
 .catalog-product-card--list .catalog-product-card__badges[data-badge-count='1'] .catalog-product-card__badge,
@@ -231,7 +231,6 @@
 
 .catalog-product-card__meta--list {
   font-size: 12px;
-  padding-right: 68px;
 }
 
 .catalog-product-card__footer--grid {
@@ -250,16 +249,13 @@
 }
 
 .catalog-product-card__actions--list {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  bottom: 12px;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   justify-content: space-between;
   gap: 10px;
   flex-shrink: 0;
+  min-width: max-content;
 }
 
 .catalog-product-card__price {
@@ -431,9 +427,9 @@
 
 @media (max-width: 360px) {
   .catalog-product-card--list {
-    grid-template-columns: 76px minmax(0, 1fr);
+    grid-template-columns: 76px minmax(0, 1fr) auto;
     gap: 9px;
-    margin: 0 14px 9px;
+    margin: 0;
     padding: 10px;
   }
 
@@ -448,7 +444,6 @@
 
   .catalog-product-card__title--list {
     font-size: 13.5px;
-    padding-right: 62px;
   }
 
   .catalog-product-card--list .catalog-product-card__body {
@@ -456,7 +451,7 @@
   }
 
   .catalog-product-card__meta--list {
-    padding-right: 62px;
+    font-size: 11.5px;
   }
 
   .catalog-product-card__price--list {
@@ -464,9 +459,6 @@
   }
 
   .catalog-product-card__actions--list {
-    top: 10px;
-    right: 10px;
-    bottom: 10px;
     gap: 8px;
   }
 

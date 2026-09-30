@@ -17,6 +17,8 @@ function ProductThumb({ product }) {
         src={src}
         alt={product.name}
         className="product-img-blend catalog-product-card__image"
+        loading="lazy"
+        decoding="async"
         onError={() => setImgOk(false)}
       />
     )

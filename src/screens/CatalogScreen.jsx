@@ -1,11 +1,13 @@
 import { useState, useMemo, useEffect, useCallback, useRef, forwardRef } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { Virtuoso, VirtuosoGrid } from 'react-virtuoso'
+import { Virtuoso } from 'react-virtuoso'
 import { checkProductFit, formatPrice, getCategoryLabel } from '../utils/fitCheck.js'
 import { useProfile } from '../contexts/ProfileContext.jsx'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { useOffline } from '../contexts/OfflineContext.jsx'
 import { useUserData } from '../contexts/UserDataContext.jsx'
+import { useAuth } from '../contexts/AuthContext.jsx'
+import AuthPromptModal from '../components/AuthPromptModal.jsx'
 import { useI18n } from '../i18n/index.js'
 import { getLocalName } from '../utils/localName.js'
 import { getCatalogFromIndexedDB } from '../utils/offlineDB.js'
@@ -49,40 +51,6 @@ function getVerdictConfig(fit, t) {
   return { cls: 'safe', icon: 'check_circle', label: t('catalog.verdict.safe') }
 }
 
-const GridList = forwardRef(({ style, children, ...props }, ref) => (
-  <div
-    ref={ref}
-    {...props}
-    style={{
-      ...style,
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: 10,
-      paddingLeft: 20,
-      paddingRight: 20,
-      paddingBottom: 84,
-    }}
-  >
-    {children}
-  </div>
-))
-
-const GridItem = forwardRef(({ style, children, ...props }, ref) => (
-  <div
-    ref={ref}
-    {...props}
-    style={{
-      ...style,
-      width: 'calc(50% - 5px)',
-      boxSizing: 'border-box',
-    }}
-  >
-    {children}
-  </div>
-))
-
-const gridComponents = { List: GridList, Item: GridItem }
-
 const ListFooter = forwardRef(({ style, ...props }, ref) => (
   <div ref={ref} style={{ ...style, height: 84 }} {...props} />
 ))
@@ -101,9 +69,11 @@ export default function CatalogScreen() {
     catalogLoadError,
   } = useStore()
   const { isOnline } = useOffline()
+  const { user } = useAuth()
   const { favoriteEans = new Set(), toggleFavorite } = useUserData() || {}
   const location = useLocation()
 
+  const [authPromptOpen, setAuthPromptOpen] = useState(false)
   const [offlineCatalog, setOfflineCatalog] = useState([])
   const [viewMode, setViewMode] = useState(
     () => sessionStorage.getItem('korset_catalog_view') || 'grid'
@@ -112,6 +82,17 @@ export default function CatalogScreen() {
   const [isHeaderScrolled, setIsHeaderScrolled] = useState(false)
   const isScrolledRef = useRef(false)
   const showcaseScrollRef = useRef(0)
+
+  const handleToggleFavorite = useCallback(
+    (product) => {
+      if (!user) {
+        setAuthPromptOpen(true)
+        return
+      }
+      toggleFavorite?.(product)
+    },
+    [user, toggleFavorite]
+  )
 
   const handleShowcaseScroll = useCallback((e) => {
     const top = e.currentTarget.scrollTop
@@ -384,15 +365,7 @@ export default function CatalogScreen() {
   const handleViewModeChange = useCallback(
     (mode) => {
       if (mode === viewMode) return
-      const scroller = productScrollerRef.current
-      const top = scroller?.getBoundingClientRect().top
-      const visibleItem =
-        scroller &&
-        [...scroller.querySelectorAll('[data-index]')].find(
-          (item) => item.getBoundingClientRect().bottom > top + 1
-        )
-      const index = visibleItem ? Number(visibleItem.dataset.index) : scrollRef.current
-      setInitialScrollIndex(index)
+      setInitialScrollIndex(scrollRef.current)
       setViewMode(mode)
       sessionStorage.setItem('korset_catalog_view', mode)
     },
@@ -440,7 +413,7 @@ export default function CatalogScreen() {
           highlightQuery={hasQuery ? q : ''}
           onOpen={() => handleNavigate(product)}
           onCompare={(e) => handleCompare(product, e)}
-          onToggleFavorite={toggleFavorite}
+          onToggleFavorite={handleToggleFavorite}
         />
       )
     },
@@ -452,7 +425,7 @@ export default function CatalogScreen() {
       t,
       lang,
       favoriteEans,
-      toggleFavorite,
+      handleToggleFavorite,
       hasQuery,
       q,
     ]
@@ -479,27 +452,29 @@ export default function CatalogScreen() {
       const kcal = getCatalogProductCardKcal(product)
       const searchDiagnosticsAttrs = getProductSearchDiagnosticsAttrs(product)
       return (
-        <CatalogProductCard
-          mode="list"
-          product={product}
-          productName={getLocalName(product)}
-          productMeta={[product.brand || t('catalog.noBrand'), getDisplayQuantity(product, lang)]
-            .filter(Boolean)
-            .join(' · ')}
-          price={formatPrice(product.priceKzt)}
-          verdict={verdict}
-          badges={badges}
-          extraBadgeCount={extraBadgeCount}
-          kcalLabel={kcal ? t('catalog.badge.kcal', { value: kcal }) : null}
-          compareState={compareState}
-          compareLabel={compareLabel}
-          searchDiagnosticsAttrs={searchDiagnosticsAttrs}
-          isFavorite={favoriteEans.has(product.ean)}
-          highlightQuery={hasQuery ? q : ''}
-          onOpen={() => handleNavigate(product)}
-          onCompare={(e) => handleCompare(product, e)}
-          onToggleFavorite={toggleFavorite}
-        />
+        <div className="catalog-list-row">
+          <CatalogProductCard
+            mode="list"
+            product={product}
+            productName={getLocalName(product)}
+            productMeta={[product.brand || t('catalog.noBrand'), getDisplayQuantity(product, lang)]
+              .filter(Boolean)
+              .join(' · ')}
+            price={formatPrice(product.priceKzt)}
+            verdict={verdict}
+            badges={badges}
+            extraBadgeCount={extraBadgeCount}
+            kcalLabel={kcal ? t('catalog.badge.kcal', { value: kcal }) : null}
+            compareState={compareState}
+            compareLabel={compareLabel}
+            searchDiagnosticsAttrs={searchDiagnosticsAttrs}
+            isFavorite={favoriteEans.has(product.ean)}
+            highlightQuery={hasQuery ? q : ''}
+            onOpen={() => handleNavigate(product)}
+            onCompare={(e) => handleCompare(product, e)}
+            onToggleFavorite={handleToggleFavorite}
+          />
+        </div>
       )
     },
     [
@@ -510,10 +485,41 @@ export default function CatalogScreen() {
       t,
       lang,
       favoriteEans,
-      toggleFavorite,
+      handleToggleFavorite,
       hasQuery,
       q,
     ]
+  )
+
+  const gridRows = useMemo(() => {
+    if (viewMode !== 'grid') return []
+    const rows = []
+    for (let i = 0; i < displayList.length; i += 2) {
+      const p1 = displayList[i]
+      const p2 = displayList[i + 1]
+      rows.push({
+        id: `${p1?.ean || i}_${p2?.ean || 'end'}`,
+        startIndex: i,
+        items: p2 ? [p1, p2] : [p1],
+      })
+    }
+    return rows
+  }, [displayList, viewMode])
+
+  const renderGridRow = useCallback(
+    (rowIndex, row) => (
+      <div className="catalog-grid-row">
+        {row.items.map((product, colIndex) => (
+          <div key={product.ean || `${row.startIndex}-${colIndex}`} className="catalog-grid-col">
+            {renderGridItem(row.startIndex + colIndex, product)}
+          </div>
+        ))}
+        {row.items.length === 1 && (
+          <div className="catalog-grid-col catalog-grid-col--placeholder" aria-hidden="true" />
+        )}
+      </div>
+    ),
+    [renderGridItem]
   )
 
   const handleCategoryFromEmptyState = useCallback(
@@ -677,17 +683,19 @@ export default function CatalogScreen() {
               t={t}
             />
           ) : viewMode === 'grid' ? (
-            <VirtuosoGrid
+            <Virtuoso
               ref={virtuosoRef}
               scrollerRef={setProductScroller}
-              data={displayList}
-              components={gridComponents}
-              itemContent={renderGridItem}
-              overscan={600}
-              initialTopMostItemIndex={initialScrollIndex}
+              data={gridRows}
+              itemContent={renderGridRow}
+              computeItemKey={(index, row) => row.id}
+              overscan={1200}
+              components={{ Footer: ListFooter }}
+              initialTopMostItemIndex={Math.floor(initialScrollIndex / 2)}
               rangeChanged={(range) => {
-                scrollRef.current = range.startIndex
+                scrollRef.current = range.startIndex * 2
               }}
+              style={{ height: '100%', overflowAnchor: 'none' }}
             />
           ) : (
             <Virtuoso
@@ -695,12 +703,14 @@ export default function CatalogScreen() {
               scrollerRef={setProductScroller}
               data={displayList}
               itemContent={renderListItem}
-              overscan={600}
+              computeItemKey={(index, product) => product.ean || index}
+              overscan={1200}
               components={{ Footer: ListFooter }}
               initialTopMostItemIndex={initialScrollIndex}
               rangeChanged={(range) => {
                 scrollRef.current = range.startIndex
               }}
+              style={{ height: '100%', overflowAnchor: 'none' }}
             />
           )}
         </div>
@@ -734,6 +744,12 @@ export default function CatalogScreen() {
         onResetAllFilters={resetAllFilters}
         lang={lang}
         t={t}
+      />
+      <AuthPromptModal
+        open={authPromptOpen}
+        onClose={() => setAuthPromptOpen(false)}
+        title={t('shopping.authPromptTitle')}
+        description={t('shopping.authPromptDesc')}
       />
     </div>
   )

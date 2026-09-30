@@ -134,3 +134,31 @@ export function detectBrowserContext(
     canNativeInstall,
   }
 }
+
+export function openInExternalBrowser(targetUrl = null) {
+  if (typeof window === 'undefined') return false
+  const url = targetUrl || window.location.href
+  const ua = navigator.userAgent || ''
+  const isAndroid = /android/i.test(ua)
+
+  if (isAndroid) {
+    try {
+      const cleanUrl = url.replace(/^https?:\/\//i, '')
+      const intentUrl = `intent://${cleanUrl}#Intent;scheme=https;action=android.intent.action.VIEW;end`
+      window.location.href = intentUrl
+      return true
+    } catch {
+      /* fallback below */
+    }
+  }
+
+  try {
+    const newWindow = window.open(url, '_blank', 'noopener,noreferrer')
+    if (newWindow) return true
+  } catch {
+    /* blocked */
+  }
+
+  window.location.href = url
+  return true
+}
