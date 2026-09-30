@@ -10,14 +10,16 @@ dotenv.config({ path: path.join(__dirname, '..', '.env.local') });
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const groqKey = (process.env.GROQ_API_KEY || '').replace(/['"]/g, '').trim();
+const geminiKey = (process.env.GEMINI_API_KEY || '').replace(/['"]/g, '').trim();
 const deepseekKey = (process.env.OPENAI_API_KEY || process.env.DEEPSEEK_API_KEY || '').replace(/['"]/g, '').trim();
 
 if (!supabaseUrl || !supabaseKey) {
   console.error('Missing Supabase credentials in .env.local');
   process.exit(1);
 }
-if (!deepseekKey) {
-  console.error('Missing DeepSeek/OpenAI API key in .env.local');
+if (!groqKey && !geminiKey && !deepseekKey) {
+  console.error('Missing AI API keys (GROQ_API_KEY, GEMINI_API_KEY) in .env.local');
   process.exit(1);
 }
 
@@ -54,17 +56,52 @@ const SYSTEM_PROMPT = `Ты — ведущий эксперт по станда�
 - НИКОГДА не выдумывай и не галлюцинируй факты или ингредиенты, которых нет во входных данных. Только извлечение и очистка.
 - Сохраняй исходные формулировки ингредиентов (проценты, скобки, экстракты), не искажая рецептуру.
 
-Верни строго JSON массив объектов:
-[
-  {
-    "id": "uuid товара",
-    "description": "очищенное описание или null",
-    "ingredients_raw": "очищенный состав или null",
-    "manufacturer": "выделенный изготовитель или null"
-  }
-]`;
+Верни строго JSON объект с полем "products":
+{
+  "products": [
+    {
+      "id": "uuid товара",
+      "description": "очищенное описание или null",
+      "ingredients_raw": "очищенный состав или null",
+      "manufacturer": "выделенный изготовитель или null"
+    }
+  ]
+}`;
 
-async function callDeepSeekWithRetry(batch, maxRetries = 3) {
+function parseAiResponse(content) {
+  let parsed;
+  try {
+    parsed = JSON.parse(content);
+  } catch (jsonErr) {
+    const cleanedContent = content.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+    parsed = JSON.parse(cleanedContent);
+  }
+
+  let list = [];
+  if (Array.isArray(parsed)) {
+    list = parsed;
+  } else if (Array.isArray(parsed.products)) {
+    list = parsed.products;
+  } else if (Array.isArray(parsed.items)) {
+    list = parsed.items;
+  } else if (Array.isArray(parsed.result)) {
+    list = parsed.result;
+  } else if (typeof parsed === 'object' && parsed !== null) {
+    list = Object.entries(parsed).map(([k, v]) => {
+      if (v && typeof v === 'object') {
+        return { id: v.id || k, ...v };
+      }
+      return null;
+    }).filter(Boolean);
+  }
+
+  if (!Array.isArray(list) || list.length === 0) {
+    throw new Error('Parsed response is empty or not convertible to array: ' + content.slice(0, 100));
+  }
+  return list;
+}
+
+async function callGroq(batch) {
   const userPayload = batch.map(item => ({
     id: item.id,
     name: item.name,
@@ -72,75 +109,92 @@ async function callDeepSeekWithRetry(batch, maxRetries = 3) {
     ingredients_raw: item.ingredients_raw
   }));
 
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + groqKey,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: 'qwen/qwen3.8-27b',
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: JSON.stringify(userPayload, null, 2) }
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.1
+    })
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    const err = new Error(`Groq HTTP ${res.status}: ${errText.slice(0, 150)}`);
+    err.status = res.status;
+    throw err;
+  }
+
+  const data = await res.json();
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error('Empty Groq completion');
+  return parseAiResponse(content);
+}
+
+async function callGemini(batch) {
+  const userPayload = batch.map(item => ({
+    id: item.id,
+    name: item.name,
+    description: item.description,
+    ingredients_raw: item.ingredients_raw
+  }));
+
+  const prompt = `${SYSTEM_PROMPT}\n\nВХОДНЫЕ ДАННЫЕ:\n${JSON.stringify(userPayload, null, 2)}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${geminiKey}`;
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        temperature: 0.1
+      }
+    })
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    const err = new Error(`Gemini HTTP ${res.status}: ${errText.slice(0, 150)}`);
+    err.status = res.status;
+    throw err;
+  }
+
+  const data = await res.json();
+  const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!content) throw new Error('Empty Gemini completion');
+  return parseAiResponse(content);
+}
+
+async function callAiWithFallback(batch, maxRetries = 3) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const res = await fetch('https://api.deepseek.com/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + deepseekKey,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'deepseek-chat',
-          messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user', content: JSON.stringify(userPayload, null, 2) }
-          ],
-          response_format: { type: 'json_object' },
-          temperature: 0.1,
-          max_tokens: 8192
-        })
-      });
-
-      if (!res.ok) {
-        const errText = await res.text();
-        if (res.status === 402 || /insufficient balance/i.test(errText)) {
-          const err = new Error(`BALANCE_DEPLETED: ${errText.slice(0, 150)}`);
-          err.code = 'BALANCE_DEPLETED';
-          throw err;
-        }
-        throw new Error(`DeepSeek HTTP ${res.status}: ${errText.slice(0, 150)}`);
-      }
-
-      const data = await res.json();
-      const content = data.choices?.[0]?.message?.content;
-      if (!content) throw new Error('Empty DeepSeek completion');
-
-      let parsed;
-      try {
-        parsed = JSON.parse(content);
-      } catch (jsonErr) {
-        // Try trimming markdown code blocks if any
-        const cleanedContent = content.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
-        parsed = JSON.parse(cleanedContent);
-      }
-
-      let list = [];
-      if (Array.isArray(parsed)) {
-        list = parsed;
-      } else if (Array.isArray(parsed.products)) {
-        list = parsed.products;
-      } else if (Array.isArray(parsed.items)) {
-        list = parsed.items;
-      } else if (Array.isArray(parsed.result)) {
-        list = parsed.result;
-      } else if (typeof parsed === 'object' && parsed !== null) {
-        // Map keyed dictionary { "id": { ... } } or { "0": { ... } }
-        list = Object.entries(parsed).map(([k, v]) => {
-          if (v && typeof v === 'object') {
-            return { id: v.id || k, ...v };
+      if (groqKey) {
+        try {
+          return await callGroq(batch);
+        } catch (groqErr) {
+          console.warn(`[Groq attempt ${attempt}]: ${groqErr.message}. Trying Gemini fallback...`);
+          if (geminiKey) {
+            return await callGemini(batch);
           }
-          return null;
-        }).filter(Boolean);
+          throw groqErr;
+        }
+      } else if (geminiKey) {
+        return await callGemini(batch);
+      } else {
+        throw new Error('No AI key available for Groq or Gemini');
       }
-
-      if (!Array.isArray(list) || list.length === 0) {
-        throw new Error('Parsed response is empty or not convertible to array: ' + content.slice(0, 100));
-      }
-
-      return list;
     } catch (err) {
-      console.warn(`[DeepSeek attempt ${attempt}/${maxRetries} failed]: ${err.message}. Waiting ${attempt * 3}s...`);
+      console.warn(`[AI attempt ${attempt}/${maxRetries} failed]: ${err.message}. Waiting ${attempt * 3}s...`);
       if (attempt === maxRetries) throw err;
       await new Promise(r => setTimeout(r, attempt * 3000));
     }
@@ -237,7 +291,7 @@ async function main() {
   console.log(`🧠 CATALOG PHASE 2 — DESCRIPTION & INGREDIENTS AI SEPARATION`);
   console.log(`Mode:  ${isDryRun ? '🧪 DRY RUN (no DB writes)' : '🚀 LIVE APPLY (writing to Supabase)'}`);
   if (maxLimit > 0) console.log(`Limit: Process next ${maxLimit} items only`);
-  console.log(`Model: DeepSeek V3 (deepseek-chat)`);
+  console.log(`Model: Groq (qwen/qwen3.8-27b) + Gemini 3.5 Flash Lite fallback (100% Free)`);
   console.log(`======================================================\n`);
 
   const now = new Date();
@@ -247,8 +301,8 @@ async function main() {
 
   const sessionProcessedStart = totalProcessed;
 
-  const FETCH_PAGE_SIZE = 40;
-  const AI_BATCH_SIZE = 8;
+  const FETCH_PAGE_SIZE = 36;
+  const AI_BATCH_SIZE = 4;
 
   while (true) {
     const sessionProcessed = totalProcessed - sessionProcessedStart;
@@ -368,25 +422,8 @@ async function main() {
       let aiResults;
 
       try {
-        aiResults = await callDeepSeekWithRetry(chunk);
+        aiResults = await callAiWithFallback(chunk);
       } catch (aiErr) {
-        if (aiErr.code === 'BALANCE_DEPLETED' || aiErr.message?.includes('BALANCE_DEPLETED')) {
-          console.error(`\n🛑 [STOP] DeepSeek API balance exhausted. Checkpoint preserved at lastId: ${lastId}.`);
-          console.error(`Scanned: ${totalScanned} | Evaluated: ${totalProcessed} | Clean: ${totalCleanVerified} | Normalized: ${totalChanged}`);
-          console.error(`To resume after topping up: node scripts/clean-desc-ingredients-ai.mjs --apply\n`);
-          if (isApply) {
-            saveCheckpointAtomic(checkpointPath, {
-              lastId,
-              totalScanned,
-              totalProcessed,
-              totalCleanVerified,
-              totalChanged,
-              totalErrors,
-              updatedAt: new Date().toISOString()
-            });
-          }
-          process.exit(0);
-        }
         console.error(`Failed AI call for batch starting at ${chunk[0].id}:`, aiErr.message);
         totalErrors += chunk.length;
         continue;
@@ -503,8 +540,8 @@ async function main() {
         }
       }
 
-      // Pacing between AI calls to stay well within DeepSeek rate limits
-      await new Promise(r => setTimeout(r, 500));
+      // Pacing between AI calls to stay well within Groq rate limits
+      await new Promise(r => setTimeout(r, 2000));
     }
 
     lastId = pageLastId;
