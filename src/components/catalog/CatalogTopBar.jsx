@@ -45,7 +45,6 @@ const IconGrid = (
 
 function CatalogTopBarComponent({
   isScrolled = false,
-  isTitleCollapsed = false,
   q,
   setQ,
   onClearQuery,
@@ -108,14 +107,12 @@ function CatalogTopBarComponent({
 
   return (
     <header
-      className={`catalog-topbar${isScrolled ? ' is-scrolled' : ''}${isTitleCollapsed ? ' is-title-collapsed' : ''}`}
+      className={`catalog-topbar${isScrolled ? ' is-scrolled' : ''}`}
       data-home={showCategories}
     >
       <div className="catalog-topbar__bg" aria-hidden="true" />
 
-      <div
-        className={`catalog-topbar__row catalog-topbar__row--title${isTitleCollapsed ? ' is-collapsed' : ''}`}
-      >
+      <div className="catalog-topbar__row catalog-topbar__row--title">
         {showSubcategories && (
           <button
             type="button"
@@ -229,16 +226,6 @@ function CatalogTopBarComponent({
       )}
 
       <div className="catalog-topbar__row catalog-topbar__row--main">
-        {showSubcategories && isTitleCollapsed && (
-          <button
-            type="button"
-            onClick={onBackToCategories}
-            className="catalog-topbar__compact-back-btn"
-            aria-label={t('catalog.back')}
-          >
-            <ArrowBackIcon size={18} />
-          </button>
-        )}
         <div className={`catalog-search-wrap${q.trim().length > 0 ? ' has-query' : ''}`}>
           <span className="catalog-search-icon" aria-hidden="true">
             <SearchIcon size={20} />

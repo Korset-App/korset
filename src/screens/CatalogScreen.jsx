@@ -126,7 +126,6 @@ export default function CatalogScreen() {
   const [initialScrollIndex, setInitialScrollIndex] = useState(() =>
     parseInt(sessionStorage.getItem('korset_catalog_scroll') || '0', 10)
   )
-  const [isTitleCollapsed, setIsTitleCollapsed] = useState(() => initialScrollIndex > 0)
   const [isHeaderHidden, setIsHeaderHidden] = useState(false)
   const headerGroupRef = useRef(null)
 
@@ -257,7 +256,6 @@ export default function CatalogScreen() {
     sessionStorage.setItem('korset_catalog_scroll', '0')
     scrollRef.current = 0
     setInitialScrollIndex(0)
-    setIsTitleCollapsed(false)
     setIsHeaderHidden(false)
     if (virtuosoRef.current) {
       virtuosoRef.current.scrollToIndex({ index: 0, align: 'start', behavior: 'auto' })
@@ -387,23 +385,9 @@ export default function CatalogScreen() {
     [viewMode]
   )
 
-  const isTitleCollapsedComputed = !showCategories && isTitleCollapsed
   const isHeaderHiddenComputed = !showCategories && isHeaderHidden
 
-  useLayoutEffect(() => {
-    if (!showCategories && headerGroupRef.current) {
-      if (!isTitleCollapsed) {
-        const h = headerGroupRef.current.offsetHeight
-        if (h > 60) {
-          headerGroupRef.current
-            .closest('.screen')
-            ?.style.setProperty('--catalog-header-spacer-height', `${h}px`)
-        }
-      }
-    }
-  }, [showCategories, selectedCategory, showSubcategories, hasQuery, isTitleCollapsed])
-
-  // Directional auto-hiding header for product list
+  // Directional auto-hiding header for product list (smooth, no layout jump)
   useEffect(() => {
     if (showCategories) return
 
@@ -424,20 +408,16 @@ export default function CatalogScreen() {
         return
       }
 
-      if (currentTop <= 15) {
-        setIsTitleCollapsed(false)
+      if (currentTop <= 40) {
+        // Dock header cleanly when nearing the top
         setIsHeaderHidden(false)
         accumulatedDown = 0
         accumulatedUp = 0
       } else {
-        if (currentTop > 20) {
-          setIsTitleCollapsed(true)
-        }
-
         if (delta > 4) {
           accumulatedUp = 0
           accumulatedDown += delta
-          if (accumulatedDown > 30 && currentTop > 60) {
+          if (accumulatedDown > 36 && currentTop > 50) {
             setIsHeaderHidden(true)
             setIsSubMenuOpen(false)
             setIsSortMenuOpen(false)
@@ -445,7 +425,7 @@ export default function CatalogScreen() {
         } else if (delta < -4) {
           accumulatedDown = 0
           accumulatedUp += Math.abs(delta)
-          if (accumulatedUp > 20) {
+          if (accumulatedUp > 45) {
             setIsHeaderHidden(false)
           }
         }
@@ -457,11 +437,6 @@ export default function CatalogScreen() {
     scroller.addEventListener('scroll', handleScroll, { passive: true })
     return () => scroller.removeEventListener('scroll', handleScroll)
   }, [showCategories, productScroller, isSearchFocused, setIsSubMenuOpen, setIsSortMenuOpen])
-
-  const CatalogHeaderSpacer = useCallback(
-    () => <div className="catalog-virtuoso-spacer" aria-hidden="true" />,
-    []
-  )
 
   const renderGridItem = useCallback(
     (index, product) => {
@@ -647,11 +622,10 @@ export default function CatalogScreen() {
     >
       <div
         ref={headerGroupRef}
-        className={`catalog-header-group${!showCategories ? ' is-product-view' : ''}${isTitleCollapsedComputed ? ' is-title-collapsed' : ''}${isHeaderHiddenComputed ? ' is-header-hidden' : ''}`}
+        className={`catalog-header-group${!showCategories ? ' is-product-view' : ''}${isHeaderHiddenComputed ? ' is-header-hidden' : ''}`}
       >
         <CatalogTopBar
-          isScrolled={showCategories ? isHeaderScrolled : isTitleCollapsedComputed}
-          isTitleCollapsed={isTitleCollapsedComputed}
+          isScrolled={showCategories ? isHeaderScrolled : false}
           q={q}
           setQ={setQ}
           onClearQuery={() => setQ('')}
@@ -695,46 +669,50 @@ export default function CatalogScreen() {
           </div>
         )}
 
-        {showSubcategories && (
-          <CatalogSubcategoryNav
-            selectedCategory={selectedCategory}
-            activeSubcategoryKeys={activeSubcategoryKeys}
-            subcategoryCountMap={subcategoryCountMap}
-            selectedSubcategories={selectedSubcategories}
-            onToggleSubcategory={handleToggleSubcategory}
-            onResetSubcategories={handleResetSubcategories}
-            isSubMenuOpen={isSubMenuOpen}
-            setIsSubMenuOpen={setIsSubMenuOpen}
-            sort={sort}
-            onSelectSort={setSort}
-            isSortMenuOpen={isSortMenuOpen}
-            setIsSortMenuOpen={setIsSortMenuOpen}
-            onOpenFilterDrawer={() => setIsFilterDrawerOpen(true)}
-            totalActiveFilterCount={totalActiveFilterCount}
-            onResetAllFilters={resetAllFilters}
-            t={t}
-            lang={lang}
-          />
-        )}
+        <div
+          className={`catalog-subcategory-nav-wrap${isHeaderHiddenComputed ? ' is-hidden' : ''}`}
+        >
+          {showSubcategories && (
+            <CatalogSubcategoryNav
+              selectedCategory={selectedCategory}
+              activeSubcategoryKeys={activeSubcategoryKeys}
+              subcategoryCountMap={subcategoryCountMap}
+              selectedSubcategories={selectedSubcategories}
+              onToggleSubcategory={handleToggleSubcategory}
+              onResetSubcategories={handleResetSubcategories}
+              isSubMenuOpen={isSubMenuOpen}
+              setIsSubMenuOpen={setIsSubMenuOpen}
+              sort={sort}
+              onSelectSort={setSort}
+              isSortMenuOpen={isSortMenuOpen}
+              setIsSortMenuOpen={setIsSortMenuOpen}
+              onOpenFilterDrawer={() => setIsFilterDrawerOpen(true)}
+              totalActiveFilterCount={totalActiveFilterCount}
+              onResetAllFilters={resetAllFilters}
+              t={t}
+              lang={lang}
+            />
+          )}
 
-        {hasQuery && displayList.length > 0 && (
-          <CatalogSearchResultsBar
-            resultsCount={displayList.length}
-            rawResultsCount={rawSearchCount}
-            categoryCounts={searchCategoryCounts}
-            selectedCategoryFilter={searchCategoryFilter}
-            onSelectCategoryFilter={setSearchCategoryFilter}
-            sort={sort}
-            onSelectSort={setSort}
-            isSortMenuOpen={isSortMenuOpen}
-            setIsSortMenuOpen={setIsSortMenuOpen}
-            onOpenFilterDrawer={() => setIsFilterDrawerOpen(true)}
-            totalActiveFilterCount={totalActiveFilterCount}
-            onResetAllFilters={resetAllFilters}
-            lang={lang}
-            t={t}
-          />
-        )}
+          {hasQuery && displayList.length > 0 && (
+            <CatalogSearchResultsBar
+              resultsCount={displayList.length}
+              rawResultsCount={rawSearchCount}
+              categoryCounts={searchCategoryCounts}
+              selectedCategoryFilter={searchCategoryFilter}
+              onSelectCategoryFilter={setSearchCategoryFilter}
+              sort={sort}
+              onSelectSort={setSort}
+              isSortMenuOpen={isSortMenuOpen}
+              setIsSortMenuOpen={setIsSortMenuOpen}
+              onOpenFilterDrawer={() => setIsFilterDrawerOpen(true)}
+              totalActiveFilterCount={totalActiveFilterCount}
+              onResetAllFilters={resetAllFilters}
+              lang={lang}
+              t={t}
+            />
+          )}
+        </div>
 
         {comparePin && (
           <CatalogCompareBar
@@ -767,13 +745,7 @@ export default function CatalogScreen() {
       {!showCategories && (
         <div style={{ flex: 1, minHeight: 0, height: '100%', position: 'relative' }}>
           {displayList.length === 0 ? (
-            <div
-              style={{
-                paddingTop: 'var(--catalog-header-spacer-height, 178px)',
-                height: '100%',
-                boxSizing: 'border-box',
-              }}
-            >
+            <div style={{ height: '100%', boxSizing: 'border-box' }}>
               <CatalogEmptyView
                 hasQuery={hasQuery}
                 isQueryTooShort={hasQuery && !isSearching}
@@ -802,7 +774,7 @@ export default function CatalogScreen() {
               itemContent={renderGridRow}
               computeItemKey={(index, row) => row.id}
               overscan={1200}
-              components={{ Header: CatalogHeaderSpacer, Footer: ListFooter }}
+              components={{ Footer: ListFooter }}
               initialTopMostItemIndex={Math.floor(initialScrollIndex / 2)}
               rangeChanged={(range) => {
                 scrollRef.current = range.startIndex * 2
@@ -817,7 +789,7 @@ export default function CatalogScreen() {
               itemContent={renderListItem}
               computeItemKey={(index, product) => product.ean || index}
               overscan={1200}
-              components={{ Header: CatalogHeaderSpacer, Footer: ListFooter }}
+              components={{ Footer: ListFooter }}
               initialTopMostItemIndex={initialScrollIndex}
               rangeChanged={(range) => {
                 scrollRef.current = range.startIndex

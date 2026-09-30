@@ -78,8 +78,27 @@ if (typeof window !== 'undefined') {
 // competes with initial rendering.
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch((err) => {
-      console.warn('[SW] registration failed:', err)
+    navigator.serviceWorker
+      .register('/sw.js')
+      .then((registration) => {
+        // Check for updates whenever user returns to the tab/app
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') {
+            registration.update().catch(() => {})
+          }
+        })
+      })
+      .catch((err) => {
+        console.warn('[SW] registration failed:', err)
+      })
+
+    // When the activated service worker takes control (via skipWaiting), reload page to receive latest bundle
+    let isRefreshing = false
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!isRefreshing) {
+        isRefreshing = true
+        window.location.reload()
+      }
     })
   })
 }

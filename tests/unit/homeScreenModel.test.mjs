@@ -36,7 +36,10 @@ test('home quick actions expose store-scoped secondary actions', () => {
     ['catalog', 'scan', 'favorites', 'ai', 'history', 'profile']
   )
   assert.equal(actions.find((action) => action.key === 'scan')?.path, '/s/mars/scan')
-  assert.equal(actions.find((action) => action.key === 'favorites')?.path, '/s/mars/profile?tab=favorites')
+  assert.equal(
+    actions.find((action) => action.key === 'favorites')?.path,
+    '/s/mars/profile?tab=favorites'
+  )
 })
 
 test('home store facts expose only shopper-useful public facts', () => {
@@ -84,7 +87,8 @@ test('fit-check setup state can be completed with explicit no-preference choices
 })
 
 test('getProductDisplayBadges shows one primary attribute and counts the rest', async () => {
-  const { getProductDisplayBadges, getProductBadgeSummary } = await import('../../src/domain/home/homeScreenModel.js')
+  const { getProductDisplayBadges, getProductBadgeSummary } =
+    await import('../../src/domain/home/homeScreenModel.js')
 
   const product = {
     halal_status: 'halal',
@@ -113,12 +117,54 @@ test('getShowcaseProducts prioritizes popular KZ brands and enforces category di
   const { getShowcaseProducts } = await import('../../src/domain/home/homeScreenModel.js')
 
   const sampleProducts = [
-    { id: '1', name: 'Лаваш тонкий 1', category_id: 'bakery', price: 200, image_url: 'https://img.com/1' },
-    { id: '2', name: 'Лаваш тонкий 2', category_id: 'bakery', price: 220, image_url: 'https://img.com/2' },
-    { id: '3', name: 'Лаваш армянский', category_id: 'bakery', price: 250, image_url: 'https://img.com/3' },
-    { id: '4', name: 'Вода Tassay без газа 1.5л', category_id: 'drinks', brand: 'Tassay', price: 280, halal_status: 'halal', image_url: 'https://img.com/4' },
-    { id: '5', name: 'Шоколад Казахстанский Рахат', category_id: 'sweets', brand: 'Рахат', price: 650, halal_status: 'halal', image_url: 'https://img.com/5' },
-    { id: '6', name: 'Молоко FoodMaster 3.2%', category_id: 'dairy', brand: 'FoodMaster', price: 490, halal_status: 'halal', image_url: 'https://img.com/6' },
+    {
+      id: '1',
+      name: 'Лаваш тонкий 1',
+      category_id: 'bakery',
+      price: 200,
+      image_url: 'https://img.com/1',
+    },
+    {
+      id: '2',
+      name: 'Лаваш тонкий 2',
+      category_id: 'bakery',
+      price: 220,
+      image_url: 'https://img.com/2',
+    },
+    {
+      id: '3',
+      name: 'Лаваш армянский',
+      category_id: 'bakery',
+      price: 250,
+      image_url: 'https://img.com/3',
+    },
+    {
+      id: '4',
+      name: 'Вода Tassay без газа 1.5л',
+      category_id: 'drinks',
+      brand: 'Tassay',
+      price: 280,
+      halal_status: 'halal',
+      image_url: 'https://img.com/4',
+    },
+    {
+      id: '5',
+      name: 'Шоколад Казахстанский Рахат',
+      category_id: 'sweets',
+      brand: 'Рахат',
+      price: 650,
+      halal_status: 'halal',
+      image_url: 'https://img.com/5',
+    },
+    {
+      id: '6',
+      name: 'Молоко FoodMaster 3.2%',
+      category_id: 'dairy',
+      brand: 'FoodMaster',
+      price: 490,
+      halal_status: 'halal',
+      image_url: 'https://img.com/6',
+    },
   ]
 
   const showcase = getShowcaseProducts(sampleProducts, 4)
@@ -135,53 +181,21 @@ test('getShowcaseProducts prioritizes popular KZ brands and enforces category di
   assert.ok(bakeryItems.length <= 1)
 })
 
-test('home banners model exposes four core pilot banners with required metadata', async () => {
-  const { HOME_BANNERS, getHomeBanners } = await import(
-    '../../src/domain/home/homeScreenModel.js'
+test('every home banner has translated content, an image and a supported action', async () => {
+  const { HOME_BANNERS } = await import('../../src/domain/home/homeScreenModel.js')
+  const { readFile } = await import('node:fs/promises')
+  const ru = JSON.parse(
+    await readFile(new URL('../../src/locales/ru/home.json', import.meta.url), 'utf8')
   )
-
-  assert.equal(Array.isArray(HOME_BANNERS), true)
-  assert.equal(HOME_BANNERS.length, 4)
-
-  const bannerIds = HOME_BANNERS.map((b) => b.id)
-  assert.deepEqual(bannerIds, ['scan', 'fitCheck', 'ai', 'store'])
-
-  HOME_BANNERS.forEach((banner) => {
-    assert.ok(banner.id, 'Banner must have an id')
-    assert.ok(banner.image, `Banner ${banner.id} must have an image`)
-    assert.ok(banner.kickerKey, `Banner ${banner.id} must have a kickerKey`)
-    assert.ok(banner.headlineKey, `Banner ${banner.id} must have a headlineKey`)
-    assert.ok(banner.descriptionKey, `Banner ${banner.id} must have a descriptionKey`)
-    assert.ok(banner.ctaKey, `Banner ${banner.id} must have a ctaKey`)
-    assert.ok(banner.actionType, `Banner ${banner.id} must have an actionType`)
-  })
-
-  // First banner is scanner
-  const scanBanner = HOME_BANNERS.find((b) => b.id === 'scan')
-  assert.equal(scanBanner.actionType, 'scan')
-  assert.equal(scanBanner.ctaIcon, 'scan')
-
-  // Second banner is Fit-Check
-  const fitBanner = HOME_BANNERS.find((b) => b.id === 'fitCheck')
-  assert.equal(fitBanner.actionType, 'fitCheck')
-  assert.equal(fitBanner.ctaIcon, 'fit')
-
-  // Third banner is AI
-  const aiBanner = HOME_BANNERS.find((b) => b.id === 'ai')
-  assert.equal(aiBanner.actionType, 'ai')
-  assert.equal(aiBanner.ctaIcon, 'ai')
-
-  // Unconfigured profile uses base CTA key
-  const defaultBanners = getHomeBanners({ isFitConfigured: false })
-  assert.equal(
-    defaultBanners.find((b) => b.id === 'fitCheck').ctaKey,
-    'home.banners.fitCheck.cta'
+  const kz = JSON.parse(
+    await readFile(new URL('../../src/locales/kz/home.json', import.meta.url), 'utf8')
   )
-
-  // Configured profile adapts Fit-Check CTA key
-  const configuredBanners = getHomeBanners({ isFitConfigured: true })
-  assert.equal(
-    configuredBanners.find((b) => b.id === 'fitCheck').ctaKey,
-    'home.banners.fitCheck.ctaConfigured'
-  )
+  for (const banner of HOME_BANNERS) {
+    for (const key of ['kickerKey', 'headlineKey', 'descriptionKey', 'ctaKey']) {
+      assert.ok(ru[banner[key]], `Missing RU text for ${banner.id}: ${key}`)
+      assert.ok(kz[banner[key]], `Missing KZ text for ${banner.id}: ${key}`)
+    }
+    assert.ok(['scan', 'compare', 'catalog', 'dinner', 'install', 'fitGuide'].includes(banner.actionType))
+    assert.match(banner.image, /^\/banners\/.+\.webp$/)
+  }
 })
