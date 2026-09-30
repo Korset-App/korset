@@ -8,10 +8,18 @@
   flex-shrink: 0;
   position: relative;
   z-index: 2;
-  padding: 12px 16px 4px;
+  padding: 10px 16px 6px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  background: var(--bg-app);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--glass-soft-border);
+}
+
+:root[data-theme='light'] .catalog-search-results-bar {
+  background: color-mix(in srgb, var(--bg-app) 96%, #ffffff 4%);
 }
 
 .catalog-search-bar-row {

@@ -1,10 +1,9 @@
 import { memo } from 'react'
 import {
   ChevronDownIcon,
-  FilterIcon,
-  FilterIconActive,
   SlidersIcon,
   ResetArrowIcon,
+  CheckCircleIcon,
   SortFitIcon,
   SortCheapIcon,
   SortPriceyIcon,
@@ -12,6 +11,25 @@ import {
   SortSugarIcon,
 } from '../icons/index.js'
 import { getSubcategoryLabel } from '../../utils/fitCheck.js'
+
+function SubcategoryIcon({ size = 16, className, style }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="currentColor"
+      aria-hidden="true"
+      className={className}
+      style={{ display: 'block', flexShrink: 0, ...style }}
+    >
+      <rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1.5" />
+      <rect x="9" y="1.5" width="5.5" height="5.5" rx="1.5" />
+      <rect x="1.5" y="9" width="5.5" height="5.5" rx="1.5" />
+      <rect x="9" y="9" width="5.5" height="5.5" rx="1.5" />
+    </svg>
+  )
+}
 
 const SORT_ICONS = {
   fit: SortFitIcon,
@@ -51,8 +69,25 @@ function CatalogSubcategoryNavComponent({
   const ActiveSortIcon = SORT_ICONS[sort] || SortFitIcon
   const activeSortOption = SORT_OPTIONS.find((o) => o.id === sort) || SORT_OPTIONS[0]
 
+  const totalSubcategoryProducts = activeSubcategoryKeys.reduce(
+    (acc, k) => acc + (subcategoryCountMap[k] || 0),
+    0
+  )
+
   return (
     <div className="catalog-subcategory-nav">
+      {/* Click-away backdrop */}
+      {(isSubMenuOpen || isSortMenuOpen) && (
+        <div
+          className="catalog-popover-backdrop"
+          onClick={() => {
+            setIsSubMenuOpen(false)
+            setIsSortMenuOpen(false)
+          }}
+          aria-hidden="true"
+        />
+      )}
+
       <div className="catalog-subcategory-controls">
         {activeSubcategoryKeys.length > 1 && (
           <button
@@ -64,11 +99,7 @@ function CatalogSubcategoryNavComponent({
               setIsSortMenuOpen(false)
             }}
           >
-            {isSubMenuOpen || selectedSubcategories.length > 0 ? (
-              <FilterIconActive size={16} />
-            ) : (
-              <FilterIcon size={16} />
-            )}
+            <SubcategoryIcon size={16} />
             <span
               style={{
                 flex: 1,
@@ -129,7 +160,11 @@ function CatalogSubcategoryNavComponent({
           <button
             type="button"
             className={`catalog-filter-btn${totalActiveFilterCount > 0 ? ' active' : ''}`}
-            onClick={onOpenFilterDrawer}
+            onClick={() => {
+              setIsSubMenuOpen(false)
+              setIsSortMenuOpen(false)
+              onOpenFilterDrawer()
+            }}
             aria-label={t('catalog.filtersButton')}
             title={t('catalog.filtersButton')}
           >
@@ -141,6 +176,97 @@ function CatalogSubcategoryNavComponent({
           </button>
         )}
       </div>
+
+      {/* Floating Subcategories Popover */}
+      {isSubMenuOpen && activeSubcategoryKeys.length > 1 && (
+        <div className="catalog-popover catalog-popover--subcategories" role="dialog">
+          <div className="catalog-popover__header">
+            <span className="catalog-popover__title">
+              {t('catalog.subcategoriesTitle') || 'Подкатегории'}
+            </span>
+            {selectedSubcategories.length > 0 && (
+              <button
+                type="button"
+                className="catalog-popover__reset-link"
+                onClick={() => {
+                  onResetSubcategories()
+                  setIsSubMenuOpen(false)
+                }}
+              >
+                {t('catalog.quickReset') || 'Сбросить'}
+              </button>
+            )}
+          </div>
+          <div className="catalog-popover__list">
+            <button
+              type="button"
+              className={`catalog-popover__item${selectedSubcategories.length === 0 ? ' is-active' : ''}`}
+              onClick={() => {
+                onResetSubcategories()
+                setIsSubMenuOpen(false)
+              }}
+            >
+              <span className="catalog-popover__item-label">{t('catalog.allSubcategories')}</span>
+              <span className="catalog-popover__item-count">{totalSubcategoryProducts}</span>
+              {selectedSubcategories.length === 0 && (
+                <CheckCircleIcon size={16} className="catalog-popover__check" />
+              )}
+            </button>
+            {activeSubcategoryKeys.map((subKey) => {
+              const isSelected = selectedSubcategories.includes(subKey)
+              return (
+                <button
+                  key={subKey}
+                  type="button"
+                  className={`catalog-popover__item${isSelected ? ' is-active' : ''}`}
+                  onClick={() => {
+                    onToggleSubcategory(subKey)
+                    setIsSubMenuOpen(false)
+                  }}
+                >
+                  <span className="catalog-popover__item-label">
+                    {getSubcategoryLabel(selectedCategory, subKey, lang)}
+                  </span>
+                  <span className="catalog-popover__item-count">
+                    {subcategoryCountMap[subKey] || 0}
+                  </span>
+                  {isSelected && <CheckCircleIcon size={16} className="catalog-popover__check" />}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Floating Sort Popover */}
+      {isSortMenuOpen && (
+        <div className="catalog-popover catalog-popover--sort" role="dialog">
+          <div className="catalog-popover__header">
+            <span className="catalog-popover__title">{t('catalog.sortTitle') || 'Сортировка'}</span>
+          </div>
+          <div className="catalog-popover__list">
+            {SORT_OPTIONS.map(({ id, labelKey }) => {
+              const Icon = SORT_ICONS[id] || SortFitIcon
+              const isSelected = sort === id
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  className={`catalog-popover__item${isSelected ? ' is-active' : ''}`}
+                  onClick={() => {
+                    onSelectSort(id)
+                    setIsSortMenuOpen(false)
+                  }}
+                >
+                  <Icon size={16} className="catalog-popover__item-icon" />
+                  <span className="catalog-popover__item-label">{t(labelKey)}</span>
+                  {isSelected && <CheckCircleIcon size={16} className="catalog-popover__check" />}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {totalActiveFilterCount > 0 && onResetAllFilters && (
         <div className="catalog-active-filters-bar">
@@ -155,60 +281,6 @@ function CatalogSubcategoryNavComponent({
             <ResetArrowIcon size={12} />
             <span>{t('catalog.quickReset')}</span>
           </button>
-        </div>
-      )}
-
-      {isSubMenuOpen && activeSubcategoryKeys.length > 1 && (
-        <div
-          className="catalog-chips-row"
-          style={{ marginBottom: 12, animation: 'expandDropdown 0.2s ease-out' }}
-        >
-          <button
-            type="button"
-            className={`catalog-sub-chip${selectedSubcategories.length === 0 ? ' active' : ''}`}
-            onClick={onResetSubcategories}
-          >
-            {t('catalog.allSubcategories')}
-            <span className="catalog-sub-chip-count">
-              {activeSubcategoryKeys.reduce((acc, k) => acc + (subcategoryCountMap[k] || 0), 0)}
-            </span>
-          </button>
-          {activeSubcategoryKeys.map((subKey) => (
-            <button
-              key={subKey}
-              type="button"
-              className={`catalog-sub-chip${selectedSubcategories.includes(subKey) ? ' active' : ''}`}
-              onClick={() => onToggleSubcategory(subKey)}
-            >
-              {getSubcategoryLabel(selectedCategory, subKey, lang)}
-              <span className="catalog-sub-chip-count">{subcategoryCountMap[subKey] || 0}</span>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {isSortMenuOpen && (
-        <div
-          className="catalog-chips-row"
-          style={{ marginBottom: 12, animation: 'expandDropdown 0.2s ease-out' }}
-        >
-          {SORT_OPTIONS.map(({ id, labelKey }) => {
-            const Icon = SORT_ICONS[id] || SortFitIcon
-            return (
-              <button
-                key={id}
-                type="button"
-                className={`catalog-sort-chip${sort === id ? ' active' : ''}`}
-                onClick={() => {
-                  onSelectSort(id)
-                  setIsSortMenuOpen(false)
-                }}
-              >
-                <Icon size={16} />
-                {t(labelKey)}
-              </button>
-            )
-          })}
         </div>
       )}
     </div>

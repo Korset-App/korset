@@ -45,6 +45,7 @@ const IconGrid = (
 
 function CatalogTopBarComponent({
   isScrolled = false,
+  isTitleCollapsed = false,
   q,
   setQ,
   onClearQuery,
@@ -107,12 +108,14 @@ function CatalogTopBarComponent({
 
   return (
     <header
-      className={`catalog-topbar${isScrolled ? ' is-scrolled' : ''}`}
+      className={`catalog-topbar${isScrolled ? ' is-scrolled' : ''}${isTitleCollapsed ? ' is-title-collapsed' : ''}`}
       data-home={showCategories}
     >
       <div className="catalog-topbar__bg" aria-hidden="true" />
 
-      <div className="catalog-topbar__row catalog-topbar__row--title">
+      <div
+        className={`catalog-topbar__row catalog-topbar__row--title${isTitleCollapsed ? ' is-collapsed' : ''}`}
+      >
         {showSubcategories && (
           <button
             type="button"
@@ -226,7 +229,17 @@ function CatalogTopBarComponent({
       )}
 
       <div className="catalog-topbar__row catalog-topbar__row--main">
-        <div className="catalog-search-wrap">
+        {showSubcategories && isTitleCollapsed && (
+          <button
+            type="button"
+            onClick={onBackToCategories}
+            className="catalog-topbar__compact-back-btn"
+            aria-label={t('catalog.back')}
+          >
+            <ArrowBackIcon size={18} />
+          </button>
+        )}
+        <div className={`catalog-search-wrap${q.trim().length > 0 ? ' has-query' : ''}`}>
           <span className="catalog-search-icon" aria-hidden="true">
             <SearchIcon size={20} />
           </span>
@@ -296,21 +309,20 @@ function CatalogTopBarComponent({
               <CloseIcon size={14} />
             </button>
           )}
+          <button
+            type="button"
+            className="catalog-search-scan-btn"
+            onClick={onScanClick}
+            aria-label={t('catalog.scanProduct')}
+          >
+            <BarcodeScannerIcon size={20} />
+          </button>
           {searchHint && (
             <div className="catalog-search-hint" role="status">
               {searchHint}
             </div>
           )}
         </div>
-
-        <button
-          type="button"
-          className="catalog-scan-shortcut"
-          onClick={onScanClick}
-          aria-label={t('catalog.scanProduct')}
-        >
-          <BarcodeScannerIcon size={22} />
-        </button>
 
         {!showCategories && (
           <div

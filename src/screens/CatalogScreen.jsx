@@ -1,4 +1,12 @@
-import { useState, useMemo, useEffect, useCallback, useRef, forwardRef } from 'react'
+import {
+  useState,
+  useMemo,
+  useEffect,
+  useLayoutEffect,
+  useCallback,
+  useRef,
+  forwardRef,
+} from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { Virtuoso } from 'react-virtuoso'
 import { checkProductFit, formatPrice, getCategoryLabel } from '../utils/fitCheck.js'
@@ -108,14 +116,19 @@ export default function CatalogScreen() {
 
   const virtuosoRef = useRef(null)
   const productScrollerRef = useRef(null)
+  const [productScroller, setProductScrollerState] = useState(null)
   const setProductScroller = useCallback((element) => {
     productScrollerRef.current = element
+    setProductScrollerState(element)
   }, [])
   const scrollRef = useRef(0)
   const isInitialMount = useRef(true)
   const [initialScrollIndex, setInitialScrollIndex] = useState(() =>
     parseInt(sessionStorage.getItem('korset_catalog_scroll') || '0', 10)
   )
+  const [isTitleCollapsed, setIsTitleCollapsed] = useState(() => initialScrollIndex > 0)
+  const [isHeaderHidden, setIsHeaderHidden] = useState(false)
+  const headerGroupRef = useRef(null)
 
   // Fallback offline catalog from IndexedDB
   useEffect(() => {
@@ -244,6 +257,8 @@ export default function CatalogScreen() {
     sessionStorage.setItem('korset_catalog_scroll', '0')
     scrollRef.current = 0
     setInitialScrollIndex(0)
+    setIsTitleCollapsed(false)
+    setIsHeaderHidden(false)
     if (virtuosoRef.current) {
       virtuosoRef.current.scrollToIndex({ index: 0, align: 'start', behavior: 'auto' })
     }
@@ -370,6 +385,82 @@ export default function CatalogScreen() {
       sessionStorage.setItem('korset_catalog_view', mode)
     },
     [viewMode]
+  )
+
+  const isTitleCollapsedComputed = !showCategories && isTitleCollapsed
+  const isHeaderHiddenComputed = !showCategories && isHeaderHidden
+
+  useLayoutEffect(() => {
+    if (!showCategories && headerGroupRef.current) {
+      if (!isTitleCollapsed) {
+        const h = headerGroupRef.current.offsetHeight
+        if (h > 60) {
+          headerGroupRef.current
+            .closest('.screen')
+            ?.style.setProperty('--catalog-header-spacer-height', `${h}px`)
+        }
+      }
+    }
+  }, [showCategories, selectedCategory, showSubcategories, hasQuery, isTitleCollapsed])
+
+  // Directional auto-hiding header for product list
+  useEffect(() => {
+    if (showCategories) return
+
+    const scroller = productScroller || productScrollerRef.current
+    if (!scroller) return
+
+    let lastScrollTop = scroller.scrollTop
+    let accumulatedDown = 0
+    let accumulatedUp = 0
+
+    const handleScroll = () => {
+      const currentTop = scroller.scrollTop
+      const delta = currentTop - lastScrollTop
+
+      if (isSearchFocused) {
+        setIsHeaderHidden(false)
+        lastScrollTop = currentTop
+        return
+      }
+
+      if (currentTop <= 15) {
+        setIsTitleCollapsed(false)
+        setIsHeaderHidden(false)
+        accumulatedDown = 0
+        accumulatedUp = 0
+      } else {
+        if (currentTop > 20) {
+          setIsTitleCollapsed(true)
+        }
+
+        if (delta > 4) {
+          accumulatedUp = 0
+          accumulatedDown += delta
+          if (accumulatedDown > 30 && currentTop > 60) {
+            setIsHeaderHidden(true)
+            setIsSubMenuOpen(false)
+            setIsSortMenuOpen(false)
+          }
+        } else if (delta < -4) {
+          accumulatedDown = 0
+          accumulatedUp += Math.abs(delta)
+          if (accumulatedUp > 20) {
+            setIsHeaderHidden(false)
+          }
+        }
+      }
+
+      lastScrollTop = currentTop
+    }
+
+    scroller.addEventListener('scroll', handleScroll, { passive: true })
+    return () => scroller.removeEventListener('scroll', handleScroll)
+  }, [showCategories, productScroller, isSearchFocused, setIsSubMenuOpen, setIsSortMenuOpen])
+
+  const CatalogHeaderSpacer = useCallback(
+    () => <div className="catalog-virtuoso-spacer" aria-hidden="true" />,
+    []
   )
 
   const renderGridItem = useCallback(
@@ -545,104 +636,117 @@ export default function CatalogScreen() {
   return (
     <div
       className="screen"
-      style={{ display: 'flex', flexDirection: 'column', height: '100dvh', paddingBottom: 0 }}
+      style={{
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100dvh',
+        paddingBottom: 0,
+        overflow: 'hidden',
+      }}
     >
-      <CatalogTopBar
-        isScrolled={showCategories && isHeaderScrolled}
-        q={q}
-        setQ={setQ}
-        onClearQuery={() => setQ('')}
-        searchHint={searchHint}
-        isSearchFocused={isSearchFocused}
-        setIsSearchFocused={setIsSearchFocused}
-        onRememberSearch={rememberCatalogSearch}
-        recentSearches={recentSearches}
-        serverSearch={serverSearch}
-        onSelectCategory={handleCategoryClick}
-        onRemoveHistoryEntry={removeSearchHistoryEntry}
-        onClearHistory={clearSearchHistory}
-        onScanClick={handleScanClick}
-        showCategories={showCategories}
-        showSubcategories={showSubcategories}
-        selectedCategoryTitle={getCategoryLabel(selectedCategory, lang)}
-        onBackToCategories={handleBackToCategoriesFromUI}
-        viewMode={viewMode}
-        setViewMode={handleViewModeChange}
-        isFitConfigured={isFitConfigured}
-        fitChips={fitChips}
-        fitCount={fitCount}
-        onOpenFitDrawer={() => setFitDrawerOpen(true)}
-        lang={lang}
-        t={t}
-      />
-
-      {catalogLoadError && isOnline && (
-        <div
-          role="alert"
-          style={{
-            margin: '8px 20px',
-            padding: '10px 12px',
-            borderRadius: 12,
-            background: 'var(--glass-bg)',
-            border: '1px solid var(--glass-border)',
-            color: 'var(--text)',
-          }}
-        >
-          {t('catalog.loadError')}
-        </div>
-      )}
-
-      {showSubcategories && (
-        <CatalogSubcategoryNav
-          selectedCategory={selectedCategory}
-          activeSubcategoryKeys={activeSubcategoryKeys}
-          subcategoryCountMap={subcategoryCountMap}
-          selectedSubcategories={selectedSubcategories}
-          onToggleSubcategory={handleToggleSubcategory}
-          onResetSubcategories={handleResetSubcategories}
-          isSubMenuOpen={isSubMenuOpen}
-          setIsSubMenuOpen={setIsSubMenuOpen}
-          sort={sort}
-          onSelectSort={setSort}
-          isSortMenuOpen={isSortMenuOpen}
-          setIsSortMenuOpen={setIsSortMenuOpen}
-          onOpenFilterDrawer={() => setIsFilterDrawerOpen(true)}
-          totalActiveFilterCount={totalActiveFilterCount}
-          onResetAllFilters={resetAllFilters}
-          t={t}
-          lang={lang}
-        />
-      )}
-
-      {hasQuery && displayList.length > 0 && (
-        <CatalogSearchResultsBar
-          resultsCount={displayList.length}
-          rawResultsCount={rawSearchCount}
-          categoryCounts={searchCategoryCounts}
-          selectedCategoryFilter={searchCategoryFilter}
-          onSelectCategoryFilter={setSearchCategoryFilter}
-          sort={sort}
-          onSelectSort={setSort}
-          isSortMenuOpen={isSortMenuOpen}
-          setIsSortMenuOpen={setIsSortMenuOpen}
-          onOpenFilterDrawer={() => setIsFilterDrawerOpen(true)}
-          totalActiveFilterCount={totalActiveFilterCount}
-          onResetAllFilters={resetAllFilters}
+      <div
+        ref={headerGroupRef}
+        className={`catalog-header-group${!showCategories ? ' is-product-view' : ''}${isTitleCollapsedComputed ? ' is-title-collapsed' : ''}${isHeaderHiddenComputed ? ' is-header-hidden' : ''}`}
+      >
+        <CatalogTopBar
+          isScrolled={showCategories ? isHeaderScrolled : isTitleCollapsedComputed}
+          isTitleCollapsed={isTitleCollapsedComputed}
+          q={q}
+          setQ={setQ}
+          onClearQuery={() => setQ('')}
+          searchHint={searchHint}
+          isSearchFocused={isSearchFocused}
+          setIsSearchFocused={setIsSearchFocused}
+          onRememberSearch={rememberCatalogSearch}
+          recentSearches={recentSearches}
+          serverSearch={serverSearch}
+          onSelectCategory={handleCategoryClick}
+          onRemoveHistoryEntry={removeSearchHistoryEntry}
+          onClearHistory={clearSearchHistory}
+          onScanClick={handleScanClick}
+          showCategories={showCategories}
+          showSubcategories={showSubcategories}
+          selectedCategoryTitle={getCategoryLabel(selectedCategory, lang)}
+          onBackToCategories={handleBackToCategoriesFromUI}
+          viewMode={viewMode}
+          setViewMode={handleViewModeChange}
+          isFitConfigured={isFitConfigured}
+          fitChips={fitChips}
+          fitCount={fitCount}
+          onOpenFitDrawer={() => setFitDrawerOpen(true)}
           lang={lang}
           t={t}
         />
-      )}
 
-      {comparePin && (
-        <CatalogCompareBar
-          comparePin={comparePin}
-          onClearPin={() => {
-            sessionStorage.removeItem('korset_compare_a')
-            setComparePin(null)
-          }}
-          t={t}
-        />
-      )}
+        {catalogLoadError && isOnline && (
+          <div
+            role="alert"
+            style={{
+              margin: '8px 20px',
+              padding: '10px 12px',
+              borderRadius: 12,
+              background: 'var(--glass-bg)',
+              border: '1px solid var(--glass-border)',
+              color: 'var(--text)',
+            }}
+          >
+            {t('catalog.loadError')}
+          </div>
+        )}
+
+        {showSubcategories && (
+          <CatalogSubcategoryNav
+            selectedCategory={selectedCategory}
+            activeSubcategoryKeys={activeSubcategoryKeys}
+            subcategoryCountMap={subcategoryCountMap}
+            selectedSubcategories={selectedSubcategories}
+            onToggleSubcategory={handleToggleSubcategory}
+            onResetSubcategories={handleResetSubcategories}
+            isSubMenuOpen={isSubMenuOpen}
+            setIsSubMenuOpen={setIsSubMenuOpen}
+            sort={sort}
+            onSelectSort={setSort}
+            isSortMenuOpen={isSortMenuOpen}
+            setIsSortMenuOpen={setIsSortMenuOpen}
+            onOpenFilterDrawer={() => setIsFilterDrawerOpen(true)}
+            totalActiveFilterCount={totalActiveFilterCount}
+            onResetAllFilters={resetAllFilters}
+            t={t}
+            lang={lang}
+          />
+        )}
+
+        {hasQuery && displayList.length > 0 && (
+          <CatalogSearchResultsBar
+            resultsCount={displayList.length}
+            rawResultsCount={rawSearchCount}
+            categoryCounts={searchCategoryCounts}
+            selectedCategoryFilter={searchCategoryFilter}
+            onSelectCategoryFilter={setSearchCategoryFilter}
+            sort={sort}
+            onSelectSort={setSort}
+            isSortMenuOpen={isSortMenuOpen}
+            setIsSortMenuOpen={setIsSortMenuOpen}
+            onOpenFilterDrawer={() => setIsFilterDrawerOpen(true)}
+            totalActiveFilterCount={totalActiveFilterCount}
+            onResetAllFilters={resetAllFilters}
+            lang={lang}
+            t={t}
+          />
+        )}
+
+        {comparePin && (
+          <CatalogCompareBar
+            comparePin={comparePin}
+            onClearPin={() => {
+              sessionStorage.removeItem('korset_compare_a')
+              setComparePin(null)
+            }}
+            t={t}
+          />
+        )}
+      </div>
 
       {showCategories && (
         <CategoryShowcaseGrid
@@ -661,27 +765,35 @@ export default function CatalogScreen() {
       )}
 
       {!showCategories && (
-        <div style={{ flex: 1, minHeight: 0 }}>
+        <div style={{ flex: 1, minHeight: 0, height: '100%', position: 'relative' }}>
           {displayList.length === 0 ? (
-            <CatalogEmptyView
-              hasQuery={hasQuery}
-              isQueryTooShort={hasQuery && !isSearching}
-              serverSearchStatus={serverSearch.status}
-              isSearchPending={isSearchPending}
-              q={q}
-              searchSuggestions={searchSuggestions}
-              onSelectSuggestion={(s) => setQ(s)}
-              onClearQuery={() => setQ('')}
-              onSelectCategory={handleCategoryFromEmptyState}
-              onBackToCategories={handleBackToCategoriesFromUI}
-              activeCategoryKeys={activeCategoryKeys}
-              popularProducts={popularProducts}
-              renderProductCard={renderGridItem}
-              storeName={storeTitle}
-              isCatalogLoading={isCatalogLoading}
-              lang={lang}
-              t={t}
-            />
+            <div
+              style={{
+                paddingTop: 'var(--catalog-header-spacer-height, 178px)',
+                height: '100%',
+                boxSizing: 'border-box',
+              }}
+            >
+              <CatalogEmptyView
+                hasQuery={hasQuery}
+                isQueryTooShort={hasQuery && !isSearching}
+                serverSearchStatus={serverSearch.status}
+                isSearchPending={isSearchPending}
+                q={q}
+                searchSuggestions={searchSuggestions}
+                onSelectSuggestion={(s) => setQ(s)}
+                onClearQuery={() => setQ('')}
+                onSelectCategory={handleCategoryFromEmptyState}
+                onBackToCategories={handleBackToCategoriesFromUI}
+                activeCategoryKeys={activeCategoryKeys}
+                popularProducts={popularProducts}
+                renderProductCard={renderGridItem}
+                storeName={storeTitle}
+                isCatalogLoading={isCatalogLoading}
+                lang={lang}
+                t={t}
+              />
+            </div>
           ) : viewMode === 'grid' ? (
             <Virtuoso
               ref={virtuosoRef}
@@ -690,7 +802,7 @@ export default function CatalogScreen() {
               itemContent={renderGridRow}
               computeItemKey={(index, row) => row.id}
               overscan={1200}
-              components={{ Footer: ListFooter }}
+              components={{ Header: CatalogHeaderSpacer, Footer: ListFooter }}
               initialTopMostItemIndex={Math.floor(initialScrollIndex / 2)}
               rangeChanged={(range) => {
                 scrollRef.current = range.startIndex * 2
@@ -705,7 +817,7 @@ export default function CatalogScreen() {
               itemContent={renderListItem}
               computeItemKey={(index, product) => product.ean || index}
               overscan={1200}
-              components={{ Footer: ListFooter }}
+              components={{ Header: CatalogHeaderSpacer, Footer: ListFooter }}
               initialTopMostItemIndex={initialScrollIndex}
               rangeChanged={(range) => {
                 scrollRef.current = range.startIndex

@@ -118,6 +118,8 @@
   "catalog.per100ml": "за 100 мл",
   "catalog.back": "Назад",
   "catalog.allSubcategories": "Все",
+  "catalog.subcategoriesTitle": "Разделы",
+  "catalog.sortTitle": "Сортировка",
   "catalog.productsIn": "товаров",
   "catalog.sort.fit": "Подходящие мне",
   "catalog.sort.cheap": "Сначала дешевле",
