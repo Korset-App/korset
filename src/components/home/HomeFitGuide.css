@@ -1,0 +1,119 @@
+.home-fit-guide {
+  width: min(440px, calc(100% - 24px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+.home-fit-guide[open] {
+  display: flex;
+  flex-direction: column;
+}
+.home-fit-guide::backdrop {
+  background: color-mix(in srgb, var(--text-on-accent-dark) 65%, transparent);
+  backdrop-filter: blur(5px);
+}
+.home-fit-guide__scroll {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.home-fit-guide__image {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.home-fit-guide__close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.home-fit-guide__body {
+  padding: 20px;
+}
+.home-fit-guide h2 {
+  margin: 0 0 10px;
+  font: 650 24px/1.15 var(--font-display);
+  letter-spacing: -0.035em;
+}
+.home-fit-guide p {
+  margin: 0;
+  color: var(--text-secondary);
+  font: 400 13px/1.5 var(--font-body);
+}
+.home-fit-guide ol {
+  display: grid;
+  gap: 16px;
+  padding: 0;
+  margin: 22px 0 18px;
+  list-style: none;
+}
+.home-fit-guide li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.home-fit-guide__number {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--primary-bright) 12%, var(--bg-card));
+  color: var(--primary-bright);
+  font: 650 12px/1 var(--font-display);
+}
+.home-fit-guide h3 {
+  margin: 0 0 4px;
+  font: 650 14px/1.4 var(--font-display);
+}
+.home-fit-guide .home-fit-guide__note {
+  font-size: 11px;
+}
+.home-fit-guide__actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 12px 16px max(16px, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+}
+.home-fit-guide__actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font: 600 12px/1.3 var(--font-display);
+  cursor: pointer;
+}
+.home-fit-guide__actions .home-fit-guide__scan {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--text-inverse);
+}
+.home-fit-guide button:focus-visible {
+  outline: 2px solid var(--primary-bright);
+  outline-offset: 2px;
+}

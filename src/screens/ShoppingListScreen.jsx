@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../utils/supabase.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useProfile } from '../contexts/ProfileContext.jsx'
@@ -8,6 +8,7 @@ import { useUserData } from '../contexts/UserDataContext.jsx'
 import { useI18n } from '../i18n/index.js'
 import { getLocalName } from '../utils/localName.js'
 import { buildCatalogPath, buildProfilePath } from '../utils/routes.js'
+import { buildAuthNavigateState } from '../utils/authFlow.js'
 import { hydrateProductsFromFavoriteRows } from '../domain/product/resolver.js'
 import { summarizeShoppingList } from '../domain/shopping/shoppingListSummary.js'
 import { selectShoppingRecommendations } from '../domain/shopping/recommendations.js'
@@ -21,7 +22,8 @@ import './ShoppingExperience.css'
 
 export default function ShoppingListScreen() {
   const navigate = useNavigate()
-  const { internalUserId } = useAuth()
+  const location = useLocation()
+  const { user, internalUserId } = useAuth()
   const { profile } = useProfile()
   const { currentStore, catalogProducts } = useStore()
   const {
@@ -44,7 +46,7 @@ export default function ShoppingListScreen() {
   const products = result.storeId === currentStore?.id ? result.products : null
 
   useEffect(() => {
-    if (!currentStore?.id || !userDataLoaded) return
+    if (!user || !currentStore?.id || !userDataLoaded) return
     let cancelled = false
     async function load() {
       let rows = [...favoriteEans].map((ean) => ({ ean }))
@@ -76,6 +78,7 @@ export default function ShoppingListScreen() {
       cancelled = true
     }
   }, [
+    user,
     currentStore?.id,
     internalUserId,
     favoriteEans,
@@ -270,7 +273,39 @@ export default function ShoppingListScreen() {
             {feedback}
           </div>
         )}
-        {result.storeId === currentStore?.id && (result.error || shoppingListLoadError) ? (
+        {!user ? (
+          <div className="shopping-page__empty">
+            <div className="shopping-page__empty-mark" aria-hidden="true">
+              <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="14" width="30" height="25" rx="5" />
+                <path d="M17 17V11a7 7 0 0 1 14 0v6M18 27h12M24 21v12" />
+              </svg>
+            </div>
+            <h2>{t('shopping.guestGateTitle')}</h2>
+            <p>{t('shopping.guestGateHint', { storeName: currentStore?.name || 'Körset' })}</p>
+            <button
+              type="button"
+              className="shopping-page__primary"
+              onClick={() =>
+                navigate('/auth', {
+                  state: buildAuthNavigateState(location, {
+                    reason: 'profile_required',
+                    message: t('shopping.authRequiredMsg'),
+                  }),
+                })
+              }
+            >
+              {t('shopping.guestGateBtn')}
+            </button>
+            <button
+              type="button"
+              className="shopping-page__secondary"
+              onClick={() => navigate(buildCatalogPath(currentStore?.slug))}
+            >
+              {t('shopping.openCatalog')}
+            </button>
+          </div>
+        ) : result.storeId === currentStore?.id && (result.error || shoppingListLoadError) ? (
           <div className="shopping-page__error" role="alert">
             <p>{t('shopping.loadFailed')}</p>
             <button

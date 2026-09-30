@@ -122,7 +122,7 @@ export default async function handler(req, res) {
         // Fallback: load stores and calculate metrics manually
         const { data: dbStores, error: storesError } = await admin
           .from('stores')
-          .select('*')
+          .select('*, store_private_crm(owner_private_phone, owner_private_notes)')
           .order('created_at', { ascending: false })
 
         if (storesError) {
@@ -148,8 +148,11 @@ export default async function handler(req, res) {
               .eq('store_id', store.id)
               .in('status', ['new', 'reviewing'])
 
+            const crm = Array.isArray(store.store_private_crm) ? store.store_private_crm[0] : store.store_private_crm
             return {
               ...store,
+              owner_private_phone: crm?.owner_private_phone || null,
+              owner_private_notes: crm?.owner_private_notes || null,
               catalog_count: Number(catalogCount || 0),
               scan_count: Number(scanCount || 0),
               ean_recovery_count: Number(eanRecoveryCount || 0),
@@ -236,12 +239,6 @@ export default async function handler(req, res) {
       if (isPublished !== undefined) {
         updateData.is_published = Boolean(isPublished)
       }
-      if (ownerPrivatePhone !== undefined) {
-        updateData.owner_private_phone = ownerPrivatePhone || null
-      }
-      if (ownerPrivateNotes !== undefined) {
-        updateData.owner_private_notes = ownerPrivateNotes || null
-      }
       if (ownerId !== undefined) {
         updateData.owner_id = ownerId || null
       }
@@ -263,6 +260,22 @@ export default async function handler(req, res) {
         }
       }
 
+      if (ownerPrivatePhone !== undefined || ownerPrivateNotes !== undefined) {
+        const crmPayload = { store_id: storeId, updated_at: new Date().toISOString() }
+        if (ownerPrivatePhone !== undefined) {
+          crmPayload.owner_private_phone = ownerPrivatePhone || null
+        }
+        if (ownerPrivateNotes !== undefined) {
+          crmPayload.owner_private_notes = ownerPrivateNotes || null
+        }
+        const { error: crmErr } = await admin
+          .from('store_private_crm')
+          .upsert(crmPayload)
+        if (crmErr) {
+          console.error('[admin-stores] crm upsert error', crmErr)
+        }
+      }
+
       const { data: updatedStore, error: updateError } = await admin
         .from('stores')
         .update(updateData)
@@ -275,7 +288,14 @@ export default async function handler(req, res) {
         return res.status(500).set(cors).json({ error: 'Failed to update store details' })
       }
 
-      return res.status(200).set(cors).json({ ok: true, store: updatedStore })
+      return res.status(200).set(cors).json({
+        ok: true,
+        store: {
+          ...updatedStore,
+          owner_private_phone: ownerPrivatePhone !== undefined ? (ownerPrivatePhone || null) : undefined,
+          owner_private_notes: ownerPrivateNotes !== undefined ? (ownerPrivateNotes || null) : undefined,
+        },
+      })
     }
 
     // ACTION: UPDATE OWNER AUTH
@@ -398,9 +418,6 @@ export default async function handler(req, res) {
       if (whatsappNumber) storeRecord.whatsapp_number = whatsappNumber
       if (shortDescription) storeRecord.short_description = shortDescription.substring(0, 240)
       if (description) storeRecord.description = description.substring(0, 1200)
-      if (ownerPrivatePhone) storeRecord.owner_private_phone = ownerPrivatePhone
-      if (ownerPrivateNotes) storeRecord.owner_private_notes = ownerPrivateNotes
-
       const { data: storeData, error: storeError } = await admin
         .from('stores')
         .insert(storeRecord)
@@ -415,7 +432,26 @@ export default async function handler(req, res) {
         }
         return res.status(500).set(cors).json({ error: 'store_insertion_failed', message: storeError.message })
       }
-      return res.status(200).set(cors).json({ ok: true, store: storeData })
+
+      if (ownerPrivatePhone || ownerPrivateNotes) {
+        const { error: crmErr } = await admin.from('store_private_crm').insert({
+          store_id: storeData.id,
+          owner_private_phone: ownerPrivatePhone || null,
+          owner_private_notes: ownerPrivateNotes || null,
+        })
+        if (crmErr) {
+          console.error('[admin-stores] crm insert error on store creation', crmErr)
+        }
+      }
+
+      return res.status(200).set(cors).json({
+        ok: true,
+        store: {
+          ...storeData,
+          owner_private_phone: ownerPrivatePhone || null,
+          owner_private_notes: ownerPrivateNotes || null,
+        },
+      })
     }
     // ACTION: SCAN ACTIVITY FOR CHARTING
     if (action === 'scan-activity') {

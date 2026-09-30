@@ -1,5 +1,6 @@
 /* global process, console, Buffer */
 import { createClient } from '@supabase/supabase-js'
+import { checkRateLimit, getRateLimitKey } from '../src/lib/monitoring.js'
 
 const CORS_ORIGINS = [
   'https://korset.app',
@@ -7,6 +8,8 @@ const CORS_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:4173',
 ]
+
+const SUBMIT_RATE_LIMIT = { maxRequests: 10, windowMs: 60_000 }
 
 function corsHeaders(origin) {
   const allow = CORS_ORIGINS.includes(origin) ? origin : CORS_ORIGINS[0]
@@ -54,6 +57,15 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') {
     return res.status(405).set(cors).json({ error: 'Method not allowed', errorCode: 'METHOD_NOT_ALLOWED' })
+  }
+
+  const rateKey = getRateLimitKey(req, { authenticated: false })
+  const rateResult = checkRateLimit(rateKey, SUBMIT_RATE_LIMIT)
+  if (!rateResult.allowed) {
+    return res.status(429).set(cors).json({
+      error: 'Too many submissions. Please wait a minute and try again.',
+      errorCode: 'RATE_LIMITED',
+    })
   }
 
   try {

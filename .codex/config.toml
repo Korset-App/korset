@@ -1,6 +1,4 @@
 #:schema https://developers.openai.com/codex/config-schema.json
-model = "gpt-6-sol"
-model_reasoning_effort = "medium"
 tool_output_token_limit = 4000
 
 [agents]

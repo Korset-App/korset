@@ -46,7 +46,7 @@ export default function ProfileStatsTabs({
     {
       id: 'favorites',
       tone: 'favorites',
-      value: favoritesLoadError ? '—' : favoritesCount,
+      value: isGuest ? '—' : favoritesLoadError ? '—' : favoritesCount,
       label: t('profile.favorites'),
       iconBg: 'rgba(245,158,11,0.18)',
       iconBorder: 'rgba(251,191,36,0.55)',
@@ -129,6 +129,16 @@ export default function ProfileStatsTabs({
     if (activeTab === 'preferences') return preferencesContent
 
     if (activeTab === 'favorites') {
+      if (isGuest) {
+        return (
+          <TabEmptyState
+            tone="favorites"
+            title={t('profile.favoritesEmptyGuest')}
+            hint={t('profile.favoritesEmptyGuestHint')}
+            onClick={onAuthPrompt}
+          />
+        )
+      }
       if (favoritesLoadError) {
         return (
           <div className="stats-tabs__load-error" role="alert">

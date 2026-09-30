@@ -1,5 +1,9 @@
 import { useState } from 'react'
 import { CartIcon, CheckCircleIcon, ShareIcon } from '../icons/index.js'
+import { useAuth } from '../../contexts/AuthContext.jsx'
+import { useUserData } from '../../contexts/UserDataContext.jsx'
+import { useI18n } from '../../i18n/index.js'
+import AuthPromptModal from '../AuthPromptModal.jsx'
 
 function formatPrice(val) {
   const num = Number(val)
@@ -13,6 +17,10 @@ export function AIRecipeSummaryBar({
   recipeTitle = '',
   lang = 'ru',
 }) {
+  const { user } = useAuth()
+  const { toggleFavorite, checkIsFavorite } = useUserData() || {}
+  const { t } = useI18n()
+  const [authPromptOpen, setAuthPromptOpen] = useState(false)
   const [saved, setSaved] = useState(false)
   const [copied, setCopied] = useState(false)
 
@@ -22,33 +30,29 @@ export function AIRecipeSummaryBar({
   const isUnderBudget = budget && budget > 0 ? totalPrice <= budget : true
   const budgetDiff = budget && budget > 0 ? budget - totalPrice : null
 
-  const handleSaveToShoppingList = () => {
-    try {
-      const storageKey = 'korset_shopping_list'
-      const raw = localStorage.getItem(storageKey)
-      const existing = raw ? JSON.parse(raw) : []
-      const newItems = selectedProducts.filter(Boolean).map((p) => ({
-        ean: p.ean,
-        name: p.name,
-        priceKzt: p.priceKzt,
-        image: p.image,
-        brand: p.brand,
-        addedAt: Date.now(),
-        recipe: recipeTitle,
-      }))
-      const combined = [...existing.filter((e) => !newItems.some((n) => n.ean === e.ean)), ...newItems]
-      localStorage.setItem(storageKey, JSON.stringify(combined))
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2500)
-    } catch (_e) {
-      // ignore storage error
+  const handleSaveToShoppingList = async () => {
+    if (!user) {
+      setAuthPromptOpen(true)
+      return
     }
+    const validProducts = selectedProducts.filter(Boolean)
+    if (!validProducts.length) return
+
+    for (const p of validProducts) {
+      if (checkIsFavorite && !checkIsFavorite(p.ean)) {
+        await toggleFavorite?.(p)
+      }
+    }
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2500)
   }
 
   const handleCopyList = () => {
     const lines = [
       `🛒 ${recipeTitle || (lang === 'kz' ? 'Сатып алу тізімі' : 'Список покупок')} (Körset):`,
-      ...selectedProducts.filter(Boolean).map((p, idx) => `${idx + 1}. ${p.name} — ${formatPrice(p.priceKzt)}`),
+      ...selectedProducts
+        .filter(Boolean)
+        .map((p, idx) => `${idx + 1}. ${p.name} — ${formatPrice(p.priceKzt)}`),
       `Итого: ${formatPrice(totalPrice)}`,
     ]
     const text = lines.join('\n')
@@ -76,7 +80,9 @@ export function AIRecipeSummaryBar({
         </div>
 
         {budget && budget > 0 && (
-          <div className={`ai-recipe-summary__budget-badge${isUnderBudget ? ' is-ok' : ' is-over'}`}>
+          <div
+            className={`ai-recipe-summary__budget-badge${isUnderBudget ? ' is-ok' : ' is-over'}`}
+          >
             {isUnderBudget
               ? lang === 'kz'
                 ? `✓ Бюджетке сай (${formatPrice(budget)} шегінде)`
@@ -117,6 +123,13 @@ export function AIRecipeSummaryBar({
           {copied ? <CheckCircleIcon size={16} /> : <ShareIcon size={16} />}
         </button>
       </div>
+
+      <AuthPromptModal
+        open={authPromptOpen}
+        onClose={() => setAuthPromptOpen(false)}
+        title={t('shopping.authPromptTitle')}
+        description={t('shopping.authPromptDesc')}
+      />
     </div>
   )
 }

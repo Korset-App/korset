@@ -1,280 +1,340 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { BarcodeScannerIcon, SlidersIcon, SparklesIcon, StorefrontIcon } from '../icons/index.js'
+import { AIChatIcon, InstallIcon, SendIcon } from '../icons/index.js'
 import './HomeBannerCarousel.css'
 
-function BannerCtaIcon({ icon, size = 14 }) {
-  if (icon === 'scan') {
-    return <BarcodeScannerIcon size={size} color="currentColor" strokeWidth={1.9} />
-  }
-  if (icon === 'fit') {
-    return <SlidersIcon size={size} color="currentColor" />
-  }
-  if (icon === 'ai') {
-    return <SparklesIcon size={size} color="currentColor" />
-  }
-  if (icon === 'store') {
-    return <StorefrontIcon size={size} color="currentColor" />
-  }
-  return null
-}
+const AUTOPLAY_INTERVAL_MS = 8000
 
-const AUTOPLAY_INTERVAL_MS = 6500
-
-export default function HomeBannerCarousel({ banners = [], onBannerAction, t }) {
-  const [activeIndex, setActiveIndex] = useState(0)
+export default function HomeBannerCarousel({
+  banners = [],
+  onBannerAction,
+  installPending = false,
+  t,
+}) {
+  const [activeId, setActiveId] = useState(banners[0]?.id)
+  const [paused, setPaused] = useState(false)
   const trackRef = useRef(null)
   const slideRefs = useRef([])
-  const isHoveredRef = useRef(false)
-  const isTouchingRef = useRef(false)
-  const isFocusedRef = useRef(false)
-  const activeIndexRef = useRef(0)
+  const sectionRef = useRef(null)
+  const interactionRef = useRef({
+    hovered: false,
+    touching: false,
+    focused: false,
+    visible: false,
+    last: 0,
+  })
+  const activeIndex = Math.max(
+    0,
+    banners.findIndex((banner) => banner.id === activeId)
+  )
+  const activeIndexRef = useRef(activeIndex)
+  const bannerIds = banners.map(({ id }) => id).join(',')
 
   useEffect(() => {
     activeIndexRef.current = activeIndex
   }, [activeIndex])
 
-  const scrollToSlide = useCallback((targetIndex) => {
-    const slideEl = slideRefs.current[targetIndex]
+  const scrollToSlide = useCallback((index) => {
     const track = trackRef.current
-    if (!slideEl || !track) return
-
-    const prefersReducedMotion =
-      typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-
-    slideEl.scrollIntoView({
-      behavior: prefersReducedMotion ? 'auto' : 'smooth',
-      block: 'nearest',
-      inline: 'start',
+    const slide = slideRefs.current[index]
+    if (!track || !slide) return
+    track.scrollTo({
+      left: slide.offsetLeft - slideRefs.current[0].offsetLeft,
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        ? 'instant'
+        : 'smooth',
     })
-    setActiveIndex(targetIndex)
   }, [])
 
-  // Auto-advance with pause on interaction / hidden tab / reduced-motion
-  useEffect(() => {
-    if (banners.length <= 1) return
-    if (typeof window === 'undefined') return
-
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (prefersReducedMotion) return
-
-    const tick = () => {
-      if (
-        isHoveredRef.current ||
-        isTouchingRef.current ||
-        isFocusedRef.current ||
-        document.hidden
-      ) {
-        return
-      }
-      const nextIndex = (activeIndexRef.current + 1) % banners.length
-      scrollToSlide(nextIndex)
-    }
-
-    const timerId = setInterval(tick, AUTOPLAY_INTERVAL_MS)
-
-    return () => {
-      clearInterval(timerId)
-    }
-  }, [banners.length, scrollToSlide])
-
-  // Detect active slide using IntersectionObserver (lightweight, decoupled from scroll loop)
   useEffect(() => {
     const track = trackRef.current
-    if (!track || typeof IntersectionObserver === 'undefined' || banners.length <= 1) return
+    if (!track) return
+    const index = Math.min(activeIndexRef.current, banners.length - 1)
+    const slide = slideRefs.current[index]
+    if (slide)
+      track.scrollTo({
+        left: slide.offsetLeft - slideRefs.current[0].offsetLeft,
+        behavior: 'instant',
+      })
+  }, [bannerIds, banners.length])
 
-    const observers = []
-    slideRefs.current.forEach((slideEl, index) => {
-      if (!slideEl) return
-
-      const observer = new IntersectionObserver(
-        (entries) => {
-          const [entry] = entries
-          if (entry && entry.isIntersecting && entry.intersectionRatio >= 0.55) {
-            setActiveIndex(index)
-          }
-        },
-        {
-          root: track,
-          threshold: [0.55],
-        }
-      )
-      observer.observe(slideEl)
-      observers.push(observer)
+  useEffect(() => {
+    const track = trackRef.current
+    if (!track || typeof window.ResizeObserver === 'undefined') return
+    let width = track.clientWidth
+    const observer = new window.ResizeObserver(() => {
+      if (track.clientWidth === width) return
+      width = track.clientWidth
+      const slide = slideRefs.current[activeIndexRef.current]
+      if (slide)
+        track.scrollTo({
+          left: slide.offsetLeft - slideRefs.current[0].offsetLeft,
+          behavior: 'instant',
+        })
     })
+    observer.observe(track)
+    return () => observer.disconnect()
+  }, [])
 
-    return () => {
-      observers.forEach((obs) => obs.disconnect())
+  useEffect(() => {
+    const section = sectionRef.current
+    if (!section || typeof IntersectionObserver === 'undefined') {
+      interactionRef.current.visible = true
+      return
     }
-  }, [banners.length])
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        interactionRef.current.visible = entry.isIntersecting
+      },
+      { threshold: 0.2 }
+    )
+    observer.observe(section)
+    return () => observer.disconnect()
+  }, [])
 
-  const handleKeyDown = (event) => {
-    if (event.key === 'ArrowRight') {
-      event.preventDefault()
-      const next = (activeIndex + 1) % banners.length
-      scrollToSlide(next)
-    } else if (event.key === 'ArrowLeft') {
-      event.preventDefault()
-      const prev = (activeIndex - 1 + banners.length) % banners.length
-      scrollToSlide(prev)
-    }
+  useEffect(() => {
+    if (paused || banners.length < 2) return
+    const timer = window.setInterval(() => {
+      const state = interactionRef.current
+      if (
+        state.hovered ||
+        state.touching ||
+        state.focused ||
+        !state.visible ||
+        document.hidden ||
+        Date.now() - state.last < AUTOPLAY_INTERVAL_MS ||
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      )
+        return
+      scrollToSlide((activeIndexRef.current + 1) % banners.length)
+    }, AUTOPLAY_INTERVAL_MS)
+    return () => window.clearInterval(timer)
+  }, [banners.length, paused, scrollToSlide])
+
+  const recordInteraction = useCallback(() => {
+    interactionRef.current.last = Date.now()
+  }, [])
+
+  const handleScroll = () => {
+    const track = trackRef.current
+    if (!track) return
+    const first = slideRefs.current[0]
+    let nearest = 0
+    let distance = Infinity
+    banners.forEach((banner, index) => {
+      const slide = slideRefs.current[index]
+      if (!slide || !first) return
+      const nextDistance = Math.abs(slide.offsetLeft - first.offsetLeft - track.scrollLeft)
+      if (nextDistance < distance) {
+        distance = nextDistance
+        nearest = index
+      }
+    })
+    setActiveId(banners[nearest]?.id)
   }
 
-  if (!banners || banners.length === 0) return null
+  const handleKeyDown = (event) => {
+    if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return
+    event.preventDefault()
+    recordInteraction()
+    let next =
+      event.key === 'ArrowRight'
+        ? (activeIndex + 1) % banners.length
+        : (activeIndex - 1 + banners.length) % banners.length
+    if (event.key === 'Home') next = 0
+    if (event.key === 'End') next = banners.length - 1
+    scrollToSlide(next)
+  }
 
-  const sectionLabel = t('home.banners.sectionLabel') || 'Полезные возможности'
-  const paginationLabel = t('home.banners.paginationLabel') || 'Навигация по баннерам'
+  if (!banners.length) return null
+
+  const act = (banner, actionType = banner.actionType) => {
+    recordInteraction()
+    onBannerAction?.({ ...banner, actionType })
+  }
 
   return (
     <section
+      ref={sectionRef}
       className="home-banner-carousel"
-      aria-label={sectionLabel}
-      onMouseEnter={() => {
-        isHoveredRef.current = true
+      aria-label={t('home.banners.sectionLabel')}
+      aria-roledescription={t('home.banners.carouselLabel')}
+      onPointerEnter={(event) => {
+        if (event.pointerType === 'mouse') interactionRef.current.hovered = true
       }}
-      onMouseLeave={() => {
-        isHoveredRef.current = false
+      onPointerLeave={() => {
+        interactionRef.current.hovered = false
+        interactionRef.current.touching = false
+        recordInteraction()
       }}
-      onTouchStart={() => {
-        isTouchingRef.current = true
+      onPointerDown={() => {
+        interactionRef.current.touching = true
+        recordInteraction()
       }}
-      onTouchEnd={() => {
-        isTouchingRef.current = false
+      onPointerUp={() => {
+        interactionRef.current.touching = false
+      }}
+      onPointerCancel={() => {
+        interactionRef.current.touching = false
       }}
       onFocusCapture={() => {
-        isFocusedRef.current = true
+        interactionRef.current.focused = true
       }}
-      onBlurCapture={() => {
-        isFocusedRef.current = false
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          interactionRef.current.focused = false
+          recordInteraction()
+        }
       }}
     >
       <div
         ref={trackRef}
         className="home-banner-carousel__track"
-        role="region"
-        aria-roledescription="carousel"
         tabIndex={0}
+        role="group"
+        aria-label={t('home.banners.sectionLabel')}
         onKeyDown={handleKeyDown}
+        onScroll={handleScroll}
+        onWheel={recordInteraction}
       >
-        {banners.map((banner, index) => {
-          const isActive = index === activeIndex
-          const headlineText = t(banner.headlineKey)
-          const kickerText = t(banner.kickerKey)
-          const badgeText = banner.badgeKey ? t(banner.badgeKey) : null
-          const bubbleText = banner.bubbleKey ? t(banner.bubbleKey) : null
-          const descriptionText = t(banner.descriptionKey)
-          const ctaText = t(banner.ctaKey)
-
-          return (
-            <div
-              key={banner.id}
-              ref={(el) => {
-                if (el) slideRefs.current[index] = el
-              }}
-              className={`home-banner-card home-banner-card--${banner.tone} home-banner-card--${banner.id}${isActive ? ' is-active' : ''}`}
-              role="group"
-              aria-roledescription="slide"
-              aria-label={headlineText}
-              onClick={() => onBannerAction && onBannerAction(banner)}
-            >
-              <div className="home-banner-card__media" aria-hidden="true">
-                <img
-                  src={banner.image}
-                  alt=""
-                  width={1200}
-                  height={675}
-                  loading={index === 0 ? 'eager' : 'lazy'}
-                  decoding="async"
-                  {...(index === 0 ? { fetchpriority: 'high' } : {})}
-                />
-                <span
-                  className={`home-banner-card__overlay home-banner-card__overlay--${banner.id}`}
-                />
-              </div>
-
-              <div className="home-banner-card__content">
-                {kickerText && <span className="home-banner-card__kicker">{kickerText}</span>}
-                <h2 className="home-banner-card__headline">{headlineText}</h2>
-
-                {banner.id === 'scan' && badgeText && (
-                  <div className="home-banner-card__scan-badge" aria-hidden="true">
-                    <span className="home-banner-card__scan-laser-dot" />
-                    <span>{badgeText}</span>
+        {banners.map((banner, index) => (
+          <article
+            key={banner.id}
+            ref={(node) => {
+              slideRefs.current[index] = node
+            }}
+            className={`home-banner-card home-banner-card--${banner.id}`}
+            aria-label={t('home.banners.slideLabel', { number: index + 1, total: banners.length })}
+            aria-roledescription={t('home.banners.slideRole')}
+          >
+            <div className="home-banner-card__media" aria-hidden="true">
+              <img
+                src={banner.image}
+                alt=""
+                width={1200}
+                height={675}
+                loading={index === 0 ? 'eager' : 'lazy'}
+                decoding="async"
+                fetchPriority={index === 0 ? 'high' : 'auto'}
+              />
+            </div>
+            <div className="home-banner-card__overlay" aria-hidden="true" />
+            {['scan', 'store', 'pwa'].includes(banner.id) && (
+              <button
+                className="home-banner-card__whole-action"
+                type="button"
+                tabIndex={index === activeIndex ? 0 : -1}
+                disabled={banner.id === 'pwa' && installPending}
+                onClick={() => act(banner)}
+                aria-label={`${t(banner.ctaKey)}: ${t(banner.headlineKey)}`}
+              />
+            )}
+            {['compare', 'store'].includes(banner.id) && (
+              <span className="home-banner-card__example-label">
+                {t('home.banners.compare.example')}
+              </span>
+            )}
+            <div className="home-banner-card__content">
+              <h2 className="home-banner-card__headline">{t(banner.headlineKey)}</h2>
+              {banner.id === 'dinner' ? (
+                <div className="home-banner-card__dialogue">
+                  <div className="home-banner-card__message home-banner-card__message--question">
+                    {t('home.banners.dinner.question')
+                      .split(/(\d[\d\s]*₸)/)
+                      .map((part, index) =>
+                        index % 2 ? (
+                          <span className="home-banner-card__amount" key={index}>
+                            {part}
+                          </span>
+                        ) : (
+                          part
+                        )
+                      )}
                   </div>
-                )}
-
-                {banner.id === 'fitCheck' && (
-                  <div className="home-banner-card__chips-preview" aria-hidden="true">
-                    <span className="home-banner-card__chip home-banner-card__chip--halal">
-                      {t('home.banners.fitCheck.tagHalal') || '✓ Халал'}
+                  <div className="home-banner-card__message home-banner-card__message--answer">
+                    <span className="home-banner-card__assistant">
+                      <AIChatIcon active size={16} />
+                      <span>{t('home.banners.dinner.assistant')}</span>
                     </span>
-                    <span className="home-banner-card__chip">
-                      {t('home.banners.fitCheck.tagSugarFree') || '✓ Без сахара'}
-                    </span>
-                    <span className="home-banner-card__chip">
-                      {t('home.banners.fitCheck.tagAllergens') || '✓ 0 аллергенов'}
-                    </span>
+                    <span>{t('home.banners.dinner.answer')}</span>
                   </div>
-                )}
-
-                {banner.id === 'store' && (
-                  <div className="home-banner-card__store-pill" aria-hidden="true">
-                    <span className="home-banner-card__store-dot" />
-                    <span>{badgeText || t('home.banners.store.badge')}</span>
-                  </div>
-                )}
-
-                {banner.id === 'ai' && (
-                  <div className="home-banner-card__prompt-bubble" aria-hidden="true">
-                    <span className="home-banner-card__prompt-sparkle">✨</span>
-                    <span className="home-banner-card__prompt-text">
-                      {bubbleText || t('home.banners.ai.bubble')}
-                    </span>
-                  </div>
-                )}
-
-                {descriptionText && (
-                  <p className="home-banner-card__description">{descriptionText}</p>
-                )}
-
+                </div>
+              ) : (
+                <p className="home-banner-card__description">{t(banner.descriptionKey)}</p>
+              )}
+              {banner.id === 'scan' ? null : banner.id === 'store' ? (
+                <span className="home-banner-card__catalog-link">{t(banner.ctaKey)}</span>
+              ) : banner.id === 'pwa' ? (
+                <span className="home-banner-card__cta home-banner-card__cta--pwa">
+                  <InstallIcon size={19} />
+                  <span>{t(banner.ctaKey)}</span>
+                </span>
+              ) : banner.id === 'dinner' ? (
+                <button
+                  type="button"
+                  className="home-banner-card__composer"
+                  onClick={() => act(banner)}
+                  tabIndex={index === activeIndex ? 0 : -1}
+                  aria-label={t(banner.ctaKey)}
+                >
+                  <span>{t('home.banners.dinner.followUp')}</span>
+                  <span className="home-banner-card__send">
+                    <SendIcon size={20} />
+                  </span>
+                </button>
+              ) : (
                 <div className="home-banner-card__actions">
                   <button
                     type="button"
                     className={`home-banner-card__cta home-banner-card__cta--${banner.id}`}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      if (onBannerAction) onBannerAction(banner)
-                    }}
-                    aria-label={`${ctaText}: ${headlineText}`}
+                    onClick={() => act(banner)}
+                    tabIndex={index === activeIndex ? 0 : -1}
+                    aria-label={t(banner.ctaKey)}
                   >
-                    <BannerCtaIcon icon={banner.ctaIcon} size={14} />
-                    <span>{ctaText}</span>
+                    <span>{t(banner.ctaKey)}</span>
                   </button>
                 </div>
-              </div>
+              )}
             </div>
-          )
-        })}
+          </article>
+        ))}
       </div>
-
-      {banners.length > 1 && (
-        <nav className="home-banner-carousel__pagination" aria-label={paginationLabel}>
-          {banners.map((banner, index) => {
-            const isActive = index === activeIndex
-            const dotLabel =
-              t('home.banners.goToSlide', { number: index + 1 }) || `Баннер ${index + 1}`
-            return (
-              <button
-                key={banner.id}
-                type="button"
-                className={`home-banner-carousel__dot ${isActive ? 'is-active' : ''}`}
-                aria-current={isActive ? 'true' : undefined}
-                aria-label={dotLabel}
-                onClick={() => scrollToSlide(index)}
-              />
-            )
-          })}
+      <div className="home-banner-carousel__controls">
+        <span className="home-banner-carousel__count" aria-hidden="true">
+          {String(activeIndex + 1).padStart(2, '0')}{' '}
+          <span>/ {String(banners.length).padStart(2, '0')}</span>
+        </span>
+        <nav
+          className="home-banner-carousel__pagination"
+          aria-label={t('home.banners.paginationLabel')}
+        >
+          {banners.map((banner, index) => (
+            <button
+              key={banner.id}
+              type="button"
+              className={`home-banner-carousel__dot${activeIndex === index ? ' is-active' : ''}`}
+              aria-current={activeIndex === index ? 'true' : undefined}
+              aria-label={t('home.banners.goToSlide', { number: index + 1 })}
+              onClick={() => {
+                recordInteraction()
+                scrollToSlide(index)
+              }}
+            >
+              <span />
+            </button>
+          ))}
         </nav>
-      )}
+        <button
+          type="button"
+          className="home-banner-carousel__pause"
+          aria-label={t(paused ? 'home.banners.play' : 'home.banners.pause')}
+          aria-pressed={paused}
+          onClick={() => setPaused((value) => !value)}
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor">
+            {paused ? <path d="m5 3 8 5-8 5Z" /> : <path d="M4 3h3v10H4zm5 0h3v10H9z" />}
+          </svg>
+        </button>
+      </div>
     </section>
   )
 }

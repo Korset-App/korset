@@ -15,6 +15,7 @@ const OPERATOR = process.env.TELEGRAM_OPERATOR_CHAT_ID
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET
 const ALERT_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
 const ALERT_CHAT_ID = process.env.TELEGRAM_ALERT_CHAT_ID
+const SENTRY_WEBHOOK_SECRET = process.env.SENTRY_WEBHOOK_SECRET
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -77,6 +78,18 @@ Events: ${count} | Users: ${userCount}${link}`
 
 async function handleSentryWebhook(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+
+  if (SENTRY_WEBHOOK_SECRET) {
+    const provided =
+      req.headers['x-sentry-token'] ||
+      req.headers['sentry-hook-signature'] ||
+      (req.query && req.query.secret)
+    const { valid, reason } = verifyWebhookSecret(provided, SENTRY_WEBHOOK_SECRET)
+    if (!valid) {
+      console.warn('[webhooks:sentry] Rejected unauthorized Sentry request:', reason)
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+  }
 
   if (!ALERT_BOT_TOKEN || !ALERT_CHAT_ID) {
     console.error('[webhooks:sentry] Missing TELEGRAM_BOT_TOKEN or TELEGRAM_ALERT_CHAT_ID')

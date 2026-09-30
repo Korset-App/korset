@@ -42,6 +42,7 @@ import IngredientsPreview from '../components/product/IngredientsPreview.jsx'
 import SpecsGrid from '../components/product/SpecsGrid.jsx'
 import SectionLabel from '../components/product/SectionLabel.jsx'
 import ProductSubmissionSheet from '../components/product/ProductSubmissionSheet.jsx'
+import AuthPromptModal from '../components/AuthPromptModal.jsx'
 import { AlertTriangleIcon, CameraIcon } from '../components/icons/index.js'
 import { getAllergenShortName } from '../constants/allergens.js'
 
@@ -73,11 +74,13 @@ export default function ProductScreen() {
   const navigate = useNavigate()
   const location = useLocation()
   const { profile } = useProfile()
-  const { user: _user, internalUserId: _internalUserId } = useAuth()
+  const { user, internalUserId: _internalUserId } = useAuth()
   const { lang, t } = useI18n()
   const { currentStore, storeId, catalogProducts = [] } = useStore()
   const { checkIsFavorite, toggleFavorite, favoriteEans } = useUserData()
   const { isOnline, formatCacheAge } = useOffline()
+
+  const [authPromptOpen, setAuthPromptOpen] = useState(false)
 
   const activeStoreSlug = storeSlug || currentStore?.slug || null
   const fromScan = location.state?.fromScan === true
@@ -220,6 +223,10 @@ export default function ProductScreen() {
   }
 
   const handleToggleFavorite = async () => {
+    if (!user) {
+      setAuthPromptOpen(true)
+      return
+    }
     await toggleFavorite(product)
   }
 
@@ -1121,6 +1128,12 @@ export default function ProductScreen() {
           {t('product.shareCopied')}
         </div>
       )}
+      <AuthPromptModal
+        open={authPromptOpen}
+        onClose={() => setAuthPromptOpen(false)}
+        title={t('shopping.authPromptTitle')}
+        description={t('shopping.authPromptDesc')}
+      />
     </div>
   )
 }

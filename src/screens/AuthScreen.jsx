@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../utils/supabase.js'
 import { useI18n } from '../i18n/index.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { getReturnTo, normalizeReturnTo } from '../utils/authFlow.js'
 import { localizeError, validatePassword, isValidEmail } from '../utils/authHelpers.js'
+import { detectBrowserContext, openInExternalBrowser } from '../utils/browserDetection.js'
 import EyeBtn from '../components/EyeBtn.jsx'
 import AuthBackground from '../components/AuthBackground.jsx'
 import PasswordRules from '../components/PasswordRules.jsx'
@@ -20,8 +22,10 @@ export default function AuthScreen() {
   const { lang, t } = useI18n()
   const { user, loading: authLoading } = useAuth()
 
+  const browserContext = useMemo(() => detectBrowserContext(), [])
   const initialMode = searchParams.get('mode') === 'login' ? 'login' : 'register'
-  const [tab, setTab] = useState('password')
+  const initialTab = searchParams.get('tab') || (browserContext.isInApp ? 'code' : 'password')
+  const [tab, setTab] = useState(initialTab)
   const [mode, setMode] = useState(initialMode)
 
   const [email, setEmail] = useState('')
@@ -35,6 +39,7 @@ export default function AuthScreen() {
 
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [inAppModalOpen, setInAppModalOpen] = useState(false)
   const [error, setError] = useState(null)
   const [errorKey, setErrorKey] = useState(null)
   const [success, setSuccess] = useState(null)
@@ -153,7 +158,10 @@ export default function AuthScreen() {
       const { error } = await supabase.auth.verifyOtp(payload)
       if (error) throw error
       const isSignup = otpType === 'signup'
-      navigate(isSignup ? '/setup-profile' : returnTo, { replace: true })
+      navigate(isSignup ? '/setup-profile' : returnTo, {
+        state: { returnTo },
+        replace: true,
+      })
     } catch {
       setError(t('auth.otpError'))
     } finally {
@@ -185,6 +193,10 @@ export default function AuthScreen() {
   }
 
   const handleGoogleAuth = async () => {
+    if (browserContext.isInApp) {
+      setInAppModalOpen(true)
+      return
+    }
     setGoogleLoading(true)
     setError(null)
     setErrorKey(null)
@@ -973,6 +985,7 @@ export default function AuthScreen() {
                 </div>
 
                 <button
+                  type="button"
                   onClick={handleGoogleAuth}
                   disabled={googleLoading}
                   style={{
@@ -986,20 +999,41 @@ export default function AuthScreen() {
                     color: 'var(--text)',
                     padding: 14,
                     borderRadius: 14,
-                    fontSize: 16,
-                    fontWeight: 500,
+                    fontSize: 15,
+                    fontWeight: 600,
                     fontFamily: 'var(--font-display)',
                     cursor: googleLoading ? 'default' : 'pointer',
                     transition: 'background 0.15s',
                     opacity: googleLoading ? 0.6 : 1,
+                    position: 'relative',
                   }}
                 >
                   <GoogleLogo />
-                  {googleLoading
-                    ? t('common.loading')
-                    : mode === 'login'
-                      ? t('auth.googleLogin')
-                      : t('auth.googleRegister')}
+                  <span>
+                    {googleLoading
+                      ? t('common.loading')
+                      : mode === 'login'
+                        ? t('auth.googleLogin')
+                        : t('auth.googleRegister')}
+                  </span>
+                  {browserContext.isInApp && (
+                    <span
+                      style={{
+                        position: 'absolute',
+                        right: 12,
+                        fontSize: 10.5,
+                        padding: '3px 8px',
+                        borderRadius: 8,
+                        background: 'var(--primary-dim)',
+                        border: '1px solid var(--badge-border)',
+                        color: 'var(--primary-bright)',
+                        fontWeight: 600,
+                        letterSpacing: 0.2,
+                      }}
+                    >
+                      {browserContext.inAppName || 'In-App'}
+                    </span>
+                  )}
                 </button>
               </>
             )}
@@ -1102,6 +1136,184 @@ export default function AuthScreen() {
           )}
         </div>
       </div>
+
+      {inAppModalOpen &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            role="dialog"
+            aria-modal="true"
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 9999,
+              background: 'rgba(0, 0, 0, 0.65)',
+              backdropFilter: 'blur(6px)',
+              WebkitBackdropFilter: 'blur(6px)',
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'center',
+              padding: '0 12px max(16px, env(safe-area-inset-bottom))',
+            }}
+            onClick={() => setInAppModalOpen(false)}
+          >
+            <div
+              style={{
+                width: '100%',
+                maxWidth: 420,
+                background: 'var(--bg-card, #1c1c24)',
+                border: '1px solid var(--glass-soft-border)',
+                borderRadius: 22,
+                padding: '24px 20px 20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 16,
+                boxShadow: 'var(--shadow-card)',
+                boxSizing: 'border-box',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 14,
+                    background: 'var(--glass-bg)',
+                    border: '1px solid var(--glass-border)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <GoogleLogo />
+                </div>
+                <div>
+                  <h3
+                    style={{
+                      margin: 0,
+                      fontSize: 17,
+                      fontWeight: 700,
+                      color: 'var(--text)',
+                      fontFamily: 'var(--font-display)',
+                    }}
+                  >
+                    {t('auth.inAppModalTitle')}
+                  </h3>
+                  <p
+                    style={{
+                      margin: '2px 0 0',
+                      fontSize: 12,
+                      color: 'var(--primary-bright)',
+                      fontFamily: 'var(--font-display)',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {t('auth.inAppModalSub', { inAppName: browserContext.inAppName || 'WebView' })}
+                  </p>
+                </div>
+              </div>
+
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: 13,
+                  color: 'var(--text-faint)',
+                  lineHeight: 1.5,
+                  fontFamily: 'var(--font-display)',
+                }}
+              >
+                {t('auth.inAppModalDesc')}
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    openInExternalBrowser()
+                    setInAppModalOpen(false)
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '14px',
+                    borderRadius: 14,
+                    background: 'var(--primary)',
+                    color: 'var(--text-inverse)',
+                    border: 'none',
+                    fontSize: 14,
+                    fontWeight: 700,
+                    fontFamily: 'var(--font-display)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    boxShadow: '0 4px 14px var(--primary-glow)',
+                  }}
+                >
+                  <span>{t('auth.inAppOpenBrowser')}</span>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                    <polyline points="15 3 21 3 21 9" />
+                    <line x1="10" y1="14" x2="21" y2="3" />
+                  </svg>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInAppModalOpen(false)
+                    switchTab('code')
+                    setTimeout(() => emailInputRef.current?.focus(), 100)
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '13px',
+                    borderRadius: 14,
+                    background: 'var(--glass-bg)',
+                    color: 'var(--text)',
+                    border: '1px solid var(--glass-border)',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    fontFamily: 'var(--font-display)',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                  }}
+                >
+                  {t('auth.inAppUseCode')}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setInAppModalOpen(false)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-disabled)',
+                    fontSize: 13,
+                    fontFamily: 'var(--font-display)',
+                    cursor: 'pointer',
+                    padding: '8px',
+                    textAlign: 'center',
+                  }}
+                >
+                  {t('auth.inAppDismiss')}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </>
   )
 }

@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import ProfileAvatar from '../components/ProfileAvatar.jsx'
 import ShoppingListButton from '../components/ShoppingListButton.jsx'
 import KorsetAvatar from '../components/KorsetAvatar.jsx'
 import SegmentedToggle from '../components/SegmentedToggle.jsx'
+import AuthPromptModal from '../components/AuthPromptModal.jsx'
+import { buildAuthNavigateState } from '../utils/authFlow.js'
+import { detectBrowserContext } from '../utils/browserDetection.js'
 import { useOverlayLock } from '../hooks/useOverlayLock.js'
 import HomeBannerCarousel from '../components/home/HomeBannerCarousel.jsx'
 import FitCheckDrawer from '../components/home/FitCheckDrawer.jsx'
+import HomeFitGuide from '../components/home/HomeFitGuide.jsx'
 import InstallAppSheet from '../components/home/InstallAppSheet.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useProfile } from '../contexts/ProfileContext.jsx'
@@ -32,11 +36,11 @@ import { useTheme } from '../utils/theme.js'
 import { buildProductPath, buildProfileEditPath } from '../utils/routes.js'
 import {
   StorefrontIcon,
-  BarcodeScannerIcon,
   ResetArrowIcon,
   DietIcon,
   SlidersIcon,
   InstallIcon,
+  BarcodeScannerIcon,
   CameraIcon,
   CartIcon,
   LocationPinIcon,
@@ -402,15 +406,8 @@ function StoreLogo({ store, className = '' }) {
 
 function isStandalonePwa() {
   if (typeof window === 'undefined') return false
-  try {
-    if (window.localStorage?.getItem('korset:pwa-installed') === 'true') {
-      return true
-    }
-  } catch {
-    /* ignore storage error */
-  }
   return (
-    window.matchMedia?.('(display-mode: standalone)').matches ||
+    window.matchMedia?.('(display-mode: standalone)')?.matches ||
     Boolean(window.navigator?.standalone)
   )
 }
@@ -475,9 +472,11 @@ function MoonGlyph({ filled }) {
 
 export default function HomeScreen() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { lang, t } = useI18n()
   const { theme, setTheme } = useTheme()
   const { avatarId, displayName, user } = useAuth()
+  const [authPromptOpen, setAuthPromptOpen] = useState(false)
   const { profile, updateProfile } = useProfile()
   const {
     currentStore,
@@ -497,12 +496,14 @@ export default function HomeScreen() {
   const avatarButtonRef = useRef(null)
   const storeInfoRef = useRef(null)
   const screenRef = useRef(null)
+  const installInFlightRef = useRef(false)
 
   const [activePhotoIndex, setActivePhotoIndex] = useState(null)
   const [heroPhotoIndex, setHeroPhotoIndex] = useState(0)
   const [isHeroPaused, setIsHeroPaused] = useState(false)
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false)
   const [fitDrawerOpen, setFitDrawerOpen] = useState(false)
+  const [fitGuideOpen, setFitGuideOpen] = useState(false)
   const [installPrompt, setInstallPrompt] = useState(() => {
     if (typeof window !== 'undefined' && window.__korset_install_prompt) {
       return window.__korset_install_prompt
@@ -511,6 +512,7 @@ export default function HomeScreen() {
   })
   const [isInstalled, setIsInstalled] = useState(isStandalonePwa)
   const [installSheetOpen, setInstallSheetOpen] = useState(false)
+  const [installPending, setInstallPending] = useState(false)
   const [failedImageEans, setFailedImageEans] = useState(() => new Set())
   const [isShoppingListExpanded, setIsShoppingListExpanded] = useState(false)
   const [isStoreDetailsExpanded, setIsStoreDetailsExpanded] = useState(() => {
@@ -697,12 +699,21 @@ export default function HomeScreen() {
     window.addEventListener('korset:install-prompt-ready', handlePromptReady)
     window.addEventListener('appinstalled', handleInstalled)
     window.addEventListener('korset:pwa-installed', handleInstalled)
+    const displayMode = window.matchMedia?.('(display-mode: standalone)')
+    const handleDisplayMode = () => setIsInstalled(isStandalonePwa())
+    window.addEventListener('pageshow', handleDisplayMode)
+    if (displayMode?.addEventListener) displayMode.addEventListener('change', handleDisplayMode)
+    else displayMode?.addListener?.(handleDisplayMode)
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
       window.removeEventListener('korset:install-prompt-ready', handlePromptReady)
       window.removeEventListener('appinstalled', handleInstalled)
       window.removeEventListener('korset:pwa-installed', handleInstalled)
+      window.removeEventListener('pageshow', handleDisplayMode)
+      if (displayMode?.removeEventListener)
+        displayMode.removeEventListener('change', handleDisplayMode)
+      else displayMode?.removeListener?.(handleDisplayMode)
     }
   }, [])
 
@@ -779,7 +790,7 @@ export default function HomeScreen() {
   }, [profile])
 
   // Promotional and explainer banners
-  const banners = useMemo(() => getHomeBanners({ isFitConfigured }), [isFitConfigured])
+  const banners = useMemo(() => getHomeBanners({ isInstalled, lang }), [isInstalled, lang])
 
   const QUICK_TOGGLES = useMemo(() => {
     const toggleDiet = (goalId) => {
@@ -946,9 +957,36 @@ export default function HomeScreen() {
     }
   }, [activePhotoIndex, handleNextPhoto, handlePrevPhoto])
 
+  const handleInstallApp = useCallback(async () => {
+    setAvatarMenuOpen(false)
+    if (isInstalled || installInFlightRef.current) return
+    const prompt = installPrompt || window.__korset_install_prompt
+    if (!prompt || !detectBrowserContext().canNativeInstall) {
+      setInstallSheetOpen(true)
+      return
+    }
+    installInFlightRef.current = true
+    setInstallPending(true)
+    try {
+      await prompt.prompt()
+      await prompt.userChoice
+    } catch {
+      setInstallSheetOpen(true)
+    } finally {
+      if (window.__korset_install_prompt === prompt) window.__korset_install_prompt = null
+      setInstallPrompt((current) => (current === prompt ? null : current))
+      installInFlightRef.current = false
+      setInstallPending(false)
+    }
+  }, [installPrompt, isInstalled])
+
   const handleBannerAction = useCallback(
     (banner) => {
       if (!banner) return
+      if (banner.actionType === 'fitGuide') {
+        setFitGuideOpen(true)
+        return
+      }
       if (banner.actionType === 'scan') {
         if (routes?.scan) navigate(routes.scan)
         return
@@ -957,19 +995,23 @@ export default function HomeScreen() {
         setFitDrawerOpen(true)
         return
       }
-      if (banner.actionType === 'ai') {
-        if (routes?.ai) navigate(routes.ai)
+      if (banner.actionType === 'dinner') {
+        if (routes?.ai) navigate(routes.ai, { state: { initialPrompt: t(banner.promptKey) } })
         return
       }
-      if (banner.actionType === 'catalog') {
+      if (banner.actionType === 'catalog' || banner.actionType === 'compare') {
         if (routes?.catalog) navigate(routes.catalog)
+        return
+      }
+      if (banner.actionType === 'install') {
+        handleInstallApp()
         return
       }
       if (banner.path) {
         navigate(banner.path)
       }
     },
-    [navigate, routes]
+    [handleInstallApp, navigate, routes, t]
   )
 
   if (!isStoreApp) {
@@ -1050,13 +1092,12 @@ export default function HomeScreen() {
     setTheme(nextTheme)
   }
 
-  function handleInstallApp() {
-    setAvatarMenuOpen(false)
-    setInstallSheetOpen(true)
-  }
-
   function handleProductFavoriteClick(e, product) {
     e.stopPropagation()
+    if (!user) {
+      setAuthPromptOpen(true)
+      return
+    }
     if (typeof window !== 'undefined' && navigator?.vibrate) {
       navigator.vibrate(18)
     }
@@ -1199,12 +1240,12 @@ export default function HomeScreen() {
                     role="menu"
                     style={{ top: avatarMenuPos.top, right: avatarMenuPos.right }}
                   >
-                    <div className="home-avatar-menu__identity">
-                      <div>
-                        <strong>{profileName}</strong>
-                        <span>{t('home.menuAccountHint')}</span>
-                      </div>
-                      {user && (
+                    {user ? (
+                      <div className="home-avatar-menu__identity">
+                        <div>
+                          <strong>{profileName}</strong>
+                          <span>{t('home.menuAccountHint')}</span>
+                        </div>
                         <button
                           className="home-avatar-menu__edit"
                           type="button"
@@ -1216,8 +1257,35 @@ export default function HomeScreen() {
                         >
                           <HomeIcon name="edit" />
                         </button>
-                      )}
-                    </div>
+                      </div>
+                    ) : (
+                      <div className="home-avatar-menu__guest">
+                        <div className="home-avatar-menu__guest-info">
+                          <strong className="home-avatar-menu__guest-title">
+                            {t('home.menuGuestTitle')}
+                          </strong>
+                          <span className="home-avatar-menu__guest-hint">
+                            {t('home.menuGuestHint')}
+                          </span>
+                        </div>
+                        <button
+                          className="home-avatar-menu__guest-btn"
+                          type="button"
+                          onClick={() => {
+                            setAvatarMenuOpen(false)
+                            navigate('/auth', {
+                              state: buildAuthNavigateState(location, {
+                                reason: 'profile_required',
+                                message: t('home.menuGuestPrompt'),
+                              }),
+                            })
+                          }}
+                        >
+                          <span>{t('common.login')}</span>
+                          <HomeIcon name="chevron_right" />
+                        </button>
+                      </div>
+                    )}
 
                     <button
                       className="home-avatar-menu__item"
@@ -1309,12 +1377,23 @@ export default function HomeScreen() {
                 </>,
                 document.body
               )}
+            <AuthPromptModal
+              open={authPromptOpen}
+              onClose={() => setAuthPromptOpen(false)}
+              title={t('shopping.authPromptTitle')}
+              description={t('shopping.authPromptDesc')}
+            />
           </div>
         </header>
         <div className="home-top-bar-divider" aria-hidden="true" />
 
         {/* 2. PROMOTIONAL & EXPLAINER BANNERS */}
-        <HomeBannerCarousel banners={banners} onBannerAction={handleBannerAction} t={t} />
+        <HomeBannerCarousel
+          banners={banners}
+          onBannerAction={handleBannerAction}
+          installPending={installPending}
+          t={t}
+        />
 
         {/* 3. SMART SEARCH & SCAN BAR */}
         <div className="home-search-container">
@@ -1338,10 +1417,7 @@ export default function HomeScreen() {
               type="button"
               className="home-search-bar__scan-btn"
               aria-label={t('home.scanBtn')}
-              onClick={(e) => {
-                e.stopPropagation()
-                navigate(routes.scan)
-              }}
+              onClick={() => navigate(routes.scan)}
             >
               <BarcodeScannerIcon size={21} />
             </button>
@@ -2576,6 +2652,20 @@ export default function HomeScreen() {
         )}
 
       {/* MODAL / SHEET: FitCheck Drawer */}
+      <HomeFitGuide
+        open={fitGuideOpen}
+        onClose={() => setFitGuideOpen(false)}
+        onFilters={() => {
+          setFitGuideOpen(false)
+          setFitDrawerOpen(true)
+        }}
+        onScan={() => {
+          setFitGuideOpen(false)
+          if (routes?.scan) navigate(routes.scan)
+        }}
+        image={banners.find((banner) => banner.id === 'scan')?.image}
+        t={t}
+      />
       <FitCheckDrawer
         open={fitDrawerOpen}
         onClose={() => setFitDrawerOpen(false)}

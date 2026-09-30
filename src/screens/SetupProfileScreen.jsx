@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../utils/supabase.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
+import { getReturnTo } from '../utils/authFlow.js'
 import {
   getOrCreateDeviceId,
   writeCachedProfileAvatar,
@@ -358,6 +359,7 @@ function ErrorBlock({ error }) {
 
 export default function SetupProfileScreen() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams] = useSearchParams()
   const { currentStore } = useStore()
   const { user, displayName, avatarId, bannerUrl, refreshAccountProfile, applyProfileSnapshot } =
@@ -414,7 +416,13 @@ export default function SetupProfileScreen() {
     }
   }, [user])
 
-  const backTarget = currentStore ? `/s/${currentStore.slug}/profile` : '/profile'
+  const defaultTarget = currentStore ? `/s/${currentStore.slug}` : '/profile'
+  const returnTo = getReturnTo(location, defaultTarget)
+  const backTarget = editMode
+    ? currentStore
+      ? `/s/${currentStore.slug}/profile`
+      : '/profile'
+    : returnTo
   const trimmedName = name.trim()
   const canContinueName = canSaveName(name) && !nameError
   const hasAvatar =
@@ -435,7 +443,7 @@ export default function SetupProfileScreen() {
       setStepDirection('backward')
       setStep((s) => s - 1)
     } else {
-      navigate(backTarget)
+      navigate(backTarget, { replace: true })
     }
   }
 

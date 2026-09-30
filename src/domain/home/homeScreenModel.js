@@ -11,73 +11,60 @@ export const HOME_SCREEN_SECTIONS = [
   'store',
 ]
 
-export const BANNER_IMAGE_SCAN = '/banners/banner-scan.webp'
-export const BANNER_IMAGE_FIT = '/banners/banner-fit.webp'
-export const BANNER_IMAGE_STORE = '/banners/banner-store.webp'
-export const BANNER_IMAGE_AI = '/banners/banner-ai.webp'
-
-export const DEFAULT_PROTOTYPE_BANNER_IMAGE = BANNER_IMAGE_SCAN
-
 export const HOME_BANNERS = [
   {
     id: 'scan',
-    tone: 'purple',
-    image: BANNER_IMAGE_SCAN,
+    image: '/banners/home-scan-v5-ru.webp',
+    imageKz: '/banners/home-scan-v5-kz.webp',
     kickerKey: 'home.banners.scan.kicker',
     headlineKey: 'home.banners.scan.headline',
-    badgeKey: 'home.banners.scan.badge',
     descriptionKey: 'home.banners.scan.description',
-    ctaKey: 'home.banners.scan.cta',
-    ctaIcon: 'scan',
-    actionType: 'scan',
+    ctaKey: 'home.banners.scan.learn',
+    actionType: 'fitGuide',
   },
   {
-    id: 'fitCheck',
-    tone: 'teal',
-    image: BANNER_IMAGE_FIT,
-    kickerKey: 'home.banners.fitCheck.kicker',
-    headlineKey: 'home.banners.fitCheck.headline',
-    descriptionKey: 'home.banners.fitCheck.description',
-    ctaKey: 'home.banners.fitCheck.cta',
-    ctaConfiguredKey: 'home.banners.fitCheck.ctaConfigured',
-    ctaIcon: 'fit',
-    actionType: 'fitCheck',
-  },
-  {
-    id: 'ai',
-    tone: 'violet',
-    image: BANNER_IMAGE_AI,
-    kickerKey: 'home.banners.ai.kicker',
-    headlineKey: 'home.banners.ai.headline',
-    bubbleKey: 'home.banners.ai.bubble',
-    descriptionKey: 'home.banners.ai.description',
-    ctaKey: 'home.banners.ai.cta',
-    ctaIcon: 'ai',
-    actionType: 'ai',
+    id: 'compare',
+    image: '/banners/home-compare-v4-ru.webp',
+    imageKz: '/banners/home-compare-v4-kz.webp',
+    kickerKey: 'home.banners.compare.kicker',
+    headlineKey: 'home.banners.compare.headline',
+    descriptionKey: 'home.banners.compare.description',
+    ctaKey: 'home.banners.compare.cta',
+    actionType: 'compare',
   },
   {
     id: 'store',
-    tone: 'blue',
-    image: BANNER_IMAGE_STORE,
+    image: '/banners/home-store-v4.webp',
     kickerKey: 'home.banners.store.kicker',
     headlineKey: 'home.banners.store.headline',
-    badgeKey: 'home.banners.store.badge',
     descriptionKey: 'home.banners.store.description',
     ctaKey: 'home.banners.store.cta',
-    ctaIcon: 'store',
     actionType: 'catalog',
+  },
+  {
+    id: 'dinner',
+    image: '/banners/home-dinner-v2.webp',
+    kickerKey: 'home.banners.dinner.kicker',
+    headlineKey: 'home.banners.dinner.headline',
+    descriptionKey: 'home.banners.dinner.description',
+    ctaKey: 'home.banners.dinner.cta',
+    promptKey: 'home.banners.dinner.prompt',
+    actionType: 'dinner',
+  },
+  {
+    id: 'pwa',
+    image: '/banners/home-pwa-v4.webp',
+    kickerKey: 'home.banners.pwa.kicker',
+    headlineKey: 'home.banners.pwa.headline',
+    descriptionKey: 'home.banners.pwa.description',
+    ctaKey: 'home.banners.pwa.cta',
+    actionType: 'install',
   },
 ]
 
-export function getHomeBanners({ isFitConfigured = false } = {}) {
-  return HOME_BANNERS.map((banner) => {
-    if (banner.id === 'fitCheck' && isFitConfigured && banner.ctaConfiguredKey) {
-      return {
-        ...banner,
-        ctaKey: banner.ctaConfiguredKey,
-      }
-    }
-    return banner
+export function getHomeBanners({ isInstalled = false, lang = 'ru' } = {}) {
+  return HOME_BANNERS.filter((banner) => banner.id !== 'pwa' || !isInstalled).map((banner) => {
+    return lang === 'kz' && banner.imageKz ? { ...banner, image: banner.imageKz } : banner
   })
 }
 
