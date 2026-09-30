@@ -1,14 +1,36 @@
-.catalog-category-card[data-category='tea_coffee'],
-.catalog-category-card[data-category='ready_meals'],
-.catalog-category-card[data-category='healthy'],
-.catalog-category-card[data-category='snacks'],
-.catalog-category-card[data-category='sweets'] {
+.catalog-category-card {
   --artwork-side-inset: 12px;
   --artwork-bottom-inset: 10px;
   --artwork-top-inset: 14px;
   overflow: hidden;
 }
 
+/* 1. Вода и напитки: уменьшено на 5%, приподнято выше, нижняя банка не выходит за границы */
+.catalog-category-card[data-category='water_beverages'] .catalog-category-media {
+  margin-inline: calc(-0.6 * var(--artwork-side-inset));
+  margin-bottom: 0;
+}
+
+.catalog-category-card[data-category='water_beverages'] .catalog-category-media img {
+  object-fit: contain;
+  object-position: center center;
+  transform: scale(1.04) translateY(-8px);
+  transform-origin: center center;
+}
+
+/* 2. Молочная продукция и яйца: уменьшено, молоко и яйца строго внутри рамок без среза */
+.catalog-category-card[data-category='dairy_eggs'] .catalog-category-media {
+  margin-inline: 0;
+  margin-bottom: calc(-0.4 * var(--artwork-bottom-inset));
+}
+
+.catalog-category-card[data-category='dairy_eggs'] .catalog-category-media img {
+  transform: scale(1.07);
+  transform-origin: center bottom;
+  object-position: center bottom;
+}
+
+/* 3. Сладости: сохраняем утверждённый bleed-эффект без изменений */
 .catalog-category-card[data-category='sweets'] .catalog-category-media {
   margin-inline: calc(-1 * var(--artwork-side-inset));
   margin-bottom: calc(-1 * var(--artwork-bottom-inset));
@@ -19,6 +41,7 @@
   object-position: center bottom;
 }
 
+/* 4. Снеки: сохраняем утверждённый bleed-эффект без изменений */
 .catalog-category-card[data-category='snacks'] .catalog-category-media {
   margin-inline: calc(-1 * var(--artwork-side-inset));
   margin-bottom: calc(-1 * var(--artwork-bottom-inset));
@@ -29,6 +52,7 @@
   object-position: center center;
 }
 
+/* 5. Чай и кофе: сохраняем утверждённый bleed-эффект без изменений */
 .catalog-category-card[data-category='tea_coffee'] .catalog-category-media {
   margin-inline: calc(-1 * var(--artwork-side-inset));
   margin-bottom: calc(-1 * var(--artwork-bottom-inset));
@@ -39,6 +63,114 @@
   object-position: center bottom;
 }
 
+/* 6. Рыба и морепродукты: уменьшено на 8%, края рыбы и морепродуктов не выходят за рамку */
+.catalog-category-card[data-category='fish'] .catalog-category-media {
+  margin-inline: calc(-0.3 * var(--artwork-side-inset));
+  margin-bottom: calc(-0.5 * var(--artwork-bottom-inset));
+}
+
+.catalog-category-card[data-category='fish'] .catalog-category-media img {
+  transform: scale(1.10);
+  transform-origin: center bottom;
+  object-position: center bottom;
+}
+
+/* 7. Мясо и птица: гармоничное заполнение компактной карточки */
+.catalog-category-card[data-category='meat'] .catalog-category-media {
+  margin-inline: calc(-0.6 * var(--artwork-side-inset));
+  margin-bottom: calc(-0.7 * var(--artwork-bottom-inset));
+}
+
+.catalog-category-card[data-category='meat'] .catalog-category-media img {
+  transform: scale(1.14);
+  transform-origin: center bottom;
+  object-position: center bottom;
+}
+
+/* 8. Колбасы и деликатесы: устранение мелкого размера в углу с безопасным отступом */
+.catalog-category-card[data-category='deli'] .catalog-category-media {
+  margin-inline: calc(-0.6 * var(--artwork-side-inset));
+  margin-bottom: calc(-0.7 * var(--artwork-bottom-inset));
+}
+
+.catalog-category-card[data-category='deli'] .catalog-category-media img {
+  transform: scale(1.10) translateY(5px);
+  transform-origin: center bottom;
+  object-position: center bottom;
+}
+
+/* 9. Фрукты и овощи: сочное горизонтальное заполнение */
+.catalog-category-card[data-category='fruits_veg'] .catalog-category-media {
+  margin-inline: calc(-1 * var(--artwork-side-inset));
+  margin-bottom: calc(-0.7 * var(--artwork-bottom-inset));
+}
+
+.catalog-category-card[data-category='fruits_veg'] .catalog-category-media img {
+  transform: scale(1.16);
+  transform-origin: center bottom;
+  object-position: center bottom;
+}
+
+/* 10. Бакалея: приподнято выше к центру по высоте для баланса отступов */
+.catalog-category-card[data-category='grocery'] .catalog-category-media {
+  margin-inline: calc(-0.6 * var(--artwork-side-inset));
+  margin-bottom: 0;
+}
+
+.catalog-category-card[data-category='grocery'] .catalog-category-media img {
+  transform: scale(1.14) translateY(-14px);
+  transform-origin: center center;
+  object-position: center center;
+}
+
+/* 11. Хлеб и выпечка: уменьшено на 5%, деликатное заполнение без срезов */
+.catalog-category-card[data-category='bread'] .catalog-category-media {
+  margin-inline: calc(-0.4 * var(--artwork-side-inset));
+  margin-bottom: calc(-0.5 * var(--artwork-bottom-inset));
+}
+
+.catalog-category-card[data-category='bread'] .catalog-category-media img {
+  transform: scale(1.09);
+  transform-origin: center bottom;
+  object-position: center bottom;
+}
+
+/* 12. Детское питание: пропорциональное увеличение без наложений */
+.catalog-category-card[data-category='baby_food'] .catalog-category-media {
+  margin-inline: calc(-0.6 * var(--artwork-side-inset));
+  margin-bottom: calc(-0.7 * var(--artwork-bottom-inset));
+}
+
+.catalog-category-card[data-category='baby_food'] .catalog-category-media img {
+  transform: scale(1.16);
+  transform-origin: center bottom;
+  object-position: center bottom;
+}
+
+/* 13. Замороженные продукты: деликатное увеличение */
+.catalog-category-card[data-category='frozen'] .catalog-category-media {
+  margin-inline: calc(-0.6 * var(--artwork-side-inset));
+  margin-bottom: calc(-0.7 * var(--artwork-bottom-inset));
+}
+
+.catalog-category-card[data-category='frozen'] .catalog-category-media img {
+  transform: scale(1.09);
+  transform-origin: center bottom;
+  object-position: center bottom;
+}
+
+/* 14. Соусы и приправы: значительно приподнято к центру рамки по высоте */
+.catalog-category-card[data-category='sauces_spices'] .catalog-category-media {
+  margin-bottom: 0;
+}
+
+.catalog-category-card[data-category='sauces_spices'] .catalog-category-media img {
+  transform: scale(1.06) translateY(-18px);
+  transform-origin: center center;
+  object-position: center center;
+}
+
+/* 15. Готовые блюда: увеличено по ширине, шаурма и блюдо не выходят за рамки */
 .catalog-category-card[data-category='ready_meals'] {
   grid-template-rows: minmax(68px, 1fr) auto;
 }
@@ -49,13 +181,18 @@
 
 .catalog-category-card[data-category='ready_meals'] .catalog-category-media {
   grid-row: 1;
-  margin-top: calc(-1 * var(--artwork-top-inset));
+  margin-top: calc(-0.6 * var(--artwork-top-inset));
+  margin-inline: calc(-0.6 * var(--artwork-side-inset));
+  margin-bottom: calc(-0.3 * var(--artwork-bottom-inset));
 }
 
 .catalog-category-card[data-category='ready_meals'] .catalog-category-media img {
-  object-position: center top;
+  object-position: center center;
+  transform: scale(1.18);
+  transform-origin: center center;
 }
 
+/* 16. Здоровое питание: чаша в правом нижнем углу */
 .catalog-category-card[data-category='healthy'] .catalog-category-media {
   min-height: clamp(110px, 22vw, 155px);
   margin-right: calc(-1 * var(--artwork-side-inset));
@@ -64,30 +201,36 @@
 
 .catalog-category-card[data-category='healthy'] .catalog-category-media img {
   object-position: right bottom;
+  transform: scale(1.10);
+  transform-origin: right bottom;
 }
 
-.catalog-category-card[data-category='meat'] .catalog-category-title {
-  font-size: 0.8125rem;
-  line-height: 1.15;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* 17. Гигиена и уход: гармоничный масштаб */
+.catalog-category-card[data-category='personal_care'] .catalog-category-media {
+  margin-inline: calc(-0.7 * var(--artwork-side-inset));
+  margin-bottom: calc(-0.7 * var(--artwork-bottom-inset));
 }
 
-.catalog-category-card[data-category='baby_food'] .catalog-category-title {
-  font-size: 0.8125rem;
-  line-height: 1.15;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.catalog-category-card[data-category='personal_care'] .catalog-category-media img {
+  transform: scale(1.14);
+  transform-origin: center bottom;
+  object-position: center bottom;
+}
+
+/* 18. Для дома: установлено выше, строго посередине рамки */
+.catalog-category-card[data-category='household'] .catalog-category-media {
+  margin-inline: calc(-0.5 * var(--artwork-side-inset));
+  margin-bottom: 0;
+}
+
+.catalog-category-card[data-category='household'] .catalog-category-media img {
+  transform: scale(1.08) translateY(-14px);
+  transform-origin: center center;
+  object-position: center center;
 }
 
 @media (max-width: 359px) {
-  .catalog-category-card[data-category='tea_coffee'],
-  .catalog-category-card[data-category='ready_meals'],
-  .catalog-category-card[data-category='healthy'],
-  .catalog-category-card[data-category='snacks'],
-  .catalog-category-card[data-category='sweets'] {
+  .catalog-category-card {
     --artwork-side-inset: 10px;
     --artwork-bottom-inset: 8px;
     --artwork-top-inset: 12px;
@@ -95,11 +238,7 @@
 }
 
 @media (min-width: 600px) {
-  .catalog-category-card[data-category='tea_coffee'],
-  .catalog-category-card[data-category='ready_meals'],
-  .catalog-category-card[data-category='healthy'],
-  .catalog-category-card[data-category='snacks'],
-  .catalog-category-card[data-category='sweets'] {
+  .catalog-category-card {
     --artwork-side-inset: 18px;
     --artwork-bottom-inset: 14px;
     --artwork-top-inset: 18px;
