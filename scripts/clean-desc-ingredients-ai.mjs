@@ -147,6 +147,55 @@ async function callDeepSeekWithRetry(batch, maxRetries = 3) {
   }
 }
 
+function needsAiCleaning(desc, ing) {
+  const d = (desc || '').trim();
+  const i = (ing || '').trim();
+  if (!d && !i) return false;
+
+  const dLower = d.toLowerCase();
+  const iLower = i.toLowerCase();
+
+  // 1. Description contains composition or manufacturer/storage/phone clutter
+  const descHasComposition = /(?:состав[:\s]|құрамы|құрамында|ингредиент|компонент)/i.test(d);
+  const descHasClutter = /(?:изготовитель|производитель|өндіруші|хранить при|гост|ту\s+\d|горячая линия|адрес производства|телефон)/i.test(d);
+
+  // 2. Ingredients contains marketing / recipe / usage instructions / manufacturer / storage / clutter
+  const ingHasMarketing = /(?:идеально|прекрасно|отлично|попробуйте|уникальн|подарит|порадует|рекомендуется|наш продукт|способ применения|изготовитель|производитель|өндіруші|хранить при|срок годности|горячая линия|адрес производства|телефон)/i.test(i);
+
+  // 2b. Ingredients has embedded composition header (marketing/desc comes before "состав:")
+  const ingHasEmbeddedComposition = /(?:.+)\s+(?:состав|құрамы|ингредиенты)[:\s]/i.test(i);
+
+  // 3. Overlap check (description and ingredients repeating each other)
+  let overlaps = false;
+  if (d && i) {
+    if (dLower === iLower) {
+      overlaps = true;
+    } else {
+      const cleanD = dLower.replace(/[^a-яa-z0-9]/gi, ' ').replace(/\s+/g, ' ').trim();
+      const cleanI = iLower.replace(/[^a-яa-z0-9]/gi, ' ').replace(/\s+/g, ' ').trim();
+
+      const iWords = cleanI.split(' ').filter(w => w.length > 3).slice(0, 3);
+      if (iWords.length >= 2 && cleanD.includes(iWords.join(' '))) {
+        overlaps = true;
+      }
+      const dWords = cleanD.split(' ').filter(w => w.length > 3).slice(0, 3);
+      if (dWords.length >= 2 && cleanI.includes(dWords.join(' '))) {
+        overlaps = true;
+      }
+    }
+  }
+
+  // 4. Description has composition while ingredients is missing
+  const descOnlyWithSostav = Boolean(d && !i && descHasComposition);
+
+  return descHasComposition || descHasClutter || ingHasMarketing || ingHasEmbeddedComposition || overlaps || descOnlyWithSostav;
+}
+
+function saveCheckpointAtomic(cpPath, data) {
+  const payloadStr = JSON.stringify(data, null, 2);
+  fs.writeFileSync(cpPath, payloadStr, 'utf8');
+}
+
 async function main() {
   const isApply = process.argv.includes('--apply');
   const isDryRun = !isApply;
@@ -161,6 +210,7 @@ async function main() {
 
   let totalScanned = 0;
   let totalProcessed = 0;
+  let totalCleanVerified = 0;
   let totalChanged = 0;
   let totalErrors = 0;
   const samples = [];
@@ -175,9 +225,10 @@ async function main() {
         lastId = cp.lastId;
         totalScanned = cp.totalScanned || 0;
         totalProcessed = cp.totalProcessed || 0;
+        totalCleanVerified = cp.totalCleanVerified || 0;
         totalChanged = cp.totalChanged || 0;
         totalErrors = cp.totalErrors || 0;
-        console.log(`Auto-resuming from checkpoint lastId: ${lastId} (processed: ${totalProcessed}, changed: ${totalChanged})`);
+        console.log(`Auto-resuming from checkpoint lastId: ${lastId} (processed: ${totalProcessed}, clean: ${totalCleanVerified}, changed: ${totalChanged})`);
       }
     } catch {}
   }
@@ -196,7 +247,7 @@ async function main() {
 
   const sessionProcessedStart = totalProcessed;
 
-  const FETCH_PAGE_SIZE = 100;
+  const FETCH_PAGE_SIZE = 40;
   const AI_BATCH_SIZE = 8;
 
   while (true) {
@@ -205,7 +256,7 @@ async function main() {
     const fetchLimit = maxLimit > 0 ? Math.min(FETCH_PAGE_SIZE, maxLimit - sessionProcessed) : FETCH_PAGE_SIZE;
     if (fetchLimit <= 0) break;
 
-    // Fetch active candidates
+    // Fetch active products using indexed primary key pagination
     const { data, error } = await sb
       .from('global_products')
       .select('id, ean, name, description, ingredients_raw, manufacturer, specs_json')
@@ -225,11 +276,13 @@ async function main() {
       break;
     }
 
-    lastId = data[data.length - 1].id;
+    const pageLastId = data[data.length - 1].id;
     totalScanned += data.length;
 
-    // Filter candidates that need separation / inspection
+    // Filter candidates that need separation / inspection vs already clean
     const candidates = [];
+    const cleanToMark = [];
+
     for (const item of data) {
       const specs = item.specs_json || {};
       if (specs.desc_ing_normalized === true) continue;
@@ -237,20 +290,73 @@ async function main() {
       const d = item.description?.trim();
       const i = item.ingredients_raw?.trim();
 
-      // Candidate if:
-      // 1) Both fields exist
-      // 2) Or description contains composition ("состав" / "құрамы") while ingredients_raw is null
-      // 3) Or ingredients_raw contains marketing phrases
-      const bothExist = Boolean(d && i);
-      const descHasSostav = Boolean(d && /(?:состав|құрамы|құрамында|ингредиенты)/i.test(d));
-      const ingHasMarketing = Boolean(i && /(?:идеально|прекрасн|отличн|попробуйте|уникальн|натуральн[а-я\s]+продукт|традиционн|мы сделали|способ применения|изготовитель|произведено)/i.test(i));
+      if (!d && !i) {
+        cleanToMark.push(item);
+        continue;
+      }
 
-      if (bothExist || descHasSostav || ingHasMarketing) {
+      if (needsAiCleaning(d, i)) {
         candidates.push(item);
+      } else {
+        cleanToMark.push(item);
       }
     }
 
+    // Mark verified clean items directly in Supabase (0 tokens spent!)
+    if (isApply && cleanToMark.length > 0) {
+      const CONCURRENCY = 4;
+      for (let c = 0; c < cleanToMark.length; c += CONCURRENCY) {
+        const subChunk = cleanToMark.slice(c, c + CONCURRENCY);
+        await Promise.all(subChunk.map(async (item) => {
+          const rawIng = item.ingredients_raw?.trim() || null;
+          let cleanIng = rawIng;
+          if (cleanIng) {
+            cleanIng = cleanIng.replace(/^(?:состав(?:\s+продукта)?|құрамы|құрамында|ингредиенты)\s*[:—–-]?\s*/i, '').trim();
+            if (!cleanIng) cleanIng = null;
+          }
+          const ingChanged = cleanIng !== rawIng;
+
+          const newSpecs = {
+            ...(item.specs_json || {}),
+            desc_ing_normalized: true,
+            desc_ing_clean_verified: true,
+            desc_ing_normalized_at: new Date().toISOString()
+          };
+          const updatePayload = { specs_json: newSpecs };
+          if (ingChanged) {
+            updatePayload.ingredients_raw = cleanIng;
+            totalChanged++;
+          }
+          const { error: updErr } = await sb
+            .from('global_products')
+            .update(updatePayload)
+            .eq('id', item.id);
+          if (updErr) {
+            console.error(`DB Update error on clean item ${item.id}:`, updErr.message);
+            totalErrors++;
+          } else {
+            totalCleanVerified++;
+          }
+        }));
+        await new Promise(r => setTimeout(r, 100));
+      }
+    }
+
+    console.log(`[Batch] Scanned: ${totalScanned} | Clean marked: ${cleanToMark.length} (total clean: ${totalCleanVerified}) | AI to process: ${candidates.length}`);
+
     if (candidates.length === 0) {
+      lastId = pageLastId;
+      if (isApply) {
+        saveCheckpointAtomic(checkpointPath, {
+          lastId,
+          totalScanned,
+          totalProcessed,
+          totalCleanVerified,
+          totalChanged,
+          totalErrors,
+          updatedAt: new Date().toISOString()
+        });
+      }
       continue;
     }
 
@@ -266,17 +372,18 @@ async function main() {
       } catch (aiErr) {
         if (aiErr.code === 'BALANCE_DEPLETED' || aiErr.message?.includes('BALANCE_DEPLETED')) {
           console.error(`\n🛑 [STOP] DeepSeek API balance exhausted. Checkpoint preserved at lastId: ${lastId}.`);
-          console.error(`Scanned: ${totalScanned} | Evaluated: ${totalProcessed} | Normalized: ${totalChanged}`);
+          console.error(`Scanned: ${totalScanned} | Evaluated: ${totalProcessed} | Clean: ${totalCleanVerified} | Normalized: ${totalChanged}`);
           console.error(`To resume after topping up: node scripts/clean-desc-ingredients-ai.mjs --apply\n`);
           if (isApply) {
-            fs.writeFileSync(checkpointPath, JSON.stringify({
+            saveCheckpointAtomic(checkpointPath, {
               lastId,
               totalScanned,
               totalProcessed,
+              totalCleanVerified,
               totalChanged,
               totalErrors,
               updatedAt: new Date().toISOString()
-            }, null, 2));
+            });
           }
           process.exit(0);
         }
@@ -298,7 +405,16 @@ async function main() {
         if (!cleaned) continue;
 
         const newDesc = cleaned.description ? cleaned.description.trim() : null;
-        const newIng = cleaned.ingredients_raw ? cleaned.ingredients_raw.trim() : null;
+        let newIng = cleaned.ingredients_raw ? cleaned.ingredients_raw.trim() : null;
+        // Safety guard: if original had real food ingredients but AI returned null/empty, retain original
+        if (!newIng && original.ingredients_raw) {
+          const origIngLower = original.ingredients_raw.toLowerCase();
+          const hasFoodTokens = /(?:мука|сахар|соль|масло|вода|молоко|е\d{3}|e\d{3}|экстракт|консервант|ароматизатор|какао|дрожжи)/i.test(origIngLower);
+          if (hasFoodTokens) {
+            console.warn(`[SAFETY] AI returned empty ingredients for ${original.ean}, but original had food tokens. Retaining original.`);
+            newIng = original.ingredients_raw.replace(/^(?:состав(?:\s+продукта)?|құрамы|құрамында|ингредиенты)\s*[:—–-]?\s*/i, '').trim();
+          }
+        }
         const newMfr = cleaned.manufacturer ? cleaned.manufacturer.trim() : null;
 
         const descChanged = newDesc !== (original.description || null);
@@ -387,25 +503,25 @@ async function main() {
         }
       }
 
-      // Update checkpoint
-      if (isApply) {
-        const payloadStr = JSON.stringify({
-          lastId,
-          totalScanned,
-          totalProcessed,
-          totalChanged,
-          totalErrors,
-          updatedAt: new Date().toISOString()
-        }, null, 2);
-        console.log(`Writing to: "${checkpointPath}"`);
-        fs.writeFileSync(checkpointPath, payloadStr, 'utf8');
-        const readBack = fs.readFileSync(checkpointPath, 'utf8');
-        console.log(`Readback verify (len=${readBack.length}):`, readBack.slice(0, 60));
-        console.log(`💾 [Checkpoint saved] lastId: ${lastId} | Processed: ${totalProcessed} | Changed: ${totalChanged}`);
-      }
-
-      console.log(`[Progress] Scanned: ${totalScanned} | Evaluated: ${totalProcessed} | Normalized: ${totalChanged} | Errors: ${totalErrors}`);
+      // Pacing between AI calls to stay well within DeepSeek rate limits
+      await new Promise(r => setTimeout(r, 500));
     }
+
+    lastId = pageLastId;
+    if (isApply) {
+      saveCheckpointAtomic(checkpointPath, {
+        lastId,
+        totalScanned,
+        totalProcessed,
+        totalCleanVerified,
+        totalChanged,
+        totalErrors,
+        updatedAt: new Date().toISOString()
+      });
+      console.log(`💾 [Checkpoint saved] lastId: ${lastId} | AI: ${totalProcessed} | Clean: ${totalCleanVerified} | Changed: ${totalChanged}`);
+    }
+
+    console.log(`[Progress] Scanned: ${totalScanned} | AI Evaluated: ${totalProcessed} | Clean Verified: ${totalCleanVerified} | Normalized: ${totalChanged} | Errors: ${totalErrors}`);
 
     if (maxLimit > 0 && (totalProcessed - sessionProcessedStart) >= maxLimit) {
       break;
@@ -418,6 +534,7 @@ async function main() {
   console.log(`📊 PHASE 2 SUMMARY (${isDryRun ? 'DRY RUN' : 'APPLIED'})`);
   console.log(`======================================================`);
   console.log(`Total active scanned:     ${totalScanned}`);
+  console.log(`Clean verified (0 tokens):${totalCleanVerified}`);
   console.log(`AI evaluated candidates:  ${totalProcessed}`);
   console.log(`Normalized & improved:    ${totalChanged} (${Math.round((totalChanged / (totalProcessed || 1)) * 100)}%)`);
   console.log(`DB/AI Errors:             ${totalErrors}`);
