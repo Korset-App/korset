@@ -78,6 +78,29 @@ function AppInner() {
     }
   }, [user, pathname, navigate])
 
+  // Warm the scanner modules in the background while the shopper browses. iOS
+  // WebKit only unlocks camera playback while the tap activation is fresh, so the
+  // scan screen must not sit on module downloads before it calls getUserMedia().
+  useEffect(() => {
+    let cancelled = false
+    const warm = () => {
+      if (cancelled) return
+      import('./utils/scannerEngine.js').then((m) => m.prefetchScannerEngine()).catch(() => {})
+    }
+    if (typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(warm, { timeout: 5000 })
+      return () => {
+        cancelled = true
+        window.cancelIdleCallback?.(id)
+      }
+    }
+    const id = setTimeout(warm, 2000)
+    return () => {
+      cancelled = true
+      clearTimeout(id)
+    }
+  }, [])
+
   useEffect(() => {
     if ('serviceWorker' in navigator) {
       const handleMessage = (event) => {

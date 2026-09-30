@@ -542,6 +542,28 @@
   white-space: pre-line;
 }
 
+/* Camera never went live on its own — WebKit needs a real tap to grant playback. */
+.scan-status-overlay--gate {
+  background: var(--bg-app);
+}
+
+.scan-status-overlay--gate .material-symbols-outlined {
+  font-size: 52px;
+  color: var(--primary);
+}
+
+.scan-status-overlay--gate strong {
+  color: var(--text);
+  font-size: 17px;
+}
+
+.scan-status-overlay--gate button.primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--text-inverse, #fff);
+  box-shadow: 0 16px 36px color-mix(in srgb, var(--primary) 22%, transparent);
+}
+
 .scan-status-overlay--error .material-symbols-outlined {
   font-size: 52px;
   color: var(--red);

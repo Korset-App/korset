@@ -12,7 +12,38 @@ import { CompareIcon } from '../components/icons/CompareIcon.jsx'
 import { IconGallery } from '../components/icons/IconGallery.jsx'
 import ProductSubmissionSheet from '../components/product/ProductSubmissionSheet.jsx'
 import { isValidBarcodeChecksum } from '../utils/barcodeChecksum.js'
+import {
+  buildConstraintLadder,
+  isPermissionError,
+  loadScannerEngine,
+} from '../utils/scannerEngine.js'
 import './ScanScreen.css'
+
+// Every iOS browser runs WebKit, so engine behaviour is shared across Safari,
+// Chrome, Yandex and the in-app webviews — they are all treated the same.
+function isIOSWebKit() {
+  if (typeof navigator === 'undefined') return false
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  )
+}
+
+// A camera that grants permission but never renders a frame is the failure the
+// watchdog is here to catch: html5-qrcode resolves `start()` before the video
+// actually plays, so "started" is not the same as "live".
+const VIDEO_LIVE_TIMEOUT_MS = 2000
+const CAMERA_WATCHDOG_MS = 4000
+const RESTART_THROTTLE_MS = 3000
+
+// getUserMedia succeeded but the surface never produced a frame. On iOS that
+// means WebKit refused programmatic playback and only a real tap will fix it.
+class CameraSurfaceError extends Error {
+  constructor() {
+    super('camera surface never started playing')
+    this.name = 'CameraSurfaceError'
+  }
+}
 
 // Success scan sound via Web Audio API, without asset files.
 let globalAudioCtx = null
@@ -327,10 +358,8 @@ export default function ScanScreen() {
   const { isOnline } = useOffline()
   const storeSlug = currentStore?.slug || null
 
-  // Detect iOS once at component level — used for error message and constraint hints
-  const isIOS =
-    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  // Detect iOS once at component level — used for the error copy and hints
+  const isIOS = isIOSWebKit()
 
   const [status, setStatus] = useState('starting')
   const [torchOn, setTorchOn] = useState(false)
@@ -445,6 +474,12 @@ export default function ScanScreen() {
   const scannerRef = useRef(null)
   const busyRef = useRef(false)
   const trackRef = useRef(null)
+  const streamRef = useRef(null)
+  const camerasRef = useRef([])
+  const camIdxRef = useRef(0)
+  const statusRef = useRef('starting')
+  const lastRestartRef = useRef(0)
+  const handleCameraInterruptedRef = useRef(null)
   const torchTimer = useRef(null)
   const nfTimer = useRef(null)
   const focusTimer = useRef(null)
@@ -454,16 +489,29 @@ export default function ScanScreen() {
   const ID = 'korset-scan-view'
 
   const stopScanner = useCallback(async () => {
+    const scanner = scannerRef.current
+    scannerRef.current = null
     try {
-      if (scannerRef.current) {
-        if (scannerRef.current.isScanning) {
-          await scannerRef.current.stop()
+      if (scanner) {
+        if (scanner.isScanning) {
+          await scanner.stop()
         }
-        scannerRef.current.clear()
-        scannerRef.current = null
+        scanner.clear()
       }
     } catch {
       /* noop */
+    }
+    // html5-qrcode only releases tracks when stop() succeeds. A half-opened
+    // stream — permission granted but playback never started — keeps the camera
+    // occupied on iOS and makes every later attempt fail.
+    const stream = streamRef.current
+    streamRef.current = null
+    if (stream) {
+      try {
+        stream.getTracks().forEach((track) => track.stop())
+      } catch {
+        /* noop */
+      }
     }
     const container = document.getElementById(ID)
     if (container) {
@@ -481,41 +529,30 @@ export default function ScanScreen() {
       await stopScanner()
       if (!mountedRef.current || startSeq !== startSeqRef.current) return
 
+      // If the camera has not gone live by the deadline, surface a tap-to-start
+      // prompt instead of leaving the shopper staring at a grey rectangle. A real
+      // tap re-arms the user activation WebKit needs for programmatic playback.
+      const watchdog = setTimeout(() => {
+        if (!mountedRef.current || startSeq !== startSeqRef.current) return
+        setStatus((prev) => (prev === 'starting' ? 'blocked' : prev))
+      }, CAMERA_WATCHDOG_MS)
+
       try {
-        const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import('html5-qrcode')
+        // Decoder loading is bounded: the WASM engine is a bonus, never a blocker.
+        const { Html5Qrcode, Html5QrcodeSupportedFormats, zbarReady } = await loadScannerEngine()
         if (!mountedRef.current || startSeq !== startSeqRef.current) return
 
-        // Detect iOS WebKit: all iOS browsers share WebKit so need special handling
-        const isIOS =
-          /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+        // WASM ZBar is roughly 3x faster than ZXing on 1D product barcodes, so it
+        // gets the higher frame rate; the pure-JS fallback needs a slower cadence.
+        const targetFps = zbarReady ? 20 : 10
 
-        // Lazily inject WASM ZBar polyfill for browsers without native BarcodeDetector
-        // (Firefox Android, iOS Safari, desktop Firefox). Chrome Android already has it natively.
-        // html5-qrcode automatically picks up window.BarcodeDetector if present.
-        if (typeof window.BarcodeDetector === 'undefined') {
-          try {
-            const { BarcodeDetectorPolyfill } = await import('@undecaf/barcode-detector-polyfill')
-            window['BarcodeDetector'] = BarcodeDetectorPolyfill
-          } catch {
-            /* polyfill unavailable — html5-qrcode falls back to ZXing-JS */
-          }
-        }
-        if (!mountedRef.current || startSeq !== startSeqRef.current) return
-
-        // Re-check after polyfill injection
-        const hasNativeBarcodeDetector = typeof window.BarcodeDetector !== 'undefined'
-
-        // With polyfill loaded, all browsers can use BarcodeDetector — use full fps
-        // Without polyfill (edge case), stay on slow ZXing path
-        const targetFps = hasNativeBarcodeDetector ? 20 : 10
-
-        // Multi-frame confirmation window: widen only if truly on ZXing fallback
-        const confirmWindowMs = hasNativeBarcodeDetector ? 1200 : 2800
+        // Multi-frame confirmation window: widen only on the slower decoder path
+        const confirmWindowMs = zbarReady ? 1200 : 2800
 
         const createScanner = () =>
           new Html5Qrcode(ID, {
             verbose: false,
+            useBarCodeDetectorIfSupported: zbarReady,
             formatsToSupport: [
               Html5QrcodeSupportedFormats.EAN_13,
               Html5QrcodeSupportedFormats.EAN_8,
@@ -525,15 +562,16 @@ export default function ScanScreen() {
             ],
           })
 
-        const scanConfig = {
+        const buildScanConfig = (videoConstraints) => ({
           fps: targetFps,
+          videoConstraints,
           qrbox: (viewfinderWidth, viewfinderHeight) => {
             const width = Math.min(
               viewfinderWidth - 16,
               Math.max(240, Math.floor(viewfinderWidth * 0.9))
             )
-            // Wider height for ZXing fallback — EAN-13 needs more vertical room
-            const heightRatio = hasNativeBarcodeDetector ? 0.6 : 0.72
+            // Wider height for the ZXing fallback — EAN-13 needs more vertical room
+            const heightRatio = zbarReady ? 0.6 : 0.72
             const height = Math.min(
               viewfinderHeight - 16,
               Math.max(200, Math.floor(viewfinderHeight * heightRatio))
@@ -544,7 +582,7 @@ export default function ScanScreen() {
             }
           },
           disableFlip: false,
-        }
+        })
 
         let pendingCandidate = null
         let candidateHits = 0
@@ -655,116 +693,87 @@ export default function ScanScreen() {
           }
         }
 
-        // iOS Safari requires `playsinline` on the <video> element — html5-qrcode doesn't
-        // guarantee this attribute. We patch it as soon as the element appears in the DOM.
-        let videoObserver = null
-        if (isIOS) {
-          const container = document.getElementById(ID)
-          if (container) {
-            const patchVideo = (el) => {
-              el.setAttribute('playsinline', '')
-              el.setAttribute('muted', '')
-              el.muted = true
-              el.setAttribute('autoplay', '')
-            }
-            container.querySelectorAll('video').forEach(patchVideo)
-            if (typeof window !== 'undefined' && window.MutationObserver) {
-              videoObserver = new window.MutationObserver((mutations) => {
-                for (const m of mutations) {
-                  m.addedNodes.forEach((node) => {
-                    if (node.nodeName === 'VIDEO') patchVideo(node)
-                    if (node.querySelectorAll) node.querySelectorAll('video').forEach(patchVideo)
-                  })
-                }
-              })
-              videoObserver.observe(container, { childList: true, subtree: true })
-            }
-          }
-        }
-
-        // Camera constraint attempt chain.
-        // iOS: use `ideal` (not exact) facingMode to avoid OverconstrainedError.
-        let cameraAttempts = []
-        if (idx > 0 && cameraList[idx]?.id) {
-          cameraAttempts = [
-            { deviceId: { exact: cameraList[idx].id } },
-            { deviceId: cameraList[idx].id },
-            { facingMode: { ideal: 'environment' } },
-            { facingMode: 'environment' },
-            true,
-          ]
-        } else if (isIOS) {
-          cameraAttempts = [
-            { facingMode: { ideal: 'environment' } },
-            { facingMode: 'environment' },
-            true,
-          ]
-        } else {
-          cameraAttempts = [
-            { facingMode: 'environment' },
-            cameraList[0]?.id ? { deviceId: cameraList[0].id } : null,
-            { facingMode: { ideal: 'environment' } },
-            true,
-          ].filter(Boolean)
-        }
-
-        let lastStartError = null
-        for (const config of cameraAttempts) {
-          if (!mountedRef.current || startSeq !== startSeqRef.current) {
-            videoObserver?.disconnect()
-            return
-          }
+        // WebKit will not render an inline camera stream unless the element carries
+        // `playsinline`/`muted`/`autoplay`. html5-qrcode sets the first two only.
+        const patchVideoElement = (el) => {
           try {
-            if (scannerRef.current) {
-              try {
-                if (scannerRef.current.isScanning) {
-                  await scannerRef.current.stop()
-                }
-              } catch {
-                /* noop */
-              }
-              try {
-                scannerRef.current.clear()
-              } catch {
-                /* noop */
-              }
-              scannerRef.current = null
-            }
-            const container = document.getElementById(ID)
-            if (container) container.innerHTML = ''
-
-            const scanner = createScanner()
-            scannerRef.current = scanner
-            await scanner.start(config, scanConfig, onScanSuccess, () => {})
-            if (!mountedRef.current || startSeq !== startSeqRef.current) {
-              videoObserver?.disconnect()
-              try {
-                if (scanner.isScanning) await scanner.stop()
-                scanner.clear()
-              } catch {
-                /* noop */
-              }
-              return
-            }
-            lastStartError = null
-            break
-          } catch (err) {
-            lastStartError = err
-          }
-        }
-
-        videoObserver?.disconnect()
-        if (lastStartError) throw lastStartError
-
-        if (!mountedRef.current) {
-          try {
-            if (scannerRef.current?.isScanning) await scannerRef.current.stop()
-            scannerRef.current?.clear()
+            el.setAttribute('playsinline', '')
+            el.setAttribute('webkit-playsinline', '')
+            el.setAttribute('muted', '')
+            el.muted = true
+            el.setAttribute('autoplay', '')
           } catch {
             /* noop */
           }
-          return
         }
+
+        // html5-qrcode resolves start() as soon as the surface is attached — before
+        // the video actually plays. "Started" is not "live", so verify the frames.
+        const waitForVideoLive = (timeoutMs) =>
+          new Promise((resolve) => {
+            const deadline = Date.now() + timeoutMs
+            const check = () => {
+              const video = document.querySelector('#' + ID + ' video')
+              if (video) {
+                patchVideoElement(video)
+                if (video.readyState >= 2 && video.videoWidth > 0 && !video.paused) {
+                  resolve(true)
+                  return
+                }
+                // WebKit regularly swallows the first play() call; retrying is free.
+                try {
+                  const played = video.play()
+                  if (played && typeof played.catch === 'function') played.catch(() => {})
+                } catch {
+                  /* noop */
+                }
+              }
+              if (Date.now() >= deadline) {
+                resolve(false)
+                return
+              }
+              setTimeout(check, 120)
+            }
+            check()
+          })
+
+        const ladder = buildConstraintLadder(idx > 0 ? cameraList[idx]?.id : null)
+
+        let lastStartError = null
+        let live = false
+        for (const videoConstraints of ladder) {
+          if (!mountedRef.current || startSeq !== startSeqRef.current) return
+          try {
+            await stopScanner()
+            const scanner = createScanner()
+            scannerRef.current = scanner
+            // `cameraIdOrConfig` is ignored once `videoConstraints` is supplied,
+            // but html5-qrcode still requires a truthy value.
+            await scanner.start(
+              { facingMode: 'environment' },
+              buildScanConfig(videoConstraints),
+              onScanSuccess,
+              () => {}
+            )
+            if (!mountedRef.current || startSeq !== startSeqRef.current) return
+            live = await waitForVideoLive(VIDEO_LIVE_TIMEOUT_MS)
+            if (live) {
+              lastStartError = null
+              break
+            }
+            // getUserMedia succeeded but nothing renders: that is a playback
+            // policy block, not a constraint problem, so stop burning attempts.
+            lastStartError = new CameraSurfaceError()
+            break
+          } catch (err) {
+            lastStartError = err
+            if (isPermissionError(err?.message || err)) break
+          }
+        }
+
+        if (lastStartError) throw lastStartError
+
+        if (!mountedRef.current) return
         setStatus('ready')
         try {
           const settings = scannerRef.current?.getRunningTrackSettings()
@@ -782,12 +791,20 @@ export default function ScanScreen() {
         try {
           const videoEl = document.querySelector('#' + ID + ' video')
           if (videoEl?.srcObject) {
+            streamRef.current = videoEl.srcObject
+            patchVideoElement(videoEl)
             const track = videoEl.srcObject.getVideoTracks()[0]
             if (track) {
               trackRef.current = track
-              // Apply continuous autofocus after a short settling delay
+              // iOS tears the capture session down on interruption (call, another
+              // app taking the camera, backgrounding) and ends the track.
+              track.addEventListener('ended', () => handleCameraInterruptedRef.current?.())
+              // Continuous autofocus, but only where the platform exposes it —
+              // iOS Safari has no focusMode and rejects the constraint.
               setTimeout(async () => {
                 try {
+                  const caps = track.getCapabilities?.() || {}
+                  if (!caps.focusMode) return
                   await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] })
                 } catch {
                   /* noop — not all devices/browsers support this */
@@ -817,12 +834,15 @@ export default function ScanScreen() {
       } catch (e) {
         busyRef.current = false
         if (!mountedRef.current) return
-        const msg = String(e?.message || e)
-        if (/permission|not allowed|denied/i.test(msg)) {
+        if (e?.name === 'CameraSurfaceError') {
+          setStatus('blocked')
+        } else if (isPermissionError(e?.message || e)) {
           setStatus('error_permission')
         } else {
           setStatus('error')
         }
+      } finally {
+        clearTimeout(watchdog)
       }
     },
     [navigate, rememberScan, stopScanner]
@@ -830,6 +850,42 @@ export default function ScanScreen() {
   useEffect(() => {
     startScannerRef.current = startScanner
   }, [startScanner])
+
+  useEffect(() => {
+    statusRef.current = status
+  }, [status])
+
+  useEffect(() => {
+    camerasRef.current = cameras
+    camIdxRef.current = camIdx
+  }, [cameras, camIdx])
+
+  // iOS ends the capture track whenever the session is interrupted — an incoming
+  // call, another app grabbing the camera, or Safari being backgrounded. Recovery
+  // is throttled so a device that keeps dropping the camera cannot loop forever;
+  // the watchdog turns a restart that never goes live into a tap-to-start prompt.
+  useEffect(() => {
+    handleCameraInterruptedRef.current = () => {
+      if (!mountedRef.current) return
+      const now = Date.now()
+      if (now - lastRestartRef.current < RESTART_THROTTLE_MS) return
+      lastRestartRef.current = now
+      busyRef.current = false
+      startScannerRef.current?.(camerasRef.current, camIdxRef.current)
+    }
+  }, [])
+
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.hidden || !mountedRef.current) return
+      const track = trackRef.current
+      if (statusRef.current === 'ready' && (!track || track.readyState !== 'live')) {
+        handleCameraInterruptedRef.current?.()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
+  }, [])
 
   useEffect(() => {
     mountedRef.current = true
@@ -896,6 +952,10 @@ export default function ScanScreen() {
       clearTimeout(focusTimer.current)
       focusTimer.current = setTimeout(() => setFocusPt(null), 1000)
       try {
+        // iOS Safari exposes neither focusMode nor pointsOfInterest; asking for
+        // them there only throws OverconstrainedError.
+        const caps = track.getCapabilities?.() || {}
+        if (!caps.focusMode) return
         await track.applyConstraints({
           advanced: [{ focusMode: 'manual', pointsOfInterest: [{ x, y }] }],
         })
@@ -1202,6 +1262,22 @@ export default function ScanScreen() {
           <div className="scan-status-overlay">
             <div className="scan-spinner" />
             <p>{t('scan.searching')}</p>
+          </div>
+        )}
+
+        {status === 'blocked' && !searching && (
+          <div className="scan-status-overlay scan-status-overlay--gate">
+            <span className="material-symbols-outlined">photo_camera</span>
+            <strong>{t('scan.cameraTapTitle')}</strong>
+            <p>{isIOS ? t('scan.cameraTapBodyIOS') : t('scan.cameraTapBody')}</p>
+            <div className="scan-status-overlay__actions">
+              <button type="button" className="primary" onClick={retryCamera}>
+                {t('scan.cameraEnable')}
+              </button>
+              <button type="button" className="ghost" onClick={openGallery}>
+                {t('scan.galleryBtn')}
+              </button>
+            </div>
           </div>
         )}
 
