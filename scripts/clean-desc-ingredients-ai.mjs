@@ -94,6 +94,11 @@ async function callDeepSeekWithRetry(batch, maxRetries = 3) {
 
       if (!res.ok) {
         const errText = await res.text();
+        if (res.status === 402 || /insufficient balance/i.test(errText)) {
+          const err = new Error(`BALANCE_DEPLETED: ${errText.slice(0, 150)}`);
+          err.code = 'BALANCE_DEPLETED';
+          throw err;
+        }
         throw new Error(`DeepSeek HTTP ${res.status}: ${errText.slice(0, 150)}`);
       }
 
@@ -148,19 +153,31 @@ async function main() {
   const limitArg = process.argv.find(a => a.startsWith('--limit='));
   const maxLimit = limitArg ? parseInt(limitArg.split('=')[1], 10) : 0;
   const startAfterArg = process.argv.find(a => a.startsWith('--start-after='));
+  const fromStartArg = process.argv.includes('--from-start');
 
-  const checkpointPath = path.join(__dirname, '..', 'scratch', 'desc-ing-checkpoint.json');
+  const checkpointPath = path.join(process.cwd(), 'scratch', 'desc-ing-checkpoint.json');
+  console.log(`Using checkpoint path: ${checkpointPath}`);
   let lastId = '00000000-0000-0000-0000-000000000000';
+
+  let totalScanned = 0;
+  let totalProcessed = 0;
+  let totalChanged = 0;
+  let totalErrors = 0;
+  const samples = [];
 
   if (startAfterArg) {
     lastId = startAfterArg.split('=')[1];
     console.log(`Manual start-after ID: ${lastId}`);
-  } else if (fs.existsSync(checkpointPath) && !limitArg) {
+  } else if (!fromStartArg && fs.existsSync(checkpointPath)) {
     try {
       const cp = JSON.parse(fs.readFileSync(checkpointPath, 'utf8'));
       if (cp.lastId) {
         lastId = cp.lastId;
-        console.log(`Auto-resuming from checkpoint lastId: ${lastId}`);
+        totalScanned = cp.totalScanned || 0;
+        totalProcessed = cp.totalProcessed || 0;
+        totalChanged = cp.totalChanged || 0;
+        totalErrors = cp.totalErrors || 0;
+        console.log(`Auto-resuming from checkpoint lastId: ${lastId} (processed: ${totalProcessed}, changed: ${totalChanged})`);
       }
     } catch {}
   }
@@ -168,7 +185,7 @@ async function main() {
   console.log(`\n======================================================`);
   console.log(`🧠 CATALOG PHASE 2 — DESCRIPTION & INGREDIENTS AI SEPARATION`);
   console.log(`Mode:  ${isDryRun ? '🧪 DRY RUN (no DB writes)' : '🚀 LIVE APPLY (writing to Supabase)'}`);
-  if (maxLimit > 0) console.log(`Limit: Process first ${maxLimit} items only`);
+  if (maxLimit > 0) console.log(`Limit: Process next ${maxLimit} items only`);
   console.log(`Model: DeepSeek V3 (deepseek-chat)`);
   console.log(`======================================================\n`);
 
@@ -177,17 +194,15 @@ async function main() {
   const logPath = path.join(__dirname, '..', 'scratch', `desc-ing-log-${dateStr}.jsonl`);
   const logStream = fs.createWriteStream(logPath, { flags: 'a', encoding: 'utf8' });
 
-  let totalScanned = 0;
-  let totalProcessed = 0;
-  let totalChanged = 0;
-  let totalErrors = 0;
-  const samples = [];
+  const sessionProcessedStart = totalProcessed;
 
-  const FETCH_PAGE_SIZE = 300;
+  const FETCH_PAGE_SIZE = 100;
   const AI_BATCH_SIZE = 8;
 
   while (true) {
-    const fetchLimit = maxLimit > 0 ? Math.min(FETCH_PAGE_SIZE, maxLimit - totalProcessed) : FETCH_PAGE_SIZE;
+    const sessionProcessed = totalProcessed - sessionProcessedStart;
+    if (maxLimit > 0 && sessionProcessed >= maxLimit) break;
+    const fetchLimit = maxLimit > 0 ? Math.min(FETCH_PAGE_SIZE, maxLimit - sessionProcessed) : FETCH_PAGE_SIZE;
     if (fetchLimit <= 0) break;
 
     // Fetch active candidates
@@ -241,7 +256,7 @@ async function main() {
 
     // Process candidates in chunks of AI_BATCH_SIZE
     for (let b = 0; b < candidates.length; b += AI_BATCH_SIZE) {
-      if (maxLimit > 0 && totalProcessed >= maxLimit) break;
+      if (maxLimit > 0 && (totalProcessed - sessionProcessedStart) >= maxLimit) break;
 
       const chunk = candidates.slice(b, b + AI_BATCH_SIZE);
       let aiResults;
@@ -249,6 +264,22 @@ async function main() {
       try {
         aiResults = await callDeepSeekWithRetry(chunk);
       } catch (aiErr) {
+        if (aiErr.code === 'BALANCE_DEPLETED' || aiErr.message?.includes('BALANCE_DEPLETED')) {
+          console.error(`\n🛑 [STOP] DeepSeek API balance exhausted. Checkpoint preserved at lastId: ${lastId}.`);
+          console.error(`Scanned: ${totalScanned} | Evaluated: ${totalProcessed} | Normalized: ${totalChanged}`);
+          console.error(`To resume after topping up: node scripts/clean-desc-ingredients-ai.mjs --apply\n`);
+          if (isApply) {
+            fs.writeFileSync(checkpointPath, JSON.stringify({
+              lastId,
+              totalScanned,
+              totalProcessed,
+              totalChanged,
+              totalErrors,
+              updatedAt: new Date().toISOString()
+            }, null, 2));
+          }
+          process.exit(0);
+        }
         console.error(`Failed AI call for batch starting at ${chunk[0].id}:`, aiErr.message);
         totalErrors += chunk.length;
         continue;
@@ -333,7 +364,7 @@ async function main() {
 
       // Apply batch updates to Supabase
       if (isApply && updatesToApply.length > 0) {
-        const CONCURRENCY = 15;
+        const CONCURRENCY = 4;
         for (let c = 0; c < updatesToApply.length; c += CONCURRENCY) {
           const subChunk = updatesToApply.slice(c, c + CONCURRENCY);
           await Promise.all(subChunk.map(async (item) => {
@@ -352,25 +383,31 @@ async function main() {
               totalErrors++;
             }
           }));
+          await new Promise(r => setTimeout(r, 150));
         }
       }
 
       // Update checkpoint
       if (isApply) {
-        fs.writeFileSync(checkpointPath, JSON.stringify({
+        const payloadStr = JSON.stringify({
           lastId,
           totalScanned,
           totalProcessed,
           totalChanged,
           totalErrors,
           updatedAt: new Date().toISOString()
-        }, null, 2));
+        }, null, 2);
+        console.log(`Writing to: "${checkpointPath}"`);
+        fs.writeFileSync(checkpointPath, payloadStr, 'utf8');
+        const readBack = fs.readFileSync(checkpointPath, 'utf8');
+        console.log(`Readback verify (len=${readBack.length}):`, readBack.slice(0, 60));
+        console.log(`💾 [Checkpoint saved] lastId: ${lastId} | Processed: ${totalProcessed} | Changed: ${totalChanged}`);
       }
 
       console.log(`[Progress] Scanned: ${totalScanned} | Evaluated: ${totalProcessed} | Normalized: ${totalChanged} | Errors: ${totalErrors}`);
     }
 
-    if (maxLimit > 0 && totalProcessed >= maxLimit) {
+    if (maxLimit > 0 && (totalProcessed - sessionProcessedStart) >= maxLimit) {
       break;
     }
   }
