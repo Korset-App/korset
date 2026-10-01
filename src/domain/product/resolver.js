@@ -20,6 +20,8 @@ import {
 } from './normalizers.js'
 import { isUuid, parseRouteProductRef } from './model.js'
 import { canEanAliasResolveBuyerProduct } from './eanAliases.js'
+import { applySyncedRegularFallback } from './syncedConditions.js'
+import { hydrateSyncedConditions } from '../../utils/syncedConditions.js'
 
 import {
   notifyCatalogWarmed,
@@ -268,6 +270,13 @@ async function finalizeResolvedProduct(
   product,
   { ean, foundStatus, storeId, fitResult, logScan: shouldLog }
 ) {
+  if (storeId) {
+    if (typeof navigator === 'undefined' || navigator.onLine) {
+      ;[product] = await hydrateSyncedConditions(storeId, [product])
+    } else {
+      product = applySyncedRegularFallback(product)
+    }
+  }
   if (!shouldLog) return product
 
   // Fire-and-forget: не блокируем навигацию на аналитике
@@ -416,20 +425,25 @@ export async function resolveProductByEan(ean, rawStoreId = null, options = {}) 
 
   const hit = getCachedProduct(normalizedEan, storeId)
   if (hit) {
+    const currentHit =
+      storeId && (typeof navigator === 'undefined' || navigator.onLine)
+        ? (await hydrateSyncedConditions(storeId, [hit]))[0]
+        : applySyncedRegularFallback(hit)
+    setCachedProduct(normalizedEan, storeId, currentHit)
     if (options.logScan) {
-      const fs = hit.source === 'store' ? 'found_store' : 'found_global'
+      const fs = currentHit.source === 'store' ? 'found_store' : 'found_global'
       Promise.allSettled([
-        persistLocalHistory(hit, fs, storeId),
+        persistLocalHistory(currentHit, fs, storeId),
         logScan({
           ean: normalizedEan,
           foundStatus: fs,
-          product: hit,
+          product: currentHit,
           storeId,
           fitResult: options.fitResult,
         }),
       ]).catch(() => {})
     }
-    return hit
+    return currentHit
   }
 
   const inflightKey = `${storeId || 'global'}:${normalizedEan}`

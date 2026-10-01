@@ -3,6 +3,11 @@ import { useLocation } from 'react-router-dom'
 import { supabase } from '../utils/supabase.js'
 import { normalizeNutrition, parseJson } from '../domain/product/model.js'
 import { loadCatalogPages } from '../domain/catalog/catalogPageLoader.js'
+import {
+  applySyncedConditions,
+  applySyncedRegularFallback,
+} from '../domain/product/syncedConditions.js'
+import { hydrateSyncedConditions } from '../utils/syncedConditions.js'
 import { PRIVACY_EVENT } from '../utils/privacySettings.js'
 import {
   getCatalogFromIndexedDB,
@@ -204,7 +209,9 @@ export async function fetchFullProduct(storeId, ean) {
     .eq('global_products.ean', String(ean))
     .maybeSingle()
   if (error || !data) return null
-  return mapRowToProduct(data)
+  const product = mapRowToProduct(data)
+  const [hydrated] = await hydrateSyncedConditions(storeId, [product])
+  return hydrated
 }
 
 export function StoreProvider({ children }) {
@@ -352,7 +359,7 @@ export function StoreProvider({ children }) {
         if (cachedStoreId === storeId && !aborted) {
           const cachedProducts = await getCatalogFromIndexedDB()
           if (Array.isArray(cachedProducts) && cachedProducts.length > 0 && !aborted) {
-            setFullCatalog(cachedProducts)
+            setFullCatalog(cachedProducts.map((product) => applySyncedRegularFallback(product)))
           }
         }
       } catch {
@@ -368,15 +375,23 @@ export function StoreProvider({ children }) {
       let allProducts = []
       try {
         await loadCatalogPages({
-          fetchPage: (cursor, size) =>
-            supabase.rpc('fn_get_store_catalog_page', {
+          fetchPage: async (cursor, size) => {
+            const { data, error } = await supabase.rpc('fn_get_store_catalog_page', {
               p_store_id: storeId,
               p_after_ean: cursor,
               p_limit: size,
-            }),
+            })
+            if (error || !Array.isArray(data)) return { data, error }
+            return {
+              data: await hydrateSyncedConditions(storeId, data.map(mapRpcRowToProduct), {
+                isCancelled: () => aborted,
+              }),
+              error: null,
+            }
+          },
           isCancelled: () => aborted,
           onPage: (page) => {
-            allProducts = allProducts.concat(page.map(mapRpcRowToProduct))
+            allProducts = allProducts.concat(page)
             setFullCatalog(allProducts)
           },
         })
@@ -403,6 +418,38 @@ export function StoreProvider({ children }) {
       aborted = true
     }
   }, [currentStore?.id, isOnline])
+
+  useEffect(() => {
+    if (!fullCatalog?.length) return undefined
+    const now = Date.now()
+    const nextBoundary = fullCatalog.reduce((earliest, product) => {
+      const conditions = product?.syncConditions
+      if (!conditions) return earliest
+      const boundaries = [conditions.valid_from, conditions.valid_until]
+      const appliedAt = Date.parse(conditions.applied_at)
+      if (Number.isFinite(appliedAt)) boundaries.push(appliedAt + 30 * 60 * 1000)
+      for (const boundary of boundaries) {
+        const time = typeof boundary === 'number' ? boundary : Date.parse(boundary)
+        if (time > now && time < earliest) earliest = time
+      }
+      return earliest
+    }, Infinity)
+    if (!Number.isFinite(nextBoundary)) return undefined
+    const timer = window.setTimeout(
+      () => {
+        setFullCatalog(
+          (current) =>
+            current?.map((product) =>
+              product.conditionsUnavailable
+                ? applySyncedRegularFallback(product)
+                : applySyncedConditions(product)
+            ) ?? current
+        )
+      },
+      Math.max(1, Math.min(nextBoundary - now + 1, 2147483647))
+    )
+    return () => window.clearTimeout(timer)
+  }, [fullCatalog])
 
   const catalogProducts = useMemo(() => fullCatalog || [], [fullCatalog])
 

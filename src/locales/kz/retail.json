@@ -1,6 +1,7 @@
 {
-  "retail.nav.dashboard": "Дашборд",
-  "retail.nav.products": "Тауарлар",
+  "retail.nav.dashboard": "Шолу",
+  "retail.nav.products": "Каталог",
+  "retail.nav.integration": "Қосылу",
   "retail.nav.import": "Импорт",
   "retail.nav.settings": "Параметрлер",
   "retail.nav.eanRecovery": "Штрихкодтар",

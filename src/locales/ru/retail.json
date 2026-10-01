@@ -1,6 +1,7 @@
 {
-  "retail.nav.dashboard": "Дашборд",
-  "retail.nav.products": "Товары",
+  "retail.nav.dashboard": "Обзор",
+  "retail.nav.products": "Каталог",
+  "retail.nav.integration": "Подключение",
   "retail.nav.import": "Импорт",
   "retail.nav.settings": "Настройки",
   "retail.nav.eanRecovery": "Штрихкоды",

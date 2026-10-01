@@ -1,5 +1,6 @@
 import { mapSearchRowToProduct } from './searchMapping.js'
 import { supabase } from '../../utils/supabase.js'
+import { hydrateSyncedConditions } from '../../utils/syncedConditions.js'
 
 export { mapSearchRowToProduct }
 
@@ -15,5 +16,5 @@ export async function searchStoreProductsRPC(storeId, query, { limit = 30, offse
   })
 
   if (error) throw new Error(error.message ?? error)
-  return (data || []).map(mapSearchRowToProduct)
+  return hydrateSyncedConditions(storeId, (data || []).map(mapSearchRowToProduct))
 }

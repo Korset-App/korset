@@ -46,6 +46,7 @@ const RetailDashboardScreen = lazyWithRetry(() => import('./screens/RetailDashbo
 const RetailEntryScreen = lazyWithRetry(() => import('./screens/RetailEntryScreen.jsx'))
 const RetailProductsScreen = lazyWithRetry(() => import('./screens/RetailProductsScreen.jsx'))
 const RetailImportScreen = lazyWithRetry(() => import('./screens/RetailImportScreen.jsx'))
+const RetailIntegrationScreen = lazyWithRetry(() => import('./screens/RetailIntegrationScreen.jsx'))
 const RetailSettingsScreen = lazyWithRetry(() => import('./screens/RetailSettingsScreen.jsx'))
 const EanRecoveryScreen = lazyWithRetry(() => import('./screens/EanRecoveryScreen.jsx'))
 const CompareScreen = lazyWithRetry(() => import('./screens/CompareScreen.jsx'))
@@ -172,6 +173,7 @@ function AppInner() {
               <Route path="dashboard" element={<RetailDashboardScreen />} />
               <Route path="products" element={<RetailProductsScreen />} />
               <Route path="import" element={<RetailImportScreen />} />
+              <Route path="integration" element={<RetailIntegrationScreen />} />
               <Route path="ean-recovery" element={<EanRecoveryScreen />} />
               <Route path="settings" element={<RetailSettingsScreen />} />
               <Route index element={<Navigate to="dashboard" replace />} />

@@ -98,8 +98,15 @@ export function createEmptyProduct(overrides = {}) {
     specs: normalizeSpecs(overrides.specs),
 
     priceKzt: normalizeNumber(overrides.priceKzt),
+    oldPriceKzt: normalizeNumber(overrides.oldPriceKzt ?? overrides.old_price_kzt),
+    discountPercent: normalizeNumber(overrides.discountPercent ?? overrides.discount_percent),
     shelf: overrides.shelf || null,
     stockStatus: overrides.stockStatus || null,
+    syncConditions: overrides.syncConditions ?? overrides.sync_conditions ?? null,
+    conditionsStale: Boolean(overrides.conditionsStale ?? overrides.conditions_stale),
+    conditionsUnavailable: Boolean(
+      overrides.conditionsUnavailable ?? overrides.conditions_unavailable
+    ),
 
     nutriscore: normalizeNutriscore(overrides.nutriscore),
     qualityScore: normalizeNumber(overrides.qualityScore ?? overrides.sourceMeta?.qualityScore),

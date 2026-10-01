@@ -261,7 +261,7 @@ export default function ProductScreen() {
     if (!url) return
     const name = localName || product.name || ''
     const storeName = currentStore?.name || ''
-    const priceText = product.priceKzt ? ` · ${Math.round(product.priceKzt)} ₸` : ''
+    const priceText = product.priceKzt ? ` · ${formatPrice(product.priceKzt)}` : ''
     const text = [storeName, `${name}${priceText}`].filter(Boolean).join(' — ')
 
     if (navigator.share) {

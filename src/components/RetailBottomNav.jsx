@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useI18n } from '../i18n/index.js'
 import { useStore } from '../contexts/StoreContext.jsx'
-import { StorefrontIcon, InventoryIcon, BarcodeScannerIcon, SlidersIcon } from './icons/index.js'
+import { StorefrontIcon, InventoryIcon, SyncIcon, SlidersIcon } from './icons/index.js'
 
 export default function RetailBottomNav() {
   const navigate = useNavigate()
@@ -11,7 +11,8 @@ export default function RetailBottomNav() {
 
   const getActive = () => {
     if (pathname.includes('/products')) return 'products'
-    if (pathname.includes('/ean-recovery')) return 'eanRecovery'
+    if (pathname.includes('/ean-recovery')) return 'products'
+    if (pathname.includes('/integration')) return 'integration'
     if (pathname.includes('/settings')) return 'settings'
     return 'dashboard'
   }
@@ -35,11 +36,10 @@ export default function RetailBottomNav() {
       Icon: InventoryIcon,
     },
     {
-      id: 'eanRecovery',
-      label: t('retail.nav.eanRecovery'),
-      path: `/retail/${storeSlug}/ean-recovery`,
-      Icon: BarcodeScannerIcon,
-      accent: true,
+      id: 'integration',
+      label: t('retail.nav.integration'),
+      path: `/retail/${storeSlug}/integration`,
+      Icon: SyncIcon,
     },
     {
       id: 'settings',

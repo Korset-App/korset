@@ -7,6 +7,7 @@ import { useStore } from '../contexts/StoreContext.jsx'
 import { useOffline } from '../contexts/OfflineContext.jsx'
 import { checkProductFit, formatPrice } from '../utils/fitCheck.js'
 import { supabase } from '../utils/supabase.js'
+import { hydrateSyncedConditions } from '../utils/syncedConditions.js'
 import {
   findProductAlternatives,
   findProductInCatalog,
@@ -108,13 +109,17 @@ export default function AlternativesScreen() {
         p_scenario: normalizeAlternativeScenario(scenario),
         p_limit: RPC_LIMIT,
       })
-      .then(({ data, error }) => {
+      .then(async ({ data, error }) => {
         if (cancelled) return
         if (error) throw error
         const mapped = mapProductAlternativeRpcRows(data || [])
+        const hydrated = await hydrateSyncedConditions(storeId, mapped, {
+          isCancelled: () => cancelled,
+        })
+        if (cancelled) return
         const ranked = rankAlternativesForProfile({
           product,
-          candidates: mapped,
+          candidates: hydrated,
           profile,
           scenario,
           limit: DISPLAY_LIMIT,

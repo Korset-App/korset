@@ -1,4 +1,23 @@
 import { supabase } from './supabase.js'
+import { hydrateSyncedConditions } from './syncedConditions.js'
+import {
+  applySyncedConditions,
+  applySyncedRegularFallback,
+} from '../domain/product/syncedConditions.js'
+
+export function applyRetailSyncedConditions(product, now = Date.now()) {
+  if (!product.syncConditions) return product
+  const source = { ...product, priceKzt: product.price_kzt }
+  const priced = product.conditionsUnavailable
+    ? applySyncedRegularFallback(source)
+    : applySyncedConditions(source, undefined, now)
+  return {
+    ...product,
+    price_kzt: priced.priceKzt,
+    old_price_kzt: priced.oldPriceKzt,
+    discount_percent: priced.discountPercent,
+  }
+}
 
 function cutoffISO(days) {
   const d = new Date()
@@ -181,14 +200,15 @@ export async function getStoreCatalogProducts(storeId, { page = 0, search = '' }
   const from = page * PRODUCTS_PAGE_SIZE
   const to = from + PRODUCTS_PAGE_SIZE - 1
 
-  const buildQuery = (includePromo = true, includeShopping = true) => {
+  const buildQuery = (includePromo = true, includeShopping = true, includeSync = true) => {
     const promoFields = includePromo ? 'old_price_kzt, discount_percent, is_featured,' : ''
     const shoppingField = includeShopping ? 'is_shopping_recommended,' : ''
+    const syncField = includeSync ? 'sync_integration_id,' : ''
     let q = supabase
       .from('store_products')
       .select(
         `
-        id, ean, local_name, price_kzt, ${promoFields} ${shoppingField} stock_status,
+        id, ean, local_name, price_kzt, ${promoFields} ${shoppingField} ${syncField} stock_status,
         shelf_zone, shelf_position, is_active, updated_at,
         global_products!store_products_global_product_id_fkey (
           name, brand, image_url, category, ingredients_raw, ingredients_kz, quantity
@@ -207,8 +227,8 @@ export async function getStoreCatalogProducts(storeId, { page = 0, search = '' }
     return { q, s: null }
   }
 
-  const runQuery = async (includePromo, includeShopping) => {
-    let { q, s } = buildQuery(includePromo, includeShopping)
+  const runQuery = async (includePromo, includeShopping, includeSync) => {
+    let { q, s } = buildQuery(includePromo, includeShopping, includeSync)
     if (s) {
       const { data: gpMatches } = await supabase
         .from('global_products')
@@ -223,18 +243,38 @@ export async function getStoreCatalogProducts(storeId, { page = 0, search = '' }
     return q.range(from, to)
   }
 
-  let result = await runQuery(true, true)
+  let includeSync = true
+  let result = await runQuery(true, true, includeSync)
+  if (result.error && /sync_integration_id/i.test(result.error.message ?? '')) {
+    includeSync = false
+    result = await runQuery(true, true, includeSync)
+  }
   if (
     result.error &&
     (result.error.message?.includes('column') || result.error.code === 'PGRST204')
   ) {
-    result = await runQuery(true, false)
-    if (result.error) result = await runQuery(false, true)
-    if (result.error) result = await runQuery(false, false)
+    result = await runQuery(true, false, includeSync)
+    if (result.error) result = await runQuery(false, true, includeSync)
+    if (result.error) result = await runQuery(false, false, includeSync)
   }
 
   if (result.error) throw new Error(result.error.message ?? result.error)
-  return { products: result.data ?? [], total: result.count ?? 0, page }
+  const products = (result.data ?? []).map((product) => ({
+    ...product,
+    sync_integration_id: product.sync_integration_id ?? null,
+  }))
+  const managed = products
+    .filter((product) => product.sync_integration_id)
+    .map((product) => ({ ...product, priceKzt: product.price_kzt }))
+  const conditions = await hydrateSyncedConditions(storeId, managed)
+  const byId = new Map(conditions.map((product) => [product.id, product]))
+  return {
+    products: products.map((product) =>
+      applyRetailSyncedConditions(byId.get(product.id) ?? product)
+    ),
+    total: result.count ?? 0,
+    page,
+  }
 }
 
 export async function updateProductPrice(productId, storeId, priceKzt) {
@@ -249,14 +289,17 @@ export async function updateProductPrice(productId, storeId, priceKzt) {
 }
 
 export async function updateProductPromotion(productId, storeId, promotionPayload) {
+  const update = {
+    is_featured: Boolean(promotionPayload.is_featured),
+    updated_at: new Date().toISOString(),
+  }
+  if (!promotionPayload.managed) {
+    update.old_price_kzt = promotionPayload.old_price_kzt ?? null
+    update.discount_percent = promotionPayload.discount_percent ?? null
+  }
   const { data, error } = await supabase
     .from('store_products')
-    .update({
-      is_featured: Boolean(promotionPayload.is_featured),
-      old_price_kzt: promotionPayload.old_price_kzt ?? null,
-      discount_percent: promotionPayload.discount_percent ?? null,
-      updated_at: new Date().toISOString(),
-    })
+    .update(update)
     .eq('id', productId)
     .eq('store_id', storeId)
     .select('id, is_featured, old_price_kzt, discount_percent')

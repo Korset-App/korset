@@ -7,6 +7,7 @@ import ruAlternatives from '../locales/ru/alternatives.json'
 import ruAi from '../locales/ru/ai.json'
 import ruSettings from '../locales/ru/settings.json'
 import ruRetail from '../locales/ru/retail.json'
+import ruIntegration from '../locales/ru/integration.json'
 import ruQr from '../locales/ru/qr.json'
 import ruProfile from '../locales/ru/profile.json'
 import ruHistory from '../locales/ru/history.json'
@@ -22,6 +23,7 @@ import kzAlternatives from '../locales/kz/alternatives.json'
 import kzAi from '../locales/kz/ai.json'
 import kzSettings from '../locales/kz/settings.json'
 import kzRetail from '../locales/kz/retail.json'
+import kzIntegration from '../locales/kz/integration.json'
 import kzQr from '../locales/kz/qr.json'
 import kzProfile from '../locales/kz/profile.json'
 import kzHistory from '../locales/kz/history.json'
@@ -40,6 +42,7 @@ const dicts = {
     ruAi,
     ruSettings,
     ruRetail,
+    ruIntegration,
     ruQr,
     ruProfile,
     ruHistory,
@@ -57,6 +60,7 @@ const dicts = {
     kzAi,
     kzSettings,
     kzRetail,
+    kzIntegration,
     kzQr,
     kzProfile,
     kzHistory,

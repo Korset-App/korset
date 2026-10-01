@@ -8,6 +8,7 @@ import { getImageUrl } from '../utils/imageUrl.js'
 import { formatPrice } from '../utils/formatPrice.js'
 import {
   getStoreCatalogProducts,
+  applyRetailSyncedConditions,
   updateProductPrice,
   updateProductPromotion,
   updateProductShoppingRecommendation,
@@ -151,7 +152,7 @@ function StockBadge({ status, p }) {
 }
 
 // ── Price field with save-on-blur ──────────────────────────────────
-function PriceField({ productId, initialPrice, p, priceMutation }) {
+function PriceField({ productId, initialPrice, p, priceMutation, managed }) {
   const [draft, setDraft] = useState(initialPrice ?? '')
   const [saveState, setSaveState] = useState('idle') // idle | saving | saved | error
   const timerRef = useRef(null)
@@ -164,6 +165,7 @@ function PriceField({ productId, initialPrice, p, priceMutation }) {
   }, [initialPrice]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleBlur = useCallback(() => {
+    if (managed) return
     const val = Number(draft)
     if (isNaN(val) || val < 0 || val === initialPrice) return
     setSaveState('saving')
@@ -180,7 +182,7 @@ function PriceField({ productId, initialPrice, p, priceMutation }) {
         },
       }
     )
-  }, [draft, initialPrice, productId, priceMutation])
+  }, [draft, initialPrice, productId, priceMutation, managed])
 
   const stateColor = {
     idle: 'var(--text-dim)',
@@ -227,6 +229,8 @@ function PriceField({ productId, initialPrice, p, priceMutation }) {
           type="number"
           inputMode="numeric"
           value={draft}
+          readOnly={managed}
+          aria-readonly={managed}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={handleBlur}
           style={{
@@ -268,7 +272,7 @@ function PriceField({ productId, initialPrice, p, priceMutation }) {
 }
 
 // ── Stock toggle ───────────────────────────────────────────────────
-function StockToggle({ product, label, stockMutation }) {
+function StockToggle({ product, label, stockMutation, managed }) {
   const on = isInStock(product)
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -276,19 +280,21 @@ function StockToggle({ product, label, stockMutation }) {
       <div
         role="switch"
         aria-checked={on}
+        aria-disabled={managed}
         onClick={(e) => {
           e.stopPropagation()
+          if (managed) return
           stockMutation.mutate({ id: product.id, status: nextStockStatus(product) })
         }}
         style={{
           width: 52,
           height: 30,
           borderRadius: 15,
-          cursor: 'pointer',
+          cursor: managed ? 'not-allowed' : 'pointer',
           background: on ? '#10B981' : 'var(--glass-border)',
           position: 'relative',
           transition: 'background 0.25s',
-          opacity: stockMutation.isPending ? 0.7 : 1,
+          opacity: managed || stockMutation.isPending ? 0.7 : 1,
         }}
       >
         <div
@@ -360,7 +366,7 @@ function ShoppingRecommendationToggle({ product, label, recommendationMutation }
 }
 
 // ── Promotion & Featured section ──────────────────────────────────
-function PromotionSection({ product, p, promotionMutation }) {
+function PromotionSection({ product, p, promotionMutation, managed }) {
   const isFeatured = Boolean(product.is_featured)
   const currentPrice = Number(product.price_kzt) || 0
   const [oldPriceDraft, setOldPriceDraft] = useState(product.old_price_kzt ?? '')
@@ -389,10 +395,12 @@ function PromotionSection({ product, p, promotionMutation }) {
       isFeatured: !isFeatured,
       oldPriceKzt: product.old_price_kzt,
       discountPercent: product.discount_percent,
+      managed,
     })
   }
 
   const handleOldPriceBlur = () => {
+    if (managed) return
     const val = oldPriceDraft === '' ? null : Number(oldPriceDraft)
     if (val !== null && (!Number.isFinite(val) || val <= currentPrice)) {
       setOldPriceDraft('')
@@ -433,6 +441,7 @@ function PromotionSection({ product, p, promotionMutation }) {
 
   const handleClearDiscount = (e) => {
     e.stopPropagation()
+    if (managed) return
     setOldPriceDraft('')
     promotionMutation?.mutate({
       id: product.id,
@@ -560,7 +569,7 @@ function PromotionSection({ product, p, promotionMutation }) {
                 {stateLabel[saveState]}
               </span>
             )}
-            {product.old_price_kzt && (
+            {product.old_price_kzt && !managed && (
               <button
                 type="button"
                 onClick={handleClearDiscount}
@@ -586,6 +595,8 @@ function PromotionSection({ product, p, promotionMutation }) {
             inputMode="numeric"
             placeholder={currentPrice > 0 ? String(Math.round(currentPrice * 1.25)) : ''}
             value={oldPriceDraft}
+            readOnly={managed}
+            aria-readonly={managed}
             onChange={(e) => setOldPriceDraft(e.target.value)}
             onBlur={handleOldPriceBlur}
             style={{
@@ -752,6 +763,7 @@ const ProductCard = memo(
     const imgUrl = displayImage(product)
     const name = displayName(product)
     const brand = displayBrand(product)
+    const managed = Boolean(product.sync_integration_id)
 
     return (
       <div
@@ -980,38 +992,56 @@ const ProductCard = memo(
                 initialPrice={product.price_kzt}
                 p={tr}
                 priceMutation={priceMutation}
+                managed={managed}
               />
-              <StockToggle product={product} label={tr.stockLabel} stockMutation={stockMutation} />
+              <StockToggle
+                product={product}
+                label={tr.stockLabel}
+                stockMutation={stockMutation}
+                managed={managed}
+              />
               <ShoppingRecommendationToggle
                 product={product}
                 label={tr.shoppingRecommendationLabel}
                 recommendationMutation={recommendationMutation}
               />
-              <PromotionSection product={product} p={tr} promotionMutation={promotionMutation} />
+              <PromotionSection
+                product={product}
+                p={tr}
+                promotionMutation={promotionMutation}
+                managed={managed}
+              />
+              {managed && (
+                <p style={{ margin: 0, color: 'var(--text-dim)', fontSize: 12 }}>
+                  {tr.sourceManagedNote}
+                </p>
+              )}
               <ReadonlyBlock product={product} p={tr} storeSlug={storeSlug} />
 
               {/* Delete button */}
-              <button
-                onClick={() => onDeleteRequest?.(product.id)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  background: 'rgba(239,68,68,0.07)',
-                  border: '1px solid rgba(239,68,68,0.18)',
-                  borderRadius: 12,
-                  padding: '10px 14px',
-                  cursor: 'pointer',
-                  color: '#F87171',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  width: '100%',
-                  fontFamily: 'var(--font-body)',
-                }}
-              >
-                <TrashIcon size={18} />
-                {tr.deleteProduct}
-              </button>
+              {!managed && (
+                <button
+                  onClick={() => onDeleteRequest?.(product.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    background: 'rgba(239,68,68,0.07)',
+                    border: '1px solid rgba(239,68,68,0.18)',
+                    borderRadius: 12,
+                    padding: '10px 14px',
+                    cursor: 'pointer',
+                    color: '#F87171',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    width: '100%',
+                    fontFamily: 'var(--font-body)',
+                  }}
+                >
+                  <TrashIcon size={18} />
+                  {tr.deleteProduct}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -1226,6 +1256,7 @@ function EditBottomSheet({
   const imgUrl = displayImage(product)
   const name = displayName(product)
   const brand = displayBrand(product)
+  const managed = Boolean(product.sync_integration_id)
 
   return createPortal(
     <div
@@ -1362,37 +1393,55 @@ function EditBottomSheet({
             initialPrice={product.price_kzt}
             p={tr}
             priceMutation={priceMutation}
+            managed={managed}
           />
-          <StockToggle product={product} label={tr.stockLabel} stockMutation={stockMutation} />
+          <StockToggle
+            product={product}
+            label={tr.stockLabel}
+            stockMutation={stockMutation}
+            managed={managed}
+          />
           <ShoppingRecommendationToggle
             product={product}
             label={tr.shoppingRecommendationLabel}
             recommendationMutation={recommendationMutation}
           />
-          <PromotionSection product={product} p={tr} promotionMutation={promotionMutation} />
+          <PromotionSection
+            product={product}
+            p={tr}
+            promotionMutation={promotionMutation}
+            managed={managed}
+          />
+          {managed && (
+            <p style={{ margin: 0, color: 'var(--text-dim)', fontSize: 12 }}>
+              {tr.sourceManagedNote}
+            </p>
+          )}
 
           {/* Delete button */}
-          <button
-            onClick={() => onDeleteRequest?.(product.id)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              background: 'rgba(239,68,68,0.07)',
-              border: '1px solid rgba(239,68,68,0.18)',
-              borderRadius: 12,
-              padding: '12px 14px',
-              cursor: 'pointer',
-              color: '#F87171',
-              fontSize: 13,
-              fontWeight: 600,
-              width: '100%',
-              fontFamily: 'var(--font-body)',
-            }}
-          >
-            <TrashIcon size={18} />
-            {tr.deleteProduct}
-          </button>
+          {!managed && (
+            <button
+              onClick={() => onDeleteRequest?.(product.id)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                background: 'rgba(239,68,68,0.07)',
+                border: '1px solid rgba(239,68,68,0.18)',
+                borderRadius: 12,
+                padding: '12px 14px',
+                cursor: 'pointer',
+                color: '#F87171',
+                fontSize: 13,
+                fontWeight: 600,
+                width: '100%',
+                fontFamily: 'var(--font-body)',
+              }}
+            >
+              <TrashIcon size={18} />
+              {tr.deleteProduct}
+            </button>
+          )}
         </div>
       </div>
     </div>,
@@ -1491,8 +1540,10 @@ function ConfirmDeleteModal({ product, tr, deleteMutation, onClose }) {
             {tr.deleteCancel}
           </button>
           <button
-            onClick={() => deleteMutation.mutate({ id: product.id })}
-            disabled={deleteMutation.isPending}
+            onClick={() => {
+              if (!product.sync_integration_id) deleteMutation.mutate({ id: product.id })
+            }}
+            disabled={deleteMutation.isPending || Boolean(product.sync_integration_id)}
             style={{
               flex: 1,
               padding: '12px 0',
@@ -1562,6 +1613,8 @@ export default function RetailProductsScreen() {
       oldPriceLabel: t('retail.products.oldPriceLabel'),
       discountPercentLabel: t('retail.products.discountPercentLabel'),
       clearDiscount: t('retail.products.clearDiscount'),
+      sourceManagedNote: t('integration.catalogManagedNote'),
+      attention: t('integration.attention'),
     }),
     [t]
   )
@@ -1647,7 +1700,29 @@ export default function RetailProductsScreen() {
       gcTime: 10 * 60_000,
     })
 
-  const products = useMemo(() => data?.pages.flatMap((p) => p.products) ?? [], [data])
+  const [conditionsTime, setConditionsTime] = useState(Date.now)
+  useEffect(() => {
+    const boundaries = (data?.pages.flatMap((page) => page.products) ?? [])
+      .flatMap((product) =>
+        [product.syncConditions?.valid_from, product.syncConditions?.valid_until].map((value) =>
+          Date.parse(value)
+        )
+      )
+      .filter((time) => time > conditionsTime)
+    if (!boundaries.length) return undefined
+    const timer = setTimeout(
+      () => setConditionsTime(Date.now()),
+      Math.max(1, Math.min(Math.min(...boundaries) - Date.now() + 1, 60000))
+    )
+    return () => clearTimeout(timer)
+  }, [data, conditionsTime])
+  const products = useMemo(
+    () =>
+      (data?.pages.flatMap((p) => p.products) ?? []).map((product) =>
+        applyRetailSyncedConditions(product, conditionsTime)
+      ),
+    [data, conditionsTime]
+  )
   const totalCount = data?.pages[0]?.total ?? 0
 
   // Optimistic updater for infinite query pages
@@ -1731,11 +1806,12 @@ export default function RetailProductsScreen() {
 
   // ── Promotion mutation (optimistic + rollback + invalidate) ───────
   const promotionMutation = useMutation({
-    mutationFn: ({ id, isFeatured, oldPriceKzt, discountPercent }) =>
+    mutationFn: ({ id, isFeatured, oldPriceKzt, discountPercent, managed }) =>
       updateProductPromotion(id, storeId, {
         is_featured: isFeatured,
         old_price_kzt: oldPriceKzt,
         discount_percent: discountPercent,
+        managed,
       }),
     onMutate: async ({ id, isFeatured, oldPriceKzt, discountPercent }) => {
       await queryClient.cancelQueries({ queryKey: ['retail-products', storeId] })
@@ -2041,7 +2117,8 @@ export default function RetailProductsScreen() {
           {/* EAN Recovery */}
           <button
             onClick={() => navigate(`/retail/${storeSlug}/ean-recovery`)}
-            title="EAN Recovery — fix products without barcode"
+            title={p.attention}
+            aria-label={p.attention}
             style={{
               width: 44,
               height: 44,
@@ -2121,6 +2198,24 @@ export default function RetailProductsScreen() {
               {p.viewGrid}
             </button>
           </div>
+
+          <button
+            type="button"
+            onClick={() => navigate(`/retail/${storeSlug}/ean-recovery`)}
+            style={{
+              border: '1px solid var(--glass-border)',
+              borderRadius: 8,
+              padding: '6px 9px',
+              background: 'var(--glass-bg)',
+              color: 'var(--text)',
+              fontSize: 11,
+              fontWeight: 600,
+              fontFamily: 'var(--font-body)',
+              cursor: 'pointer',
+            }}
+          >
+            {p.attention}
+          </button>
 
           {!isLoading && !isError && (
             <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>
