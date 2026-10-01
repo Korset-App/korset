@@ -51,24 +51,25 @@ export default async function handler(req, res) {
   if (req.query?.route === 'integration') return integrationHandler(req, res)
   const origin = req.headers.origin || ''
   const cors = corsHeaders(origin)
+  for (const [name, value] of Object.entries(cors)) res.setHeader(name, value)
 
   if (req.method === 'OPTIONS') {
-    return res.status(200).set(cors).send('')
+    return res.status(200).send('')
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).set(cors).json({ error: 'Method not allowed' })
+    return res.status(405).json({ error: 'Method not allowed' })
   }
 
   const { user, authenticated } = await verifyJWT(req.headers.authorization)
   if (!authenticated) {
-    return res.status(401).set(cors).json({ error: 'Unauthorized' })
+    return res.status(401).json({ error: 'Unauthorized' })
   }
 
   const admin = getAdmin()
   if (!admin) {
     console.error('[admin-stores] Server misconfiguration: SUPABASE_SERVICE_ROLE_KEY missing')
-    return res.status(500).set(cors).json({ error: 'Server misconfiguration' })
+    return res.status(500).json({ error: 'Server misconfiguration' })
   }
 
   // Verify superadmin status via RPC
@@ -77,16 +78,16 @@ export default async function handler(req, res) {
     const { data: superadminResult, error: rpcError } = await admin.rpc('is_superadmin_user', { p_auth_id: user.id })
     if (rpcError) {
       console.error('[admin-stores] is_superadmin_user rpc error', rpcError)
-      return res.status(500).set(cors).json({ error: 'Authorization check failed' })
+      return res.status(500).json({ error: 'Authorization check failed' })
     }
     isSuperadmin = superadminResult === true
     if (!isSuperadmin) {
       console.warn('[admin-stores] Forbidden attempt by user', user.id)
-      return res.status(403).set(cors).json({ error: 'Forbidden' })
+      return res.status(403).json({ error: 'Forbidden' })
     }
   } catch (e) {
     console.error('[admin-stores] superadmin check exception', e)
-    return res.status(500).set(cors).json({ error: 'Authorization check failed' })
+    return res.status(500).json({ error: 'Authorization check failed' })
   }
 
   const {
@@ -131,7 +132,7 @@ export default async function handler(req, res) {
 
         if (storesError) {
           console.error('[admin-stores] list error', storesError)
-          return res.status(500).set(cors).json({ error: 'Failed to list stores' })
+          return res.status(500).json({ error: 'Failed to list stores' })
         }
 
         stores = await Promise.all(
@@ -165,7 +166,7 @@ export default async function handler(req, res) {
         )
       } else if (rpcError) {
         console.error('[admin-stores] metrics rpc error', rpcError)
-        return res.status(500).set(cors).json({ error: 'Failed to load stores with metrics' })
+        return res.status(500).json({ error: 'Failed to load stores with metrics' })
       } else {
         stores = (rpcData || []).map((store) => ({
           ...store,
@@ -180,7 +181,7 @@ export default async function handler(req, res) {
       if (listError) {
         console.error('[admin-stores] listUsers error', listError)
         // Non-blocking fallback: output stores without emails
-        return res.status(200).set(cors).json({ ok: true, stores })
+        return res.status(200).json({ ok: true, stores })
       }
 
       const usersMap = new Map(listResult.users.map((u) => [u.id, u]))
@@ -194,16 +195,16 @@ export default async function handler(req, res) {
         }
       })
 
-      return res.status(200).set(cors).json({ ok: true, stores: storesWithOwners })
+      return res.status(200).json({ ok: true, stores: storesWithOwners })
     }
 
     // ACTION: TOGGLE ACTIVE STATUS
     if (action === 'toggle-active') {
       if (!storeId) {
-        return res.status(400).set(cors).json({ error: 'Missing storeId' })
+        return res.status(400).json({ error: 'Missing storeId' })
       }
       if (typeof isActive !== 'boolean') {
-        return res.status(400).set(cors).json({ error: 'isActive must be a boolean' })
+        return res.status(400).json({ error: 'isActive must be a boolean' })
       }
 
       const { data: updatedStore, error: updateError } = await admin
@@ -215,16 +216,16 @@ export default async function handler(req, res) {
 
       if (updateError) {
         console.error('[admin-stores] toggle-active error', updateError)
-        return res.status(500).set(cors).json({ error: 'Failed to update store status' })
+        return res.status(500).json({ error: 'Failed to update store status' })
       }
 
-      return res.status(200).set(cors).json({ ok: true, store: updatedStore })
+      return res.status(200).json({ ok: true, store: updatedStore })
     }
 
     // ACTION: UPDATE STORE DETAILS
     if (action === 'update-store-details') {
       if (!storeId) {
-        return res.status(400).set(cors).json({ error: 'Missing storeId' })
+        return res.status(400).json({ error: 'Missing storeId' })
       }
 
       const updateData = {}
@@ -248,7 +249,7 @@ export default async function handler(req, res) {
       }
       if (plan !== undefined) {
         if (!VALID_PLANS.includes(plan)) {
-          return res.status(400).set(cors).json({ error: 'invalid_plan' })
+          return res.status(400).json({ error: 'invalid_plan' })
         }
         updateData.plan = plan
       }
@@ -256,7 +257,7 @@ export default async function handler(req, res) {
         if (planExpiresAt) {
           const parsedDate = new Date(planExpiresAt)
           if (isNaN(parsedDate.getTime())) {
-            return res.status(400).set(cors).json({ error: 'invalid_date_format', message: 'Некорректный формат даты окончания подписки' })
+            return res.status(400).json({ error: 'invalid_date_format', message: 'Некорректный формат даты окончания подписки' })
           }
           updateData.plan_expires_at = parsedDate.toISOString()
         } else {
@@ -289,10 +290,10 @@ export default async function handler(req, res) {
 
       if (updateError) {
         console.error('[admin-stores] update-store-details error', updateError)
-        return res.status(500).set(cors).json({ error: 'Failed to update store details' })
+        return res.status(500).json({ error: 'Failed to update store details' })
       }
 
-      return res.status(200).set(cors).json({
+      return res.status(200).json({
         ok: true,
         store: {
           ...updatedStore,
@@ -305,27 +306,27 @@ export default async function handler(req, res) {
     // ACTION: UPDATE OWNER AUTH
     if (action === 'update-owner-auth') {
       if (!ownerId) {
-        return res.status(400).set(cors).json({ error: 'Missing ownerId' })
+        return res.status(400).json({ error: 'Missing ownerId' })
       }
 
       const updatePayload = {}
       if (newEmail) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
         if (!emailRegex.test(newEmail)) {
-          return res.status(400).set(cors).json({ error: 'invalid_email_format' })
+          return res.status(400).json({ error: 'invalid_email_format' })
         }
         updatePayload.email = newEmail
         updatePayload.email_confirm = true
       }
       if (newPassword) {
         if (newPassword.length < 8) {
-          return res.status(400).set(cors).json({ error: 'password_too_short' })
+          return res.status(400).json({ error: 'password_too_short' })
         }
         updatePayload.password = newPassword
       }
 
       if (Object.keys(updatePayload).length === 0) {
-        return res.status(400).set(cors).json({ error: 'No update parameters provided' })
+        return res.status(400).json({ error: 'No update parameters provided' })
       }
 
       const { data: updatedUser, error: authError } = await admin.auth.admin.updateUserById(
@@ -335,10 +336,10 @@ export default async function handler(req, res) {
 
       if (authError) {
         console.error('[admin-stores] update-owner-auth error', authError)
-        return res.status(500).set(cors).json({ error: 'auth_update_failed', message: authError.message })
+        return res.status(500).json({ error: 'auth_update_failed', message: authError.message })
       }
 
-      return res.status(200).set(cors).json({ ok: true, user: updatedUser.user })
+      return res.status(200).json({ ok: true, user: updatedUser.user })
     }
 
     // ACTION: CREATE STORE
@@ -367,7 +368,7 @@ export default async function handler(req, res) {
       }
 
       if (errors.length > 0) {
-        return res.status(400).set(cors).json({ error: 'validation_failed', reasons: errors })
+        return res.status(400).json({ error: 'validation_failed', reasons: errors })
       }
 
       // Check if store slug already exists
@@ -378,7 +379,7 @@ export default async function handler(req, res) {
         .maybeSingle()
 
       if (existingStore) {
-        return res.status(409).set(cors).json({ error: 'slug_taken', message: 'URL-адрес (slug) магазина уже занят' })
+        return res.status(409).json({ error: 'slug_taken', message: 'URL-адрес (slug) магазина уже занят' })
       }
 
       let finalOwnerId = ownerId
@@ -388,7 +389,7 @@ export default async function handler(req, res) {
         const { data: listResult } = await admin.auth.admin.listUsers()
         const existingUser = listResult?.users?.find(u => u.email?.toLowerCase() === ownerEmail.toLowerCase())
         if (existingUser) {
-          return res.status(409).set(cors).json({ error: 'owner_email_taken', message: 'Пользователь с таким Email уже существует' })
+          return res.status(409).json({ error: 'owner_email_taken', message: 'Пользователь с таким Email уже существует' })
         }
 
         // Step 1: Create owner auth user
@@ -400,7 +401,7 @@ export default async function handler(req, res) {
 
         if (authError) {
           console.error('[admin-stores] createUser error', authError)
-          return res.status(500).set(cors).json({ error: 'auth_creation_failed', message: authError.message })
+          return res.status(500).json({ error: 'auth_creation_failed', message: authError.message })
         }
 
         finalOwnerId = authData.user.id
@@ -434,7 +435,7 @@ export default async function handler(req, res) {
         if (!ownerId) {
           await admin.auth.admin.deleteUser(finalOwnerId)
         }
-        return res.status(500).set(cors).json({ error: 'store_insertion_failed', message: storeError.message })
+        return res.status(500).json({ error: 'store_insertion_failed', message: storeError.message })
       }
 
       if (ownerPrivatePhone || ownerPrivateNotes) {
@@ -448,7 +449,7 @@ export default async function handler(req, res) {
         }
       }
 
-      return res.status(200).set(cors).json({
+      return res.status(200).json({
         ok: true,
         store: {
           ...storeData,
@@ -469,7 +470,7 @@ export default async function handler(req, res) {
 
       if (scanError) {
         console.error('[admin-stores] scan-activity error', scanError)
-        return res.status(500).set(cors).json({ error: 'Failed to fetch scan activity' })
+        return res.status(500).json({ error: 'Failed to fetch scan activity' })
       }
 
       // Group scan activity by store and date
@@ -481,16 +482,16 @@ export default async function handler(req, res) {
         counts[sId][date] = (counts[sId][date] || 0) + 1
       })
 
-      return res.status(200).set(cors).json({ ok: true, activity: counts })
+      return res.status(200).json({ ok: true, activity: counts })
     }
 
     // ACTION: TOGGLE USER SUPERADMIN PRIVILEGES
     if (action === 'toggle-superadmin') {
       if (!targetUserId) {
-        return res.status(400).set(cors).json({ error: 'Missing targetUserId' })
+        return res.status(400).json({ error: 'Missing targetUserId' })
       }
       if (typeof isActive !== 'boolean') {
-        return res.status(400).set(cors).json({ error: 'isActive must be a boolean' })
+        return res.status(400).json({ error: 'isActive must be a boolean' })
       }
 
       const { data: updatedUser, error: updateError } = await admin
@@ -502,10 +503,10 @@ export default async function handler(req, res) {
 
       if (updateError) {
         console.error('[admin-stores] toggle-superadmin error', updateError)
-        return res.status(500).set(cors).json({ error: 'Failed to update superadmin status' })
+        return res.status(500).json({ error: 'Failed to update superadmin status' })
       }
 
-      return res.status(200).set(cors).json({ ok: true, user: updatedUser })
+      return res.status(200).json({ ok: true, user: updatedUser })
     }
 
     // ACTION: SEARCH USER CANDIDATES FOR STORE OWNERSHIP
@@ -513,7 +514,7 @@ export default async function handler(req, res) {
       const { data: listResult, error: listError } = await admin.auth.admin.listUsers()
       if (listError) {
         console.error('[admin-stores] search-owners listUsers error', listError)
-        return res.status(500).set(cors).json({ error: 'Failed to search owners' })
+        return res.status(500).json({ error: 'Failed to search owners' })
       }
 
       const { data: dbUsers, error: dbError } = await admin
@@ -522,7 +523,7 @@ export default async function handler(req, res) {
 
       if (dbError) {
         console.error('[admin-stores] search-owners dbUsers error', dbError)
-        return res.status(500).set(cors).json({ error: 'Failed to query user records' })
+        return res.status(500).json({ error: 'Failed to query user records' })
       }
 
       const dbUsersMap = new Map(dbUsers.map((u) => [u.auth_id, u]))
@@ -548,12 +549,12 @@ export default async function handler(req, res) {
         })
         .slice(0, 30)
 
-      return res.status(200).set(cors).json({ ok: true, users: results })
+      return res.status(200).json({ ok: true, users: results })
     }
 
-    return res.status(400).set(cors).json({ error: 'Unknown action' })
+    return res.status(400).json({ error: 'Unknown action' })
   } catch (e) {
     console.error('[admin-stores] handler exception', e)
-    return res.status(500).set(cors).json({ error: 'Internal error' })
+    return res.status(500).json({ error: 'Internal error' })
   }
 }

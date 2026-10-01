@@ -5,8 +5,8 @@ import handler from '../../api/admin-stores.js'
 
 function response() {
   return {statusCode:200,headers:{},setHeader(k,v){this.headers[k]=v},
-    status(v){this.statusCode=v;return this},set(v){Object.assign(this.headers,v);return this},
-    json(v){this.body=v;return this}}
+    status(v){this.statusCode=v;return this},
+    json(v){this.body=v;return this},send(v){this.body=v;return this}}
 }
 
 test('integration rewrite fits the existing twelve-function deployment budget',async()=>{
@@ -30,8 +30,21 @@ test('shared integration dispatch preserves the activation and authentication ga
     const admin=response()
     await handler({method:'POST',query:{},headers:{}},admin)
     assert.equal(admin.statusCode,401);assert.deepEqual(admin.body,{error:'Unauthorized'})
+    assert.equal(admin.headers['Access-Control-Allow-Origin'],'https://korset.app')
   } finally {
     if(previous===undefined)delete process.env.KORSET_INTEGRATION_ENABLED
     else process.env.KORSET_INTEGRATION_ENABLED=previous
   }
+})
+
+test('legacy method checks and preflight use the Vercel response headers API',async()=>{
+  const get=response()
+  await handler({method:'GET',query:{},headers:{origin:'https://korset.app'}},get)
+  assert.equal(get.statusCode,405)
+  assert.equal(get.headers['Access-Control-Allow-Origin'],'https://korset.app')
+  const options=response()
+  await handler({method:'OPTIONS',query:{},headers:{origin:'https://www.korset.app'}},options)
+  assert.equal(options.statusCode,200)
+  assert.equal(options.headers['Access-Control-Allow-Origin'],'https://www.korset.app')
+  assert.equal(options.headers['Access-Control-Allow-Methods'],'POST, OPTIONS')
 })
