@@ -1,4 +1,26 @@
 BEGIN;
+SET LOCAL lock_timeout='5s';
+SET LOCAL statement_timeout='60s';
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM (VALUES
+      ('stores','id','uuid'), ('stores','owner_id','uuid'),
+      ('global_products','id','uuid'), ('global_products','ean','text'),
+      ('store_products','id','uuid'), ('store_products','store_id','uuid'),
+      ('store_products','global_product_id','uuid'), ('store_products','ean','text'),
+      ('store_products','price_kzt','integer')
+    ) AS expected(table_name,column_name,type_name)
+    LEFT JOIN pg_catalog.pg_attribute a
+      ON a.attrelid=to_regclass('public.'||expected.table_name)
+      AND a.attname=expected.column_name AND NOT a.attisdropped
+    WHERE a.attnum IS NULL OR a.atttypid<>to_regtype(expected.type_name)
+  ) THEN
+    RAISE EXCEPTION 'INTEGRATION_BASE_SCHEMA_UNSUPPORTED';
+  END IF;
+END;
+$$;
 
 CREATE SCHEMA korset_integration;
 REVOKE ALL ON SCHEMA korset_integration FROM PUBLIC, anon, authenticated;

@@ -62,3 +62,14 @@ test('DB conflicts and rate limits are clear sanitized responses and never succe
     if(status===429)assert.equal(res.headers['Retry-After'],'30')
   }
 })
+
+test('database transport failure returns retryable failure without an acknowledgement',async()=>{
+  const {handler}=harness({clientFactory:()=>({rpc:async()=>({data:null,
+    error:{message:'AbortError: private connection diagnostic'}})})})
+  const res=response()
+  await handler({method:'POST',headers:{authorization:`Bearer krt1_${'a'.repeat(64)}`,
+    'content-type':'application/json'},body:envelope()},res)
+  assert.equal(res.statusCode,503)
+  assert.deepEqual(res.body,{error:'INTEGRATION_UNAVAILABLE'})
+  assert.equal('request_id' in res.body,false)
+})

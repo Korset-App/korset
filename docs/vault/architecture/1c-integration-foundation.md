@@ -1,7 +1,7 @@
 ---
 domain: architecture
 subdomain: integrations
-status: local-implementation-unreleased
+status: server-published-db-pending
 updated: 2026-10-01
 ---
 

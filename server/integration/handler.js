@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { createDeadlineFetch } from './deadlineFetch.js'
 import { IntegrationError, MAX_BODY_BYTES, normalizeEnvelope, envelopeHash, issueConnectorToken, tokenHash } from './protocol.js'
 
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i
@@ -14,7 +15,8 @@ function serverClient() {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) throw new IntegrationError('NOT_INSTALLED',501)
-  return createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}})
+  return createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false},
+    global:{fetch:createDeadlineFetch()}})
 }
 
 async function body(req) {
