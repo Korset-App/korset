@@ -52,6 +52,7 @@
     }
   ],
   "rewrites": [
+    { "source": "/api/integration", "destination": "/api/admin-stores?route=integration" },
     { "source": "/api/push/(.*)", "destination": "/api/push?route=$1" },
     { "source": "/api/ai-transcribe", "destination": "/api/ai" },
     { "source": "/api/ai-image", "destination": "/api/ai" },

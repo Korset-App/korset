@@ -1,5 +1,8 @@
 /* global process, console */
 import { createClient } from '@supabase/supabase-js'
+import { createIntegrationHandler } from '../server/integration/handler.js'
+
+const integrationHandler = createIntegrationHandler()
 
 const CORS_ORIGINS = [
   'https://korset.app',
@@ -45,6 +48,7 @@ const VALID_TYPES = ['supermarket', 'minimarket', 'halal', 'specialty', 'other']
 const VALID_PLANS = ['pilot', 'basic', 'pro', 'enterprise']
 
 export default async function handler(req, res) {
+  if (req.query?.route === 'integration') return integrationHandler(req, res)
   const origin = req.headers.origin || ''
   const cors = corsHeaders(origin)
 
