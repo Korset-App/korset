@@ -34,6 +34,8 @@ nurly, kalina; наличие, публикацию, цены и остатки 
 
 ## Куда продолжать после паузы
 
+- Учётные системы и сохранение 1С: `docs/vault/plans/2026-10-02-accounting-systems-handoff.md`.
+  Опрос 10 магазинов: UMAG 6, 1С 1, 2X POS 2, Wipon 1; сначала подтвердить доступ к обмену.
 - Приоритеты: `docs/ROADMAP_PILOT_V1.md` и
   `docs/vault/plans/2026-09-18-pilot-revival-master-plan.md`.
 - Каталог: `docs/vault/plans/2026-09-27-food-catalog-quality-plan.md`.
