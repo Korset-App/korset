@@ -750,6 +750,7 @@ export default function RetailScannerModal({ onScan, onClose }) {
         }
         @keyframes spin { to { transform: rotate(360deg) } }
         #${SCAN_ID} > div { border: none !important; }
+        #${SCAN_ID} #qr-shaded-region { display: none !important; }
         #${SCAN_ID} video { object-fit: cover !important; width: 100% !important; height: 100% !important; }
       `}</style>
     </div>
