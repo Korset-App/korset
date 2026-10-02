@@ -1,0 +1,9 @@
+.store-source-product { max-width: 620px; margin: 0 auto; padding: 24px 20px 100px; color: var(--text); }
+.store-source-product h1 { font-size: 26px; line-height: 1.25; overflow-wrap: anywhere; }
+.store-source-product h2 { font-size: 18px; }
+.store-source-product p { line-height: 1.55; }
+.store-source-product__back { padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--glass-bg); color: var(--text); font: inherit; }
+.store-source-product__image { display: block; width: 100%; max-height: 260px; margin-top: 20px; object-fit: contain; }
+.store-source-product__price { font-size: 24px; font-weight: 700; }
+.store-source-product__notice { padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--glass-bg); }
+.store-source-product__barcode { color: var(--text-muted); font-size: 12px; }

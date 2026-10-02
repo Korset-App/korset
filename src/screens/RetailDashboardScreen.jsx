@@ -879,19 +879,32 @@ export default function RetailDashboardScreen() {
     { key: 'out_of_stock', label: d.missedFilterOutOfStock },
   ]
 
+  const coverageVal = coverageQ.data ?? 0
+  const coverageColor = coverageVal >= 70 ? '#10B981' : coverageVal >= 40 ? '#F59E0B' : '#F87171'
+  const coverageGradient =
+    coverageVal >= 70
+      ? 'linear-gradient(90deg, #10B981, #34D399)'
+      : coverageVal >= 40
+        ? 'linear-gradient(90deg, #F59E0B, #FBBF24)'
+        : 'linear-gradient(90deg, #F87171, #FCA5A5)'
+
   return (
-    <div style={{ padding: '20px 16px 8px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div
+      className="retail-screen-canvas"
+      style={{ padding: '24px 20px 48px', display: 'flex', flexDirection: 'column', gap: 24 }}
+    >
       {currentStore?.isPublished === false && (
         <div
           style={{
             background: 'rgba(245, 158, 11, 0.08)',
             border: '1px solid rgba(245, 158, 11, 0.22)',
             borderRadius: 16,
-            padding: '12px 16px',
+            padding: '12px 18px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 12,
+            boxShadow: 'var(--shadow-card)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
@@ -907,10 +920,10 @@ export default function RetailDashboardScreen() {
               background: 'rgba(245, 158, 11, 0.15)',
               border: '1px solid rgba(245, 158, 11, 0.3)',
               color: '#F59E0B',
-              padding: '6px 12px',
+              padding: '7px 14px',
               borderRadius: 8,
               fontSize: 12,
-              fontWeight: 600,
+              fontWeight: 700,
               cursor: 'pointer',
               whiteSpace: 'nowrap',
             }}
@@ -920,38 +933,42 @@ export default function RetailDashboardScreen() {
         </div>
       )}
 
-      {/* ── Store + Period Toggle ── */}
+      {/* ── Top Hero Row: Store Header + Period Selector ── */}
       <div
         style={{
           display: 'flex',
-          alignItems: 'flex-start',
+          alignItems: 'center',
           justifyContent: 'space-between',
-          gap: 12,
+          gap: 16,
+          flexWrap: 'wrap',
         }}
       >
         <div>
-          <div
+          <h1
             style={{
-              fontSize: 17,
-              fontWeight: 700,
+              fontSize: 24,
+              fontWeight: 800,
               fontFamily: 'var(--font-display)',
               color: 'var(--text)',
-              lineHeight: 1.3,
+              lineHeight: 1.25,
+              margin: 0,
+              letterSpacing: '-0.3px',
             }}
           >
             {currentStore?.name || d.title}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 2 }}>{d.subtitle}</div>
+          </h1>
+          <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '4px 0 0' }}>{d.subtitle}</p>
         </div>
+
         <div
           style={{
             display: 'flex',
             flexShrink: 0,
             background: 'var(--glass-bg)',
-            border: '1px solid var(--glass-border)',
-            borderRadius: 10,
+            border: '1px solid var(--retail-border)',
+            borderRadius: 12,
             padding: 3,
-            gap: 3,
+            gap: 4,
           }}
         >
           {[7, 30].map((p) => (
@@ -964,16 +981,16 @@ export default function RetailDashboardScreen() {
                 setPeriod(p)
               }}
               style={{
-                padding: '5px 14px',
-                borderRadius: 7,
+                padding: '6px 16px',
+                borderRadius: 9,
                 border: 'none',
                 cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: 600,
+                fontSize: 12.5,
+                fontWeight: 700,
                 fontFamily: 'var(--font-body)',
-                background: period === p ? '#38BDF8' : 'transparent',
-                color: period === p ? '#07070F' : 'var(--text-dim)',
-                transition: 'background 0.15s, color 0.15s',
+                background: period === p ? 'var(--retail-accent, #38BDF8)' : 'transparent',
+                color: period === p ? '#080c18' : 'var(--text-dim)',
+                transition: 'all 0.15s ease',
               }}
             >
               {p === 7 ? d.period7d : d.period30d}
@@ -982,286 +999,323 @@ export default function RetailDashboardScreen() {
         </div>
       </div>
 
-      {/* ── Metrics 2×2 ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <MetricCard
-          label={d.scansTitle}
-          sub={periodLabel}
-          value={scansQ.isError ? '—' : (scansQ.data ?? 0).toLocaleString()}
-          icon="query_stats"
-          accent="blue"
-          loading={scansQ.isLoading}
-        />
-        <MetricCard
-          label={d.uniqueCustomers}
-          sub={periodLabel}
-          value={uniqueQ.isError ? '—' : (uniqueQ.data ?? 0).toLocaleString()}
-          icon="group"
-          accent="green"
-          loading={uniqueQ.isLoading}
-        />
-        <MetricCard
-          label={d.missedProducts}
-          sub={periodLabel}
-          value={missedQ.isError ? '—' : (missedQ.data ?? []).length.toLocaleString()}
-          icon="warning"
-          accent="amber"
-          loading={missedQ.isLoading}
-        />
-        <MetricCard
-          label={d.totalProducts}
-          value={totalQ.isError ? '—' : (totalQ.data ?? 0).toLocaleString()}
-          icon="inventory_2"
-          accent="neutral"
-          loading={totalQ.isLoading}
-        />
-      </div>
-
-      {/* ── Lost Revenue card (full width) ── */}
-      <div
-        style={{
-          background: 'rgba(248,113,113,0.07)',
-          border: '1px solid rgba(248,113,113,0.18)',
-          borderRadius: 16,
-          padding: '14px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-        }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* ── Bento Grid ── */}
+      <div className="retail-bento-grid">
+        {/* Row 1: 4 Key Metrics (col-12 with 4 responsive columns inside) */}
+        <div className="bento-col-12">
           <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 5,
-              fontSize: 12,
-              color: 'var(--text-dim)',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: 14,
             }}
           >
-            <ArrowForwardIcon size={14} color="#F87171" style={{ transform: 'rotate(45deg)' }} />
-            {d.lostRevenue}
-          </div>
-          {lostQ.isLoading ? (
-            <div className="retail-skel" style={{ height: 28, width: 120, borderRadius: 6 }} />
-          ) : (
-            <div
-              style={{
-                fontSize: 24,
-                fontWeight: 700,
-                fontFamily: 'var(--font-display)',
-                color: '#F87171',
-                lineHeight: 1.2,
-              }}
-            >
-              {lostQ.isError ? '—' : `~${formatPrice(lostQ.data ?? 0)}`}
-            </div>
-          )}
-          <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>
-            {periodLabel} · {d.lostRevenueHint}
+            <MetricCard
+              label={d.scansTitle}
+              sub={periodLabel}
+              value={scansQ.isError ? '—' : (scansQ.data ?? 0).toLocaleString()}
+              icon="query_stats"
+              accent="blue"
+              loading={scansQ.isLoading}
+            />
+            <MetricCard
+              label={d.uniqueCustomers}
+              sub={periodLabel}
+              value={uniqueQ.isError ? '—' : (uniqueQ.data ?? 0).toLocaleString()}
+              icon="group"
+              accent="green"
+              loading={uniqueQ.isLoading}
+            />
+            <MetricCard
+              label={d.missedProducts}
+              sub={periodLabel}
+              value={missedQ.isError ? '—' : (missedQ.data ?? []).length.toLocaleString()}
+              icon="warning"
+              accent="amber"
+              loading={missedQ.isLoading}
+            />
+            <MetricCard
+              label={d.totalProducts}
+              value={totalQ.isError ? '—' : (totalQ.data ?? 0).toLocaleString()}
+              icon="inventory_2"
+              accent="neutral"
+              loading={totalQ.isLoading}
+            />
           </div>
         </div>
-        <WalletIcon size={36} color="rgba(248,113,113,0.25)" style={{ flexShrink: 0 }} />
-      </div>
 
-      {/* ── Scan coverage progress bar ── */}
-      <div
-        style={{
-          background: 'var(--glass-subtle)',
-          border: '1px solid var(--glass-soft-border)',
-          borderRadius: 14,
-          padding: '12px 14px',
-        }}
-      >
+        {/* Row 2, Col 6: Lost Revenue */}
         <div
+          className="bento-col-6 retail-card"
           style={{
+            background: 'rgba(248,113,113,0.06)',
+            borderColor: 'rgba(248,113,113,0.22)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            marginBottom: 8,
+            gap: 16,
           }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: 13,
+                fontWeight: 700,
+                color: 'var(--text-sub)',
+              }}
+            >
+              <ArrowForwardIcon size={14} color="#F87171" style={{ transform: 'rotate(45deg)' }} />
+              <span>{d.lostRevenue}</span>
+            </div>
+            {lostQ.isLoading ? (
+              <div className="retail-skel" style={{ height: 32, width: 140, borderRadius: 8 }} />
+            ) : (
+              <div
+                style={{
+                  fontSize: 28,
+                  fontWeight: 800,
+                  fontFamily: 'var(--font-display)',
+                  color: '#F87171',
+                  lineHeight: 1.2,
+                }}
+              >
+                {lostQ.isError ? '—' : `~${formatPrice(lostQ.data ?? 0)}`}
+              </div>
+            )}
+            <div style={{ fontSize: 11.5, color: 'var(--text-dim)' }}>
+              {periodLabel} · {d.lostRevenueHint}
+            </div>
+          </div>
+          <WalletIcon size={44} color="rgba(248,113,113,0.22)" style={{ flexShrink: 0 }} />
+        </div>
+
+        {/* Row 2, Col 6: Scan Coverage Progress */}
+        <div
+          className="bento-col-6 retail-card"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            gap: 10,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: 13,
+                fontWeight: 700,
+                color: 'var(--text-sub)',
+              }}
+            >
+              <FactCheckIcon size={16} color="var(--retail-accent, #38BDF8)" />
+              <span>{d.catalogCoverage}</span>
+            </div>
+            <div
+              style={{
+                fontSize: 20,
+                fontWeight: 800,
+                fontFamily: 'var(--font-display)',
+                color: coverageColor,
+              }}
+            >
+              {coverageQ.isLoading ? '...' : coverageQ.isError ? '—' : `${coverageQ.data ?? 0}%`}
+            </div>
+          </div>
+
+          <div
+            style={{
+              height: 8,
+              borderRadius: 4,
+              background: 'var(--glass-bg)',
+              border: '1px solid var(--retail-border)',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                height: '100%',
+                width: coverageQ.isLoading ? '0%' : `${Math.min(coverageQ.data ?? 0, 100)}%`,
+                borderRadius: 4,
+                background: coverageGradient,
+                transition: 'width 0.6s ease',
+              }}
+            />
+          </div>
+
+          <div style={{ fontSize: 11.5, color: 'var(--text-dim)' }}>{d.catalogCoverageHint}</div>
+        </div>
+
+        {/* Row 3, Col 6: Top-5 Scanned Products */}
+        <div
+          className="bento-col-6 retail-card"
+          style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
+        >
+          <SectionHeader
+            icon="trending_up"
+            iconColor="var(--retail-accent, #38BDF8)"
+            title={d.topProducts}
+          />
+
+          {topQ.isError ? (
+            <QueryError label={d.loadError} retryLabel={d.retry} onRetry={() => topQ.refetch()} />
+          ) : topQ.isLoading ? (
+            Array.from({ length: 5 }).map((_, i) => <ProductRow key={i} loading />)
+          ) : !topQ.data?.length ? (
+            <EmptyState icon="bar_chart" label={d.topEmpty} sub={d.noDataSub} />
+          ) : (
+            topQ.data.map((p, i) => (
+              <ProductRow
+                key={p.ean}
+                rank={i + 1}
+                name={p.name}
+                scanCount={Number(p.scan_count)}
+                imageUrl={getImageUrl(p.image_url)}
+                scanLabel={d.scans}
+                loading={false}
+              />
+            ))
+          )}
+        </div>
+
+        {/* Row 3, Col 6: Missed Opportunities */}
+        <div
+          className="bento-col-6 retail-card"
+          style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
         >
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 5,
-              fontSize: 12,
-              color: 'var(--text-dim)',
+              justifyContent: 'space-between',
+              gap: 10,
+              flexWrap: 'wrap',
             }}
           >
-            <FactCheckIcon size={14} color="#38BDF8" />
-            {d.catalogCoverage}
+            <SectionHeader
+              icon="sentiment_dissatisfied"
+              iconColor="#F59E0B"
+              title={d.missedTitle}
+            />
+
+            {/* Filter tabs */}
+            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+              {MISSED_TABS.map((tab) => {
+                const active = missedFilter === tab.key
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => {
+                      if (tab.key !== 'all') {
+                        window.history.pushState({}, '')
+                      }
+                      setMissedFilter(tab.key)
+                    }}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: 8,
+                      border: `1px solid ${active ? 'rgba(245,158,11,0.45)' : 'var(--retail-border)'}`,
+                      cursor: 'pointer',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      fontFamily: 'var(--font-body)',
+                      background: active ? 'rgba(245,158,11,0.15)' : 'transparent',
+                      color: active ? '#F59E0B' : 'var(--text-dim)',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                )
+              })}
+            </div>
           </div>
-          <div
-            style={{
-              fontSize: 15,
-              fontWeight: 700,
-              fontFamily: 'var(--font-display)',
-              color: (() => {
-                const v = coverageQ.data ?? 0
-                if (v >= 70) return '#10B981'
-                if (v >= 40) return '#F59E0B'
-                return '#F87171'
-              })(),
-            }}
-          >
-            {coverageQ.isLoading ? '...' : coverageQ.isError ? '—' : `${coverageQ.data ?? 0}%`}
+
+          {/* List */}
+          {missedQ.isError ? (
+            <QueryError
+              label={d.loadError}
+              retryLabel={d.retry}
+              onRetry={() => missedQ.refetch()}
+            />
+          ) : missedQ.isLoading ? (
+            Array.from({ length: 3 }).map((_, i) => <MissedRow key={i} loading />)
+          ) : missedFiltered.length === 0 ? (
+            <EmptyState icon="check_circle" label={d.missedEmpty} sub={d.missedEmptySub} />
+          ) : (
+            missedFiltered.map((item) => (
+              <MissedRow
+                key={item.ean}
+                ean={item.ean}
+                name={item.name}
+                scanCount={Number(item.scan_count)}
+                imageUrl={getImageUrl(item.image_url)}
+                reason={item.reason}
+                scanLabel={d.scans}
+                labelNotInCatalog={d.notInCatalog}
+                labelOutOfStock={d.outOfStock}
+                loading={false}
+              />
+            ))
+          )}
+        </div>
+
+        {/* Row 4, Col 7: KÖRSET AI Insights */}
+        <div
+          className="bento-col-7 retail-card"
+          style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
+        >
+          <SectionHeader
+            icon="auto_awesome"
+            iconColor="var(--retail-accent, #38BDF8)"
+            title={d.aiInsightsTitle}
+          />
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {aiInsightsLoading ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <AIInsightRow key={i} loading t={t} exists={exists} />
+              ))
+            ) : aiInsights.length === 0 ? (
+              <EmptyState icon="insights" label={d.aiInsightsEmpty} sub={d.aiInsightsEmptySub} />
+            ) : (
+              aiInsights.map((insight) => (
+                <AIInsightRow
+                  key={insight.id}
+                  insight={insight}
+                  t={t}
+                  exists={exists}
+                  loading={false}
+                />
+              ))
+            )}
           </div>
         </div>
-        <div
-          style={{
-            height: 6,
-            borderRadius: 3,
-            background: 'var(--glass-soft-border)',
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              height: '100%',
-              width: coverageQ.isLoading ? '0%' : `${Math.min(coverageQ.data ?? 0, 100)}%`,
-              borderRadius: 3,
-              background: (() => {
-                const v = coverageQ.data ?? 0
-                if (v >= 70) return 'linear-gradient(90deg, #10B981, #34D399)'
-                if (v >= 40) return 'linear-gradient(90deg, #F59E0B, #FBBF24)'
-                return 'linear-gradient(90deg, #F87171, #FCA5A5)'
-              })(),
-              transition: 'width 0.6s ease',
-            }}
+
+        {/* Row 4, Col 5: Shopper Behavior Signals (Alternatives & Compare) */}
+        <div className="bento-col-5" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <AlternativeSignalsCard
+            summary={alternativesQ.data}
+            loading={alternativesQ.isLoading}
+            error={alternativesQ.isError}
+            onRetry={() => alternativesQ.refetch()}
+            d={d}
+            t={t}
+          />
+
+          <CompareSignalsCard
+            summary={compareQ.data}
+            loading={compareQ.isLoading}
+            error={compareQ.isError}
+            onRetry={() => compareQ.refetch()}
+            d={d}
           />
         </div>
-        <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 5 }}>
-          {d.catalogCoverageHint}
-        </div>
-      </div>
-
-      <AlternativeSignalsCard
-        summary={alternativesQ.data}
-        loading={alternativesQ.isLoading}
-        error={alternativesQ.isError}
-        onRetry={() => alternativesQ.refetch()}
-        d={d}
-        t={t}
-      />
-
-      <CompareSignalsCard
-        summary={compareQ.data}
-        loading={compareQ.isLoading}
-        error={compareQ.isError}
-        onRetry={() => compareQ.refetch()}
-        d={d}
-      />
-
-      {/* AI insights */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <SectionHeader icon="auto_awesome" iconColor="#38BDF8" title={d.aiInsightsTitle} />
-
-        {aiInsightsLoading ? (
-          Array.from({ length: 3 }).map((_, i) => (
-            <AIInsightRow key={i} loading t={t} exists={exists} />
-          ))
-        ) : aiInsights.length === 0 ? (
-          <EmptyState icon="insights" label={d.aiInsightsEmpty} sub={d.aiInsightsEmptySub} />
-        ) : (
-          aiInsights.map((insight) => (
-            <AIInsightRow
-              key={insight.id}
-              insight={insight}
-              t={t}
-              exists={exists}
-              loading={false}
-            />
-          ))
-        )}
-      </div>
-
-      {/* ── Top-5 Products ── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <SectionHeader icon="trending_up" iconColor="#38BDF8" title={d.topProducts} />
-
-        {topQ.isError ? (
-          <QueryError label={d.loadError} retryLabel={d.retry} onRetry={() => topQ.refetch()} />
-        ) : topQ.isLoading ? (
-          Array.from({ length: 5 }).map((_, i) => <ProductRow key={i} loading />)
-        ) : !topQ.data?.length ? (
-          <EmptyState icon="bar_chart" label={d.topEmpty} sub={d.noDataSub} />
-        ) : (
-          topQ.data.map((p, i) => (
-            <ProductRow
-              key={p.ean}
-              rank={i + 1}
-              name={p.name}
-              scanCount={Number(p.scan_count)}
-              imageUrl={getImageUrl(p.image_url)}
-              scanLabel={d.scans}
-              loading={false}
-            />
-          ))
-        )}
-      </div>
-
-      {/* ── Missed Opportunities ── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 20 }}>
-        <SectionHeader icon="sentiment_dissatisfied" iconColor="#F59E0B" title={d.missedTitle} />
-
-        {/* Filter tabs */}
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {MISSED_TABS.map((tab) => {
-            const active = missedFilter === tab.key
-            return (
-              <button
-                key={tab.key}
-                onClick={() => {
-                  if (tab.key !== 'all') {
-                    window.history.pushState({}, '')
-                  }
-                  setMissedFilter(tab.key)
-                }}
-                style={{
-                  padding: '5px 11px',
-                  borderRadius: 8,
-                  border: `1px solid ${active ? 'rgba(245,158,11,0.4)' : 'var(--glass-soft-border)'}`,
-                  cursor: 'pointer',
-                  fontSize: 11,
-                  fontWeight: 600,
-                  fontFamily: 'var(--font-body)',
-                  background: active ? 'rgba(245,158,11,0.13)' : 'transparent',
-                  color: active ? '#F59E0B' : 'var(--text-dim)',
-                  transition: 'background 0.15s, color 0.15s, border-color 0.15s',
-                }}
-              >
-                {tab.label}
-              </button>
-            )
-          })}
-        </div>
-
-        {/* List */}
-        {missedQ.isError ? (
-          <QueryError label={d.loadError} retryLabel={d.retry} onRetry={() => missedQ.refetch()} />
-        ) : missedQ.isLoading ? (
-          Array.from({ length: 3 }).map((_, i) => <MissedRow key={i} loading />)
-        ) : missedFiltered.length === 0 ? (
-          <EmptyState icon="check_circle" label={d.missedEmpty} sub={d.missedEmptySub} />
-        ) : (
-          missedFiltered.map((item) => (
-            <MissedRow
-              key={item.ean}
-              ean={item.ean}
-              name={item.name}
-              scanCount={Number(item.scan_count)}
-              imageUrl={getImageUrl(item.image_url)}
-              reason={item.reason}
-              scanLabel={d.scans}
-              labelNotInCatalog={d.notInCatalog}
-              labelOutOfStock={d.outOfStock}
-              loading={false}
-            />
-          ))
-        )}
       </div>
     </div>
   )

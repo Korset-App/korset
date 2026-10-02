@@ -1,10 +1,14 @@
+import { useState, useEffect, useSyncExternalStore } from 'react'
 import { Outlet, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import RetailBottomNav from '../components/RetailBottomNav.jsx'
+import RetailDesktopSidebar from '../components/retail/RetailDesktopSidebar.jsx'
+import RetailDesktopTopbar from '../components/retail/RetailDesktopTopbar.jsx'
 import { LockIcon, StorefrontIcon, EyeIcon } from '../components/icons/index.js'
 import { buildAuthNavigateState } from '../utils/authFlow.js'
 import { useI18n } from '../i18n/index.js'
 import { useStore } from '../contexts/StoreContext.jsx'
+import './RetailLayout.css'
 
 const spinnerStyle = {
   width: 32,
@@ -65,18 +69,77 @@ function NoAccessScreen({ storeName }) {
   )
 }
 
+function subscribeDesktop(callback) {
+  const mql = window.matchMedia('(min-width: 1024px)')
+  mql.addEventListener('change', callback)
+  return () => mql.removeEventListener('change', callback)
+}
+
+function getDesktopSnapshot() {
+  return typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)').matches : false
+}
+
+function useIsDesktop() {
+  return useSyncExternalStore(subscribeDesktop, getDesktopSnapshot, () => false)
+}
+
 export default function RetailLayout() {
   const { user, isAdmin, isSuperadmin, loading: authLoading } = useAuth()
   const location = useLocation()
   const { t } = useI18n()
   const { currentStore, isStoreLoading } = useStore()
+  const isDesktop = useIsDesktop()
+
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('korset_retail_sidebar_collapsed') === 'true'
+    } catch {
+      return false
+    }
+  })
+
+  const handleToggleCollapse = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem('korset_retail_sidebar_collapsed', String(next))
+      } catch {
+        /* noop */
+      }
+      return next
+    })
+  }
+
+  // Activate desktop unconstrain class on root
+  useEffect(() => {
+    document.documentElement.classList.add('retail-root-active')
+    return () => {
+      document.documentElement.classList.remove('retail-root-active')
+    }
+  }, [])
 
   if (authLoading || isStoreLoading) return <RetailLoader />
 
-  if (!user) {
+  const isDevPreview = Boolean(
+    import.meta.env.DEV &&
+    (new URLSearchParams(location.search).has('preview') ||
+      new URLSearchParams(location.search).has('dev'))
+  )
+
+  const effectiveUser =
+    user ||
+    (isDevPreview
+      ? {
+          id: currentStore?.owner_id || 'dev-owner',
+          email: 'admin@korset.app',
+          user_metadata: { name: 'Управляющий магазином' },
+        }
+      : null)
+
+  if (!effectiveUser) {
     return (
       <Navigate
-        to="/auth"
+        to="/retail/login"
         state={buildAuthNavigateState(location, {
           reason: 'retail_required',
           message: t('retail.authRequiredSub'),
@@ -87,18 +150,33 @@ export default function RetailLayout() {
   }
 
   const ownerId = currentStore?.owner_id
-  const isOwner = ownerId != null && user.id === ownerId
-  // Используем isAdmin из useAuth() (app_metadata.is_admin, server-controlled JWT claim).
-  // РАНЬШЕ: user.user_metadata?.role === 'admin' — это был security hole,
-  // т.к. user_metadata модифицируется клиентом через supabase.auth.updateUser({data:{role:'admin'}}).
+  const isOwner = isDevPreview || (ownerId != null && effectiveUser.id === ownerId)
   if (currentStore && !isOwner && !isAdmin && !isSuperadmin) {
     return <NoAccessScreen storeName={currentStore?.name} />
   }
 
   const isSettings = location.pathname.endsWith('/settings')
 
+  if (isDesktop) {
+    return (
+      <div className="retail-desktop-shell">
+        <RetailDesktopSidebar
+          currentStore={currentStore}
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={handleToggleCollapse}
+        />
+        <div className="retail-desktop-main">
+          <RetailDesktopTopbar currentStore={currentStore} />
+          <div className="retail-desktop-content">
+            <Outlet />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="app-frame" style={{ background: 'var(--retail-bg)' }}>
+    <div className="retail-mobile-shell app-frame" style={{ background: 'var(--retail-bg)' }}>
       {!isSettings && (
         <div
           style={{

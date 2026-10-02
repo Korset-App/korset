@@ -4,24 +4,30 @@ import { useStore } from '../contexts/StoreContext.jsx'
 import { supabase } from '../utils/supabase.js'
 import { getIntegrationHealth } from '../domain/retail/integrationStatus.js'
 import { AlertTriangleIcon, CheckCircleIcon, SyncIcon } from '../components/icons/index.js'
+import IntegrationCatalogReport from '../components/retail/IntegrationCatalogReport.jsx'
+import IntegrationIssueQueue from '../components/retail/IntegrationIssueQueue.jsx'
 import './RetailIntegrationScreen.css'
 
 async function requestIntegration(storeId, action, signal, details = {}) {
   const { data, error } = await supabase.auth.getSession()
   if (error || !data?.session?.access_token) throw new Error('auth')
   if (signal.aborted) throw new Error('aborted')
-  const response = await fetch(
-    action ? '/api/integration' : `/api/integration?store_id=${encodeURIComponent(storeId)}`,
-    {
-      method: action ? 'POST' : 'GET',
-      headers: {
-        Authorization: `Bearer ${data.session.access_token}`,
-        ...(action ? { 'Content-Type': 'application/json' } : {}),
-      },
-      ...(action ? { body: JSON.stringify({ action, store_id: storeId, ...details }) } : {}),
-      signal,
-    }
-  )
+  const listing = action === 'issues'
+  const query = new URLSearchParams({ store_id: storeId })
+  if (listing) {
+    query.set('action', 'issues')
+    for (const [key, value] of Object.entries(details)) if (value) query.set(key, String(value))
+  }
+  const posting = action && !listing
+  const response = await fetch(posting ? '/api/integration' : `/api/integration?${query}`, {
+    method: posting ? 'POST' : 'GET',
+    headers: {
+      Authorization: `Bearer ${data.session.access_token}`,
+      ...(posting ? { 'Content-Type': 'application/json' } : {}),
+    },
+    ...(posting ? { body: JSON.stringify({ action, store_id: storeId, ...details }) } : {}),
+    signal,
+  })
   const body = await response.json().catch(() => ({}))
   if (!response.ok) {
     const code = body.code || body.error?.code || body.error
@@ -40,9 +46,13 @@ async function requestIntegration(storeId, action, signal, details = {}) {
       throw new Error('reviewChanged')
     throw new Error('request')
   }
-  if (!Object.hasOwn(body, 'integration')) throw new Error('request')
+  if (listing ? !Array.isArray(body.items) : !Object.hasOwn(body, 'integration'))
+    throw new Error('request')
   return body
 }
+
+const requestIssuePage = (storeId, signal, details) =>
+  requestIntegration(storeId, 'issues', signal, details)
 
 function formatDate(value, lang) {
   if (!value || !Number.isFinite(Date.parse(value))) return '—'
@@ -58,7 +68,6 @@ function IntegrationContent({ storeId, currentStore }) {
   const { t, lang } = useI18n()
   const [view, setView] = useState('loading')
   const [integration, setIntegration] = useState(null)
-  const [issues, setIssues] = useState([])
   const [observedAt, setObservedAt] = useState(Date.now)
   const [token, setToken] = useState(null)
   const [error, setError] = useState(null)
@@ -86,7 +95,6 @@ function IntegrationContent({ storeId, currentStore }) {
         const result = await requestIntegration(storeId, null, signal)
         if (signal.aborted) return
         setIntegration(result.integration)
-        setIssues(result.issues ?? [])
         setView('ready')
       } catch (caught) {
         if (!signal.aborted) {
@@ -139,7 +147,6 @@ function IntegrationContent({ storeId, currentStore }) {
       const result = await requestIntegration(storeId, action, controller.signal, details)
       if (controller.signal.aborted) return
       setIntegration(result.integration)
-      setIssues(result.issues ?? [])
       setObservedAt(Date.now())
       if (result.token) setToken(result.token)
       setView('ready')
@@ -318,42 +325,16 @@ function IntegrationContent({ storeId, currentStore }) {
             </section>
           )}
 
-          {issues.length > 0 && (
-            <section className="retail-integration__card">
-              <h2>{t('integration.issuesTitle')}</h2>
-              <p>{t('integration.issuesHelp')}</p>
-              <ul className="retail-integration__issues">
-                {issues.map((issue) => (
-                  <li key={JSON.stringify([issue.external_id, issue.variant_id, issue.unit_id])}>
-                    <strong>{issue.name || issue.external_id}</strong>
-                    <p>
-                      {t(
-                        `integration.issue.${['UNKNOWN_PRODUCT', 'OWNERSHIP_CONFLICT', 'BARCODE_CONFLICT', 'PRICE_MISSING', 'PRICE_PRECISION_UNSUPPORTED', 'STOCK_UNKNOWN', 'SALE_UNIT_UNSUPPORTED'].includes(issue.code) ? issue.code : 'other'}`
-                      )}
-                    </p>
-                    {issue.source_id && (
-                      <button
-                        type="button"
-                        disabled={busy || health.state !== 'active'}
-                        onClick={() => setResolveTarget(issue)}
-                      >
-                        {t(
-                          issue.code === 'OWNERSHIP_CONFLICT'
-                            ? 'integration.adopt'
-                            : 'integration.resolve'
-                        )}
-                      </button>
-                    )}
-                    <details>
-                      <summary>{t('integration.technicalDetails')}</summary>
-                      <code>
-                        {issue.code} · {issue.external_id}
-                      </code>
-                    </details>
-                  </li>
-                ))}
-              </ul>
-            </section>
+          <IntegrationCatalogReport integration={integration} />
+
+          {integration && (
+            <IntegrationIssueQueue
+              storeId={storeId}
+              revision={integration}
+              requestPage={requestIssuePage}
+              onResolve={setResolveTarget}
+              canResolve={!busy && health.state === 'active'}
+            />
           )}
 
           {resolveTarget && (

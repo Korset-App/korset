@@ -71,6 +71,11 @@
   "stores.noResultsText": "Попробуйте название магазина, район или адрес.",
   "stores.ownerEyebrow": "Для владельцев",
   "stores.ownerTitle": "Хотите добавить свой магазин?",
-  "stores.ownerCta": "Связаться",
-  "common.errorReloading": "Обновляем приложение…"
+  "common.errorReloading": "Обновляем приложение…",
+  "common.errorTitle": "Что-то пошло не так",
+  "common.errorDesc": "Произошла непредвиденная ошибка. Попробуйте перезагрузить или вернуться на главную.",
+  "common.errorReload": "Перезагрузить",
+  "common.errorHome": "На главную",
+  "common.errorShow": "Показать детали",
+  "common.errorHide": "Скрыть детали"
 }

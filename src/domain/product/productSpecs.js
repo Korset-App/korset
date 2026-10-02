@@ -3,7 +3,10 @@ import { getAllergenShortName } from '../../constants/allergens.js'
 
 function cleanText(value) {
   if (value === null || value === undefined) return null
-  const trimmed = String(value).trim()
+  const trimmed = String(value)
+    .replace(/^[,;:\s]+/, '')
+    .replace(/[,;:\s]+$/, '')
+    .trim()
   return trimmed || null
 }
 
@@ -46,7 +49,9 @@ export function buildProductCharacteristicSpecs(product, { lang = 'ru' } = {}) {
   const specs = product.specs || {}
   const rows = []
 
-  const storage = cleanText(product.storage_conditions || product.storageConditions || specs.storage)
+  const storage = cleanText(
+    product.storage_conditions || product.storageConditions || specs.storage
+  )
   if (storage) rows.push({ key: 'storage', labelKey: 'product.storage', value: storage })
 
   const bestBefore = cleanText(product.shelf_life || product.shelfLife || specs.bestBefore)
@@ -63,11 +68,19 @@ export function buildProductCharacteristicSpecs(product, { lang = 'ru' } = {}) {
   const flavor = cleanText(product.taste || product.flavor || specs.flavor)
   if (flavor) rows.push({ key: 'flavor', labelKey: 'product.flavor', value: flavor })
 
-  const cookingInstructions = cleanText(product.cooking_instructions || product.cookingInstructions || specs.cookingInstructions)
+  const cookingInstructions = cleanText(
+    product.cooking_instructions || product.cookingInstructions || specs.cookingInstructions
+  )
   if (cookingInstructions)
-    rows.push({ key: 'cookingInstructions', labelKey: 'product.cookingInstructions', value: cookingInstructions })
+    rows.push({
+      key: 'cookingInstructions',
+      labelKey: 'product.cookingInstructions',
+      value: cookingInstructions,
+    })
 
-  const halalCertifier = cleanText(product.halal_certifier || product.halalCertifier || specs.halalCertifier)
+  const halalCertifier = cleanText(
+    product.halal_certifier || product.halalCertifier || specs.halalCertifier
+  )
   if (halalCertifier)
     rows.push({ key: 'halalCertifier', labelKey: 'product.halalCertifier', value: halalCertifier })
 

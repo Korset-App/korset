@@ -3,6 +3,7 @@ export async function loadCatalogPages({
   onPage = () => {},
   isCancelled = () => false,
   pageSize = 500,
+  cursorKey = 'ean',
 }) {
   let cursor = null
   let rows = []
@@ -14,7 +15,7 @@ export async function loadCatalogPages({
     if (!Array.isArray(data)) throw new Error('Catalog page response is missing data')
     if (data.length === 0) break
 
-    const nextCursor = data.at(-1)?.ean
+    const nextCursor = data.at(-1)?.[cursorKey]
     if (!nextCursor || (cursor !== null && String(nextCursor) <= String(cursor))) {
       throw new Error('Catalog cursor did not advance')
     }

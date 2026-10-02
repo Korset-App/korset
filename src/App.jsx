@@ -44,14 +44,21 @@ const TermsScreen = lazyWithRetry(() => import('./screens/TermsScreen.jsx'))
 const RetailLayout = lazyWithRetry(() => import('./layouts/RetailLayout.jsx'))
 const RetailDashboardScreen = lazyWithRetry(() => import('./screens/RetailDashboardScreen.jsx'))
 const RetailEntryScreen = lazyWithRetry(() => import('./screens/RetailEntryScreen.jsx'))
+const RetailAuthScreen = lazyWithRetry(() => import('./screens/RetailAuthScreen.jsx'))
 const RetailProductsScreen = lazyWithRetry(() => import('./screens/RetailProductsScreen.jsx'))
 const RetailImportScreen = lazyWithRetry(() => import('./screens/RetailImportScreen.jsx'))
 const RetailIntegrationScreen = lazyWithRetry(() => import('./screens/RetailIntegrationScreen.jsx'))
+const RetailStorefrontScreen = lazyWithRetry(() => import('./screens/RetailStorefrontScreen.jsx'))
 const RetailSettingsScreen = lazyWithRetry(() => import('./screens/RetailSettingsScreen.jsx'))
 const EanRecoveryScreen = lazyWithRetry(() => import('./screens/EanRecoveryScreen.jsx'))
 const CompareScreen = lazyWithRetry(() => import('./screens/CompareScreen.jsx'))
 const ProductMockScreen = lazyWithRetry(() => import('./screens/_mock/ProductMockScreen.jsx'))
 const SuperAdminStoresScreen = lazyWithRetry(() => import('./screens/SuperAdminStoresScreen.jsx'))
+
+function RetailIndexRedirect() {
+  const location = useLocation()
+  return <Navigate to={{ pathname: 'dashboard', search: location.search }} replace />
+}
 
 function AppInner() {
   const { pathname } = useLocation()
@@ -119,7 +126,7 @@ function AppInner() {
   }, [refreshPendingCount])
 
   return (
-    <div className="app-frame">
+    <div className={`app-frame ${pathname.startsWith('/retail') ? 'retail-root-frame' : ''}`}>
       <OfflineBanner />
       <ErrorBoundary key={pathname} t={t}>
         <Suspense fallback={<RouteLoader />}>
@@ -165,7 +172,8 @@ function AppInner() {
             {/* Super Admin Panel */}
             <Route path="/korset-admin/stores" element={<SuperAdminStoresScreen />} />
 
-            {/* Retail Cabinet Entry — finds store by owner_id */}
+            {/* Retail Cabinet Entry — finds store by owner_id or shows login */}
+            <Route path="/retail/login" element={<RetailAuthScreen />} />
             <Route path="/retail" element={<RetailEntryScreen />} />
 
             {/* Retail Cabinet B2B Routes */}
@@ -173,10 +181,11 @@ function AppInner() {
               <Route path="dashboard" element={<RetailDashboardScreen />} />
               <Route path="products" element={<RetailProductsScreen />} />
               <Route path="import" element={<RetailImportScreen />} />
+              <Route path="storefront" element={<RetailStorefrontScreen />} />
               <Route path="integration" element={<RetailIntegrationScreen />} />
               <Route path="ean-recovery" element={<EanRecoveryScreen />} />
               <Route path="settings" element={<RetailSettingsScreen />} />
-              <Route index element={<Navigate to="dashboard" replace />} />
+              <Route index element={<RetailIndexRedirect />} />
             </Route>
 
             {/* Legacy Global Routes -> Redirect to Store Selection */}

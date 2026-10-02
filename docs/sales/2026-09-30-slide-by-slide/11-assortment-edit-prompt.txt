@@ -1,0 +1,25 @@
+Use case: precise-object-edit. Edit this approved 16:9 Körset commercial slide. User likes composition, typography and wording but wants a more varied, realistic grocery assortment rather than the same bread, milk, tomatoes and leafy greens on every slide. Change ONLY the food/products and retail shelf environment, including the scene shown inside the phone camera. Retain exact graphic composition, headline, all Russian wording, placement and relative size of the phone/tripod, clapperboard and right paper board, violet/aubergine/cream brand palette, lighting quality and entire footer with original logo. Don't add a page number.
+
+New subject: an appealing believable product-shooting set inside a neighbourhood grocery store, curated from PACKAGED SWEETS, SNACKS and NON-ALCOHOLIC DRINKS. Replace every loaf, milk bottle, egg box, tomato, salad leaf, vegetable crate, herb and decorative green foreground foliage. No baskets. Instead foreground around/behind the existing camera and clapperboard features: a few wrapped chocolate bars with discreet clean plum/cream wrappers and exposed chocolate square for identification; a realistic small biscuit carton with butter cookies, a clear shallow packet of rectangular wafers; an upright matte snack/chips packet with a small photo of chips; a small orange-juice carton with simple orange-fruit imagery; a transparent plastic bottle of still water with violet cap; and a realistic slim can of iced tea or fruit drink with elegant muted colourful packaging. Choose about6–8 items, variety not clutter. These are actual everyday SHOP PRODUCTS in convincing retail packaging, not unwrapped patisserie, luxurious macarons, expensive cosmetic perfume bottles, homemade breads or generic coloured blocks. Packaging proportions, crimps, seams, cap threads and contents realistic. No real brandnames invented, no printed fake barcode digits, no nonsense words, no medical claims or halal certification on these illustrative products. Use predominantly cream/cocoa/orange/burgundy/muted teal packaging with a few violet caps/wrappers, not purple on absolutely every product. Product label graphics can be pictorial and minimal, no legible text needed.
+
+Background must also become subtly recognisable grocery SHELVES with neatly stocked packets of biscuits/chocolate, snack bags, bottled drinks, juice cartons. Show this only around left/background gaps, soft natural depth of field. Keep the warm cream limestone behind the top headline and paper on the right so copy stays clean and legible. No produce bins or dangling foliage. The whole composition still feels like the same high-end warm editorial photo campaign, but a different subject and location within a shop. Natural store-shelf realism + precisely art-directed foreground, no chaotic supermarket clutter. Counter remains pale tactile wood.
+
+Existing full smartphone remains a proper tall slim black device with top front camera/notch and correct proportions. Inside its CAMERA SCREEN show the SAME new chocolate/biscuit/wafer/drinks arrangement, matching the actual foreground products. The screen must not still show old bread, milk or vegetables. It is not a Körset app screenshot; preserve simple recording dot. Clapperboard stays ivory/violet with EXACT existing text "Ваш магазин в кадре". Right continuous paper remains exactly in place with text unchanged.
+
+Preserve ALL original slide wording, verbatim:
+Headline "Ваш магазин —" and "герой контента Körset."
+Subtitle "Instagram и TikTok — план запуска"
+Right board:
+"Снять в вашем магазине"
+"Показать ассортимент и выбор"
+"с учётом питания, халал и бюджета."
+"Назвать вашу точку"
+"Название и адрес в ролике"
+"помогают зрителям найти магазин."
+"Дать ещё один повод прийти"
+"Показать удобство сервиса для покупателей"
+"с особыми предпочтениями."
+Footer:
+"Совместные съёмки и публикации — по согласованию."
+"Охваты и посещения зависят от аудитории и формата."
+Keep ORIGINAL Körset footer logo unchanged, do not approximate its shapes. No extra text. No chrome, glass decorative objects, metallic ribbons, neon, gradients, particles, new UI cards, tables or diagrams. Preserve approved beautiful typography and high-end photographic craft. Just give this slide its own realistic sweets/snacks/drinks filming subject.

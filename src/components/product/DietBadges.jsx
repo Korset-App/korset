@@ -1,5 +1,7 @@
+import { useMemo } from 'react'
 import { DietIcon } from '../icons/DietIcon.jsx'
 import { DIET_PREFERENCES } from '../../constants/dietGoals.js'
+import { extractDietTags, extractHalalFromName } from '../../domain/product/attributeExtractor.js'
 
 const DIET_BADGE_COLORS = {
   halal: '#10B981',
@@ -10,34 +12,63 @@ const DIET_BADGE_COLORS = {
   vegetarian: '#22C55E',
   keto: '#EC4899',
   kid_friendly: '#3B82F6',
+  low_fat: '#14B8A6',
 }
 
-const BADGE_KEYS = ['halal', 'sugar_free', 'gluten_free', 'lactose_free', 'vegan']
-
-function matchBadge(key, product) {
-  const diet = product.dietTags || []
-  if (key === 'halal') return product.halalStatus === 'yes' || product.halal === 'yes'
-  return diet.includes(key)
-}
+const CORE_BADGE_KEYS = ['halal', 'sugar_free', 'gluten_free', 'lactose_free', 'vegan']
+const EXTRA_BADGE_KEYS = ['keto', 'low_fat', 'kid_friendly', 'vegetarian']
 
 export default function DietBadges({ product, lang }) {
-  const badges = BADGE_KEYS.map((id) => {
-    const pref = DIET_PREFERENCES.find((p) => p.id === id)
-    if (!pref) return null
+  const { resolvedDietSet, isHalal } = useMemo(() => {
+    if (!product) return { resolvedDietSet: new Set(), isHalal: false }
+    const baseTags = Array.isArray(product.dietTags) ? product.dietTags : []
+    const rawHalal = product.halalStatus || product.halal || 'unknown'
+    const ingredients = product.ingredients || product.ingredients_raw || ''
+    const nutriments = product.nutritionPer100 || product.nutriments || null
+    const computedHalal = extractHalalFromName(product.name || '', rawHalal, ingredients)
+    const computedTags = extractDietTags(product.name || '', baseTags, {
+      category: product.category || '',
+      ingredients,
+      nutriments,
+      halalStatus: computedHalal,
+      allergens: product.allergens,
+      traces: product.traces,
+    })
     return {
-      id,
-      iconName: pref.icon,
-      label: pref.label[lang] || pref.label.ru,
-      color: DIET_BADGE_COLORS[id] || '#8B5CF6',
-      matched: matchBadge(id, product),
+      resolvedDietSet: new Set(computedTags),
+      isHalal:
+        computedHalal === 'yes' ||
+        rawHalal === 'yes' ||
+        rawHalal === 'verified' ||
+        rawHalal === 'certified' ||
+        computedTags.includes('halal'),
     }
-  }).filter(Boolean)
+  }, [product])
+
+  const badges = useMemo(() => {
+    const activeExtraKeys = EXTRA_BADGE_KEYS.filter((key) => resolvedDietSet.has(key))
+    const allKeys = [...CORE_BADGE_KEYS, ...activeExtraKeys]
+    return allKeys
+      .map((id) => {
+        const pref = DIET_PREFERENCES.find((p) => p.id === id)
+        if (!pref) return null
+        const matched = id === 'halal' ? isHalal : resolvedDietSet.has(id)
+        return {
+          id,
+          iconName: pref.icon,
+          label: pref.label[lang] || pref.label.ru,
+          color: DIET_BADGE_COLORS[id] || '#8B5CF6',
+          matched,
+        }
+      })
+      .filter(Boolean)
+  }, [resolvedDietSet, isHalal, lang])
 
   return (
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: `repeat(${badges.length}, 1fr)`,
+        gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
         gap: 8,
       }}
     >

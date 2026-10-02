@@ -43,7 +43,7 @@ test('snapshot rejects an expected count above the source quota before accepting
 })
 
 test('rejects unsupported version, unsafe sequences, duplicate identities and extra fields', () => {
-  for (const envelope of [sampleEnvelope({ protocol_version: 2 }), sampleEnvelope({ sequence: 0 }),
+  for (const envelope of [sampleEnvelope({ protocol_version: 3 }), sampleEnvelope({ sequence: 0 }),
     sampleEnvelope({ sequence: Number.MAX_SAFE_INTEGER + 1 }), sampleEnvelope({ store_id: 'forged' }),
     sampleEnvelope({ items: Array(2).fill(sampleEnvelope().items[0]) })]) {
     assert.throws(() => normalizeEnvelope(envelope))

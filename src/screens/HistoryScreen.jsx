@@ -12,6 +12,7 @@ import {
   buildShoppingListPath,
 } from '../utils/routes.js'
 import { hydrateProductsFromScanRows } from '../domain/product/resolver.js'
+import { getProductRef } from '../domain/product/storeSourceProduct.js'
 import {
   buildHistoryOwnerKey,
   dedupeLocalScanHistory,
@@ -248,7 +249,9 @@ export default function HistoryScreen() {
                     className="shopping-page__history-item"
                     disabled={!canOpen}
                     onClick={() =>
-                      navigate(buildProductPath(store.slug, product.ean), { state: { product } })
+                      navigate(buildProductPath(store.slug, getProductRef(product)), {
+                        state: { product },
+                      })
                     }
                   >
                     <div className="shopping-page__history-image">

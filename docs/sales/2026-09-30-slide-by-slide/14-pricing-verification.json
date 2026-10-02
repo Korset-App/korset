@@ -1,0 +1,39 @@
+{
+  "baseMonthly": 15000,
+  "unit": "одна точка",
+  "plans": [
+    {
+      "months": 1,
+      "discount": 0,
+      "monthly": 15000,
+      "total": 15000,
+      "saving": 0
+    },
+    {
+      "months": 3,
+      "discount": 5,
+      "monthly": 14250,
+      "total": 42750,
+      "saving": 2250
+    },
+    {
+      "months": 6,
+      "discount": 10,
+      "monthly": 13500,
+      "total": 81000,
+      "saving": 9000
+    },
+    {
+      "months": 12,
+      "discount": 15,
+      "monthly": 12750,
+      "total": 153000,
+      "saving": 27000
+    }
+  ],
+  "conditions": [
+    "Оплата за выбранный срок целиком.",
+    "Цена и согласованные функции фиксируются до его конца.",
+    "Материалы оплачиваются отдельно."
+  ]
+}

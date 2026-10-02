@@ -5,6 +5,7 @@ import {
   getProductScreenBaseProduct,
   getProductScreenProduct,
   shouldFetchFullProductForProductScreen,
+  mergeProductEnrichment,
 } from '../../src/domain/product/productScreenData.js'
 
 const product = (overrides = {}) => ({
@@ -13,6 +14,38 @@ const product = (overrides = {}) => ({
   nutritionPer100: { kcal: 120, protein: 4, fat: 3, carbs: 12 },
   ingredients: 'Milk',
   ...overrides,
+})
+
+test('late enrichment preserves current photos, facts and store conditions', () => {
+  const currentProduct = product({ images: ['front', 'back'], ingredients: 'Verified milk', priceKzt: 500, stockStatus: 'in_stock' })
+  const enrichedProduct = product({ images: ['old-front'], ingredients: 'Old ingredients', description: 'Additional description', priceKzt: 300 })
+  const result = mergeProductEnrichment({ currentProduct, enrichedProduct, ean: currentProduct.ean, storeId: 'store-1', eventStoreId: 'store-1' })
+  assert.deepEqual(result.images, ['front', 'back'])
+  assert.equal(result.ingredients, 'Verified milk')
+  assert.equal(result.priceKzt, 500)
+  assert.equal(result.stockStatus, 'in_stock')
+  assert.equal(result.description, 'Additional description')
+})
+
+test('enrichment from another store or product cannot update the current card', () => {
+  const currentProduct = product()
+  assert.equal(mergeProductEnrichment({ currentProduct, enrichedProduct: product({ description: 'Late' }), ean: currentProduct.ean, storeId: 'store-2', eventStoreId: 'store-1' }), currentProduct)
+  assert.equal(mergeProductEnrichment({ currentProduct, enrichedProduct: product({ ean: '22222222' }), ean: currentProduct.ean, storeId: 'store-1', eventStoreId: 'store-1' }), currentProduct)
+})
+
+test('verified packaging facts are never filled from an AI snapshot', () => {
+  const currentProduct = product({ ingredients: null, sourceMeta: { isVerified: true } })
+  assert.equal(mergeProductEnrichment({ currentProduct, enrichedProduct: product(), ean: currentProduct.ean, storeId: null, eventStoreId: null }), currentProduct)
+})
+
+test('enrichment arriving before the full response remains available without cancelling the fetch', () => {
+  const baseProduct = product({ images: ['front', 'back'], description: null })
+  const backgroundEnrichment = { storeId: 'store-1', product: product({ images: ['old'], description: 'Additional details' }) }
+  assert.equal(getProductScreenProduct({ baseProduct, fullProduct: null, ean: baseProduct.ean, storeId: 'store-1', backgroundEnrichment }).description, 'Additional details')
+  assert.equal(shouldFetchFullProductForProductScreen({ baseProduct, fullProduct: null, ean: baseProduct.ean, storeId: 'store-1', isOnline: true, needsResolve: false }), true)
+  const result = getProductScreenProduct({ baseProduct, fullProduct: product({ images: ['front', 'back'], description: null }), ean: baseProduct.ean, storeId: 'store-1', backgroundEnrichment })
+  assert.equal(result.description, 'Additional details')
+  assert.deepEqual(result.images, ['front', 'back'])
 })
 
 test('getProductScreenBaseProduct prefers catalog product for the route EAN', () => {

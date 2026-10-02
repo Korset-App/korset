@@ -19,10 +19,12 @@ function severityTitle(key, t) {
 }
 
 export default function CollapsibleFitCheck({ severityKey, reasons }) {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const [expanded, setExpanded] = useState(false)
-  const s = SEVERITY_STYLES[severityKey]
-  const canExpand = reasons.length > 0 && severityKey !== 'safe'
+  const missingDataReason = reasons.find((r) => r.source === 'missing_data')
+  const effectiveStyleKey = severityKey === 'safe' && missingDataReason ? 'caution' : severityKey
+  const s = SEVERITY_STYLES[effectiveStyleKey] || SEVERITY_STYLES.safe
+  const canExpand = reasons.length > 0 && (severityKey !== 'safe' || Boolean(missingDataReason))
 
   return (
     <button
@@ -57,7 +59,7 @@ export default function CollapsibleFitCheck({ severityKey, reasons }) {
             boxShadow: `0 4px 12px ${s.color}50`,
           }}
         >
-          {severityKey === 'safe' && (
+          {effectiveStyleKey === 'safe' && (
             <svg
               width="20"
               height="20"
@@ -72,7 +74,7 @@ export default function CollapsibleFitCheck({ severityKey, reasons }) {
               <path d="M9 12l2 2 4-4" />
             </svg>
           )}
-          {severityKey === 'caution' && (
+          {effectiveStyleKey === 'caution' && (
             <svg
               width="20"
               height="20"
@@ -88,7 +90,7 @@ export default function CollapsibleFitCheck({ severityKey, reasons }) {
               <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
           )}
-          {severityKey === 'warning' && (
+          {effectiveStyleKey === 'warning' && (
             <svg
               width="20"
               height="20"
@@ -104,7 +106,7 @@ export default function CollapsibleFitCheck({ severityKey, reasons }) {
               <line x1="12" y1="17" x2="12.01" y2="17" />
             </svg>
           )}
-          {severityKey === 'danger' && (
+          {effectiveStyleKey === 'danger' && (
             <svg
               width="20"
               height="20"
@@ -131,7 +133,11 @@ export default function CollapsibleFitCheck({ severityKey, reasons }) {
               lineHeight: 1.15,
             }}
           >
-            {severityTitle(severityKey, t)}
+            {missingDataReason && severityKey === 'safe'
+              ? lang === 'kz'
+                ? missingDataReason.textKz || missingDataReason.text
+                : missingDataReason.text
+              : severityTitle(severityKey, t)}
           </div>
           {canExpand && !expanded && (
             <div
@@ -185,7 +191,7 @@ export default function CollapsibleFitCheck({ severityKey, reasons }) {
           }}
         >
           {reasons.map((r, i) => {
-            const reasonKey = r.severity || r.type
+            const reasonKey = r.source === 'missing_data' ? 'caution' : r.severity || r.type
             const rColor = SEVERITY_STYLES[reasonKey]?.color || 'var(--text-soft)'
             return (
               <div
@@ -210,7 +216,7 @@ export default function CollapsibleFitCheck({ severityKey, reasons }) {
                     boxShadow: `0 0 6px ${rColor}`,
                   }}
                 />
-                <span>{r.text}</span>
+                <span>{lang === 'kz' ? r.textKz || r.text : r.text}</span>
               </div>
             )
           })}

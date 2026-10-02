@@ -80,17 +80,28 @@ export function createIntegrationHandler({enabled=()=>process.env.KORSET_INTEGRA
         const preview=normalized.operation==='dry_run'
         const result=await rpc(client,preview?'korset_integration_preview':'korset_integration_ingest',
           {p_token_hash:verificationHash,p_envelope:normalized,...(preview?{}:{p_payload_hash:envelopeHash(normalized)})})
-        return res.status(200).json({protocol_version:1,request_id:normalized.request_id,result})
+        return res.status(200).json({protocol_version:normalized.protocol_version,request_id:normalized.request_id,result})
       }
       const {data,error}=await client.auth.getUser(bearer)
       if(error || !data?.user?.id)throw new IntegrationError('AUTH_REQUIRED',401)
-      const payload=req.method==='GET' ? {action:'status',store_id:req.query?.store_id} : await body(req)
+      const payload=req.method==='GET' ? {...req.query,action:req.query?.action||'status'} : await body(req)
+      const listing=payload.action==='issues' && req.method==='GET'
       const resolving=payload.action==='resolve' && req.method==='POST'
       const allowed=resolving
         ? ['action','store_id','source_id','expected_revision','adopt','expected_manual_price','expected_manual_updated_at']
-        : ['action','store_id']
+        : listing ? ['action','store_id','after_id','limit','code'] : ['action','store_id']
       if(Object.keys(payload).some((key)=>!allowed.includes(key)) || !UUID.test(String(payload.store_id||''))
+        || (req.method==='GET' && !['status','issues'].includes(payload.action))
         || (req.method==='POST' && !resolving && !ACTIONS.has(payload.action)))throw new IntegrationError('INVALID_ACTION')
+      if(listing) {
+        if((payload.after_id!=null && !UUID.test(String(payload.after_id)))
+          || (payload.limit!=null && (!/^\d{1,3}$/.test(String(payload.limit)) || Number(payload.limit)<1 || Number(payload.limit)>100))
+          || (payload.code!=null && (typeof payload.code!=='string' || !/^[A-Z_]{1,64}$/.test(payload.code))))throw new IntegrationError('INVALID_ACTION')
+        operation='issues'
+        const result=await rpc(client,'korset_integration_issues',{p_owner_id:data.user.id,p_store_id:payload.store_id,
+          p_after_id:payload.after_id||null,p_limit:payload.limit==null?50:Number(payload.limit),p_code:payload.code||null})
+        return res.status(200).json(result)
+      }
       if(resolving && (!UUID.test(String(payload.source_id||'')) || !Number.isSafeInteger(payload.expected_revision)
         || payload.expected_revision<1 || typeof payload.adopt!=='boolean'
         || (payload.adopt && (payload.expected_manual_price!==null

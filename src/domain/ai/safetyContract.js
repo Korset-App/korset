@@ -1,4 +1,8 @@
-import { ALLERGEN_SYNONYMS } from '../../constants/allergenSynonyms.js'
+import {
+  findDirectAllergenInText,
+  matchesTermWithBoundary,
+  splitCompositionClauses,
+} from '../../utils/compositionMatcher.js'
 
 const HALAL_CONFIDENCE_PRIORITY = {
   confirmed_halal: 1,
@@ -74,7 +78,9 @@ function uniqueMatches(text, terms) {
       const normalizedMatch = normalizeText(match)
       return normalizedMatch.includes(normalizedTerm) || normalizedTerm.includes(normalizedMatch)
     })
-    if (text.includes(normalizedTerm) && !overlapsExisting) result.push(term)
+    if (matchesTermWithBoundary(text, normalizedTerm, { domain: 'halal' }) && !overlapsExisting) {
+      result.push(term)
+    }
   }
   return result
 }
@@ -158,10 +164,10 @@ export function getAllergyConfidence(product = {}, profile = {}) {
     }
   }
 
-  const ingredientMatches = profileAllergens.filter((allergen) => {
-    const synonyms = ALLERGEN_SYNONYMS[allergen] || []
-    return synonyms.some((synonym) => ingredients.includes(normalizeText(synonym)))
-  })
+  const { mainText } = splitCompositionClauses(ingredients)
+  const ingredientMatches = profileAllergens.filter((allergen) =>
+    Boolean(findDirectAllergenInText(mainText, allergen))
+  )
   if (ingredientMatches.length > 0) {
     return {
       level: 'direct_match',

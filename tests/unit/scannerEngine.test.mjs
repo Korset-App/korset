@@ -9,6 +9,49 @@ import {
   isPermissionError,
   prefetchScannerEngine,
 } from '../../src/utils/scannerEngine.js'
+import * as cameraEngine from '../../src/utils/scannerEngine.js'
+
+test('front camera constraints never fall back to another rear lens', () => {
+  const ladder = buildConstraintLadder(null, 'user')
+  assert.ok(ladder.length > 0)
+  for (const constraints of ladder) {
+    assert.equal(constraints.facingMode?.exact || constraints.facingMode, 'user')
+  }
+})
+
+test('camera choices contain one main rear camera and one front camera', () => {
+  assert.equal(typeof cameraEngine.selectFacingCamera, 'function')
+  const devices = [
+    { deviceId: 'ultra', label: 'Back Ultra Wide Camera' },
+    { deviceId: 'tele', label: 'Back Telephoto Camera' },
+    { deviceId: 'main', label: 'Back Camera' },
+    { deviceId: 'front', label: 'Front Camera' },
+  ]
+  assert.equal(cameraEngine.selectFacingCamera(devices, 'environment').deviceId, 'main')
+  assert.equal(cameraEngine.selectFacingCamera(devices, 'user').deviceId, 'front')
+  assert.equal(cameraEngine.selectFacingCamera([{ deviceId: 'unknown', label: '' }], 'user'), null)
+})
+
+test('enumerating camera choices never opens another capture stream', async () => {
+  assert.equal(typeof cameraEngine.enumerateCameraDevices, 'function')
+  let captures = 0
+  const devices = await cameraEngine.enumerateCameraDevices({
+    getUserMedia: async () => { captures += 1 },
+    enumerateDevices: async () => [
+      { kind: 'audioinput', deviceId: 'mic' },
+      { kind: 'videoinput', deviceId: 'camera' },
+    ],
+  })
+  assert.equal(captures, 0)
+  assert.deepEqual(devices.map((device) => device.deviceId), ['camera'])
+})
+
+test('a rear capture cannot count as a successful front-camera switch', () => {
+  assert.equal(typeof cameraEngine.matchesCameraDirection, 'function')
+  assert.equal(cameraEngine.matchesCameraDirection({ facingMode: 'environment' }, 'user'), false)
+  assert.equal(cameraEngine.matchesCameraDirection({ facingMode: 'user', deviceId: 'front' }, 'user', 'front'), true)
+  assert.equal(cameraEngine.matchesCameraDirection({ deviceId: 'rear' }, 'user', 'front'), false)
+})
 
 const BANNED_VIDEO_KEYS = new Set([
   'autoGainControl',

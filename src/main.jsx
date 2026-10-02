@@ -6,6 +6,7 @@ import * as Sentry from '@sentry/react'
 import './index.css'
 import App from './App.jsx'
 import { initializeTheme } from './utils/theme.js'
+import { createUpdateReloadHandler, isSafeUpdateRoute } from './utils/appUpdateReload.js'
 
 // Sentry — error monitoring (enabled only in production when VITE_SENTRY_DSN is set).
 // DSN is NOT a secret; it is safe to expose in client bundle.
@@ -92,14 +93,18 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
         console.warn('[SW] registration failed:', err)
       })
 
-    // When the activated service worker takes control (via skipWaiting), reload page to receive latest bundle
-    let isRefreshing = false
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!isRefreshing) {
-        isRefreshing = true
-        window.location.reload()
-      }
-    })
+    navigator.serviceWorker.addEventListener(
+      'controllerchange',
+      createUpdateReloadHandler({
+        hasController: Boolean(navigator.serviceWorker.controller),
+        canReload: () =>
+          !document.hidden &&
+          isSafeUpdateRoute(window.location.pathname) &&
+          !document.querySelector('.korset-sub-sheet, #retail-scanner-view') &&
+          !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName),
+        reload: () => window.location.reload(),
+      })
+    )
   })
 }
 

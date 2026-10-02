@@ -223,6 +223,13 @@ export function rankAlternativesForProfile({
   return limit ? ranked.slice(0, limit) : ranked
 }
 
+const FIT_VERDICT_SEVERITY_RANK = {
+  safe: 0,
+  caution: 1,
+  warning: 2,
+  danger: 3,
+}
+
 export function findProductAlternatives({
   product,
   catalogProducts = [],
@@ -241,9 +248,9 @@ export function findProductAlternatives({
     }))
     .filter((item) => item.relation < 99)
     .sort((a, b) => {
-      const aFits = a.fit?.fits !== false ? 0 : 1
-      const bFits = b.fit?.fits !== false ? 0 : 1
-      return aFits - bFits || a.relation - b.relation || a.price - b.price
+      const aRank = FIT_VERDICT_SEVERITY_RANK[a.fit?.verdict] ?? (a.fit?.fits !== false ? 0 : 3)
+      const bRank = FIT_VERDICT_SEVERITY_RANK[b.fit?.verdict] ?? (b.fit?.fits !== false ? 0 : 3)
+      return aRank - bRank || a.relation - b.relation || a.price - b.price
     })
     .slice(0, limit)
     .map((item) => item.candidate)

@@ -1,0 +1,39 @@
+Use case: productivity-visual. Create a finished 16:9 Russian Körset commercial slide for grocery store owners, explaining how repeated convenient use creates a habit and more demand data, plus future Pro and Enterprise plans. Input image1 is style reference only. Keep its refined brand design family: warm ivory/limestone texture, massive heavy dark-aubergine grotesk heading, flat vivid violet accent, realistic matte kraft/cream paper, natural warm sunlight and product photography, full-width dark aubergine footer. No chrome, glass decorative ribbons, glossy tech shapes, floating UI cards, neon, generic SVG icons or tiny dense copy. No page number. Do not reproduce source's basic icon-arrow flowchart. Make a coherent tactile photographic composition where the shopper's journey is a physical pathway.
+
+New food assortment for variety: retail packaged tea and coffee, a clear packet of pasta, a small kraft rice packet, an amber cooking-oil bottle, a plain tin of canned peas or beans. Attractive credible everyday grocery goods, unbranded wrappers with minimal pictorial graphics, no fake barcode digits or logos. No bread, milk, tomatoes, leafy salad, vegetables, baskets, chips/sweets/drinks array from previous slide. Use a FEW items, no product clutter; the journey/copy are main.
+
+One visual mechanism: ONE wide continuous gently folded ivory paper route runs across a pale shop counter from LEFT to RIGHT. Four clear flat writing areas carry the four journey stages in order. Behind it a big simple matte violet return-arrow cutout curves from the third stage back toward the first, illustrating repeat use, subtle without covering text. The route ends at an upright cream paper ledger for demand data on the far RIGHT; it is visibly part of the same paper pathway, not a floating card. Each station has one small meaningful physical object: first a small matte violet QR stand with a plain empty cream inset labelled "QR магазина" (NO actual QR pattern or barcode); second a realistic pasta packet/coffee packet with a blank unbranded price tag; third a modest coffee/tea packet and matte violet return-arrow shape; fourth the physical ledger paper. The products and photo props stay below main copy and don't obscure it. Nearly frontal perspective to read all text. This is high-end editorial still-life photography of a tangible journey, not a toy infographic. No phones or invented app screens needed.
+
+Layout at1672x941:
+Header x65y55–255 huge extra-bold grotesk77px:
+"Удобно выбирать." dark aubergine
+"Есть повод вернуться." vivid flat violet
+Keep generous white space, no extra decorative headings.
+Main route x60–1610 y335–645, four nearly frontal sections with understated thin folded-paper vertical creases, no distinct boxes. Physical purple loop arrow stays behind.
+At x80–405:
+bold31 "Первый вход"
+body23 two lines "QR на входе," and "полке или кассе."
+At x460–795:
+bold31 "Выбор у полки"
+body23 two lines "Быстрый ответ" and "о нужном товаре."
+At x850–1180:
+bold29 two lines "Повторное" and "использование"
+body23 two lines "Причина выбирать" and "у вас снова."
+At x1240–1570:
+bold31 "Больше данных"
+body23 two lines "Основа для решений" and "по ассортименту."
+Ensure widths and vertical alignment look designed, not clutter. Tiny simple flat violet printed arrows between the4 stages point left-to-right, no icons. Curve's arrowhead points back to first to explain repeat cycle. QR stand below first small enough not cover text; contains ONLY word "QR магазина" and blank neutral surface, NEVER generate a working or fake QR code. Product objects mainly along lower edge y520–655, spacing supports pathway.
+
+Below route y655–805 TWO future-plan notes printed on one long cream folded paper strip resting on counter, equal half widths, separated only by a single crease. These are clearly future directions, not current subscription packages. At striptop x80y665 small21 "В планах развития".
+Left x90–770y700:
+bold27 "Pro — расширенный тариф"
+body22 two lines "Больше возможностей" and "и совместное продвижение."
+Right x900–1570y700:
+bold27 "Enterprise — индивидуальные решения"
+body22 two lines "Адаптация витрины" and "и работа под задачи магазина."
+Keep words Pro/Enterprise correctly spelled, Russian explanation adjacent, no prices, no invented entitlements or dates.
+
+Footer fullwidth aubergine y818–941, LEFT x65–1220 warm ivory21–23:
+"Возможности для дальнейшего развития."
+"Новые тарифы и их состав согласуем отдельно."
+RIGHT x1320–1620 leave COMPLETELY BLANK aubergine for ORIGINAL Körset logo to be composited afterwards. Do not generate or approximate any logo, including on props. No extra numbers, labels, fake statistics, promises of guaranteed return visits or QR pattern. This is a useful behavioural sequence and future plan, not measured outcomes. All visible Russian words EXACT asquoted, crisp large readable typography. Consistent beautiful photographic brand styling with earlier approved slides, meaningful varied shelf assortment and a visually clear repeat journey.

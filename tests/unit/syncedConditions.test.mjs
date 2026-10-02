@@ -47,6 +47,18 @@ test('manual product stays unchanged without conditions', () => {
   assert.strictEqual(applySyncedConditions(product, undefined, now), product)
 })
 
+test('source observation time takes precedence over a fresh receipt, including missing source time',()=>{
+  assert.equal(applySyncedConditions(product,{...row,observed_at:'2020-01-01T00:00:00Z'},now).conditionsStale,true)
+  assert.equal(applySyncedConditions(product,{...row,observed_at:null},now).conditionsStale,true)
+})
+
+test('ordinary EAN hydration cannot erase source conditions or make an old source card fresh',async()=>{
+  const local={ean:row.ean,storeSourceItemId:'11111111-1111-4111-8111-111111111111',stockStatus:'in_stock',priceKzt:100,
+    syncConditions:{store_source_item_id:'11111111-1111-4111-8111-111111111111',regular_minor:10000,observed_at:'2020-01-01T00:00:00Z'}}
+  const [result]=await hydrateSyncedConditions('store',[local],{now,rpc:async()=>({data:[]})})
+  assert.ok(result.syncConditions);assert.equal(result.conditionsStale,true);assert.equal(result.stockStatus,'unknown')
+})
+
 test('hydration joins exact EAN and leaves unmatched products intact', async () => {
   const other = { ean: 'LOCAL-TEST-unmatched', priceKzt: 500 }
   const result = await hydrateSyncedConditions('store', [product, other], {

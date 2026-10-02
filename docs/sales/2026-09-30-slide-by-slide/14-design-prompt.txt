@@ -1,0 +1,56 @@
+Create ONE finished horizontal 16:9 commercial presentation slide, in Russian, for Körset grocery-store service in Kazakhstan. Reference images 1 and 2 show our APPROVED EARLY presentation art direction, not a layout to copy. The final must feel like a bespoke luxury editorial photograph with excellent business typography. Warm pale limestone, natural crisp directional sunlight, confident dark aubergine type, beautifully restrained rich violet (#6933E4). NO electric blue. This slide compares subscription terms. Its subject is prices, so beautiful store price tags are the meaningful photographic metaphor.
+
+ART-DIRECTION CONCEPT: "One service, choose the term." On a continuous warm limestone surface are FOUR elegant, real, THIN heavyweight paper retail price tags, seen from a carefully controlled almost-front / slight overhead camera. A single slender violet cotton cord loosely connects their small punched upper holes across the composition. This is an art-directed physical pricing installation, not generic floating software cards. The first three tags are matte warm ivory, the yearly tag is rich matte violet with ivory text. Use subtly clipped upper corners, precise clean paper edges, delicate tangible texture, a little lift at one corner, excellent fine shadows that reveal paper thickness. They must be thin paper, not chunky plaster slabs, blocks or sculpture podiums. Front faces are nearly orthographic for straight, readable text. Deliberately spaced, slightly staggered but price baselines aligned. Annual tag can be 10% wider, subtly closer to the viewer, absolutely readable. No grocery product props, baskets, coin piles, currency bills, rockets, calendars, trophies, glossy decorations, stock photos, chrome or glass ribbons. The tailored photographic geometry, cord and lighting provide the visual interest. No repeated big cream text boards. Genuine high-end still-life production quality, crisp paper fibres and precise print.
+
+Headline at x65 y55 across top, matching approved early heavyweight grotesk with strong hierarchy and lovely spacing, two exact lines:
+"Подписка"
+"для одной точки"
+First dark aubergine, second rich flat violet. Around 86px, no gradient, no bevel or 3D text. The title must NOT be hyper-compressed or oversize at expense of readability.
+One subtitle x68 y278 at 29px dark plum:
+"Все текущие функции входят в стартовый тариф"
+No added marketing guarantees, no page number, no invented feature set. This is the same set of current functions for all payment terms.
+
+MAIN PRICING INSTALLATION from x65 to1605 and y342 to782 on approximate1672x941 canvas. Four tags take nearly all horizontal width; wide even gaps and generous print margins. Rough column centres:240,627,1011,1420. Keep EVERY piece of pricing content visible, not partly hidden by cord, overlap or shadows. Typical tag width345, last370. All text in same modern typeface. Tag headings 33px bold; discount row24px; MONTHLY PRICE the largest ~61px bold (annual ~72px if space); supporting captions 23px. Lower upfront row ~27px bold and savings21px or more. Currency is tenge ₸, not other currency. Make monthly rate + period, full upfront amount, and savings easy to compare. Separator a very thin printed rule below monthly rate, not a UI border. No giant discounts floating outside tags.
+
+Exact printed content on EACH tag, top to bottom:
+
+TAG 1 ivory:
+"1 месяц"
+"Месячная оплата"
+"15 000"
+"₸ / месяц"
+"15 000 ₸ сразу"
+"Оплата одного месяца"
+
+TAG 2 ivory:
+"3 месяца"
+"Скидка 5%"
+"14 250"
+"₸ / месяц"
+"42 750 ₸ сразу"
+"Экономия 2 250 ₸"
+
+TAG 3 ivory:
+"6 месяцев"
+"Скидка 10%"
+"13 500"
+"₸ / месяц"
+"81 000 ₸ сразу"
+"Экономия 9 000 ₸"
+
+TAG 4 matte violet with ivory text:
+"12 месяцев"
+"Скидка 15%"
+"12 750"
+"₸ / месяц"
+"153 000 ₸ сразу"
+"Экономия 27 000 ₸"
+
+Printed price figures must be exact and separated by spaces as shown. 42 750 not42 500, 153000 not153500; preserve every rate and every amount. No additional sample numbers. No label "best seller" or invented popularity claims. ALL lines should have enough room without small condensed text. Consider real paper cut-away geometry and controlled slight variation in shadows, not rounding everything into a generic app pricing grid. Annual deep violet works naturally as the culmination of the single violet cord. This photograph should be intriguing even with no words, while text remains the main informational hierarchy.
+
+Full-width aubergine footer y816 to941 same as early reference. At left x65 y838, readable ivory exact two lines 22px:
+"Оплата за выбранный срок целиком. Цена и согласованные функции"
+"фиксируются до его конца. Материалы оплачиваются отдельно."
+At right x1320..1640 y840..925 leave entire area EMPTY SOLID aubergine for original Körset white logo inserted afterward. DO NOT GENERATE OR DRAW any logo, wordmark, cube, QR code or watermark anywhere. Footer logo will be supplied exactly. No page numbering.
+
+Production specification: finished slide image, not a photo of a slide. Beautiful fine controlled real-world texture instead of coarse artificial paper wrinkles; lighting matches early reference with cream highlights, clean violet and softly aubergine shadows. Refined typographic rhythm, sharp straight Russian typesetting, single conceptual subject and minimal distractions. The first reference is the quality benchmark: clarity, presence and intentional design. Do not copy the source four rectangular cards with rounded corners; reinvent as truly photographed retail labels while keeping pricing entirely legible. No skew that distorts digits. Need all four terms equally available for comparison, year accent largest. Be meticulous about exact text.

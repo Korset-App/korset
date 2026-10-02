@@ -6,6 +6,7 @@ import { useI18n } from '../i18n/index.js'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { getImageUrl } from '../utils/imageUrl.js'
 import { formatPrice } from '../utils/formatPrice.js'
+import { getCategoryLabel } from '../domain/product/categoryMap.js'
 import {
   getStoreCatalogProducts,
   applyRetailSyncedConditions,
@@ -131,8 +132,14 @@ function StockBadge({ status, p }) {
       color: '#F87171',
       label: p.outOfStock,
     },
+    unknown: {
+      bg: 'var(--glass-muted)',
+      border: 'var(--border)',
+      color: 'var(--text-muted)',
+      label: p.stockUnknown,
+    },
   }
-  const c = cfg[status] ?? cfg.in_stock
+  const c = cfg[status] ?? cfg.unknown
   return (
     <div
       style={{
@@ -640,6 +647,7 @@ function PromotionSection({ product, p, promotionMutation, managed }) {
 
 // ── Readonly Block ─────────────────────────────────────────────────
 function ReadonlyBlock({ product, p, storeSlug }) {
+  const { lang } = useI18n()
   const gp = product.global_products
   if (!gp) return null
 
@@ -702,7 +710,9 @@ function ReadonlyBlock({ product, p, storeSlug }) {
               <span style={{ fontSize: 11, color: 'var(--text-dim)', marginRight: 6 }}>
                 {p.categoryLabel}:
               </span>
-              <span style={{ fontSize: 13, color: 'var(--text)' }}>{gp.category}</span>
+              <span style={{ fontSize: 13, color: 'var(--text)' }}>
+                {getCategoryLabel(gp.category, lang) || gp.category}
+              </span>
             </div>
           )}
           {gp.quantity && (
@@ -1599,6 +1609,7 @@ export default function RetailProductsScreen() {
       inStock: t('retail.products.inStock'),
       lowStock: t('retail.products.lowStock'),
       outOfStock: t('retail.products.outOfStock'),
+      stockUnknown: t('integration.consumer.stock.unknown'),
       brandLabel: t('retail.products.brandLabel'),
       categoryLabel: t('retail.products.categoryLabel'),
       quantityLabel: t('retail.products.quantityLabel'),
@@ -1674,7 +1685,9 @@ export default function RetailProductsScreen() {
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setScrollParent(document.querySelector('.screen'))
+    setScrollParent(
+      document.querySelector('.retail-desktop-content') || document.querySelector('.screen')
+    )
   }, [])
 
   // Debounce search 350ms
@@ -2008,16 +2021,17 @@ export default function RetailProductsScreen() {
   )
 
   return (
-    <div style={{ paddingBottom: 8 }}>
+    <div className="retail-screen-canvas" style={{ paddingBottom: 8 }}>
       {/* ── Sticky Search Bar ── */}
       <div
         style={{
           position: 'sticky',
           top: 0,
           zIndex: 10,
-          background: 'rgba(8,12,24,0.96)',
+          background: 'var(--retail-header-bg)',
           backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(56,189,248,0.1)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderBottom: '1px solid var(--retail-border)',
         }}
       >
         {/* Row 1: search + scanner */}

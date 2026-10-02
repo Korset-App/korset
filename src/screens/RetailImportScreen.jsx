@@ -79,9 +79,12 @@ function RowCard({ row, accent = '#A7F3D0', reason }) {
 }
 
 export default function RetailImportScreen() {
-  const { t: dict } = useI18n()
+  const { t: translate } = useI18n()
   const { storeId } = useStore()
-  const t = dict.retail.import
+  const t = useMemo(
+    () => new Proxy({}, { get: (_, prop) => translate(`retail.import.${String(prop)}`) }),
+    [translate]
+  )
   const [fileName, setFileName] = useState('')
   const [rows, setRows] = useState([])
   const [errors, setErrors] = useState([])

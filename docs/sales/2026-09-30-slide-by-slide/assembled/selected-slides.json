@@ -1,0 +1,33 @@
+{
+  "order": [
+    "01-cover-v2.png",
+    "02-purchase-obstacles-v1.png",
+    "03-business-opportunities-v1.png",
+    "04-digital-storefront-v3.png",
+    "05-smart-filter-v1.png",
+    "06-ai-assistant-v1.png",
+    "07-store-dashboard-v3.png",
+    "08-storefront-controls-v1.png",
+    "10-accounting-sync-v1.png",
+    "11-store-content-v2.png",
+    "12-customer-habit-v2.png",
+    "13-store-launch-v3.png",
+    "14-subscription-plans-v1.png",
+    "09-subscription-payback-v1.png",
+    "15-support-and-terms-v1.png",
+    "16-closing-invitation-v1.png"
+  ],
+  "outputs": [
+    {
+      "file": "Korset-presentation.pdf",
+      "pages": 16,
+      "megabytes": 22.06
+    },
+    {
+      "file": "Korset-WhatsApp.pdf",
+      "pages": 16,
+      "megabytes": 7.76
+    }
+  ],
+  "imagesRegenerated": false
+}

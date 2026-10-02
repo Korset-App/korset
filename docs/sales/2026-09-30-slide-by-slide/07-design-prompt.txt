@@ -1,0 +1,42 @@
+Use case: productivity-visual. Create a finished horizontal 16:9 Russian commercial slide 07 for Körset. Input images 1 and 2 are APPROVED design family references. User rejected a dark flat grid of dashboard statistics as cheap/template; remake completely in the same tasteful warm tactile photographic art direction as the approved slides. Pale warm limestone ivory textured backdrop, very large bold dark-aubergine grotesk headline and vivid flat violet accent line, soft sun shadows, realistic matte materials, rich grocery photography, bottom full-width aubergine band. NO dark main background. NO decorative chrome, glass, shiny ribbons, glow, neon, futuristic graphics, floating UI cards, cheap line icons. Make business analytics look useful through a thoughtfully designed tangible scene and clear text hierarchy.
+
+Single visual idea: "The owner sees demand, then gets an action plan." A large realistic landscape TABLET on the LEFT half, with a beautiful ivory owner analytics concept on its screen. It rests slightly lifted on a pale wooden counter. From underneath its right edge emerges one continuous wide cream sheet of paper, gently curved, on which a short legible prioritized action plan is elegantly typeset on the RIGHT half. The paper represents data becoming practical decisions; not a sales receipt. Carefully art directed product photograph, nearly frontal tablet screen with ONLY very slight perspective, no distortion. Thin matte charcoal tablet border, small FRONT CAMERA centered on top border, realistic correct screen proportions about 16:10. No phone. A small tasteful unbranded glass milk bottle and kraft bread bag with a little leafy green at lower left partially frame the tablet without covering screen. They connect this to grocery stores, no huge basket. No logos on food. Everything part of one naturally lit cream scene, not stock photo with fade overlay.
+
+Layout in 1672x941 coordinates:
+Top broad area x65–1570 y60–255, huge bold two-line headline:
+"Спрос вашего магазина —" in deep aubergine, approx72px.
+"в понятный план действий." in vivid FLAT violet, approx72px.
+Small "07" upper right safe margin.
+Photographic scene y290–815. Tablet x70–910 y325–780, screen x96–885 y350–747; thin realistic black matte body and subtle top-centered CAMERA. Foreground groceries below-left away from screen. Cream paper starts behind right edge of tablet around x840 and extends to x1590, gentle slight curl, sharp readable text, naturally subtle shadows. The text must be large enough to read, paper is NOT split into individual boxes.
+Top of tablet screen at y360: "Кабинет магазина" left in bold22; "30 дней · пример" right16. Clean restrained UI with warm off-white background and simple thin rules. NO generated logo on screen. Metrics at y405 in one row, large numerals32 and smaller labels14 in two lines:
+"312" / "Пользователей сервиса"
+"1 248" / "Сканирований"
+"18" / "Нет в наличии"
+"8" / "Нет в каталоге"
+Under metrics y475 x120–850 a pale violet wide strip with text18 "Спрос, требующий внимания" and huge "≈ 46 800 ₸"35. Below14 "Оценка по сканам и ценам".
+Below at y575 screen divided into two understated columns, no cards:
+LEFT title18 "Что выбирают чаще" then three simple clean horizontal violet bars and labels16 "Молоко 2,5% · 190", "Хлеб · 146", "Йогурт · 103". Counts are scan counts, not sales. Correct relative bar lengths190:146:103. Small "сканирования"14 near title.
+RIGHT title18 "Как выбирают" then "67 сравнений упаковок" and "42 выбора альтернатив" in readable16.
+Bottom screen one modest violet text row14 "Каталог · Цены и наличие · Хиты".
+This screen is an illustrated proposed cabinet, not a screenshot, all numbers invented examples.
+
+RIGHT cream paper x930–1550 y320–780:
+small bold20 "ОТ СИГНАЛА К ДЕЙСТВИЮ"
+Below THREE spacious text sections without icons, no boxes, no generic bullet dots, strong title27 and body21, exquisite alignment:
+At y370 bold "Пополнить востребованное"
+body "18 недоступных товаров —"
+nextline "проверить наличие и закупку."
+At y505 bold "Закрыть пробелы в каталоге"
+body "8 товаров не нашлись —"
+nextline "добавить цены и данные."
+At y640 bold "Выделить то, что выбирают"
+body "Популярные товары —"
+nextline "проверить выкладку и добавить в хиты."
+Use only small violet typographic underlines underneath the action verbs, not colourful badges. Paper layout naturally supported by photography, not a rigid repeated information-card grid.
+
+Footer full-width aubergine band y820–941. LEFT x65–1200 with light ivory highly readable text approx18–20:
+"Концепт кабинета. Все цифры — пример."
+"Сканирования показывают интерес, а не покупки. Оценка спроса — не фактическая выручка."
+"Она зависит от цен и полноты данных; рост продаж не гарантируется."
+RIGHT x1320–1610 footer leave COMPLETELY BLANK aubergine for original supplied Körset logo to be placed afterwards. DO NOT GENERATE ANY LOGO.
+All visible wording must be Cyrillic EXACTLY as quoted, no invented words, labels or watermarks. Large well-set type, excellent linebreaks and whitespace, all data legible. Same compelling editorial photographic craft and single brand design code as approved references. Not a flat UI screenshot dominating the whole slide, not mundane stock lifestyle photo. An intentional tactile composition where analytics turns into a clear practical action plan.

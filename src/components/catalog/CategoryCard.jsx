@@ -30,7 +30,7 @@ function CategoryCardComponent({ categoryKey, label, onSelect, index, isActive, 
           src={showcase.image}
           alt=""
           loading={index < 8 ? 'eager' : 'lazy'}
-          fetchPriority={index < 2 ? 'high' : 'auto'}
+          fetchpriority={index < 2 ? 'high' : 'auto'}
           decoding="async"
         />
       </span>

@@ -163,3 +163,20 @@ test('analyzeProductIngredients explains common sweetener aliases without highli
   assert.equal(highlightById(result, 'common:сахар'), undefined)
   assert.equal(highlightById(result, 'common:вода'), undefined)
 })
+
+test('analyzeProductIngredients does not false-highlight stems inside unrelated words or negated phrases', () => {
+  const result = analyzeProductIngredients({
+    product: {
+      ingredients:
+        'Кокосовое молоко, сырье растительное, экстракт паприки, сельдерей, сыр маскарпоне. Без глютена. Может содержать следы арахиса.',
+    },
+    profile: { allergens: ['crustaceans', 'fish', 'gluten', 'peanuts'] },
+    lang: 'ru',
+  })
+
+  assert.equal(highlightById(result, 'allergen:crustaceans'), undefined)
+  assert.equal(highlightById(result, 'allergen:fish'), undefined)
+  assert.equal(highlightById(result, 'allergen:gluten'), undefined)
+  assert.equal(highlightById(result, 'allergen:peanuts'), undefined)
+  assert.equal(highlightById(result, 'trace:peanuts')?.tone, 'warning')
+})

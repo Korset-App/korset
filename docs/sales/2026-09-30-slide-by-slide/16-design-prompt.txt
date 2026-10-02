@@ -1,0 +1,40 @@
+Create ONE finished final/closing Russian commercial presentation slide for Körset grocery service, horizontal16:9. Reference image1 is APPROVED EARLY brand art direction: huge confident aubergine/violet typography, pale warm limestone, premium conceptual photographic composition, clear hierarchy and wide aubergine footer. Use it as visual quality/brand reference only, do not reproduce its basket or groceries. Reference image2 is the REAL QR asset: it will be inserted separately after generation. DO NOT DRAW OR REGENERATE that code. Need a powerful tasteful closing slide that invites a STORE OWNER to talk, ask questions and discuss a tailored offer, with a secondary invitation to explore a demo storefront. No page number. Do not invent contact numbers, discounts, free trials or commitments.
+
+CONCEPT "An open door to a conversation." Calm full-bleed pale warm limestone background and a refined, sunlight-washed small architectural grocery storefront model on the RIGHT. Realistic art-directed miniature crafted from matte ivory paperboard, warm pale wood and deep violet fabric; serious architectural model, not toy/plastic/cartoon. A clean rectangular storefront with pale ivory/violet fabric awning, a narrow deep-violet open entrance door, a tiny realistic shelving hint with packaged tea, coffee, biscuits and drinks visible inside. No brand logos, no baskets or tired foreground bread/milk/tomatoes/lettuce. Door is visibly open with natural warm light, NOT glowing or neon. The open doorway visual means an invitation to start a discussion. The store model is a single meaningful hero object with beautiful precise detail, airy negative space, natural fine shadows and quality photo materials. A REAL physical ivory demo invitation card stands just in front of/alongside it toward far right, front-facing and almost orthographic, with a LARGE truly blank WHITE QR square. QR must remain fully clear for original insert. Model should never cover the card. Do not create separate photo rounded rectangle or a left dark fade. No literal stock handshake, headset, smiling salesperson, confetti, trophy, chrome/glass ribbon, giant glossy cube, decorative loops or generic tech ornament. No fictitious smartphone screens.
+
+Approximate native1672x941 layout:
+Headline x65 y55, two exact lines in approved early heavyweight modern grotesk, dark plum then flat rich violet (#6933E4, not electric blue), approx90px, enough breathing room, clean unwarped letters:
+"Давайте обсудим"
+"ваш магазин."
+Don't convert to extruded text or compressed giant type. This phrase is the decisive closing invitation.
+
+LEFT clear text directly on light background, x70..945, y317..663. No three rounded panels, no big cream boards. Excellent hierarchy, concise warm businesslike paragraphs:
+Bold31px at y321:
+"Покажем Körset и ответим на вопросы."
+Regular27px at y391:
+"Напишите, созвонимся или встретимся."
+Regular26-27px in two lines at y464:
+"Обсудим систему учёта, ассортимент"
+"и размещение QR-кодов."
+Final two-line statement at y572, bold or medium30px with a small violet emphasis on "индивидуальное предложение" if aesthetically appropriate:
+"Подготовим индивидуальное предложение"
+"под задачи вашей точки."
+Keep exact wording and all semantic points. No extra pressure, countdown or implied limited offer. No mention of specific discounts or trial duration.
+
+RIGHT STORE model around x990..1350 y340..807, shallow storefront construction with visible open doorway and simple awning; tasteful detail so the image is compelling but not crowded. Farther-right invitation card approxx1280..1610 y370..790, matte warm ivory, tiny fold at lower edge and physical base. It is attached to the narrative as a demo invitation, not a digital UI dashboard card. Typography on card dark aubergine and rich violet:
+At card top:
+"Попробуйте Körset"
+then smaller clear label:
+"MARS — демонстрационная"
+"витрина"
+Then a completely BLANK UNMARKED WHITE square about225x225px around x1320 y499; exact position may adapt to good card proportions but keep one large perfect front-facing square for original QR. DO NOT generate any matrix, barcode, placeholder caption or text inside the square. Preserve enough white margin. Below square exact link in violet bold21px:
+"korset.app/join/mars"
+Link is the demo storefront, NOT the representative's contact. Original QR will be pasted here so don't stylize its placeholder geometry.
+All card texts and QR space must fit with good padding; design near front-on so we can insert code without distorting it. Keep store model visible to the left of card; the open door adds an elegant physical invitation metaphor.
+
+BOTTOM full-width dark aubergine footer y816..941. Strong ivory call to action left x65 y840 in two lines26px bold:
+"Напишите в WhatsApp представителю Körset,"
+"который отправил вам эту презентацию."
+Leave right x1320..1640 y840..925 EMPTY SOLID dark plum for original Körset logo inserted separately. No logo generated by you anywhere, no giant invented cube sign on building, no watermark/page number.
+
+Quality: high-end tactile commercial photography, precise natural shadows, serene pale stone, one distinctive semantic object, powerful clean headline. Finely detailed serious modern service for business. The finish should feel like a deliberate final page of a coherent premium campaign, not generic "thank you" slide. No repeated giant paper text slabs or four-card grid; avoid coarse wrinkled texture, electric blue, gradients on typography or glow. Native sharpness, crisp Russian spelling, all glyphs correctly formed. Preserve all requested text. Keep huge QR reservation secondary to primary invitation to discuss, but clearly readable and large enough to scan after original is inserted.

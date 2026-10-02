@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { supabase } from '../utils/supabase.js'
 import { normalizeNutrition, parseJson } from '../domain/product/model.js'
 import { loadCatalogPages } from '../domain/catalog/catalogPageLoader.js'
+import { normalizeSourceCard } from '../domain/product/storeSourceProduct.js'
 import {
   applySyncedConditions,
   applySyncedRegularFallback,
@@ -396,6 +397,29 @@ export function StoreProvider({ children }) {
           },
         })
         if (aborted) return
+        await loadCatalogPages({
+          cursorKey: 'storeSourceItemId',
+          fetchPage: async (cursor, size) => {
+            const { data, error } = await supabase.rpc('korset_get_store_source_cards', {
+              p_store_id: storeId,
+              p_after_id: cursor,
+              p_limit: size,
+            })
+            if (['PGRST202', '42883'].includes(error?.code)) return { data: [], error: null }
+            return {
+              data: Array.isArray(data)
+                ? data.map((row) => normalizeSourceCard(row)).filter(Boolean)
+                : data,
+              error,
+            }
+          },
+          isCancelled: () => aborted,
+          onPage: (page) => {
+            allProducts = allProducts.concat(page)
+            setFullCatalog(allProducts)
+          },
+        })
+        if (aborted) return
         setFullCatalog(allProducts)
         if (allProducts.length > 0) {
           saveCatalogToIndexedDB(allProducts, storeId)
@@ -426,7 +450,9 @@ export function StoreProvider({ children }) {
       const conditions = product?.syncConditions
       if (!conditions) return earliest
       const boundaries = [conditions.valid_from, conditions.valid_until]
-      const appliedAt = Date.parse(conditions.applied_at)
+      const appliedAt = Date.parse(
+        Object.hasOwn(conditions, 'observed_at') ? conditions.observed_at : conditions.applied_at
+      )
       if (Number.isFinite(appliedAt)) boundaries.push(appliedAt + 30 * 60 * 1000)
       for (const boundary of boundaries) {
         const time = typeof boundary === 'number' ? boundary : Date.parse(boundary)

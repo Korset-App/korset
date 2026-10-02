@@ -392,7 +392,10 @@ export default function EanRecoveryScreen() {
   })
 
   return (
-    <div style={{ minHeight: '100dvh', background: 'var(--retail-bg)', paddingBottom: 90 }}>
+    <div
+      className="retail-screen-canvas"
+      style={{ minHeight: '100dvh', background: 'var(--retail-bg)', paddingBottom: 90 }}
+    >
       {scannerForId && (
         <RetailScannerModal onScan={handleScanEan} onClose={() => setScannerForId(null)} />
       )}

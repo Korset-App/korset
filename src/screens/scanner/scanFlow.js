@@ -1,5 +1,26 @@
 const MAX_RECENT_SCANS = 5
 
+export async function lookupScanWhileStopping({ lookup, stop, timeoutMs = 800 }) {
+  const lookupPromise = lookup()
+  const stopping = stop()
+  let timer
+  try {
+    const [, lookupResult] = await Promise.allSettled([
+      stopping,
+      Promise.race([
+        lookupPromise,
+        new Promise((resolve) => {
+          timer = setTimeout(() => resolve(null), timeoutMs)
+        }),
+      ]),
+    ])
+    if (lookupResult.status === 'rejected') throw lookupResult.reason
+    return { result: lookupResult.value, lookupPromise }
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 export function normalizeManualEan(value) {
   return String(value || '').replace(/\D+/g, '')
 }

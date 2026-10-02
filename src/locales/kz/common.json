@@ -71,6 +71,11 @@
   "stores.noResultsText": "Дүкен атауын, ауданын немесе мекенжайын енгізіп көріңіз.",
   "stores.ownerEyebrow": "Иелер үшін",
   "stores.ownerTitle": "Дүкеніңізді қосқыңыз келе ме?",
-  "stores.ownerCta": "Байланысу",
-  "common.errorReloading": "Қолданба жаңартылуда…"
+  "common.errorReloading": "Қолданба жаңартылуда…",
+  "common.errorTitle": "Бірдеңе дұрыс болмады",
+  "common.errorDesc": "Күтпеген қате орын алды. Қайта жүктеп көріңіз немесе басты бетке оралыңыз.",
+  "common.errorReload": "Қайта жүктеу",
+  "common.errorHome": "Басты бетке",
+  "common.errorShow": "Мәліметтерді көрсету",
+  "common.errorHide": "Мәліметтерді жасыру"
 }

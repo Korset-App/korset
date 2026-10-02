@@ -159,7 +159,7 @@ test('visible price conditions exclude private fields and protect unpublished st
   try {
     const rows=(await db.query('select public.korset_get_store_product_conditions($1,$2) as result',[STORE_ID,['5449000000996']])).rows[0].result
     assert.equal(rows[0].sale_minor,100050)
-    assert.deepEqual(Object.keys(rows[0]).sort(),['applied_at','ean','regular_minor','sale_minor','unit','valid_from','valid_until'])
+    assert.deepEqual(Object.keys(rows[0]).sort(),['applied_at','ean','observed_at','regular_minor','sale_minor','unit','valid_from','valid_until'])
   } finally { await db.exec('reset role') }
   await db.query('update public.stores set is_published=false where id=$1',[STORE_ID])
   await db.exec('set role anon')

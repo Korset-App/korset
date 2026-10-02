@@ -30,6 +30,18 @@ export function applyCatalogExtraFilters(products, filters) {
   if (filters.glutenFree) {
     arr = arr.filter((p) => hasAttributeMatch({ attribute: 'gluten_free' }, p))
   }
+  if (filters.veganOnly) {
+    arr = arr.filter((p) => hasAttributeMatch({ attribute: 'vegan' }, p))
+  }
+  if (filters.ketoOnly) {
+    arr = arr.filter((p) => hasAttributeMatch({ attribute: 'keto' }, p))
+  }
+  if (filters.lowFatOnly) {
+    arr = arr.filter((p) => hasAttributeMatch({ attribute: 'low_fat' }, p))
+  }
+  if (filters.kidFriendlyOnly) {
+    arr = arr.filter((p) => hasAttributeMatch({ attribute: 'kid_friendly' }, p))
+  }
   if (filters.onSaleOnly) {
     arr = arr.filter((p) => {
       const price = Number(p.priceKzt ?? p.price_kzt ?? p.price ?? 0)
@@ -166,6 +178,10 @@ export function useCatalogFilter({
     if (extraFilters.sugarFree) count += 1
     if (extraFilters.lactoseFree) count += 1
     if (extraFilters.glutenFree) count += 1
+    if (extraFilters.veganOnly) count += 1
+    if (extraFilters.ketoOnly) count += 1
+    if (extraFilters.lowFatOnly) count += 1
+    if (extraFilters.kidFriendlyOnly) count += 1
     if (extraFilters.onSaleOnly) count += 1
     if (extraFilters.inStockOnly) count += 1
     if (extraFilters.withPhotoOnly) count += 1
@@ -246,7 +262,12 @@ export function useCatalogFilter({
     if (!isSearching) return []
     if (canUseServerSearch) {
       if (serverSearch.query === normalizedQuery && serverSearch.status === 'success') {
-        return serverSearch.results || []
+        const local = sortCatalogSearchProducts(
+          baseProducts.filter((product) => product.storeSourceItemId),
+          debouncedQuery,
+          () => 3
+        )
+        return [...(serverSearch.results || []), ...local]
       }
       return []
     }

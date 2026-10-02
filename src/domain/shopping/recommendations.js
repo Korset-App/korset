@@ -47,8 +47,8 @@ export function selectShoppingRecommendations({
   const organic = []
   const storePicks = []
   for (const entry of relevant) {
-    if (entry.promoted ? storePicks.length >= 2 : organic.length >= limit) continue
-    if (checkProductFit(entry.product, profile).verdict !== 'safe') continue
+    const fitVerdict = checkProductFit(entry.product, profile).verdict
+    if (fitVerdict === 'danger' || fitVerdict === 'warning') continue
     if (entry.promoted) storePicks.push(entry)
     else organic.push(entry)
     if (organic.length >= limit && storePicks.length >= 2) break

@@ -44,6 +44,7 @@ function normalizeHistoryEntry(entry) {
         ? [entry.image]
         : [],
     canonicalId: entry.canonicalId || entry.id || `ean:${entry.ean}`,
+    storeSourceItemId: entry.storeSourceItemId || null,
     source: entry.source || 'scan',
     scanDate: toIsoDate(entry.scanDate),
     storeId: entry.storeId || null,
@@ -69,7 +70,7 @@ function writeRawHistory(items) {
 }
 
 function getHistoryItemKey(item) {
-  return `${item?.storeId || 'global'}::${item?.ean || item?.canonicalId || 'unknown'}`
+  return `${item?.storeId || 'global'}::${item?.storeSourceItemId ? `si:${item.storeSourceItemId}` : item?.ean || item?.canonicalId || 'unknown'}`
 }
 
 export function dedupeLocalScanHistory(items = []) {
@@ -138,10 +139,17 @@ export function emitLocalHistoryChanged(ownerKey = 'guest') {
   )
 }
 
-export function buildLocalScanHistoryEntry(product, foundStatus = 'scan', storeId = null) {
-  if (!product?.ean) return null
+export function buildLocalScanHistoryEntry(
+  product,
+  foundStatus = 'scan',
+  storeId = null,
+  scannedBarcode = null
+) {
+  const code = product?.storeSourceItemId ? scannedBarcode : product?.ean
+  if (!code) return null
   return normalizeHistoryEntry({
-    ean: product.ean,
+    ean: code,
+    storeSourceItemId: product.storeSourceItemId || null,
     name: product.name || `Товар ${product.ean}`,
     nameKz: product.nameKz || null,
     brand: product.brand || null,

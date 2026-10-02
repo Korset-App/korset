@@ -1,9 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { loadSoundSettings } from '../utils/soundSettings.js'
+import { isValidBarcodeChecksum } from '../utils/barcodeChecksum.js'
 import {
   buildConstraintLadder,
   isPermissionError,
   loadScannerEngine,
+  createCameraController,
+  enumerateCameraDevices,
+  selectFacingCamera,
+  waitForCameraFrames,
+  matchesCameraDirection,
+  watchCameraFrames,
 } from '../utils/scannerEngine.js'
 import {
   BarcodeScannerIcon,
@@ -58,49 +65,6 @@ class CameraSurfaceError extends Error {
   }
 }
 
-function patchVideoElement(el) {
-  try {
-    el.setAttribute('playsinline', '')
-    el.setAttribute('webkit-playsinline', '')
-    el.setAttribute('muted', '')
-    el.muted = true
-    el.setAttribute('autoplay', '')
-  } catch {
-    /* noop */
-  }
-}
-
-// html5-qrcode resolves `start()` before the video actually plays, so verify
-// frames arrive instead of trusting the resolved promise.
-function waitForVideoLive(timeoutMs) {
-  return new Promise((resolve) => {
-    const deadline = Date.now() + timeoutMs
-    const check = () => {
-      const video = document.querySelector(`#${SCAN_ID} video`)
-      if (video) {
-        patchVideoElement(video)
-        if (video.readyState >= 2 && video.videoWidth > 0 && !video.paused) {
-          resolve(true)
-          return
-        }
-        // WebKit regularly swallows the first play() call; retrying is free.
-        try {
-          const played = video.play()
-          if (played && typeof played.catch === 'function') played.catch(() => {})
-        } catch {
-          /* noop */
-        }
-      }
-      if (Date.now() >= deadline) {
-        resolve(false)
-        return
-      }
-      setTimeout(check, 120)
-    }
-    check()
-  })
-}
-
 export default function RetailScannerModal({ onScan, onClose }) {
   const [status, setStatus] = useState('starting') // starting | ready | error_permission | error
   const [torchOn, setTorchOn] = useState(false)
@@ -118,189 +82,232 @@ export default function RetailScannerModal({ onScan, onClose }) {
   const startScannerRef = useRef(null)
   const mountedRef = useRef(true)
   const torchTimer = useRef(null)
+  const recoveryAttemptsRef = useRef(0)
+  const resumeCameraRef = useRef(false)
+  const videoHostRef = useRef(null)
+  const [cameraController] = useState(createCameraController)
 
   const stopScanner = useCallback(async () => {
-    const scanner = scannerRef.current
     scannerRef.current = null
-    try {
-      if (scanner) {
-        if (scanner.isScanning) {
-          await scanner.stop()
-        }
-        scanner.clear()
-      }
-    } catch {
-      /* noop */
-    }
-    // html5-qrcode only releases tracks when stop() succeeds. A half-opened
-    // stream — permission granted but playback never started — keeps the camera
-    // occupied on iOS/Android and makes every later attempt fail.
-    const stream = streamRef.current
     streamRef.current = null
-    if (stream) {
-      try {
-        stream.getTracks().forEach((t) => t.stop())
-      } catch {
-        /* noop */
-      }
-    }
-    const container = document.getElementById(SCAN_ID)
-    if (container) container.innerHTML = ''
     trackRef.current = null
-  }, [])
+    await cameraController.stop()
+  }, [cameraController])
 
   const startScanner = useCallback(
-    async (cameraList, idx) => {
+    async (cameraList = [], idx = 0) => {
       busyRef.current = true
       setStatus('starting')
+      statusRef.current = 'starting'
       setTorchOn(false)
-      await stopScanner()
-      if (!mountedRef.current) return
+      return cameraController
+        .start(async (session) => {
+          const isCurrent = () => mountedRef.current && session.isCurrent()
+          if (!isCurrent()) return
 
-      // If the camera has not gone live by the deadline, surface a tap-to-start
-      // prompt instead of leaving the user staring at a grey rectangle. A real tap
-      // re-arms the user activation WebKit needs for programmatic playback.
-      const watchdog = setTimeout(() => {
-        if (!mountedRef.current) return
-        setStatus((prev) => (prev === 'starting' ? 'blocked' : prev))
-      }, CAMERA_WATCHDOG_MS)
+          // If the camera has not gone live by the deadline, surface a tap-to-start
+          // prompt instead of leaving the user staring at a grey rectangle. A real tap
+          // re-arms the user activation WebKit needs for programmatic playback.
+          const watchdog = setTimeout(() => {
+            if (!isCurrent()) return
+            setStatus((prev) => (prev === 'starting' ? 'blocked' : prev))
+          }, CAMERA_WATCHDOG_MS)
 
-      try {
-        // Decoder loading is bounded: the WASM engine is a bonus, never a blocker.
-        const { Html5Qrcode, Html5QrcodeSupportedFormats, zbarReady } = await loadScannerEngine()
-        if (!mountedRef.current) return
-
-        // WASM ZBar is roughly 3x faster than ZXing on 1D product barcodes.
-        const targetFps = zbarReady ? 20 : 10
-
-        const createScanner = () =>
-          new Html5Qrcode(SCAN_ID, {
-            verbose: false,
-            useBarCodeDetectorIfSupported: zbarReady,
-            formatsToSupport: [
-              Html5QrcodeSupportedFormats.EAN_13,
-              Html5QrcodeSupportedFormats.EAN_8,
-              Html5QrcodeSupportedFormats.CODE_128,
-              Html5QrcodeSupportedFormats.UPC_A,
-              Html5QrcodeSupportedFormats.UPC_E,
-            ],
-          })
-
-        const buildScanConfig = (videoConstraints) => ({
-          fps: targetFps,
-          videoConstraints,
-          aspectRatio: 1.777,
-          disableFlip: false,
-          qrbox: (w, h) => {
-            const width = Math.min(w - 16, Math.max(200, Math.floor(w * 0.9)))
-            const height = Math.min(h - 16, Math.max(160, Math.floor(h * 0.6)))
-            return { width: Math.max(120, width), height: Math.max(140, height) }
-          },
-        })
-
-        const onScanSuccess = async (rawEan) => {
-          if (busyRef.current || !mountedRef.current) return
-          const cleanEan = String(rawEan || '').trim()
-          if (!cleanEan) return
-          busyRef.current = true
-          playBeep()
           try {
-            if (loadSoundSettings().vibration) navigator.vibrate?.(60)
-          } catch {
-            /* noop */
-          }
-          await stopScanner()
-          if (mountedRef.current) onScan(cleanEan)
-        }
+            // Decoder loading is bounded: the WASM engine is a bonus, never a blocker.
+            const { Html5Qrcode, Html5QrcodeSupportedFormats, zbarReady } =
+              await loadScannerEngine()
+            if (!isCurrent()) return
 
-        const deviceId = idx > 0 && cameraList[idx]?.id ? cameraList[idx].id : null
-        const ladder = buildConstraintLadder(deviceId)
+            const targetFps = zbarReady ? 20 : 10
 
-        let lastStartError = null
-        let live = false
-        for (const videoConstraints of ladder) {
-          if (!mountedRef.current) return
-          try {
-            await stopScanner()
-            const scanner = createScanner()
-            scannerRef.current = scanner
-            // `cameraIdOrConfig` is ignored once `videoConstraints` is supplied,
-            // but html5-qrcode still requires a truthy value.
-            await scanner.start(
-              { facingMode: 'environment' },
-              buildScanConfig(videoConstraints),
-              onScanSuccess,
-              () => {}
-            )
-            if (!mountedRef.current) return
-            live = await waitForVideoLive(VIDEO_LIVE_TIMEOUT_MS)
-            if (live) {
-              lastStartError = null
-              break
-            }
-            // getUserMedia succeeded but nothing renders: a playback-policy block,
-            // not a constraint problem — stop burning attempts.
-            lastStartError = new CameraSurfaceError()
-            break
-          } catch (err) {
-            lastStartError = err
-            if (isPermissionError(err?.message || err)) break
-          }
-        }
-
-        if (lastStartError) throw lastStartError
-
-        if (!mountedRef.current) return
-        setStatus('ready')
-        busyRef.current = false
-
-        try {
-          const settings = scannerRef.current?.getRunningTrackSettings()
-          const host = document.getElementById(SCAN_ID)
-          if (host && settings?.facingMode === 'user') {
-            host.classList.add('scan-video-mirrored')
-          } else if (host) {
-            host.classList.remove('scan-video-mirrored')
-          }
-        } catch {
-          /* noop */
-        }
-
-        try {
-          const vid = document.querySelector(`#${SCAN_ID} video`)
-          if (vid?.srcObject) {
-            streamRef.current = vid.srcObject
-            patchVideoElement(vid)
-            const track = vid.srcObject.getVideoTracks()[0]
-            if (track) {
-              trackRef.current = track
-              // iOS/Android end the capture track on interruption (call, another
-              // app grabbing the camera, backgrounding); recover by restarting.
-              track.addEventListener('ended', () => {
-                if (!mountedRef.current) return
-                busyRef.current = false
-                startScannerRef.current?.(camerasRef.current, camIdxRef.current)
+            const createScanner = () =>
+              new Html5Qrcode(session.surface.id, {
+                verbose: false,
+                useBarCodeDetectorIfSupported: zbarReady,
+                formatsToSupport: [
+                  Html5QrcodeSupportedFormats.EAN_13,
+                  Html5QrcodeSupportedFormats.EAN_8,
+                  Html5QrcodeSupportedFormats.CODE_128,
+                  Html5QrcodeSupportedFormats.UPC_A,
+                  Html5QrcodeSupportedFormats.UPC_E,
+                ],
               })
+
+            const buildScanConfig = (videoConstraints) => ({
+              fps: targetFps,
+              videoConstraints,
+              aspectRatio: 1.777,
+              disableFlip: false,
+              qrbox: (w, h) => {
+                const width = Math.min(w - 16, Math.max(200, Math.floor(w * 0.9)))
+                const height = Math.min(h - 16, Math.max(160, Math.floor(h * 0.6)))
+                return { width: Math.max(120, width), height: Math.max(140, height) }
+              },
+            })
+
+            const onScanSuccess = async (rawEan, decodedResult) => {
+              if (busyRef.current || !isCurrent()) return
+              const cleanEan = String(rawEan || '').trim()
+              if (!cleanEan) return
+              const format = decodedResult?.result?.format?.formatName
+              if (
+                /^\d{8,14}$/.test(cleanEan) &&
+                format !== 'CODE_128' &&
+                !isValidBarcodeChecksum(cleanEan, format)
+              )
+                return
+              busyRef.current = true
+              playBeep()
+              try {
+                if (loadSoundSettings().vibration) navigator.vibrate?.(60)
+              } catch {
+                /* noop */
+              }
+              await stopScanner()
+              if (mountedRef.current) onScan(cleanEan)
             }
+
+            const facingMode = idx === 1 ? 'user' : 'environment'
+            const ladder = buildConstraintLadder(cameraList[idx]?.id, facingMode)
+
+            let lastStartError = null
+            let live = false
+            for (const videoConstraints of ladder) {
+              if (!isCurrent()) return
+              try {
+                await session.releaseCamera()
+                if (!isCurrent()) return
+                const scanner = createScanner()
+                session.setScanner(scanner)
+                scannerRef.current = scanner
+                // `cameraIdOrConfig` is ignored once `videoConstraints` is supplied,
+                // but html5-qrcode still requires a truthy value.
+                await session.startCapture(async () => {
+                  await scanner.start(
+                    { facingMode: 'environment' },
+                    buildScanConfig(videoConstraints),
+                    onScanSuccess,
+                    () => {}
+                  )
+                  const video = session.getVideo()
+                  if (video?.srcObject) session.setStream(video.srcObject)
+                })
+                const video = session.getVideo()
+                if (!isCurrent()) return
+                if (
+                  !matchesCameraDirection(
+                    video?.srcObject?.getVideoTracks()[0]?.getSettings?.(),
+                    facingMode,
+                    cameraList[idx]?.id
+                  )
+                ) {
+                  throw new Error('requested camera unavailable')
+                }
+                live = await waitForCameraFrames(() => video, {
+                  timeoutMs: VIDEO_LIVE_TIMEOUT_MS,
+                  isCurrent,
+                })
+                if (!isCurrent()) return
+                if (live) {
+                  lastStartError = null
+                  break
+                }
+                // getUserMedia succeeded but nothing renders: a playback-policy block,
+                // not a constraint problem — stop burning attempts.
+                lastStartError = new CameraSurfaceError()
+                break
+              } catch (err) {
+                lastStartError = err
+                if (isPermissionError(err?.message || err)) break
+              }
+            }
+
+            if (lastStartError) throw lastStartError
+
+            if (!isCurrent()) return
+
+            try {
+              const settings = scannerRef.current?.getRunningTrackSettings()
+              const host = document.getElementById(SCAN_ID)
+              if (host && settings?.facingMode === 'user') {
+                host.classList.add('scan-video-mirrored')
+              } else if (host) {
+                host.classList.remove('scan-video-mirrored')
+              }
+            } catch {
+              /* noop */
+            }
+
+            try {
+              const vid = session.getVideo()
+              if (vid?.srcObject) {
+                streamRef.current = vid.srcObject
+                const track = vid.srcObject.getVideoTracks()[0]
+                if (track) {
+                  trackRef.current = track
+                  // iOS/Android end the capture track on interruption (call, another
+                  // app grabbing the camera, backgrounding); recover by restarting.
+                  session.addCleanup(
+                    watchCameraFrames(vid, track, () => {
+                      if (!isCurrent() || busyRef.current || document.hidden) return
+                      if (recoveryAttemptsRef.current >= 1) {
+                        stopScanner()
+                        setStatus('blocked')
+                        return
+                      }
+                      recoveryAttemptsRef.current += 1
+                      startScannerRef.current?.(camerasRef.current, camIdxRef.current)
+                    })
+                  )
+                }
+              }
+            } catch {
+              /* noop */
+            }
+            const devices = await enumerateCameraDevices()
+            if (!isCurrent()) return
+            const choices = ['environment', 'user'].map((mode) => ({
+              id: selectFacingCamera(devices, mode)?.deviceId || null,
+            }))
+            camerasRef.current = choices
+            setCameras(choices)
+            const selectedId = trackRef.current?.getSettings?.().deviceId
+            if (
+              choices[idx]?.id &&
+              selectedId &&
+              choices[idx].id !== selectedId &&
+              !cameraList[idx]?.id
+            ) {
+              startScannerRef.current?.(choices, idx)
+              return
+            }
+            statusRef.current = 'ready'
+            setStatus('ready')
+            busyRef.current = false
+          } catch (e) {
+            if (!isCurrent()) return
+            await session.releaseCamera()
+            if (!isCurrent()) return
+            busyRef.current = false
+            if (e?.name === 'CameraSurfaceError') {
+              setStatus('blocked')
+            } else if (isPermissionError(e?.message || e)) {
+              setStatus('error_permission')
+            } else {
+              setStatus('error')
+            }
+          } finally {
+            clearTimeout(watchdog)
           }
-        } catch {
-          /* noop */
-        }
-      } catch (e) {
-        busyRef.current = false
-        if (!mountedRef.current) return
-        if (e?.name === 'CameraSurfaceError') {
+        }, videoHostRef.current)
+        .catch(() => {
+          if (!mountedRef.current) return
+          busyRef.current = false
           setStatus('blocked')
-        } else if (isPermissionError(e?.message || e)) {
-          setStatus('error_permission')
-        } else {
-          setStatus('error')
-        }
-      } finally {
-        clearTimeout(watchdog)
-      }
+        })
     },
-    [onScan, stopScanner]
+    [onScan, stopScanner, cameraController]
   )
 
   // Stable handle so the mount effect and lifecycle callbacks can restart the
@@ -312,31 +319,7 @@ export default function RetailScannerModal({ onScan, onClose }) {
 
   useEffect(() => {
     mountedRef.current = true
-    async function init() {
-      try {
-        const { Html5Qrcode } = await import('html5-qrcode')
-        const list = await Html5Qrcode.getCameras()
-        if (!mountedRef.current) return
-        const sorted = [...(list || [])].sort((a, b) => {
-          const aB = /back|rear|environment|задн|тыльн|сзади|основн|арт|артқы|негізгі/i.test(
-            a.label
-          )
-            ? 1
-            : 0
-          const bB = /back|rear|environment|задн|тыльн|сзади|основн|арт|артқы|негізгі/i.test(
-            b.label
-          )
-            ? 1
-            : 0
-          return bB - aB
-        })
-        setCameras(sorted)
-        startScannerRef.current?.(sorted, 0)
-      } catch {
-        if (mountedRef.current) startScannerRef.current?.([], 0)
-      }
-    }
-    init()
+    startScannerRef.current?.([], 0)
     return () => {
       mountedRef.current = false
       stopScanner()
@@ -365,7 +348,19 @@ export default function RetailScannerModal({ onScan, onClose }) {
   // another app takes the camera. Restart once the view is visible again.
   useEffect(() => {
     const onVisibilityChange = () => {
-      if (document.hidden || !mountedRef.current) return
+      if (!mountedRef.current) return
+      if (document.hidden) {
+        resumeCameraRef.current =
+          (statusRef.current === 'ready' && !busyRef.current) || statusRef.current === 'starting'
+        if (resumeCameraRef.current) stopScanner()
+        return
+      }
+      if (resumeCameraRef.current) {
+        resumeCameraRef.current = false
+        recoveryAttemptsRef.current = 0
+        startScannerRef.current?.(camerasRef.current, camIdxRef.current)
+        return
+      }
       const track = trackRef.current
       if (statusRef.current === 'ready' && (!track || track.readyState !== 'live')) {
         busyRef.current = false
@@ -374,16 +369,16 @@ export default function RetailScannerModal({ onScan, onClose }) {
     }
     document.addEventListener('visibilitychange', onVisibilityChange)
     return () => document.removeEventListener('visibilitychange', onVisibilityChange)
-  }, [])
+  }, [stopScanner])
 
   const switchCamera = useCallback(async () => {
-    if (cameras.length < 2) return
-    busyRef.current = false
-    await stopScanner()
-    const next = (camIdx + 1) % cameras.length
+    if (busyRef.current || statusRef.current === 'starting') return
+    const next = camIdxRef.current === 0 ? 1 : 0
+    recoveryAttemptsRef.current = 0
+    camIdxRef.current = next
     setCamIdx(next)
     startScanner(cameras, next)
-  }, [cameras, camIdx, stopScanner, startScanner])
+  }, [cameras, startScanner])
 
   const toggleTorch = useCallback(async () => {
     const track = trackRef.current
@@ -475,7 +470,7 @@ export default function RetailScannerModal({ onScan, onClose }) {
       {/* Camera area */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
         {/* Html5Qrcode mount point */}
-        <div id={SCAN_ID} style={{ width: '100%', height: '100%' }} />
+        <div id={SCAN_ID} ref={videoHostRef} style={{ width: '100%', height: '100%' }} />
 
         {/* Viewfinder overlay */}
         {status === 'ready' && (
@@ -724,7 +719,7 @@ export default function RetailScannerModal({ onScan, onClose }) {
           {/* Switch camera */}
           <button
             onClick={switchCamera}
-            disabled={cameras.length < 2}
+            disabled={status === 'starting'}
             style={{
               display: 'flex',
               flexDirection: 'column',

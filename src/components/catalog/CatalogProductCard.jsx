@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useI18n } from '../../i18n/index.js'
 
 import { CloseIcon } from '../icons/CloseIcon.jsx'
 import { CompareIcon } from '../icons/CompareIcon.jsx'
@@ -154,6 +155,16 @@ export default function CatalogProductCard({
   onCompare,
   onToggleFavorite,
 }) {
+  const { t } = useI18n()
+  if (product.storeSourceItemId) {
+    price = `${price}${product.saleUnit ? ` / ${t(`integration.unit.${product.saleUnit}`)}` : ''}`
+    if (product.needsEnrichment) {
+      verdict = { cls: 'warning', label: t('integration.consumer.pending') }
+      badges = []
+      extraBadgeCount = 0
+      kcalLabel = null
+    }
+  }
   if (mode === 'grid') {
     return (
       <div
@@ -199,6 +210,7 @@ export default function CatalogProductCard({
           <button
             type="button"
             className={`catalog-compare-btn-grid ${compareState}`}
+            disabled={Boolean(product.storeSourceItemId)}
             aria-label={compareLabel}
             onClick={onCompare}
           >
@@ -255,6 +267,7 @@ export default function CatalogProductCard({
         <button
           type="button"
           className={`catalog-compare-btn ${compareState}`}
+          disabled={Boolean(product.storeSourceItemId)}
           aria-label={compareLabel}
           onClick={onCompare}
         >

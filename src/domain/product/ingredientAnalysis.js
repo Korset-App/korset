@@ -1,5 +1,11 @@
 import { getAllergenName } from '../../constants/allergens.js'
 import { ALLERGEN_SYNONYMS } from '../../constants/allergenSynonyms.js'
+import {
+  isRangeInsideNegatedPhrase,
+  isRangeInsideTraceClause,
+  isWordMatchingStem,
+  maskTextForDomain,
+} from '../../utils/compositionMatcher.js'
 
 const TONE_PRIORITY = {
   neutral: 0,
@@ -412,7 +418,7 @@ function findTermRanges(text, term) {
     const tokens = tokenizeWithPositions(text)
     for (const token of tokens) {
       const normalizedWord = normalizeText(token.word)
-      if (normalizedWord.startsWith(normalizedTerm)) {
+      if (isWordMatchingStem(normalizedWord, normalizedTerm)) {
         ranges.push({ start: token.start, end: token.end })
       }
     }
@@ -446,8 +452,25 @@ function createCandidate({
 }
 
 function isTraceRange(text, range) {
-  const before = normalizeText(text.slice(Math.max(0, range.start - 42), range.start))
-  return before.includes('след') || before.includes('может содерж')
+  return isRangeInsideTraceClause(text, range)
+}
+
+function isDirectAllergenRange(allergenId, text, range) {
+  if (isRangeInsideTraceClause(text, range)) return false
+  if (isRangeInsideNegatedPhrase(text, range)) return false
+  const masked = maskTextForDomain(normalizeText(text), allergenId)
+  const matchedSlice = masked.slice(range.start, range.end)
+  if (!matchedSlice.trim()) return false
+  if (
+    allergenId === 'fish' &&
+    (matchedSlice === 'сом' || matchedSlice === 'сома') &&
+    !/(?:рыб|филе|мясо\s+сома|икра\s+сома|печень\s+сома|сом\s+(?:свеж|морожен|копчен|вялен|солен|охлажден))/iu.test(
+      masked
+    )
+  ) {
+    return false
+  }
+  return true
 }
 
 function getProfileAllergenIds(profile = {}) {
@@ -473,6 +496,7 @@ function buildAllergenCandidates(profile = {}, lang = 'ru') {
         label: getAllergenName(id, lang),
         reasonKey: 'product.ingredients.reason.profileAllergen',
         terms: ALLERGEN_SYNONYMS[id],
+        rangeFilter: (text, range) => isDirectAllergenRange(id, text, range),
       })
     )
 }
@@ -480,8 +504,11 @@ function buildAllergenCandidates(profile = {}, lang = 'ru') {
 function buildTraceCandidates(product = {}, profile = {}, lang = 'ru') {
   const profileAllergens = new Set(getProfileAllergenIds(profile))
   const traces = Array.isArray(product.traces) ? product.traces : []
-  return traces
-    .map((trace) => String(trace).replace(/^en:/, ''))
+  const candidateIds = new Set([
+    ...traces.map((trace) => String(trace).replace(/^en:/, '')),
+    ...profileAllergens,
+  ])
+  return [...candidateIds]
     .filter((id) => profileAllergens.has(id) && ALLERGEN_SYNONYMS[id])
     .map((id) =>
       createCandidate({

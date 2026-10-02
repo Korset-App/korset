@@ -18,6 +18,8 @@ import {
   readGuestShoppingLists,
 } from '../utils/shoppingLists.js'
 import ProductMiniCard from '../components/ProductMiniCard.jsx'
+import { getProductRef, normalizeSourceCard } from '../domain/product/storeSourceProduct.js'
+import { loadSourceShoppingItems, sourceShoppingId } from '../utils/sourceShoppingItems.js'
 import './ShoppingExperience.css'
 
 export default function ShoppingListScreen() {
@@ -61,13 +63,46 @@ export default function ShoppingListScreen() {
         rows = data || []
       }
       const hydrated = await hydrateProductsFromFavoriteRows(rows)
-      const catalogByEan = new Map((catalogProducts || []).map((item) => [item.ean, item]))
+      const catalogByEan = new Map(
+        (catalogProducts || []).map((item) => [getProductRef(item), item])
+      )
       const list = hydrated.map((item) => {
         const local = catalogByEan.get(item.ean)
         return local
           ? { ...item, ...local, storeOutOfStock: local.stockStatus === 'out_of_stock' }
           : { ...item, priceKzt: null, storeUnavailable: true }
       })
+      const sourceRows = internalUserId
+        ? await loadSourceShoppingItems(supabase, internalUserId, currentStore.id)
+        : [...favoriteEans]
+            .filter(sourceShoppingId)
+            .map((ref) => ({ store_source_item_id: sourceShoppingId(ref) }))
+      for (const row of sourceRows) {
+        const ref = `si:${row.store_source_item_id}`
+        let local = catalogByEan.get(ref)
+        if (!local) {
+          const { data, error } = await supabase.rpc('korset_get_store_source_cards', {
+            p_store_id: currentStore.id,
+            p_source_id: row.store_source_item_id,
+            p_include_out_of_stock: true,
+            p_limit: 1,
+          })
+          if (error) throw error
+          if (data?.length === 1) local = normalizeSourceCard(data[0])
+        }
+        list.push(
+          local
+            ? { ...local, storeOutOfStock: local.stockStatus === 'out_of_stock' }
+            : {
+                storeSourceItemId: row.store_source_item_id,
+                storeId: currentStore.id,
+                source: 'unknown',
+                name: '',
+                storeUnavailable: true,
+                priceKzt: null,
+              }
+        )
+      }
       if (!cancelled) setResult({ storeId: currentStore.id, products: list, error: false })
     }
     load().catch((error) => {
@@ -416,7 +451,7 @@ export default function ShoppingListScreen() {
               <div className="shopping-page__grid">
                 {visibleProducts.map((product) => (
                   <ProductMiniCard
-                    key={product.ean}
+                    key={getProductRef(product)}
                     product={product}
                     onRemove={() => toggleFavorite(product)}
                   />
@@ -434,7 +469,7 @@ export default function ShoppingListScreen() {
                 <div className="shopping-page__grid">
                   {recommendations.map((product) => (
                     <ProductMiniCard
-                      key={product.ean}
+                      key={getProductRef(product)}
                       product={product}
                       onAdd={() => toggleFavorite(product)}
                     />

@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useI18n } from '../i18n/index.js'
 import { useStore } from '../contexts/StoreContext.jsx'
-import { StorefrontIcon, InventoryIcon, SyncIcon, SlidersIcon } from './icons/index.js'
+import { StorefrontIcon, InventoryIcon, EyeIcon, SyncIcon, SlidersIcon } from './icons/index.js'
 
 export default function RetailBottomNav() {
   const navigate = useNavigate()
@@ -11,7 +11,9 @@ export default function RetailBottomNav() {
 
   const getActive = () => {
     if (pathname.includes('/products')) return 'products'
+    if (pathname.includes('/import')) return 'products'
     if (pathname.includes('/ean-recovery')) return 'products'
+    if (pathname.includes('/storefront')) return 'storefront'
     if (pathname.includes('/integration')) return 'integration'
     if (pathname.includes('/settings')) return 'settings'
     return 'dashboard'
@@ -25,25 +27,31 @@ export default function RetailBottomNav() {
   const TABS = [
     {
       id: 'dashboard',
-      label: t('retail.nav.dashboard'),
+      label: t('retail.nav.dashboard') || 'Обзор',
       path: `/retail/${storeSlug}/dashboard`,
       Icon: StorefrontIcon,
     },
     {
       id: 'products',
-      label: t('retail.nav.products'),
+      label: t('retail.nav.products') || 'Каталог',
       path: `/retail/${storeSlug}/products`,
       Icon: InventoryIcon,
     },
     {
+      id: 'storefront',
+      label: t('retail.nav.storefront') || 'Витрина',
+      path: `/retail/${storeSlug}/storefront`,
+      Icon: EyeIcon,
+    },
+    {
       id: 'integration',
-      label: t('retail.nav.integration'),
+      label: t('retail.nav.integration') || 'Синхронизация',
       path: `/retail/${storeSlug}/integration`,
       Icon: SyncIcon,
     },
     {
       id: 'settings',
-      label: t('retail.nav.settings'),
+      label: t('retail.nav.settings') || 'Настройки',
       path: `/retail/${storeSlug}/settings`,
       Icon: SlidersIcon,
     },
@@ -61,10 +69,10 @@ export default function RetailBottomNav() {
         boxSizing: 'border-box',
         zIndex: 100,
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr 1fr 1fr',
+        gridTemplateColumns: 'repeat(5, 1fr)',
         alignItems: 'end',
-        columnGap: 4,
-        padding: '8px 8px calc(12px + env(safe-area-inset-bottom, 0px))',
+        columnGap: 2,
+        padding: '6px 4px calc(10px + env(safe-area-inset-bottom, 0px))',
         background: 'var(--retail-nav-bg, var(--bg-card))',
         backdropFilter: 'blur(24px)',
         WebkitBackdropFilter: 'blur(24px)',
@@ -75,10 +83,8 @@ export default function RetailBottomNav() {
       {TABS.map((tab) => {
         const on = active === tab.id
         const tabCol = on
-          ? tab.accent
-            ? '#FB923C'
-            : 'var(--retail-accent, #38BDF8)'
-          : 'var(--nav-muted)'
+          ? 'var(--retail-accent, #38BDF8)'
+          : 'var(--nav-muted, rgba(140, 140, 180, 0.45))'
         const IconComponent = tab.Icon
 
         return (
@@ -91,12 +97,12 @@ export default function RetailBottomNav() {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'flex-end',
-              gap: 4,
+              gap: 3,
               width: '100%',
               minWidth: 0,
-              height: 52,
-              padding: '6px 4px',
-              borderRadius: 12,
+              height: 48,
+              padding: '4px 2px',
+              borderRadius: 10,
               border: 'none',
               cursor: 'pointer',
               background: 'transparent',
@@ -105,22 +111,22 @@ export default function RetailBottomNav() {
           >
             <div
               style={{
-                transition: 'transform 0.2s',
+                transition: 'transform 0.18s ease',
                 transform: on ? 'translateY(-2px)' : 'none',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <IconComponent size={22} color={tabCol} />
+              <IconComponent size={20} color={tabCol} />
             </div>
             <span
               style={{
-                fontSize: 10.5,
+                fontSize: 9.5,
                 fontWeight: on ? 700 : 500,
                 color: tabCol,
                 fontFamily: 'var(--font-body)',
-                transition: 'color 0.2s',
+                transition: 'color 0.18s ease',
                 lineHeight: 1.1,
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',

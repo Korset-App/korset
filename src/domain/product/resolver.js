@@ -22,6 +22,8 @@ import { isUuid, parseRouteProductRef } from './model.js'
 import { canEanAliasResolveBuyerProduct } from './eanAliases.js'
 import { applySyncedRegularFallback } from './syncedConditions.js'
 import { hydrateSyncedConditions } from '../../utils/syncedConditions.js'
+import { normalizeSourceCard } from './storeSourceProduct.js'
+import { mergeProductEnrichment } from './productScreenData.js'
 
 import {
   notifyCatalogWarmed,
@@ -155,7 +157,7 @@ async function enrichProduct(product) {
   try {
     const enrichment = await enrichProductAI({ name: product.name, brand: product.brand })
     if (!enrichment) return product
-    return coerceProductEntity({
+    const enrichedProduct = coerceProductEntity({
       ...product,
       description: enrichment.description || product.description,
       ingredients: enrichment.ingredients || product.ingredients,
@@ -168,6 +170,13 @@ async function enrichProduct(product) {
         aiEnriched: true,
       },
     })
+    return mergeProductEnrichment({
+      currentProduct: product,
+      enrichedProduct,
+      ean: product.ean,
+      storeId: null,
+      eventStoreId: null,
+    })
   } catch {
     return product
   }
@@ -178,13 +187,23 @@ export const enrichmentEvents = new EventTarget()
 
 function maybeEnrichInBackground(product, storeId) {
   if (!product) return
+  if (product.storeSourceItemId) return
+  if (product.sourceMeta?.isVerified) return
   if (product.sourceMeta?.aiEnriched) return
   if (product.ingredients && product.description) return
   enrichProduct(product)
     .then((enriched) => {
-      setCachedProduct(product.ean, storeId, enriched)
+      const currentProduct = getCachedProduct(product.ean, storeId) || product
+      const merged = mergeProductEnrichment({
+        currentProduct,
+        enrichedProduct: enriched,
+        ean: product.ean,
+        storeId,
+        eventStoreId: storeId,
+      })
+      setCachedProduct(product.ean, storeId, merged)
       enrichmentEvents.dispatchEvent(
-        new CustomEvent('enriched', { detail: { ean: product.ean, product: enriched } })
+        new CustomEvent('enriched', { detail: { ean: product.ean, storeId, product: merged } })
       )
     })
     .catch(() => {})
@@ -201,12 +220,12 @@ async function logMissingProduct(ean, storeId) {
   }
 }
 
-async function persistLocalHistory(product, foundStatus, storeId) {
+async function persistLocalHistory(product, foundStatus, storeId, scannedBarcode = null) {
   const privacy = loadPrivacySettings()
   if (!privacy.localHistoryEnabled) return
-  if (!product?.ean) return
+  if (!product?.ean && !scannedBarcode) return
   const ownerKey = await getCurrentHistoryOwnerKey()
-  const entry = buildLocalScanHistoryEntry(product, foundStatus, storeId)
+  const entry = buildLocalScanHistoryEntry(product, foundStatus, storeId, scannedBarcode)
   if (!entry) return
   appendLocalScanHistory(ownerKey, entry)
 }
@@ -270,7 +289,7 @@ async function finalizeResolvedProduct(
   product,
   { ean, foundStatus, storeId, fitResult, logScan: shouldLog }
 ) {
-  if (storeId) {
+  if (storeId && !product.storeSourceItemId) {
     if (typeof navigator === 'undefined' || navigator.onLine) {
       ;[product] = await hydrateSyncedConditions(storeId, [product])
     } else {
@@ -281,7 +300,7 @@ async function finalizeResolvedProduct(
 
   // Fire-and-forget: не блокируем навигацию на аналитике
   Promise.allSettled([
-    persistLocalHistory(product, foundStatus, storeId),
+    persistLocalHistory(product, foundStatus, storeId, ean),
     logScan({ ean, foundStatus, product, storeId, fitResult }),
   ]).catch(() => {})
 
@@ -316,6 +335,20 @@ async function findProductViaRPC(ean, storeId) {
 // ─── Внутренняя реализация резолвера (без session-кэша — он в обёртке ниже) ──
 async function _resolveProductByEanImpl(normalizedEan, storeId, options) {
   const isOffline = typeof navigator !== 'undefined' && !navigator.onLine
+  if (storeId && !isOffline) {
+    const { data } = await supabase.rpc('korset_find_store_source_card', {
+      p_store_id: storeId,
+      p_barcode: normalizedEan,
+    })
+    if (data?.length === 1)
+      return finalizeResolvedProduct(normalizeSourceCard(data[0]), {
+        ean: normalizedEan,
+        foundStatus: 'found_store',
+        storeId,
+        fitResult: options.fitResult,
+        logScan: options.logScan,
+      })
+  }
   const cacheKey = `${normalizedEan}:${storeId || ''}`
 
   try {
@@ -424,7 +457,7 @@ export async function resolveProductByEan(ean, rawStoreId = null, options = {}) 
   const storeId = isUuid(rawStoreId) ? rawStoreId : null
 
   const hit = getCachedProduct(normalizedEan, storeId)
-  if (hit) {
+  if (hit && !hit.storeSourceItemId) {
     const currentHit =
       storeId && (typeof navigator === 'undefined' || navigator.onLine)
         ? (await hydrateSyncedConditions(storeId, [hit]))[0]
@@ -455,7 +488,7 @@ export async function resolveProductByEan(ean, rawStoreId = null, options = {}) 
   const promise = _resolveProductByEanImpl(normalizedEan, storeId, options)
     .then((product) => {
       deleteInflightPromise(inflightKey)
-      if (product) setCachedProduct(normalizedEan, storeId, product)
+      if (product && !product.storeSourceItemId) setCachedProduct(normalizedEan, storeId, product)
       return product
     })
     .catch((err) => {

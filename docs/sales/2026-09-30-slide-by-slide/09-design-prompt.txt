@@ -1,0 +1,41 @@
+Use case: productivity-visual. Create an outstanding 16:9 Russian commercial slide for Körset, grocery store SaaS Kazakhstan. IMPORTANT no page number anywhere: user will move this slide after tariff information. Image1 is approved visual style reference: same warm cream/limestone texture, giant heavy dark-aubergine grotesk typography, flat saturated violet second headline line, carefully art-directed real grocery still life and tactile paper, soft sunlight, dark aubergine full-width footer. Do NOT inherit any data or existing words from reference. NO chrome, shiny ribbons, glass decorative objects, icons, charts with ambiguous axes, dashboard, dark main background, gradient-filled type or template collage. Output one readable finished slide.
+
+Story: a transparent, OPTIMISTIC but clearly ILLUSTRATIVE payback example. Two ADDITIONAL purchases per day; basket sale2500₸ minus procurement2000₸ leaves500₸ gross contribution per additional purchase before other expenses. 2x500=1000₸/day. Monthly subscription15000₸ is covered by15days of this additional gross contribution. For30days additional gross contribution30000₸, before other expenses. No guaranteed sales-growth claims and no pessimistic warning copy. This is a commercial explanatory scenario not achieved results. Make this arithmetic clear through beautiful grocery scene, not abstract random statistics. Don't confuse revenue and earnings.
+
+Physical concept: TWO small realistic violet matte shopping baskets full of everyday unbranded bread, milk, eggs and greens sit in center on cream countertop. Their two long cream paper labels naturally become one broad calculation strip printed "2 покупки × 500 ₸ = 1 000 ₸ в день". A large freestanding thick matte ivory tear-off desk-calendar-shaped paper block on RIGHT says "15 дней" as outcome, not a date. LEFT simple upright ivory price/receipt tag explains one purchase as clear aligned addition/subtraction. All integrated with photographic scene, warm tactile paper, beautiful natural textures and subtle realistic shadows. A violet corner binder on calendar, no chrome ring binding. Photographic single scene across entire slide, no arbitrary fades, decorative AI geometry or icons. Intentional geometry, physical paper + grocery basket makes economics visible.
+
+Layout around1672x941:
+Top x65 y55–260 spans whole slide, HUGE heavy grotesk typography approx72px, two-line headline:
+"Подписку можно покрыть" dark aubergine
+"двумя покупками в день." vivid flat violet
+At y280 small clear24px subtitle:
+"Пример: две дополнительные покупки с 500 ₸ после закупки товаров."
+
+Main scene y325–815.
+LEFT x65–475 y355–695 a nearly frontal paper tag set slightly forward, subtle shadows:
+bold26 "Одна покупка — пример"
+At y420 aligned clean two-column rows:
+"Чек" "2 500 ₸"
+"Закупка товаров" "− 2 000 ₸"
+Thin rule
+"Остаётся" "500 ₸" with500 boldviolet38
+Small20 "До прочих расходов"
+Simple clear typography, no fake product list or invented barcodes. Units ₸ must be correct Kazakh TENGE symbol with two horizontal bars, no dollar.
+CENTER x455–1040 y400–805 two distinct beautiful small matte violet grocery shopping baskets, one slightly forward, merchandise partial visible. They are not identical mirrored copies; everyday authentic grocery selection. Keep clear difference countTWO. At y700 in front of their lower edges a wide tangible cream paper strip with clean bold26 formula "2 покупки × 500 ₸ = 1 000 ₸ в день". All single line, mathematicaloperatorsexact, strip does not cover food. No other floating labels.
+RIGHT x1060–1590 y365–798 huge ivory paper calendar block nearly frontal, fine cream texture:
+small24 "В этом примере"
+huge violet90 "15 дней"
+bold27 "на покрытие подписки"
+next lines24:
+"15 000 ₸ ÷ 1 000 ₸ в день"
+thin subtle rule
+"За 30 дней — 30 000 ₸"
+"до прочих расходов."
+NO day-grid, no date or page number. Clear this is a duration. Contrast text highly legible. Lots of whitespace. Do not cram, shrink or ornament.
+
+Footer y818–941, full-width deep aubergine:
+LEFT x65–1240 in warm ivory20–22,exacttwo lines:
+"Расчёт для месяца из 30 дней. Чек и закупочная стоимость — пример."
+"Печать материалов и прочие расходы учитываются отдельно."
+RIGHT x1320–1620 leave COMPLETELY EMPTY footer space for the original Körset logo inserted later. Do NOT generate any logo, label, brandmark, watermark or any page numbering.
+All visible words Russian quoted exactly. Price15000₸/month is confirmed tariff; all other numbers are hypothetical financial examples. Positive grounded commercial tone. Preserve all arithmetic. Match excellent premium photographic style of approved earlier slides but visually EXPLAIN payback. Refined readable typography + clear everyday objects, no spreadsheet economics or generic marketing template.

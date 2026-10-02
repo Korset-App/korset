@@ -5,7 +5,11 @@ export function summarizeShoppingList(products) {
 
   for (const product of items) {
     const price = product?.priceKzt
-    if (Number.isFinite(price) && price > 0) {
+    if (
+      Number.isFinite(price) &&
+      price > 0 &&
+      (!product.saleUnit || product.saleUnit === 'piece')
+    ) {
       pricedCount += 1
       pricedTotalKzt += price
     }

@@ -61,3 +61,8 @@ test('returns zero counts and total for an empty list', () => {
     knownSubtotalKzt: 0,
   })
 })
+
+test('a kilogram rate is not a basket cost without a selected weight',()=>{
+  const result=summarizeShoppingList([{priceKzt:100},{priceKzt:1200,saleUnit:'kg'}])
+  assert.equal(result.pricedTotalKzt,null);assert.equal(result.knownSubtotalKzt,100)
+})

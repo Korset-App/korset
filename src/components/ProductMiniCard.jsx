@@ -5,6 +5,7 @@ import { useLocalName } from '../utils/localName.js'
 import { buildProductPath } from '../utils/routes.js'
 import { getDisplayQuantity } from '../utils/parseQuantity.js'
 import ShoppingListButton from './ShoppingListButton.jsx'
+import { getProductRef } from '../domain/product/storeSourceProduct.js'
 import './ProductMiniCard.css'
 
 export default function ProductMiniCard({ product, onRemove, onAdd }) {
@@ -14,7 +15,7 @@ export default function ProductMiniCard({ product, onRemove, onAdd }) {
   const resolvedName = useLocalName(product)
   const localName = product?.source === 'unknown' ? t('shopping.unknownProduct') : resolvedName
 
-  if (!product?.ean && !product?.id) return null
+  if (!getProductRef(product) && !product?.id) return null
 
   const image = product.image || product.images?.[0] || null
   const country = product.manufacturer?.country || null
@@ -30,8 +31,8 @@ export default function ProductMiniCard({ product, onRemove, onAdd }) {
       : null
 
   const handleOpen = () => {
-    if (!product.ean || product.storeUnavailable) return
-    navigate(buildProductPath(currentStore?.slug || null, product.ean), {
+    if (!getProductRef(product) || product.storeUnavailable) return
+    navigate(buildProductPath(currentStore?.slug || null, getProductRef(product)), {
       state: { product },
     })
   }
@@ -83,7 +84,10 @@ export default function ProductMiniCard({ product, onRemove, onAdd }) {
             <div className="product-mini-card__unavailable">{t('shopping.storeUnavailable')}</div>
           ) : price ? (
             <div className="product-mini-card__price-row">
-              <span className="product-mini-card__price">{price.toLocaleString('ru-RU')} ₸</span>
+              <span className="product-mini-card__price">
+                {price.toLocaleString('ru-RU')} ₸
+                {product.saleUnit ? ` / ${t(`integration.unit.${product.saleUnit}`)}` : ''}
+              </span>
               {oldPrice ? (
                 <span className="product-mini-card__old-price">
                   {oldPrice.toLocaleString('ru-RU')} ₸

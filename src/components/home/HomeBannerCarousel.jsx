@@ -214,7 +214,7 @@ export default function HomeBannerCarousel({
                 height={675}
                 loading={index === 0 ? 'eager' : 'lazy'}
                 decoding="async"
-                fetchPriority={index === 0 ? 'high' : 'auto'}
+                fetchpriority={index === 0 ? 'high' : 'auto'}
               />
             </div>
             <div className="home-banner-card__overlay" aria-hidden="true" />

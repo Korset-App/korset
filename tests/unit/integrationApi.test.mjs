@@ -73,3 +73,33 @@ test('database transport failure returns retryable failure without an acknowledg
   assert.deepEqual(res.body,{error:'INTEGRATION_UNAVAILABLE'})
   assert.equal('request_id' in res.body,false)
 })
+
+test('V2 acknowledgement carries the submitted protocol version',async()=>{
+  const {handler}=harness();const res=response()
+  await handler({method:'POST',headers:{authorization:`Bearer krt1_${'a'.repeat(64)}`,
+    'content-type':'application/json'},body:envelope(1,{operation:'heartbeat',items:[],protocol_version:2})},res)
+  assert.equal(res.statusCode,200);assert.equal(res.body.protocol_version,2)
+})
+
+test('paged issues use the authenticated owner and validated cursor',async()=>{
+  const {handler,calls}=harness();const res=response()
+  const cursor='11111111-1111-4111-8111-111111111111'
+  await handler({method:'GET',headers:{authorization:'Bearer valid-user-jwt'},
+    query:{action:'issues',store_id:STORE_ID,after_id:cursor,limit:'100',code:'STOCK_UNKNOWN'}},res)
+  assert.equal(res.statusCode,200)
+  assert.deepEqual(calls[0],{name:'korset_integration_issues',args:{p_owner_id:OWNER_ID,
+    p_store_id:STORE_ID,p_after_id:cursor,p_limit:100,p_code:'STOCK_UNKNOWN'}})
+})
+
+test('invalid queue queries are rejected before RPC',async()=>{
+  const {handler,calls}=harness()
+  for(const query of [{action:'issues',store_id:STORE_ID,limit:'101'},
+    {action:'issues',store_id:STORE_ID,after_id:'bad'},
+    {action:'issues',store_id:STORE_ID,owner_id:OWNER_ID},
+    {action:'create',store_id:STORE_ID}]) {
+    const res=response()
+    await handler({method:'GET',headers:{authorization:'Bearer valid-user-jwt'},query},res)
+    assert.equal(res.statusCode,400)
+  }
+  assert.equal(calls.length,0)
+})

@@ -1,0 +1,53 @@
+Create ONE finished Russian commercial presentation slide for Körset, horizontal16:9. Reference1 is our approved EARLY art-direction benchmark, reference2 is latest pricing slide for continuity ONLY. This new slide is about support and clear commercial conditions. Preserve the brand family: luminous warm limestone, aubergine type, rich violet (not electric blue), natural sunlit shadows, serious beautiful typography. Make a bespoke high-end conceptual editorial visual, not a generic text-on-boxes template.
+
+CONCEPT: "A dialogue, backed by clear conditions." A single beautifully die-cut MATTE VIOLET PAPER speech bubble lies slightly lifted on a warm pale limestone surface in the left half. Its crisp white printed support information is the hero. This is a real physical communication-shaped object with a small integrated tail, barely-thick paper layers and precise shadow, NOT a glossy plastic app icon, thick plaster slab or generic rounded digital card. It gently overlaps a small mostly hidden ivory reply slip; absolutely no obscured support text. On the right, commercial conditions are typeset directly on calm cream negative space in three clear groups; a small understated closed ivory paper agreement folder with a violet fabric tab lies near the extreme lower edge as a meaningful secondary prop without obstructing text. Optionally a refined short white pencil beside it, nothing more. No retail baskets, repeated vegetables, bread/milk/tomato/greens, no entire cluttered shop background, no generic clipart, chrome/glass ribbon or decorative gadget. This is a calm tactile service-and-trust still life. No invented phone screen, chat messages, testimonials or personnel. No phone is necessary.
+
+Approximate1672x941 layout:
+Top headline x65 y42, two lines in same heavyweight modern grotesk as early approved reference. Large80-88px but no distorted glyphs, no hyper-compressed letters, clean leading:
+"Поддержка Körset"
+"и понятные условия"
+First line dark aubergine, second flat violet. Both on cream negative space, no body or objects crossing headline.
+
+MAIN left speech bubble x65..747 y319..773, its paper face almost front-on so all print is sharp and legible. Tail points toward lower centre but stops well above footer. Small label inside at x100 y343,24px:
+"Поддержка в WhatsApp"
+Hero bold white header on violet approx39px:
+"На связи до 00:00"
+Then support body with deliberate breathing room, NOT overstuffed:
+Bold30-32px, two lines:
+"Обычно ответ —"
+"в течение часа"
+Regular25px lines:
+"Ориентир исправления — 1–2 дня."
+"Срок зависит от сложности задачи."
+Bold27px final statement, two lines:
+"Регулярные обновления"
+"входят в подписку."
+Everything must fit with generous edges and not touch tail. Do not shorten or change timings. "Обычно" and "Ориентир" are important, don't turn them into guarantees. "00:00" means until midnight, not 24/7. No invented phone number, extra support hours or "круглосуточно".
+
+RIGHT conditions x825..1600 y329..757, title30px bold dark plum, supporting text24-25px dark plum, good vertical group separation without boxes. Use small flat violet section numbers01,02,03 OR minimal printed rules, NOT disparate icons. Section numbers only if subtle and don't consume space. Exact content:
+1 heading:
+"Условия защищены"
+body two lines:
+"Цена и согласованные функции сохраняются"
+"до конца оплаченного срока."
+
+2 heading can wrap neatly in TWO lines to keep type large:
+"Возврат за"
+"неиспользованный срок"
+body two lines:
+"Возврат по оплаченной ставке."
+"Изготовленные материалы остаются у магазина."
+
+3 heading:
+"Продление обсуждаем заранее"
+body two or three clean lines as needed:
+"Будущие тарифы обсуждаем до следующей оплаты."
+"Действующий оплаченный срок не меняется."
+Keep all wording exactly, no tiny compressed copy. Do not say price change applies during prepaid term. Do not add cancellation fees, contracts details, refund deadline, new benefits or guarantees.
+
+FULL WIDTH dark aubergine footer y816..941 matching references. Left x65 y854 readable ivory text24px, exact:
+"Стоимость материалов и условия оплаты"
+"согласуем перед запуском."
+Right x1320..1640 y840..925 entirely EMPTY plain aubergine for original Körset logo added separately. DO NOT generate any logo, cube icon, wordmark, watermark, QR or page number anywhere.
+
+Production: fine real paper grain, smooth matte violet, credible thin edges, premium commercial photography with controlled soft directional sunlight. Meaningful speech shape is the distinctive visual idea; keep it subtle and serious for B2B. Deep violet ties support and clear agreement together. Dark plum typography on light field is razor clear; white text on violet has enough contrast. Preserve every condition and qualifier. No glowing gradients, 3D extruded typography, pastel app cards, rubber toys, chrome accents, generic customer-service headset stock photo, handshake photo, busy patterned background or repeated thick cream text tablets. The outcome should feel like a designed campaign, professionally typeset, complete and usable as the next slide in the same deck.

@@ -1528,7 +1528,7 @@ export default function HomeScreen() {
                     src={dept.image}
                     alt=""
                     loading={index < 4 ? 'eager' : 'lazy'}
-                    fetchPriority={index < 2 ? 'high' : 'auto'}
+                    fetchpriority={index < 2 ? 'high' : 'auto'}
                     decoding="async"
                   />
                 </div>

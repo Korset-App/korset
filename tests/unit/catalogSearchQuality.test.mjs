@@ -243,3 +243,23 @@ test('sortCatalogSearchProducts handles typos and attribute filters synergy', ()
   assert.equal(sorted[0].name, 'Сосиски Мусульманские Халал')
   assert.equal(sorted[1].name, 'Сосиски Докторские Мираторг')
 })
+
+test('scoreCatalogSearchProduct does not match products containing palm oil when searching "без пальмового масла"', () => {
+  const query = analyzeCatalogSearchQuery('печенье без пальмового масла')
+  const withPalmOil = scoreCatalogSearchProduct(query, {
+    name: 'Печенье сахарное',
+    category: 'sweets',
+    subcategory: 'cookies',
+    ingredients: 'Мука пшеничная, сахар, пальмовое масло, вода',
+  })
+  const withoutPalmOil = scoreCatalogSearchProduct(query, {
+    name: 'Печенье овсяное на сливочном масле',
+    category: 'sweets',
+    subcategory: 'cookies',
+    ingredients: 'Мука овсяная, масло сливочное, сахар, яйца',
+  })
+
+  assert.equal(withPalmOil.attributeMatch, false)
+  assert.equal(withoutPalmOil.attributeMatch, true)
+  assert.ok(withoutPalmOil.score > withPalmOil.score)
+})

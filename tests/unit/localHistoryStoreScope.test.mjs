@@ -32,6 +32,13 @@ test('local scan entries keep a valid status for later cloud synchronization', (
   assert.equal(legacyEntry.source, 'found_cache')
 })
 
+test('a local source scan retains the actual scanned code and a separate product reference',()=>{
+  const sourceId='11111111-1111-4111-8111-111111111111'
+  const item=buildLocalScanHistoryEntry({name:'Local food',ean:null,storeSourceItemId:sourceId,canonicalId:`si:${sourceId}`},'found_store','store-a','000042')
+  assert.equal(item.ean,'000042');assert.equal(item.storeSourceItemId,sourceId)
+  assert.equal(item.canonicalId,`si:${sourceId}`)
+})
+
 test('all-store history dedupes by store and EAN, keeping the newest scan', () => {
   const result = filterLocalScanHistoryAcrossStores(history)
 

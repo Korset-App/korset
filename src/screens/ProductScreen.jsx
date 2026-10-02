@@ -26,6 +26,7 @@ import {
 } from '../domain/product/unknownEanRequest.js'
 import {
   buildCatalogPath,
+  buildProductPath,
   buildProductAIPath,
   buildProductAlternativesPath,
   buildProductCompositionPath,
@@ -45,16 +46,18 @@ import ProductSubmissionSheet from '../components/product/ProductSubmissionSheet
 import AuthPromptModal from '../components/AuthPromptModal.jsx'
 import { AlertTriangleIcon, CameraIcon } from '../components/icons/index.js'
 import { getAllergenShortName } from '../constants/allergens.js'
+import StoreSourceProductScreen from './StoreSourceProductScreen.jsx'
+import { getProductRef } from '../domain/product/storeSourceProduct.js'
 
 function getManufacturerText(product) {
   if (!product) return ''
   if (product.manufacturer && typeof product.manufacturer === 'object') {
     const name = product.manufacturer.name || ''
     const country = product.manufacturer.country || ''
-    return [name, country].filter(Boolean).join(' В· ')
+    return [name, country].filter(Boolean).join(' · ')
   }
   if (typeof product.manufacturer === 'string') {
-    return product.manufacturer.replace(/\s*вЂ”\s*РґРµРјРѕ\s*$/i, '').trim()
+    return product.manufacturer.replace(/\s*[-—]\s*демо\s*$/i, '').trim()
   }
   return product.brand || ''
 }
@@ -70,6 +73,15 @@ function getCountry(product) {
 // MAIN COMPONENT
 // ---------------------------------------------------------------------------
 export default function ProductScreen() {
+  const { ean } = useParams()
+  return /^si:[a-f0-9-]{36}$/i.test(ean || '') ? (
+    <StoreSourceProductScreen />
+  ) : (
+    <StandardProductScreen />
+  )
+}
+
+function StandardProductScreen() {
   const { ean, storeSlug } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
@@ -93,8 +105,11 @@ export default function ProductScreen() {
   }, [catalogProducts, ean, location.state])
 
   const [fullProduct, setFullProduct] = useState(null)
+  const [backgroundEnrichment, setBackgroundEnrichment] = useState(null)
   const [fetchingFull, setFetchingFull] = useState(false)
   const [fetchSettledEmpty, setFetchSettledEmpty] = useState(false)
+  const [fetchIssue, setFetchIssue] = useState(null)
+  const [retryLookup, setRetryLookup] = useState(0)
   const [unknownRequestStatus, setUnknownRequestStatus] = useState('idle')
   const [shareCopied, setShareCopied] = useState(false)
   const [submissionOpen, setSubmissionOpen] = useState(false)
@@ -117,10 +132,11 @@ export default function ProductScreen() {
     let aborted = false
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setFetchingFull(true)
+    setFetchIssue(null)
     const timer = setTimeout(() => {
       if (!aborted) {
         setFetchingFull(false)
-        setFetchSettledEmpty(true)
+        setFetchIssue('slow')
       }
     }, 8000)
 
@@ -129,7 +145,10 @@ export default function ProductScreen() {
         if (!aborted) {
           clearTimeout(timer)
           setFetchingFull(false)
-          if (p) setFullProduct(p)
+          setFetchIssue(null)
+          if (p?.storeSourceItemId)
+            navigate(buildProductPath(activeStoreSlug, getProductRef(p)), { replace: true })
+          else if (p) setFullProduct(p)
           else setFetchSettledEmpty(true)
         }
       })
@@ -137,25 +156,26 @@ export default function ProductScreen() {
         if (!aborted) {
           clearTimeout(timer)
           setFetchingFull(false)
-          setFetchSettledEmpty(true)
+          setFetchIssue('error')
         }
       })
     return () => {
       aborted = true
       clearTimeout(timer)
     }
-  }, [needsResolve, ean, storeId])
+  }, [needsResolve, ean, storeId, activeStoreSlug, navigate, retryLookup])
 
   useEffect(() => {
     if (!needsFullFetch) return
     let aborted = false
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setFetchingFull(true)
+    setFetchIssue(null)
     setFetchSettledEmpty(false)
     const timer = setTimeout(() => {
       if (!aborted) {
         setFetchingFull(false)
-        setFetchSettledEmpty(true)
+        setFetchIssue('slow')
       }
     }, 8000)
 
@@ -167,6 +187,7 @@ export default function ProductScreen() {
         if (fp) {
           clearTimeout(timer)
           setFetchingFull(false)
+          setFetchIssue(null)
           setFullProduct(fp)
           return
         }
@@ -176,14 +197,17 @@ export default function ProductScreen() {
           if (!aborted) {
             clearTimeout(timer)
             setFetchingFull(false)
-            if (gp) setFullProduct(gp)
+            setFetchIssue(null)
+            if (gp?.storeSourceItemId)
+              navigate(buildProductPath(activeStoreSlug, getProductRef(gp)), { replace: true })
+            else if (gp) setFullProduct(gp)
             else setFetchSettledEmpty(true)
           }
         } catch {
           if (!aborted) {
             clearTimeout(timer)
             setFetchingFull(false)
-            setFetchSettledEmpty(true)
+            setFetchIssue('error')
           }
         }
       })
@@ -191,25 +215,32 @@ export default function ProductScreen() {
         if (!aborted) {
           clearTimeout(timer)
           setFetchingFull(false)
-          setFetchSettledEmpty(true)
+          setFetchIssue('error')
         }
       })
     return () => {
       aborted = true
       clearTimeout(timer)
     }
-  }, [needsFullFetch, storeId, ean])
+  }, [needsFullFetch, storeId, ean, activeStoreSlug, navigate, retryLookup])
 
   useEffect(() => {
     if (!ean) return
     const handler = (e) => {
-      if (e.detail?.ean === ean) setFullProduct(e.detail.product)
+      if (e.detail?.ean !== ean || e.detail.storeId !== storeId) return
+      setBackgroundEnrichment(e.detail)
     }
     enrichmentEvents.addEventListener('enriched', handler)
     return () => enrichmentEvents.removeEventListener('enriched', handler)
-  }, [ean])
+  }, [ean, storeId])
 
-  const product = getProductScreenProduct({ baseProduct, fullProduct, ean })
+  const product = getProductScreenProduct({
+    baseProduct,
+    fullProduct,
+    ean,
+    storeId,
+    backgroundEnrichment,
+  })
   const localName = useLocalName(product)
   const canRequestUnknown = canRequestUnknownProduct({ ean, storeId })
 
@@ -277,7 +308,9 @@ export default function ProductScreen() {
   }
 
   const showLoadingSkeleton =
-    !product && (fetchingFull || ((needsFullFetch || needsResolve) && !fetchSettledEmpty))
+    !product &&
+    !fetchIssue &&
+    (fetchingFull || ((needsFullFetch || needsResolve) && !fetchSettledEmpty))
   if (showLoadingSkeleton) {
     return (
       <div className="screen" style={{ padding: '0 20px 120px', overflowY: 'auto' }}>
@@ -378,10 +411,10 @@ export default function ProductScreen() {
           </div>
           <div>
             <p style={{ color: 'var(--text)', fontSize: 20, fontWeight: 800, marginBottom: 8 }}>
-              {t('product.unknownEan.title')}
+              {t(fetchIssue ? `product.lookup.${fetchIssue}Title` : 'product.unknownEan.title')}
             </p>
             <p style={{ color: 'var(--text-sub)', fontSize: 14, lineHeight: 1.65, margin: 0 }}>
-              {t('product.unknownEan.body')}
+              {t(fetchIssue ? `product.lookup.${fetchIssue}Body` : 'product.unknownEan.body')}
             </p>
           </div>
           {ean && (
@@ -399,25 +432,35 @@ export default function ProductScreen() {
               {ean}
             </div>
           )}
-          <button
-            className="btn btn-primary"
-            style={{
-              marginTop: 4,
-              minWidth: 220,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-            }}
-            onClick={() => {
-              setSubmissionMode('new_product')
-              setSubmissionOpen(true)
-            }}
-          >
-            <CameraIcon size={20} />
-            <span>{t('scan.submission.titleNew')}</span>
-          </button>
-          {canRequestUnknown && (
+          {fetchIssue === 'error' && (
+            <button
+              className="btn btn-primary"
+              onClick={() => setRetryLookup((value) => value + 1)}
+            >
+              {t('common.retry')}
+            </button>
+          )}
+          {!fetchIssue && (
+            <button
+              className="btn btn-primary"
+              style={{
+                marginTop: 4,
+                minWidth: 220,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+              }}
+              onClick={() => {
+                setSubmissionMode('new_product')
+                setSubmissionOpen(true)
+              }}
+            >
+              <CameraIcon size={20} />
+              <span>{t('scan.submission.titleNew')}</span>
+            </button>
+          )}
+          {!fetchIssue && canRequestUnknown && (
             <button
               className="btn btn-secondary"
               style={{ minWidth: 220 }}
@@ -475,9 +518,8 @@ export default function ProductScreen() {
     country && (typeof country === 'string' ? country : null),
     quantityDisplay,
   ].filter(Boolean)
-  // Fallback: РµСЃР»Рё РЅРµС‚ brand, РёСЃРїРѕР»СЊР·СѓРµРј manufacturer name
-  const subtitleText =
-    subtitleParts.length > 0 ? subtitleParts.join(' В· ') : manufacturerText || ''
+  // Fallback: if no brand, use manufacturer name
+  const subtitleText = subtitleParts.length > 0 ? subtitleParts.join(' · ') : manufacturerText || ''
 
   const handleAskIngredientAI = (item) => {
     navigate(buildProductAIPath(activeStoreSlug, product.ean), {
@@ -502,7 +544,7 @@ export default function ProductScreen() {
         <title>{`${localName || product.name} | Körset`}</title>
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
-      {/* HEADER вЂ” Р±РµР· "Р”РµС‚Р°Р»Рё" */}
+      {/* Header */}
       <div
         style={{
           position: 'sticky',
@@ -669,7 +711,7 @@ export default function ProductScreen() {
           )}
         </div>
 
-        {/* 3. Brand В· Country В· Quantity */}
+        {/* 3. Brand · Country · Quantity */}
         {subtitleText && (
           <div style={{ fontSize: 13, color: 'var(--text-dim)', marginTop: -8 }}>
             {subtitleText}
@@ -943,7 +985,7 @@ export default function ProductScreen() {
           </div>
         )}
 
-        {/* 10. Bottom action buttons вЂ” Р’ РџРћРўРћРљР• (РЅРµ fixed) */}
+        {/* 10. Bottom action buttons (in-flow) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
           <div style={{ display: 'flex', gap: 10 }}>
             <button
@@ -1006,7 +1048,7 @@ export default function ProductScreen() {
                 boxShadow: '0 6px 18px rgba(124,58,237,0.35)',
               }}
             >
-              {/* AI РёРєРѕРЅРєР° вЂ” С‚Р° Р¶Рµ С‡С‚Рѕ РІ BottomNav */}
+              {/* AI icon */}
               <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
                 <path d="M12 1.99996C12.9057 1.99996 13.7829 2.12194 14.6172 2.34762C14.2223 3.14741 14 4.04768 14 4.99997C14 8.31368 16.6863 11 20 11C20.6685 11 21.3106 10.8882 21.9111 10.6865C21.9676 11.1165 22 11.5546 22 12C22 17.5228 17.5228 22 12 22C10.2975 22 8.69425 21.5746 7.29102 20.8242L2 22L3.17578 16.709C2.42542 15.3057 2 13.7025 2 12C2.00002 6.47714 6.47717 1.99996 12 1.99996ZM19.5293 1.3193C19.7058 0.893513 20.2942 0.8935 20.4707 1.3193L20.7236 1.93063C21.1555 2.97343 21.9615 3.80614 22.9746 4.2568L23.6914 4.57614C24.1022 4.75882 24.1022 5.35635 23.6914 5.53903L22.9326 5.87692C21.945 6.3162 21.1534 7.11943 20.7139 8.1279L20.4668 8.69333C20.2863 9.10747 19.7136 9.10747 19.5332 8.69333L19.2861 8.1279C18.8466 7.11942 18.0551 6.3162 17.0674 5.87692L16.3076 5.53903C15.8974 5.35618 15.8974 4.75895 16.3076 4.57614L17.0254 4.2568C18.0384 3.80614 18.8445 2.97343 19.2764 1.93063L19.5293 1.3193Z" />
               </svg>

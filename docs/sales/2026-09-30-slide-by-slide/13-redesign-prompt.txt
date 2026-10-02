@@ -1,0 +1,49 @@
+Generate one finished 16:9 Russian commercial presentation slide for Körset. This is a COMPLETE REDESIGN of the launch slide, using images 1 and 2 solely as APPROVED EARLY ART-DIRECTION references. Recapture their disciplined premium editorial quality: understated warm limestone, violet NOT electric blue, beautiful large confident typography, an uncluttered sculptural photographic subject, real sunlight and meaningful shadows. The recent version was too heavy and repetitive with thick cream text boards and a generic shop photo. Do not repeat it.
+
+Art direction: a carefully arranged "store launch kit" in a real space. Almost all the background is smooth pale warm limestone, finely textured but NOT wrinkled paper, with a quiet pale oak surface at bottom. Right third is a single professionally printed, slender upright Körset promotional banner installed next to a grocery entrance. The doorway and a modest shelf of tea, snacks and drinks appear only as a tasteful distant hint on the FAR right. Hero materials also include two small elegant cream shelf label holders, a kraft envelope with one violet tab, neatly aligned sample installation pieces, and a short natural shadow. These tell the story of bringing the service into a physical store. No overloaded grocery still life; NO baskets, bread/milk/tomato/lettuce display. Scene is sunlit and believable with precise material detail, subtle camera depth, controlled color and strong physical realism. Banner must be matte ivory with a continuous matte dark plum top and violet lower edge, crisp refined type, realistic narrow stand, NOT a generic mockup placed on a slide. Use a straight front-facing print plane to preserve original QR and icon inserted afterward. Center-right banner occupies x1120..1505, y235..774 on a 1672x941 canvas, print face ~300 pixels wide. DO NOT place or draw any QR, matrix pattern, logo, cube or fake code anywhere. These will be added from original assets afterward, into reserved blank areas.
+
+Composition:
+Headline at x65 y45, approximately 88px bold using approved early reference typography with moderate letter spacing, NOT hyper-compressed, NOT gigantic 110px, no extruded text. Two exact lines:
+"Запуск Körset"
+"в вашем магазине."
+First line dark aubergine, second rich flat brand violet close to #6933E4, not neon blue. Entire headline unobscured with cream negative space; no page number.
+
+Three clearly readable launch steps printed DIRECTLY over the plain cream background at left x72..950, y315..660, not mounted on thick paper boards, not three cards. Small restrained violet 01/02/03 at left, black plum headings 30px, body 25px. Excellent breathing room and deliberate typography. Exact text:
+"Осмотр и согласование"
+"Оценим точку, учётную систему"
+"и места для QR."
+"Каталог и настройка"
+"Подготовим витрину, контакты"
+"и ассортимент."
+"Материалы и первое использование"
+"Разместим QR на входе,"
+"полках и у кассы."
+Use no line separators or decorative icons; typographic hierarchy alone is enough.
+
+Right physical banner design:
+A CONTINUOUS dark plum upper section with an EMPTY plain 100x100 square centered near x1290,y283 reserved for an original white/purple Körset cube icon. No rectangle badge on top, no wordmark rendered by you, no white logo plate or sticker, just integrated colored banner field with empty space for original icon.
+Banner textual headline on ivory, legible 23px:
+"Выбирайте"
+"с уверенностью"
+Then simple dark plum 17px lines:
+"Узнайте цену"
+"Проверьте состав"
+"Подходит ли вам?"
+"Сравните товары"
+Below is an ENTIRELY BLANK UNMARKED WHITE square, approx x1224 y557 size170x170. This receives the actual QR separately. Do not draw a border, caption, placeholders, matrix patterns or text inside the square. Preserve at least 8px white margin around it and keep it front-facing. Below it two exact legible short lines:
+"Сканируйте QR-код"
+"Бесплатно. Без приложения."
+Keep all banner copy correct and well separated; do not let copy overlap original icon/QR reservation. Use sufficient print-face size so all fits. Whole banner can sit a little higher than physical counter, sensible stand base at y781. No chopped-off banner.
+
+Pricing positioned cleanly bottom left in the open cream area x70 y709..784, two lines 30px with refined weights, no thick plaster strip:
+"Подключение — бесплатно."
+"Печать и установка — от 5 000 ₸ разово."
+Price 5 000 ₸ in rich violet, correct Kazakh tenge symbol. Do not add any other price, launch period or promises.
+
+A simple full-width dark aubergine footer y816..941:
+At x65 y841, exact two lines of small but readable ivory type 21px:
+"Формат и количество индивидуальны. Держатели, крепления"
+"и дополнительные материалы — в согласованной смете."
+Leave footer RIGHT x1320..1640 y840..925 entirely empty for original white logo pasted later; do not invent a logo.
+
+Quality target: early-reference level editorial advertising, minimal and meaningful, superb photo materials and sharp Russian typesetting. The visual atmosphere is fresh, light, sophisticated; smaller amount of stronger photographic detail beats a cluttered shop background. Keep all required content. No chrome, ribbons, sparkles, glossy plastic decorations, glassmorphism, fake dashboard, digital UI cards, giant paper text tablets, gradients on text or saturated blue. Do not simply reproduce previous composition. Distinctly finer, calmer and more cohesive, with natural shadows.

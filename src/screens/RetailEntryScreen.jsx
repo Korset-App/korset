@@ -241,7 +241,7 @@ export default function RetailEntryScreen() {
   if (!user) {
     return (
       <Navigate
-        to="/auth"
+        to="/retail/login"
         state={{
           ...buildAuthNavigateState(location, {}, '/retail'),
           returnTo: '/retail',

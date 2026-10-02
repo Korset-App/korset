@@ -237,6 +237,58 @@ export default function CatalogFilterDrawer({
                 />
                 <span className="catalog-filter-toggle-switch" />
               </label>
+
+              <label className="catalog-filter-toggle-row">
+                <div className="catalog-filter-toggle-label">
+                  <span>{t('catalog.badge.vegan')}</span>
+                </div>
+                <input
+                  type="checkbox"
+                  className="catalog-filter-toggle-input"
+                  checked={Boolean(extraFilters.veganOnly)}
+                  onChange={() => onToggleExtraFilter?.('veganOnly')}
+                />
+                <span className="catalog-filter-toggle-switch" />
+              </label>
+
+              <label className="catalog-filter-toggle-row">
+                <div className="catalog-filter-toggle-label">
+                  <span>{t('catalog.badge.keto')}</span>
+                </div>
+                <input
+                  type="checkbox"
+                  className="catalog-filter-toggle-input"
+                  checked={Boolean(extraFilters.ketoOnly)}
+                  onChange={() => onToggleExtraFilter?.('ketoOnly')}
+                />
+                <span className="catalog-filter-toggle-switch" />
+              </label>
+
+              <label className="catalog-filter-toggle-row">
+                <div className="catalog-filter-toggle-label">
+                  <span>{t('catalog.badge.lowFat')}</span>
+                </div>
+                <input
+                  type="checkbox"
+                  className="catalog-filter-toggle-input"
+                  checked={Boolean(extraFilters.lowFatOnly)}
+                  onChange={() => onToggleExtraFilter?.('lowFatOnly')}
+                />
+                <span className="catalog-filter-toggle-switch" />
+              </label>
+
+              <label className="catalog-filter-toggle-row">
+                <div className="catalog-filter-toggle-label">
+                  <span>{t('catalog.badge.kidFriendly')}</span>
+                </div>
+                <input
+                  type="checkbox"
+                  className="catalog-filter-toggle-input"
+                  checked={Boolean(extraFilters.kidFriendlyOnly)}
+                  onChange={() => onToggleExtraFilter?.('kidFriendlyOnly')}
+                />
+                <span className="catalog-filter-toggle-switch" />
+              </label>
             </div>
           </div>
 

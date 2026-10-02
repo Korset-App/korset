@@ -21,6 +21,7 @@ export async function hydrateSyncedConditions(
   const eans = [
     ...new Set(
       products
+        .filter((product) => !product?.storeSourceItemId)
         .map((product) => product?.ean)
         .filter(Boolean)
         .map(String)
@@ -54,6 +55,7 @@ export async function hydrateSyncedConditions(
   if (isCancelled()) return products.map((product) => applySyncedRegularFallback(product))
 
   return products.map((product) => {
+    if (product?.storeSourceItemId) return applySyncedConditions(product, undefined, now)
     const eanStr = String(product?.ean)
     if (byEan.has(eanStr)) {
       const applied = applySyncedConditions(product, byEan.get(eanStr), now)

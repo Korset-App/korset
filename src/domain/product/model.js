@@ -45,6 +45,10 @@ export function createEmptyProduct(overrides = {}) {
 
     id,
     ean,
+    storeSourceItemId: overrides.storeSourceItemId || null,
+    storeId: overrides.storeId || null,
+    needsEnrichment: Boolean(overrides.needsEnrichment),
+    saleUnit: overrides.saleUnit || null,
     alternateEans: normalizeStringArray(overrides.alternateEans ?? overrides.alternate_eans),
     name: overrides.name || '',
     nameKz: overrides.nameKz || overrides.name_kz || null,
@@ -134,6 +138,8 @@ export function isUuid(value) {
 export function parseRouteProductRef(raw) {
   const value = decodeURIComponent(raw || '').trim()
   if (!value) return {}
+  if (value.startsWith('si:') && isUuid(value.slice(3)))
+    return { canonicalId: value, storeSourceItemId: value.slice(3) }
   if (value.startsWith('gp:')) return { canonicalId: value, id: value.slice(3) }
   if (value.startsWith('ean:')) return { canonicalId: value, ean: value.slice(4) }
   if (isUuid(value)) return { id: value, canonicalId: `gp:${value}` }

@@ -859,3 +859,142 @@ test('audit#1+2: user with tree_nuts allergy + OFF product mapped from en:nuts �
   )
   assert.equal(r.verdict, 'danger')
 })
+
+// ─── 14. Pilot False-Positive Prevention & Boundary Matching ────
+
+test('pilot#1: "загуститель" and "гуаровая камедь" do NOT trigger vegan/vegetarian false positives (гусь/мёд)', () => {
+  const r = checkProductFit(
+    baseProduct({
+      ingredients: 'Вода, загуститель гуаровая камедь, ксантановая камедь, сульфат меди, соль',
+    }),
+    baseProfile({ dietGoals: ['vegan', 'vegetarian'] })
+  )
+  assert.equal(r.verdict, 'safe')
+})
+
+test('pilot#2: "экстракт розмарина", "ракушки" and "со вкусом клубники" do NOT trigger crustaceans (рак) or fish (сом)', () => {
+  const r = checkProductFit(
+    baseProduct({
+      ingredients:
+        'Мука рисовая (ракушки), масло растительное, ароматизатор со вкусом клубники, экстракт розмарина, экстракт паприки',
+    }),
+    baseProfile({ allergens: ['crustaceans', 'fish'] })
+  )
+  assert.equal(r.verdict, 'safe')
+})
+
+test('pilot#3: "сыр маскарпоне" does NOT trigger fish allergy (карп), but triggers milk allergy', () => {
+  const product = baseProduct({
+    ingredients: 'Сливки пастеризованные, сыр маскарпоне, сахар',
+  })
+  const fishRes = checkProductFit(product, baseProfile({ allergens: ['fish'] }))
+  assert.equal(fishRes.verdict, 'safe')
+
+  const milkRes = checkProductFit(product, baseProfile({ allergens: ['milk'] }))
+  assert.equal(milkRes.verdict, 'danger')
+})
+
+test('pilot#4: "сельдерей" triggers celery allergy and does NOT trigger fish allergy (сельд)', () => {
+  const product = baseProduct({
+    ingredients: 'Вода, томаты, корень сельдерея, соль',
+  })
+  const fishRes = checkProductFit(product, baseProfile({ allergens: ['fish'] }))
+  assert.equal(fishRes.verdict, 'safe')
+
+  const celeryRes = checkProductFit(product, baseProfile({ allergens: ['celery'] }))
+  assert.equal(celeryRes.verdict, 'danger')
+})
+
+test('pilot#5: "сырье растительное" and "сырой миндаль" do NOT trigger milk allergy (сыр)', () => {
+  const r = checkProductFit(
+    baseProduct({
+      ingredients: 'Вода, сырье растительное, сырой тростник',
+    }),
+    baseProfile({ allergens: ['milk'], dietGoals: ['lactose_free', 'vegan'] })
+  )
+  assert.equal(r.verdict, 'safe')
+})
+
+test('pilot#6: plant milks ("кокосовое молоко", "миндальное молоко", "какао-масло", "молочная кислота") do NOT trigger milk/lactose/vegan conflicts', () => {
+  const r = checkProductFit(
+    baseProduct({
+      ingredients: 'Вода, кокосовое молоко, миндальное молоко, какао-масло, регулятор кислотности молочная кислота',
+    }),
+    baseProfile({ allergens: ['milk'], dietGoals: ['lactose_free', 'vegan'] })
+  )
+  assert.equal(r.verdict, 'safe')
+})
+
+test('pilot#7: "сахарин" and "сахарозаменитель" do NOT trigger sugar_free or diabetes violations', () => {
+  const r = checkProductFit(
+    baseProduct({
+      ingredients: 'Вода газированная, регулятор кислотности лимонная кислота, подсластитель сахарин, сахарозаменитель эритрит',
+      nutritionPer100: { sugars: 0 },
+    }),
+    baseProfile({ dietGoals: ['sugar_free'], healthConditions: ['diabetes'] })
+  )
+  assert.equal(r.verdict, 'safe')
+})
+
+test('pilot#8: "детское питание", "кукурузные хлопья", "рисовая мука" do NOT trigger gluten allergy (пита/хлопья/мука)', () => {
+  const r = checkProductFit(
+    baseProduct({
+      ingredients: 'Кукурузные хлопья, рисовая мука, кукурузный крахмал, продукт для детского питания',
+    }),
+    baseProfile({ allergens: ['gluten'], healthConditions: ['celiac'], dietGoals: ['gluten_free'] })
+  )
+  assert.equal(r.verdict, 'safe')
+})
+
+test('pilot#9: "кабачковая икра" and "баклажанная икра" do NOT trigger fish allergy (икра)', () => {
+  const r = checkProductFit(
+    baseProduct({
+      ingredients: 'Кабачковая икра, баклажанная икра, томатная паста, масло подсолнечное',
+    }),
+    baseProfile({ allergens: ['fish'], dietGoals: ['vegan'] })
+  )
+  assert.equal(r.verdict, 'safe')
+})
+
+test('pilot#10: trace clauses ("Может содержать следы молока и орехов") produce warning, NEVER danger', () => {
+  const r = checkProductFit(
+    baseProduct({
+      ingredients: 'Мука рисовая, вода, соль. Может содержать следы молока и фундука.',
+    }),
+    baseProfile({ allergens: ['milk', 'tree_nuts'] })
+  )
+  assert.equal(r.verdict, 'warning')
+  assert.equal(r.reasons.every((reason) => reason.severity !== 'danger'), true)
+})
+
+test('pilot#11: negated clauses ("Без сахара, не содержит глютена и лактозы") do NOT trigger allergen or diet violations', () => {
+  const r = checkProductFit(
+    baseProduct({
+      ingredients: 'Вода, рисовая крупа, соль. Без сахара. Не содержит глютена и лактозы.',
+    }),
+    baseProfile({
+      allergens: ['gluten', 'milk'],
+      dietGoals: ['sugar_free', 'gluten_free', 'lactose_free'],
+    })
+  )
+  assert.equal(r.verdict, 'safe')
+})
+
+test('pilot#12: empty composition never claims "Не содержит ваших аллергенов ✓" and emits missing_data notice with KZ translation', () => {
+  const r = checkProductFit(
+    baseProduct({
+      ingredients: '',
+      allergens: [],
+      traces: [],
+    }),
+    baseProfile({ allergens: ['milk', 'peanuts'] })
+  )
+  assert.equal(
+    r.reasons.some((reason) => reason.text.includes('Не содержит ваших аллергенов')),
+    false
+  )
+  const missingNotice = r.reasons.find((reason) => reason.source === 'missing_data')
+  assert.ok(missingNotice)
+  assert.ok(missingNotice.text.includes('Состав не указан'))
+  assert.ok(missingNotice.textKz && missingNotice.textKz.includes('Құрамы көрсетілмеген'))
+})

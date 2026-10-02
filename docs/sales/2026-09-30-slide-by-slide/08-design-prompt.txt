@@ -1,0 +1,37 @@
+Use case: productivity-visual. Generate a finished Russian 16:9 commercial presentation slide 08 for Körset, for grocery store owners in Kazakhstan. Images 1 and 2 are APPROVED brand visual references only. Match their distinctive craft EXACTLY: warm pale textured limestone, ultra-bold large dark aubergine grotesk typography, vivid flat violet typographic accents, tactile food/product editorial photography with natural soft sunlight, cream/kraft matte paper, bottom full-width dark aubergine band with ORIGINAL LOGO reserved for later compositing. Maintain this presentation's taste and brand code. This slide explains store owner's control of the customer storefront. Not analytics. NO tables of statistics, no generic flat infographic, no SVG icons, no chrome, no glass ribbons, no floating cards, no dark main backdrop or stock-photo fade, no random tech decoration or generic smartphone mockup.
+
+Concept: "A shelf price tag unfolds into control of a digital storefront." One carefully art-directed physical still-life fills the entire slide beneath the typography: on a warm pale wooden grocery shelf/counter, a tall premium unbranded kraft grocery bag with a small violet paper closure stands on the right. An OVERSIZED warm ivory rounded price/settings tag is attached in front of it with a simple matte violet clip. This giant price tag has a clean clearly legible CONCEPT of the store's product management controls. The tag feels like tangible paper, subtle curled corner and realistic texture, not a floating software card. The food bag and a small unbranded glass jar of grains/honey with matte purple lid peek behind its right/top edges and ground the subject in grocery retail. A small leafy herb at far right, no huge basket. Scene has lovely long soft shadows, varied natural materials, sophisticated close composition. Entire left below headline is an intentionally empty warm stone surface where the 3 feature descriptions are beautifully typeset in the same physical scene, not a dark gradient panel. They integrate with shelf without icon bullet template.
+
+Layout at1672x941:
+Header x65 y65–255 huge two-line heavy grotesk typography about76px:
+"Управляйте тем," dark aubergine.
+"что видит покупатель." bright FLAT violet.
+Small page "08" x1590 y38 in plum.
+Left informative area x70–655 y335–765 with only3 elegantly spaced typography groups, no icon, no boxes:
+y345 bold34 "Цены и наличие"
+y395 regular26 "Поддерживайте актуальную"
+y430 "витрину вашей точки."
+y505 bold34 "Хиты и акции"
+y555 regular26 "Выделяйте товары, которые"
+y590 "хотите показать покупателю."
+y665 bold34 "Рекомендации к списку"
+y710 regular26 "Предлагайте дополнения"
+y745 "из своего ассортимента."
+
+Hero in right half x760–1615 y295–808. Kraft bag behind, rising to y280 on right, partial crop far right allowed. Oversized ivory tangible tag approximately x765 y360 width765 height365 on shelf, clear almost frontal plane, slight tasteful tilt but avoid distorted text. Tag ink and UI are precise, not ornamental; entire interface is a proposed design and all quoted wording must read crisply.
+Tag top bold30 "Ваш товар" at x805 y410. Small subtitle19 "Пример настроек в кабинете".
+Thin plum hairline divider.
+Middle prominent row y500:
+LEFT small label22 "Цена", with LARGE heavy violet "890 ₸" approximately54px at x815.
+RIGHT pale muted sage horizontal label with text "В наличии" darkgreen28.
+Bottom y620 three minimalist evenly spaced control groups, no decorative icons:
+"Хит" + small tasteful violet toggle ON
+"Акция" + small neutral gray toggle OFF
+"В список" + small violet toggle ON
+Controls clean consistent style. No extra numbers, no discounts, no branded food packaging or made-up barcodes. Price exactly890₸. No generated logo anywhere.
+
+Bottom aubergine brand strip y818–941 with warm ivory straightforward legible copy LEFT x65–1220, about20px:
+"Пример настроек товара."
+"В кабинете также можно изменить сведения, контакты и фотографии магазина."
+Reserve RIGHT footer x1320–1620 EMPTY aubergine for ORIGINAL supplied Körset wordmark, to be inserted later. Do not draw, approximate or generate any logo.
+All text in Russian exactly as quoted, no extra words. All original core content retained: price and stock, hits/promotions, shopping-list recommendations, example price890₸, example settings, store details/contacts/photos. The photo and oversized tag must feel uniquely tied to grocery storefront management. Build a premium coherent composition, beautiful textures but simple trustworthy controls and restrained clear commercial copy, no tiny dense text.

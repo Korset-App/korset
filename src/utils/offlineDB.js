@@ -142,7 +142,7 @@ export async function saveCatalogToIndexedDB(products, storeId) {
   const store = tx.objectStore(STORE_CATALOG)
   await store.clear()
   for (const product of products) {
-    if (!product.ean) continue
+    if (!product.ean || product.storeSourceItemId) continue
     await store.put({
       ean: String(product.ean),
       store_id: storeId,
@@ -197,6 +197,10 @@ export async function saveCatalogToIndexedDB(products, storeId) {
   await tx.done
   const metaTx = db.transaction(STORE_META, 'readwrite')
   const metaStore = metaTx.objectStore(STORE_META)
+  await metaStore.put({
+    key: `source_catalog:${storeId}`,
+    value: products.filter((product) => product.storeSourceItemId && product.storeId === storeId),
+  })
   await metaStore.put({ key: 'current_store_id', value: storeId })
   await metaStore.put({ key: 'catalog_cached_at', value: Date.now() })
   await metaStore.put({
@@ -209,7 +213,10 @@ export async function saveCatalogToIndexedDB(products, storeId) {
 
 export async function getCatalogFromIndexedDB() {
   const db = await getDB()
-  return db.getAll(STORE_CATALOG)
+  const products = await db.getAll(STORE_CATALOG)
+  const current = await db.get(STORE_META, 'current_store_id')
+  const local = current?.value ? await db.get(STORE_META, `source_catalog:${current.value}`) : null
+  return [...products, ...(Array.isArray(local?.value) ? local.value : [])]
 }
 
 export async function getProductFromIndexedDB(ean) {

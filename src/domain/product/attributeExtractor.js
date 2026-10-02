@@ -1,3 +1,12 @@
+import {
+  normalizeCompositionText,
+  splitCompositionClauses,
+  extractAllDirectAllergens,
+  extractAllTraceAllergens,
+  findMatchingTerm,
+  hasAddedSugarInText,
+} from '../../utils/compositionMatcher.js'
+
 export const PACKAGING_TYPES = {
   bottle_plastic: {
     keywords: ['пэт', 'пет', 'п/э', 'пэт-бутылка', 'бут.пет', 'бут.пэт', 'бутылка пет', 'pet'],
@@ -392,22 +401,783 @@ export function extractFatPercent(name, category) {
   return null
 }
 
-export function extractDietTags(name, existingTags = []) {
-  if (!name) return [...new Set(existingTags)]
-  const tags = [...existingTags]
-  for (const { tag, patterns } of DIET_PATTERNS) {
-    if (tags.includes(tag)) continue
-    if (patterns.some((p) => p.test(name))) tags.push(tag)
-  }
-  return [...new Set(tags)]
+const NON_FOOD_CATEGORIES = new Set([
+  'household',
+  'personal_care',
+  'pet_supplies',
+  'other',
+  'non_food',
+  'tobacco',
+  'alcohol',
+  'beauty',
+  'hygiene',
+])
+
+const ALLERGEN_ID_NORMALIZE_MAP = {
+  milk: 'milk',
+  dairy: 'milk',
+  lactose: 'milk',
+  eggs: 'eggs',
+  egg: 'eggs',
+  gluten: 'gluten',
+  wheat: 'gluten',
+  cereals_containing_gluten: 'gluten',
+  rye: 'gluten',
+  barley: 'gluten',
+  oats: 'gluten',
+  soy: 'soy',
+  soya: 'soy',
+  soybeans: 'soy',
+  peanuts: 'peanuts',
+  peanut: 'peanuts',
+  nuts: 'tree_nuts',
+  tree_nuts: 'tree_nuts',
+  almonds: 'tree_nuts',
+  hazelnuts: 'tree_nuts',
+  walnuts: 'tree_nuts',
+  cashews: 'tree_nuts',
+  pistachios: 'tree_nuts',
+  fish: 'fish',
+  crustaceans: 'crustaceans',
+  shellfish: 'crustaceans',
+  mollusks: 'mollusks',
+  molluscs: 'mollusks',
+  sesame: 'sesame',
+  'sesame-seeds': 'sesame',
+  sesame_seeds: 'sesame',
+  mustard: 'mustard',
+  celery: 'celery',
+  sulfites: 'sulfites',
+  sulphites: 'sulfites',
+  'sulphur-dioxide-and-sulphites': 'sulfites',
+  lupin: 'lupin',
 }
 
-export function extractHalalFromName(name, currentStatus = 'unknown') {
-  if (!name) return currentStatus
+export function normalizeCanonicalAllergenIds(list = []) {
+  if (!Array.isArray(list)) return []
+  const result = new Set()
+  for (const raw of list) {
+    const clean = String(raw || '')
+      .toLowerCase()
+      .replace(/^[a-z]{2}:/, '')
+      .trim()
+    if (!clean) continue
+    const mapped = ALLERGEN_ID_NORMALIZE_MAP[clean] || clean
+    if (ALLERGEN_ID_NORMALIZE_MAP[mapped]) {
+      result.add(ALLERGEN_ID_NORMALIZE_MAP[mapped])
+    }
+  }
+  return [...result]
+}
+
+const PLANT_ALT_NAME_REGEX =
+  /(?:растительн|кокосов|миндальн|овсян|соев|рисов|гречнев|фундучн|кешью|коноплян|горохов|немолоко|nemoloko|alpro|bite|green\s*milk|velle)/i
+
+const DEFINITE_HARAM_MARKERS = [
+  'свинина',
+  'свиной',
+  'свиная',
+  'свиное',
+  'свиные',
+  'свиного',
+  'свиному',
+  'свинины',
+  'шпик',
+  'бекон',
+  'сало',
+  'ветчина свиная',
+  'грудинка свиная',
+  'корейка свиная',
+  'шейка свиная',
+  'окорок свиной',
+  'карбонад свиной',
+  'жир свиной',
+  'желатин свиной',
+  'кровь пищевая',
+  'альбумин черный',
+  'гематоген',
+  'спирт этиловый',
+  'этанол',
+  'водка',
+  'коньяк',
+  'виски',
+  'текила',
+  'шампанское',
+  'бренди',
+  'ликер',
+  'ликёр',
+  'кармин',
+  'e120',
+  'е120',
+]
+
+const NON_VEGETARIAN_MARKERS = [
+  'говядина',
+  'говяжий',
+  'говяжья',
+  'говяжье',
+  'телятина',
+  'телячий',
+  'свинина',
+  'свиной',
+  'свиная',
+  'баранина',
+  'бараний',
+  'конина',
+  'конский',
+  'курица',
+  'куриный',
+  'куриная',
+  'куриное',
+  'цыпленок',
+  'цыпленка',
+  'индейка',
+  'индюшиный',
+  'утка',
+  'утиный',
+  'гусь',
+  'гусиный',
+  'кролик',
+  'оленина',
+  'мясо',
+  'мясной',
+  'мясная',
+  'фарш',
+  'ветчина',
+  'бекон',
+  'шпик',
+  'сало',
+  'колбаса',
+  'сосиски',
+  'сардельки',
+  'печень говяжья',
+  'печень куриная',
+  'печень свиная',
+  'печень трески',
+  'субпродукты',
+  'желатин',
+  'рыба',
+  'рыбный',
+  'лосось',
+  'семга',
+  'форель',
+  'тунец',
+  'треска',
+  'минтай',
+  'сельдь',
+  'скумбрия',
+  'сардина',
+  'шпроты',
+  'килька',
+  'горбуша',
+  'кета',
+  'анчоус',
+  'креветки',
+  'краб',
+  'кальмар',
+  'мидии',
+  'осьминог',
+  'икра',
+  'сурими',
+  'сычужный фермент',
+  'кармин',
+  'e120',
+  'е120',
+]
+
+const NON_VEGAN_EXTRA_MARKERS = [
+  ...NON_VEGETARIAN_MARKERS,
+  'молоко',
+  'молочный',
+  'молочная',
+  'молочное',
+  'сливки',
+  'сливочное масло',
+  'масло сливочное',
+  'сметана',
+  'творог',
+  'творожный',
+  'сыр',
+  'кефир',
+  'йогурт',
+  'ряженка',
+  'простокваша',
+  'сыворотка молочная',
+  'молочная сыворотка',
+  'пахта',
+  'казеин',
+  'казеинат',
+  'лактоза',
+  'молочный белок',
+  'молочный жир',
+  'сухое молоко',
+  'сгущенное молоко',
+  'яйцо',
+  'яйца',
+  'яичный',
+  'яичный порошок',
+  'меланж',
+  'альбумин',
+  'мед',
+  'мёд',
+  'пчелиный воск',
+  'воск пчелиный',
+  'e901',
+  'е901',
+  'шеллак',
+  'e904',
+  'е904',
+  'ланолин',
+  'животный жир',
+]
+
+const CHILD_UNFRIENDLY_MARKERS = [
+  'кофеин',
+  'таурин',
+  'гуарана',
+  'энергетический',
+  'алкоголь',
+  'спирт этиловый',
+  'пиво',
+  'вино',
+  'водка',
+  'коньяк',
+  'виски',
+  'глутамат натрия',
+  'e621',
+  'е621',
+  'нитрит натрия',
+  'e250',
+  'е250',
+  'бензоат натрия',
+  'e211',
+  'е211',
+  'диоксид серы',
+  'e220',
+  'е220',
+  'аспартам',
+  'e951',
+  'е951',
+  'ацесульфам',
+  'e950',
+  'е950',
+  'сахарин',
+  'e954',
+  'е954',
+  'цикламат',
+  'e952',
+  'е952',
+  'сукралоза',
+  'e955',
+  'е955',
+  'тартразин',
+  'e102',
+  'е102',
+  'желтый хинолиновый',
+  'e104',
+  'е104',
+  'желтый солнечный закат',
+  'e110',
+  'е110',
+  'кармуазин',
+  'азорубин',
+  'e122',
+  'е122',
+  'понсо',
+  'e124',
+  'е124',
+  'красный очаровательный',
+  'e129',
+  'е129',
+  'жидкий дым',
+  'перец чили',
+  'халапеньо',
+  'васаби',
+]
+
+function stripFlavorPhrasesFromName(name) {
+  return normalizeCompositionText(name).replace(
+    /(?:со\s+вкусом|вкус(?:ом)?|аромат(?:ом)?)\s+[^,.();]+/giu,
+    ' '
+  )
+}
+
+export function extractProductAllergens({
+  name = '',
+  category = '',
+  ingredients = '',
+  existingAllergens = [],
+} = {}) {
+  const result = new Set(normalizeCanonicalAllergenIds(existingAllergens))
+  if (NON_FOOD_CATEGORIES.has(category)) {
+    return []
+  }
+
+  const ingredientsText = String(ingredients || '')
+  if (ingredientsText.trim()) {
+    for (const allergenId of extractAllDirectAllergens(ingredientsText)) {
+      result.add(allergenId)
+    }
+  }
+
+  const cleanName = stripFlavorPhrasesFromName(name)
+  const { mainText: nameMain, negatedText: nameNegated } = splitCompositionClauses(cleanName)
+  const isPlantAlt = PLANT_ALT_NAME_REGEX.test(cleanName)
+
+  // Unambiguous name-based allergen detection
+  if (
+    !isPlantAlt &&
+    /\b(?:молоко\s+(?:коров|пастеризован|ультрапастеризован|стерилизован|топлен|цельн|сгущен|сух|питьев|отборн|фермерск|детск)|кефир|ряженка|снежок|варенец|айран|тан\b|курт\b|каймак|сметана|творог|творожн|сливки\s+(?:питьев|взбит|кулинарн|стерилизован|ультрапастеризован|сух)|масло\s+(?:сливочн|топленое\s+сливочн|крестьянск|традиционн)|сырок\s+(?:творожн|глазирован)|сыр\s+(?:тверд|полутверд|плавлен|творожн|рассольн|мягк|моцарелл|чеддер|гауда|пармезан|маскарпоне|рикотт|сулугуни|брынз|фета|российск|голландск|костромск|пошехонск|тильзитер|маасдам|ламбер|сливочн)|йогурт|биойогурт|простокваша|ацидофилин|бифидок|мороженое\s+(?:пломбир|сливочн|молочн))\b/iu.test(
+      nameMain
+    )
+  ) {
+    result.add('milk')
+  }
+
+  if (
+    /\b(?:яйцо\s+(?:курин|перепелин|столов|пищев|отборн|с[012о])|яйца\s+(?:курин|перепелин|столов|пищев|отборн|с[012о])|меланж\s+яичн|белок\s+яичн|желток\s+яичн)\b/iu.test(
+      nameMain
+    ) &&
+    !/шоколад|kinder|киндер|конфет|мармелад|игрушк|сюрприз/iu.test(nameMain)
+  ) {
+    result.add('eggs')
+  }
+
+  if (
+    /\b(?:семга|сёмга|лосось|форель|тунец|скумбрия|сельдь|селедка|сардина|сардинелла|шпроты|килька|горбуша|кета|минтай|треска|хек|камбала|палтус|дорадо|сибас|окунь|судак|щука|карп|сазан|лещ|вобла|тарань|анчоус|мойва|сайра|ставрида|икра\s+(?:лососев|красн|черн|осетров|треск|минта|сельди|щук)|печень\s+трески|филе\s+(?:сельди|лосося|форели|трески|минтая|тунца|скумбрии|горбуши|пангасиуса|тилапии))\b/iu.test(
+      nameMain
+    ) &&
+    !/морск\S*\s+капуст|чука|нори|ламинари/iu.test(nameMain)
+  ) {
+    result.add('fish')
+  }
+
+  if (
+    /\b(?:креветк[аи]|лангустин|омар|лобстер|мясо\s+криля|криль|раки\s+(?:варен|жив))\b/iu.test(
+      nameMain
+    ) &&
+    !/имитац|сурими|крабов\S*\s+палочк/iu.test(nameMain)
+  ) {
+    result.add('crustaceans')
+  }
+
+  if (/\b(?:кальмар[ыа]?|мидии|мидий|осьминог|устриц|гребешок\s+морск|рапаны)\b/iu.test(nameMain)) {
+    result.add('mollusks')
+  }
+
+  if (/\b(?:арахис|арахисов(?:ая|ое|ый)\s+(?:паста|масло|урбеч|халва))\b/iu.test(nameMain)) {
+    result.add('peanuts')
+  }
+
+  if (
+    /\b(?:миндаль|фундук|кешью|фисташк[иа]|грецк(?:ий|ое|их)\s+орех|орех\s+грецк|пекан|макадами|кедров(?:ый|ые)\s+орех|бразильск(?:ий|ие)\s+орех|урбеч\s+из\s+(?:миндал|фундук|кешью|грецк))\b/iu.test(
+      nameMain
+    )
+  ) {
+    result.add('tree_nuts')
+  }
+
+  const hasExplicitGlutenFree =
+    /без\s*глютен|безглютен|gluten\s*free/iu.test(`${name} ${ingredientsText}`) ||
+    nameNegated.includes('глютен')
+
+  if (
+    !hasExplicitGlutenFree &&
+    /\b(?:пшеничн(?:ая|ый|ые|ое)|ржано-пшеничн|пшенично-ржаная|мука\s+(?:пшеничн|ржаная|ячменн|овсян)|хлопья\s+(?:овсян|пшеничн|ржаные|ячменн)|геркулес|крупа\s+(?:манная|перлов|ячневая|пшеничн|булгур|кускус|полба)|хлеб\s+(?:пшеничн|ржаной|бородинск|дарницк|столичн|нарезн|тостов|цельнозернов|отрубн)|батон\s+(?:нарезн|пшеничн|подмосковн|горчичн|столичн)|лаваш\s+(?:армянск|тонк|пшеничн)|спагетти|макароны|вермишель|рожки|перья|лапша\s+(?:пшеничн|яичн|удон|рамен|бешбармачн)|пельмени|манты|вареники|хинкали|чебуреки|самса|круассан|сушки|баранки|сухари\s+пшеничн|пряники|галеты|крекер)\b/iu.test(
+      nameMain
+    ) &&
+    !/гречнев\S*\s+(?:лапш|макарон)|рисов\S*\s+(?:лапш|макарон|мук)|фунчоз|кукурузн\S*\s+(?:макарон|мук|хлопь)/iu.test(
+      nameMain
+    )
+  ) {
+    result.add('gluten')
+  }
+
+  if (
+    /\b(?:кунжут|кунжутн(?:ое|ая|ый)\s+(?:масло|паста|семена|урбеч|халва)|тахини)\b/iu.test(
+      nameMain
+    )
+  ) {
+    result.add('sesame')
+  }
+
+  if (
+    /\b(?:горчица|горчичн(?:ый|ое|ая)\s+(?:соус|масло|порошок|зернов))\b/iu.test(nameMain) &&
+    !/батон\s+горчичн/iu.test(nameMain)
+  ) {
+    result.add('mustard')
+  }
+
+  if (
+    /\b(?:соевый\s+соус|соус\s+соевый|тофу|соевое\s+молоко|соевое\s+мясо|соевые\s+бобы|эдамаме|мисо\s+паста)\b/iu.test(
+      nameMain
+    )
+  ) {
+    result.add('soy')
+  }
+
+  return [...result]
+}
+
+export function extractProductTraces({
+  category = '',
+  ingredients = '',
+  existingTraces = [],
+  directAllergens = [],
+} = {}) {
+  if (NON_FOOD_CATEGORIES.has(category)) return []
+  const directSet = new Set(normalizeCanonicalAllergenIds(directAllergens))
+  const result = new Set(
+    normalizeCanonicalAllergenIds(existingTraces).filter((id) => !directSet.has(id))
+  )
+
+  const ingredientsText = String(ingredients || '')
+  if (ingredientsText.trim()) {
+    for (const traceEntry of extractAllTraceAllergens(ingredientsText)) {
+      const traceId = typeof traceEntry === 'string' ? traceEntry : traceEntry?.allergenId
+      if (traceId && !directSet.has(traceId)) {
+        result.add(traceId)
+      }
+    }
+  }
+
+  return [...result]
+}
+
+export function extractHalalFromName(name, currentStatus = 'unknown', ingredients = '') {
   if (currentStatus === 'yes') return 'yes'
   if (currentStatus === 'no') return 'no'
-  if (HALAL_PATTERNS.some((p) => p.test(name))) return 'yes'
+  if (name && HALAL_PATTERNS.some((p) => p.test(name))) return 'yes'
+
+  const cleanName = stripFlavorPhrasesFromName(name || '')
+  const { mainText: ingMain } = splitCompositionClauses(ingredients || '')
+  const combinedForHaram = `${cleanName} . ${ingMain}`
+
+  if (
+    combinedForHaram.trim() &&
+    findMatchingTerm(combinedForHaram, DEFINITE_HARAM_MARKERS, { domain: 'halal' })
+  ) {
+    return 'no'
+  }
+
+  if (
+    /\b(?:пиво\s+(?!безалкогольн|имбирн)|вино\s+(?:красн|бел|сух|полусладк|полусух|игрист|столов)|водка\b|коньяк\b|виски\b|шампанское\b)/iu.test(
+      cleanName
+    )
+  ) {
+    return 'no'
+  }
+
   return currentStatus
+}
+
+function parseNumericNutriment(nutriments, keys) {
+  if (!nutriments || typeof nutriments !== 'object') return NaN
+  for (const key of keys) {
+    const val = Number.parseFloat(nutriments[key])
+    if (Number.isFinite(val)) return val
+  }
+  return NaN
+}
+
+export function extractDietTags(name, existingTags = [], context = {}) {
+  const {
+    category = '',
+    ingredients = '',
+    nutriments = null,
+    halalStatus = 'unknown',
+    allergens = null,
+    traces = null,
+    fatPercent = null,
+  } = context || {}
+
+  if (category && NON_FOOD_CATEGORIES.has(category)) {
+    return []
+  }
+
+  const tags = new Set(Array.isArray(existingTags) ? existingTags : [])
+  const safeName = String(name || '')
+  const ingredientsRaw = String(ingredients || '')
+  const { mainText, negatedText } = splitCompositionClauses(ingredientsRaw)
+  const hasComposition = mainText.length >= 4
+
+  const resolvedAllergens = Array.isArray(allergens)
+    ? allergens
+    : extractProductAllergens({ name: safeName, category, ingredients: ingredientsRaw })
+  const resolvedTraces = Array.isArray(traces)
+    ? traces
+    : extractProductTraces({
+        category,
+        ingredients: ingredientsRaw,
+        directAllergens: resolvedAllergens,
+      })
+
+  const resolvedHalal = extractHalalFromName(safeName, halalStatus, ingredientsRaw)
+
+  for (const { tag, patterns } of DIET_PATTERNS) {
+    if (tags.has(tag)) continue
+    if (patterns.some((p) => p.test(safeName))) {
+      tags.add(tag)
+    }
+  }
+
+  // 1. Halal tag
+  if (resolvedHalal === 'yes') {
+    tags.add('halal')
+  } else if (resolvedHalal === 'no') {
+    tags.delete('halal')
+  }
+
+  // Parse nutriments
+  const sugars100g = parseNumericNutriment(nutriments, ['sugars', 'sugar', 'sugars_100g'])
+  const carbs100g = parseNumericNutriment(nutriments, [
+    'carbs',
+    'carbohydrates',
+    'carbohydrates_100g',
+  ])
+  const fiber100g = parseNumericNutriment(nutriments, ['fiber', 'fiber_100g'])
+  const fat100g = parseNumericNutriment(nutriments, ['fat', 'fat_100g'])
+  const protein100g = parseNumericNutriment(nutriments, ['protein', 'proteins', 'proteins_100g'])
+  const kcal100g = parseNumericNutriment(nutriments, ['kcal', 'energy-kcal_100g', 'energy_kcal'])
+  const hasRealNutriments =
+    Number.isFinite(protein100g) ||
+    Number.isFinite(fat100g) ||
+    Number.isFinite(carbs100g) ||
+    Number.isFinite(kcal100g)
+
+  const addedSugarMatch = hasAddedSugarInText(ingredientsRaw)
+  const hasAddedSugar = Boolean(addedSugarMatch)
+  const isPureSugarOrHoneyByName =
+    /\b(?:сахар(?:\s+белый|\s+песок|\s+прессован|\s+тростников|\s+рафинад)?|пудра\s+сахарн|сахарная\s+пудра|мед\s+натуральн|мёд\s+натуральн|сироп\s+(?!без\s+сахар)|варенье|джем\b|сгущенка|молоко\s+сгущенн\S*\s+с\s+сахар)/iu.test(
+      safeName
+    ) && !/без\s*сахар|sugar\s*free|no\s*sugar/iu.test(safeName)
+
+  // 2. sugar_free
+  if (
+    hasAddedSugar ||
+    isPureSugarOrHoneyByName ||
+    (Number.isFinite(sugars100g) && sugars100g > 5)
+  ) {
+    if (!DIET_PATTERNS[0].patterns.some((p) => p.test(safeName))) {
+      tags.delete('sugar_free')
+    }
+  } else {
+    const explicitSugarFreeInText =
+      negatedText.includes('сахар') ||
+      negatedText.includes('sugar') ||
+      /без\s+(?:добавления\s+|добавленного\s+)?сахар|sugar\s*free|no\s*sugar|zero\s*sugar|0\s*%\s*сахар/iu.test(
+        `${safeName} ${ingredientsRaw}`
+      )
+    const nutritionConfirmedSugarFree =
+      hasComposition &&
+      !hasAddedSugar &&
+      Number.isFinite(sugars100g) &&
+      sugars100g <= 0.5 &&
+      hasRealNutriments
+    const stapleSugarFree =
+      hasComposition &&
+      !hasAddedSugar &&
+      (!Number.isFinite(sugars100g) || sugars100g <= 0.5) &&
+      /\b(?:вода\s+(?:питьев|минеральн|природн|артезианск|родников|негазирован|газирован|детск)|чай\s+(?:черн|зелен|травян|байхов|листов|пакетирован)|кофе\s+(?:натуральн|молотый|в\s+зернах|растворим|сублимирован)|яйцо\s+курин|яйца\s+курин|масло\s+(?:подсолнечн|оливков|сливочн|кукурузн|рапсов|льнян)|крупа\s+(?:гречнев|рисов|манная|перлов|овсян|пшенн|кукурузн|ячнев|булгур)|рис\s+(?:круглозерн|длиннозерн|шлифован|пропарен|басмати|жасмин)|гречка|хлопья\s+овсян|геркулес|мука\s+(?:пшеничн|ржан|рисов|кукурузн|гречнев)|соль\s+(?:поваренн| пищев|морск|йодирован)|филе\s+(?:цыпленка|курин|индейки|лосося|форели|трески|минтая)|говядина|конина|баранина)\b/iu.test(
+        safeName
+      ) &&
+      !/сладк|с\s+сахар|карамел|шоколад|глазур|сироп|медов/iu.test(safeName)
+
+    if (explicitSugarFreeInText || nutritionConfirmedSugarFree || stapleSugarFree) {
+      tags.add('sugar_free')
+    }
+  }
+
+  // 3. gluten_free
+  const hasGlutenAllergenOrTrace =
+    resolvedAllergens.includes('gluten') || resolvedTraces.includes('gluten')
+  const isLikelyGlutenProductByName =
+    /\b(?:пшенич|ржан|ячмен|овсян|геркулес|перлов|ячнев|манн|булгур|кускус|полб|спельт|хлеб|батон|багет|булк|булочк|лаваш|пита\b|лепешк|круассан|слойк|сухар|сушк|баранк|пряник|печенье|вафл|бисквит|торт|пирожн|кекс|рулет|макарон|спагетти|вермишел|лапш|рожки|перья|пельмен|манты|вареник|хинкал|чебурек|самса|пицц|мука\b(?!\s*(?:рисов|кукурузн|гречнев|миндальн|кокосов|нутов|льнян|амарантов))|солод|пиво)\b/iu.test(
+      safeName
+    ) && !/без\s*глютен|безглютен|gluten\s*free/iu.test(safeName)
+
+  if (hasGlutenAllergenOrTrace || isLikelyGlutenProductByName) {
+    if (!/без\s*глютен|безглютен|gluten\s*free/iu.test(safeName)) {
+      tags.delete('gluten_free')
+    }
+  } else {
+    const explicitGlutenFree =
+      negatedText.includes('глютен') ||
+      negatedText.includes('gluten') ||
+      /без\s*глютен|безглютен|gluten\s*free/iu.test(`${safeName} ${ingredientsRaw}`)
+    if (explicitGlutenFree || hasComposition) {
+      tags.add('gluten_free')
+    }
+  }
+
+  // 4. lactose_free
+  const explicitLactoseFree =
+    negatedText.includes('лактоз') ||
+    negatedText.includes('lactose') ||
+    /без\s*лактоз|безлактозн|лактоз\s*фри|lactose\s*free/iu.test(`${safeName} ${ingredientsRaw}`)
+  const hasDairyAllergenOrTrace =
+    resolvedAllergens.includes('milk') || resolvedTraces.includes('milk')
+  const isPlantMilkProduct = PLANT_ALT_NAME_REGEX.test(safeName) && !hasDairyAllergenOrTrace
+  const isDairyCategoryOrName =
+    !PLANT_ALT_NAME_REGEX.test(safeName) &&
+    (category === 'dairy_eggs' ||
+      /\b(?:молок|сливк|сметан|творог|творож|кефир|йогурт|ряженк|айран|тан\b|сыр\b|сырок|масло\s+сливочн|сгущен|морожен|пломбир)\b/iu.test(
+        safeName
+      )) &&
+    !/\bяйц|\bяич|\bперепелин/iu.test(safeName)
+
+  if (explicitLactoseFree || isPlantMilkProduct) {
+    tags.add('lactose_free')
+  } else if (hasDairyAllergenOrTrace || isDairyCategoryOrName) {
+    tags.delete('lactose_free')
+  } else if (hasComposition) {
+    tags.add('lactose_free')
+  }
+
+  // 5. vegan & vegetarian
+  const hasNonVegetarianInText =
+    resolvedAllergens.includes('fish') ||
+    resolvedAllergens.includes('crustaceans') ||
+    resolvedAllergens.includes('mollusks') ||
+    Boolean(
+      findMatchingTerm(
+        `${stripFlavorPhrasesFromName(safeName)} . ${mainText}`,
+        NON_VEGETARIAN_MARKERS,
+        {
+          domain: 'vegetarian',
+        }
+      )
+    ) ||
+    (['meat', 'deli', 'fish'].includes(category) && !PLANT_ALT_NAME_REGEX.test(safeName))
+
+  const hasNonVeganInText =
+    hasNonVegetarianInText ||
+    resolvedAllergens.includes('milk') ||
+    resolvedAllergens.includes('eggs') ||
+    Boolean(
+      findMatchingTerm(
+        `${stripFlavorPhrasesFromName(safeName)} . ${mainText}`,
+        NON_VEGAN_EXTRA_MARKERS,
+        {
+          domain: 'vegan',
+        }
+      )
+    ) ||
+    (category === 'dairy_eggs' && !PLANT_ALT_NAME_REGEX.test(safeName))
+
+  if (hasNonVeganInText) {
+    tags.delete('vegan')
+  } else if (
+    hasComposition ||
+    /\b(?:веган|vegan|постн(?:ый|ая|ое|ые)|100%\s*растительн)/iu.test(safeName) ||
+    isPlantMilkProduct
+  ) {
+    tags.add('vegan')
+    tags.add('vegetarian')
+  }
+
+  if (hasNonVegetarianInText) {
+    tags.delete('vegetarian')
+  } else if (hasComposition || tags.has('vegan')) {
+    tags.add('vegetarian')
+  }
+
+  // 6. keto
+  const netCarbs =
+    Number.isFinite(carbs100g) &&
+    Number.isFinite(fiber100g) &&
+    fiber100g > 0 &&
+    fiber100g <= carbs100g
+      ? carbs100g - fiber100g
+      : carbs100g
+  const isHighCarbFoodByName =
+    /\b(?:сахар|конфет|шоколад(?!.*(?:без\s*сахар|keto|кето))|карамел|мармелад|зефир|пастил|халв|варень|джем|мед\b|мёд\b|сироп|печенье(?!.*(?:keto|кето))|вафл|пряник|торт|пирожн|кекс|булк|булочк|хлеб(?!.*(?:keto|кето))|батон|лаваш|круассан|макарон|спагетти|лапш|вермишел|рис\b|рисов|гречк|гречнев|овсян|геркулес|манк|манная|перлов|пшено|пшенн|кукуруз|картофел|чипсы|сухарик|попкорн|мука\s+(?:пшеничн|ржан|рисов|кукурузн|овсян)|сок\b|нектар|морс|лимонад|квас|кисель|банан|виноград|финик|изюм|кураг|чернослив)\b/iu.test(
+      safeName
+    )
+
+  if (
+    !hasAddedSugar &&
+    !isHighCarbFoodByName &&
+    hasRealNutriments &&
+    Number.isFinite(netCarbs) &&
+    netCarbs <= 7 &&
+    (!Number.isFinite(sugars100g) || sugars100g <= 5) &&
+    ((Number.isFinite(protein100g) && protein100g > 0) || (Number.isFinite(fat100g) && fat100g > 0))
+  ) {
+    tags.add('keto')
+  } else if (
+    hasAddedSugar ||
+    (Number.isFinite(netCarbs) && netCarbs > 10) ||
+    (Number.isFinite(sugars100g) && sugars100g > 5)
+  ) {
+    tags.delete('keto')
+  }
+
+  // 7. low_fat
+  const resolvedFatPercent =
+    fatPercent !== null && fatPercent !== undefined
+      ? Number.parseFloat(fatPercent)
+      : extractFatPercent(safeName, category)
+  const isHighFatProductByName =
+    /\b(?:масло\s+(?:сливочн|подсолнечн|оливков|растительн|кокосов|кукурузн|топлен)|майонез|маргарин|спред|шпик|сало|бекон|орех|миндал|фундук|кешью|арахис|семечк|халва|шоколад|чипсы)\b/iu.test(
+      safeName
+    )
+
+  if (!isHighFatProductByName) {
+    if (Number.isFinite(resolvedFatPercent) && resolvedFatPercent <= 3) {
+      tags.add('low_fat')
+    } else if (
+      hasRealNutriments &&
+      Number.isFinite(fat100g) &&
+      fat100g <= 3 &&
+      ((Number.isFinite(protein100g) && protein100g > 0) ||
+        (Number.isFinite(carbs100g) && carbs100g > 0) ||
+        (Number.isFinite(kcal100g) && kcal100g > 0))
+    ) {
+      tags.add('low_fat')
+    }
+  }
+  if (
+    (Number.isFinite(resolvedFatPercent) && resolvedFatPercent > 10) ||
+    (Number.isFinite(fat100g) && fat100g > 10)
+  ) {
+    tags.delete('low_fat')
+  }
+
+  // 8. kid_friendly
+  const hasChildUnfriendly =
+    Boolean(
+      findMatchingTerm(
+        `${stripFlavorPhrasesFromName(safeName)} . ${mainText}`,
+        CHILD_UNFRIENDLY_MARKERS
+      )
+    ) ||
+    (Number.isFinite(sugars100g) && sugars100g > 14) ||
+    /\b(?:энергет|energy|burn\b|monster\b|red\s*bull|adrenaline|gorilla|flash\s*up|кофе\b|эспрессо|капучино|чипсы|кириешк|сухарик|лапша\s+быстр|доширак|ролтон|кока-кол|coca-cola|пепси|pepsi|фанта|fanta|спрайт|sprite|лимонад|газирован\S*\s+напиток|колбас\S*\s+копчен|горчиц|майонез|кетчуп\s+остр|хрен\b|уксус)/iu.test(
+      safeName
+    )
+
+  if (hasChildUnfriendly) {
+    tags.delete('kid_friendly')
+  } else {
+    const isExplicitBabyOrKids =
+      category === 'baby_food' ||
+      /\b(?:детск(?:ий|ая|ое|ие)|для\s+детей|для\s+малышей|с\s+\d+\s*месяц|агуша|фрутоняня|фруто\s+няня|бабушкино\s+лукошко|гербер|gerber|хейнц\s+детск|heinz\s+детск|сады\s+придонья\s+детск|тёма\b|малышок|малютка|нутрилак|nutrilak|симилак|similac|кабрита|kabrita|бибиколь|флер\s+альпин|fleur\s+alpine|педиашур|pediasure|растишка|актимель|actimel|иммунеле|kinder\s+молочн|киндер\s+молочн)\b/iu.test(
+        safeName
+      )
+    const isWholesomeKidStaple =
+      hasComposition &&
+      (!Number.isFinite(sugars100g) || sugars100g <= 11) &&
+      /\b(?:пюре\s+(?:фруктов|овощн|яблочн|грушев|бананов|персиков|абрикосов|тыквен|морковн|кабачков|мясн|из\s+индейк|из\s+цыпленк|из\s+говядин)|каша\s+(?:овсян|гречнев|рисов|кукурузн|пшенн|мультизлаков|молочн|безмолочн)|биолакт|творог\s+(?:классическ|детск|мягк|зернен|\d+\s*%)|молоко\s+(?:пастеризован|ультрапастеризован|стерилизован|отборн|детск)|кефир|ряженка|йогурт\s+(?:натуральн|греческ|питьев|детск|классическ)|вода\s+(?:детск|питьев\S*\s+негазирован)|хлебцы\s+(?:гречнев|рисов|кукурузн|цельнозернов|овсян)|хлопья\s+(?:овсян|гречнев|пшенн|рисов)|геркулес|сушки\s+малютка|печенье\s+детск)\b/iu.test(
+        safeName
+      )
+
+    if (isExplicitBabyOrKids || isWholesomeKidStaple) {
+      tags.add('kid_friendly')
+    }
+  }
+
+  return [...tags]
 }
 
 export function extractFlavorAttribute({ name, category } = {}) {
@@ -458,15 +1228,49 @@ export function extractFlavorAttribute({ name, category } = {}) {
   return { value: entry.value, confidence: 'high', source: 'known_flavor_token' }
 }
 
-export function extractAllAttributes({ name, category, halalStatus, dietTags }) {
+export function extractAllAttributes({
+  name,
+  category,
+  halalStatus,
+  dietTags,
+  ingredients = '',
+  nutriments = null,
+  allergens = [],
+  traces = [],
+}) {
   const packaging = extractPackaging(name)
   const fatPercent = extractFatPercent(name, category)
-  const newDietTags = extractDietTags(name, dietTags || [])
-  const newHalalStatus = extractHalalFromName(name, halalStatus || 'unknown')
+  const newAllergens = extractProductAllergens({
+    name,
+    category,
+    ingredients,
+    existingAllergens: allergens,
+  })
+  const newTraces = extractProductTraces({
+    category,
+    ingredients,
+    existingTraces: traces,
+    directAllergens: newAllergens,
+  })
+  const newHalalStatus = extractHalalFromName(name, halalStatus || 'unknown', ingredients)
+  const newDietTags = extractDietTags(name, dietTags || [], {
+    category,
+    ingredients,
+    nutriments,
+    halalStatus: newHalalStatus,
+    allergens: newAllergens,
+    traces: newTraces,
+    fatPercent,
+  })
 
   return {
     packaging_type: packaging,
     fat_percent: fatPercent,
+    allergens: newAllergens,
+    traces: newTraces,
+    diet_tags: newDietTags,
+    allergens_json: JSON.stringify(newAllergens),
+    traces_json: JSON.stringify(newTraces),
     diet_tags_json: newDietTags.length > 0 ? JSON.stringify([...new Set(newDietTags)]) : null,
     halal_status: newHalalStatus,
   }

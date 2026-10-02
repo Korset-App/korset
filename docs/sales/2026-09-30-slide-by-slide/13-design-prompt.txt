@@ -1,0 +1,48 @@
+Create ONE finished Russian commercial presentation slide for Körset grocery store service in Kazakhstan. Horizontal 16:9. Highest-quality editorial art direction. Reference images 1 and 2 are APPROVED brand-style references ONLY: preserve warm ivory shop setting, huge heavyweight dark aubergine typography with flat intense violet accent, physically real cream paper, honest cinematic grocery photography, and restrained wide aubergine footer. New composition must explain launch at a store, not repeat prior food displays. Source slide content below is authoritative; do not mimic its old layout.
+
+CONCEPT: "Launch, prepared on site." A real, sunlit contemporary neighborhood grocery entrance and checkout. Warm limestone surfaces, a little pale oak, soft diagonal sunlight. Full-bleed coherent photographic scene, no image-in-a-rounded-card, no dark fade covering the left. On left/center a substantial cream paper setup checklist leaned on the checkout counter, with THREE readable launch stages printed in dark plum, large headings and spacious smaller text. Right background contains a tastefully designed realistic slender upright promotional store banner near the entrance, properly constructed on a modest non-chrome stand, facing camera almost front-on. It must be integrated into the store and secondary to the launch checklist. The far-right shelf contains diverse packaged grocery items: tea, cereal, pasta, biscuits, juice; natural understated distant labels without invented brands. No baskets, no foreground tomatoes/lettuce/milk/bread display, no decorative 3D filler. No people needed. A small plain folded shelf-label sample on counter subtly relates to installation. No fake app screens.
+
+LAYOUT in approximate 1672x941 coordinates:
+Top from x75 y40 to y230 with huge two-line headline using same typeface as references, stable clean baseline, not warped. First line dark plum, second flat vivid violet:
+"Запуск Körset"
+"в вашем магазине."
+Headline near 86-94px. Keep entire title clear of objects. Upper right can have cream wall with window light.
+Main checklist x75 y275 width910 height390-430, spacious ONE ivory physical sheet, not three repeated digital cards. Three stages arranged vertically with small flat violet numerals 01,02,03 at left; they represent steps, NOT slide page number. Dark bold headings 31px, descriptions 25px or larger. Print exactly:
+"Осмотр и согласование"
+"Оценим точку, учётную систему"
+"и места для QR."
+"Каталог и настройка"
+"Подготовим витрину, контакты"
+"и ассортимент."
+"Материалы и первое использование"
+"Разместим QR на входе,"
+"полках и у кассы."
+No extra step, no deadlines, no promise of ready-made integration. Full text must fit without being obscured. Steps are generously spaced with minimal purple hairlines, not generic icons.
+
+RIGHT BANNER around x1210 y275 width230 height430, plus discreet base. At this size it is a beautiful physical banner, not the hero of the whole slide. Design with matte ivory base and flat violet top/bottom, deliberate editorial typography, strong hierarchy, no stickers or gradients. Do NOT invent or draw the Körset cube or wordmark; leave a small plain ivory blank area at banner top for the original logo to be inserted separately if needed. Banner text, all clean and readable, exactly:
+"Выбирайте"
+"с уверенностью"
+then smaller neatly separated four lines
+"Узнайте цену"
+"Проверьте состав"
+"Подходит ли вам?"
+"Сравните товары"
+then a clean empty white square RESERVED FOR ORIGINAL QR, with small caption inside its lower part "QR вашей точки". THIS IS A BLANK INSERTION PLACEHOLDER: DO NOT GENERATE A QR CODE, BARCODE, OR RANDOM MATRIX PATTERN. It must be conspicuously plain, cannot be mistaken for scannable code.
+Below square:
+"Сканируйте QR-код"
+"Бесплатно. Без приложения."
+Banner text black/dark plum on ivory, violet small dividers; "Выбирайте с уверенностью" can white on violet field. Limit text to these approved lines. There is NO working code supplied.
+Near base of banner a very small scene label: "Пример размещения". Prevent overlap.
+
+LOWER ONE physical ivory paper strip x75 y727 width1520 height100, subtly raised from checkout counter, contains clear pricing, with two lines exactly:
+"Подключение — бесплатно."
+"Печать и установка — от 5 000 ₸ разово."
+First statement dark plum, price phrase violet bold. Large 32-35px. No other price or subscription.
+
+Full-width aubergine footer y840 to941 matching references. At left x60 y855, readable pale ivory note in TWO lines ~22px:
+"Формат и количество индивидуальны. Держатели, крепления"
+"и дополнительные материалы — в согласованной смете."
+This condition is required, don't omit or add gloomy legal warnings.
+At right x1330 to1600 y852 to921 leave ABSOLUTELY EMPTY SOLID aubergine space for EXACT original white Körset logo inserted later. DO NOT generate any logo anywhere. No page number. No watermark, no additional copy.
+
+LOOK/QUALITY: warm photographic realism, carefully designed typography integrated into tactile paper surfaces, professional serious business service. Large text, enough open space, refined color restraint. Core typography must be crisp, Russian spelling exact, monetary symbol ₸ correct. Strong coherent material shadows and believable banner proportions. Modern shop with various actual everyday packaged goods, not stock fruit bowl. Avoid chrome/glass ribbons/glossy decorative objects, gradient text, neon, sparkles, glassmorphism, stock splitlayout, tiny dashboard text, dense repeated UI cards. Use art-directed composition to show preparation, setup and material placement. Everything must read comfortably.

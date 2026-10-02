@@ -26,6 +26,7 @@ import {
   buildProfilePath,
 } from '../utils/routes.js'
 import { getDisplayQuantity } from '../utils/parseQuantity.js'
+import { getProductRef } from '../domain/product/storeSourceProduct.js'
 import { getProductSearchDiagnosticsAttrs } from '../domain/product/searchDiagnostics.js'
 import {
   buildCatalogProductCardBadges,
@@ -297,7 +298,7 @@ export default function CatalogScreen() {
     (product) => {
       rememberCatalogSearch()
       sessionStorage.setItem('korset_catalog_scroll', String(scrollRef.current))
-      navigate(buildProductPath(currentStore?.slug || null, product.ean), {
+      navigate(buildProductPath(currentStore?.slug || null, getProductRef(product)), {
         state: { product },
       })
     },
@@ -475,7 +476,7 @@ export default function CatalogScreen() {
           compareState={compareState}
           compareLabel={compareLabel}
           searchDiagnosticsAttrs={searchDiagnosticsAttrs}
-          isFavorite={favoriteEans.has(product.ean)}
+          isFavorite={favoriteEans.has(getProductRef(product))}
           highlightQuery={hasQuery ? q : ''}
           onOpen={() => handleNavigate(product)}
           onCompare={(e) => handleCompare(product, e)}
@@ -534,7 +535,7 @@ export default function CatalogScreen() {
             compareState={compareState}
             compareLabel={compareLabel}
             searchDiagnosticsAttrs={searchDiagnosticsAttrs}
-            isFavorite={favoriteEans.has(product.ean)}
+            isFavorite={favoriteEans.has(getProductRef(product))}
             highlightQuery={hasQuery ? q : ''}
             onOpen={() => handleNavigate(product)}
             onCompare={(e) => handleCompare(product, e)}
@@ -576,7 +577,10 @@ export default function CatalogScreen() {
     (rowIndex, row) => (
       <div className="catalog-grid-row">
         {row.items.map((product, colIndex) => (
-          <div key={product.ean || `${row.startIndex}-${colIndex}`} className="catalog-grid-col">
+          <div
+            key={getProductRef(product) || `${row.startIndex}-${colIndex}`}
+            className="catalog-grid-col"
+          >
             {renderGridItem(row.startIndex + colIndex, product)}
           </div>
         ))}
@@ -787,7 +791,7 @@ export default function CatalogScreen() {
               scrollerRef={setProductScroller}
               data={displayList}
               itemContent={renderListItem}
-              computeItemKey={(index, product) => product.ean || index}
+              computeItemKey={(index, product) => getProductRef(product) || index}
               overscan={1200}
               components={{ Footer: ListFooter }}
               initialTopMostItemIndex={initialScrollIndex}

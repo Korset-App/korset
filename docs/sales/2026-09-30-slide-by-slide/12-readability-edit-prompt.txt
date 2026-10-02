@@ -1,0 +1,5 @@
+Edit this approved Körset slide with ONE surgical correction: the foreground PASTA PACKET and COFFEE BAG partly obscure the lower text line of the second stage. Make pasta packet and coffee bag around20percent shorter, KEEP their bottoms on the same countertop, so their top edges move DOWN. Keep a clean visible gap of at least30 image pixels between the ENTIRE second-stage description and these foreground products. Preserve all text, all positions of paper panels and all typography. The second-stage text must be fully unobstructed and exactly:
+"Выбор у полки"
+"Быстрый ответ"
+"о нужном товаре."
+Never remove or rewrite the text. Do not move text; only lower/reduce height of two foreground objects. Preserve all other groceries and all other elements, headline, QR placeholder, loop arrow, future Pro/Enterprise strip, original footer/logo. No new objects or words, no QR pattern. Warm pale grocery photographic brand style, keep16:9. Every glyph in the text must be visible and crisp, including lowest line, with adequate space before the foreground packet.

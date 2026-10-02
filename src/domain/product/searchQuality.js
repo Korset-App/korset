@@ -108,8 +108,39 @@ export const ATTRIBUTE_ALIASES = [
     phrases: ['кето', 'кетогенный', 'кетогенное', 'keto'],
   },
   {
+    key: 'low_fat',
+    phrases: [
+      'низкожирный',
+      'низкожирное',
+      'низкожирная',
+      'обезжиренный',
+      'обезжиренное',
+      'обезжиренная',
+      'аз майлы',
+      'майсыз',
+      'low fat',
+      'low-fat',
+    ],
+  },
+  {
+    key: 'kid_friendly',
+    phrases: ['для детей', 'детский', 'детское', 'детская', 'балаларға', 'балалар үшін'],
+  },
+  {
+    key: 'vegetarian',
+    phrases: ['вегетариан', 'вегетарианский', 'вегетарианское', 'вегетарианская', 'vegetarian'],
+  },
+  {
     key: 'palm_oil',
-    phrases: ['без пальмового масла', 'пальмовое масло', 'пальмовый жир', 'palm oil'],
+    phrases: [
+      'без пальмового масла',
+      'пальма майысыз',
+      'no palm oil',
+      'palm oil free',
+      'пальмовое масло',
+      'пальмовый жир',
+      'palm oil',
+    ],
   },
   {
     key: 'low_calorie',
@@ -805,10 +836,27 @@ export function hasAttributeMatch(query, product, productText) {
   if (!query?.attribute) return false
   const attr = query.attribute
 
+  const rawDietTags = [
+    ...(Array.isArray(product?.dietTags) ? product.dietTags : []),
+    ...(Array.isArray(product?.diet_flags) ? product.diet_flags : []),
+  ]
+  if (product?.sugar_free === true) rawDietTags.push('sugar_free')
+  if (product?.lactose_free === true) rawDietTags.push('lactose_free')
+  if (product?.gluten_free === true) rawDietTags.push('gluten_free')
+  if (product?.vegan === true) rawDietTags.push('vegan')
+  if (product?.vegetarian === true) rawDietTags.push('vegetarian')
+  if (product?.keto === true) rawDietTags.push('keto')
+  if (product?.low_fat === true) rawDietTags.push('low_fat')
+  if (product?.kid_friendly === true) rawDietTags.push('kid_friendly')
+
+  const dietTags = rawDietTags.map((t) => String(t).toLowerCase())
+
   if (attr === 'halal') {
     if (product?.halal === true || product?.is_halal === true) return true
     const status = String(product?.halalStatus || product?.halal_status || '').toLowerCase()
-    if (['yes', 'halal', 'verified'].includes(status)) return true
+    if (['yes', 'halal', 'verified', 'certified'].includes(status)) return true
+    if (status === 'no') return false
+    if (dietTags.some((t) => t.includes('halal'))) return true
     const pText = productText || getProductText(product)
     if (
       pText.includes('халал') ||
@@ -818,25 +866,28 @@ export function hasAttributeMatch(query, product, productText) {
     ) {
       return true
     }
-    const dietTags = Array.isArray(product?.dietTags) ? product.dietTags : []
-    if (dietTags.some((t) => String(t).toLowerCase().includes('halal'))) return true
     return false
   }
 
+  // Do NOT include raw product.ingredients in label values so ingredients like "сахар" or "пальмовое масло"
+  // never falsely satisfy "без сахара" or "без пальмового масла".
   const values = [
     ...(Array.isArray(product?.tags) ? product.tags : []),
-    ...(Array.isArray(product?.dietTags) ? product.dietTags : []),
+    ...dietTags,
     ...(Array.isArray(product?.categoriesTags) ? product.categoriesTags : []),
     product?.name,
     product?.nameKz,
-    product?.ingredients,
-    product?.ingredientsKz,
     product?.subcategory,
   ]
     .filter(Boolean)
     .map(normalizeText)
 
+  const normalizedIngredients = normalizeText(
+    [product?.ingredients, product?.ingredientsKz].filter(Boolean).join(' ')
+  )
+
   if (attr === 'sugar_free') {
+    if (dietTags.includes('sugar_free')) return true
     if (
       values.some(
         (v) =>
@@ -855,6 +906,13 @@ export function hasAttributeMatch(query, product, productText) {
     ) {
       return true
     }
+    if (
+      normalizedIngredients.includes('без сахара') ||
+      normalizedIngredients.includes('без добавления сахара') ||
+      normalizedIngredients.includes('sugar free')
+    ) {
+      return true
+    }
     const sugar = product?.nutritionPer100?.sugar ?? product?.nutritionPer100?.sugars
     if (
       sugar !== undefined &&
@@ -868,25 +926,35 @@ export function hasAttributeMatch(query, product, productText) {
   }
 
   if (attr === 'gluten_free') {
-    return values.some(
-      (v) =>
-        v.includes('без глютен') ||
-        v.includes('безглютен') ||
-        v.includes('глютенсиз') ||
-        v.includes('глютенсіз') ||
-        v.includes('gluten_free') ||
-        v.includes('gluten free')
+    if (dietTags.includes('gluten_free')) return true
+    return (
+      values.some(
+        (v) =>
+          v.includes('без глютен') ||
+          v.includes('безглютен') ||
+          v.includes('глютенсиз') ||
+          v.includes('глютенсіз') ||
+          v.includes('gluten_free') ||
+          v.includes('gluten free')
+      ) ||
+      normalizedIngredients.includes('без глютен') ||
+      normalizedIngredients.includes('не содержит глютен')
     )
   }
 
   if (attr === 'lactose_free') {
-    return values.some(
-      (v) =>
-        v.includes('без лактоз') ||
-        v.includes('безлактоз') ||
-        v.includes('лактозасыз') ||
-        v.includes('lactose_free') ||
-        v.includes('lactose free')
+    if (dietTags.includes('lactose_free')) return true
+    return (
+      values.some(
+        (v) =>
+          v.includes('без лактоз') ||
+          v.includes('безлактоз') ||
+          v.includes('лактозасыз') ||
+          v.includes('lactose_free') ||
+          v.includes('lactose free')
+      ) ||
+      normalizedIngredients.includes('без лактоз') ||
+      normalizedIngredients.includes('не содержит лактоз')
     )
   }
 
@@ -902,6 +970,7 @@ export function hasAttributeMatch(query, product, productText) {
   }
 
   if (attr === 'vegan') {
+    if (dietTags.includes('vegan')) return true
     return values.some(
       (v) =>
         v.includes('веган') ||
@@ -911,7 +980,13 @@ export function hasAttributeMatch(query, product, productText) {
     )
   }
 
+  if (attr === 'vegetarian') {
+    if (dietTags.includes('vegetarian') || dietTags.includes('vegan')) return true
+    return values.some((v) => v.includes('вегетариан') || v.includes('vegetarian'))
+  }
+
   if (attr === 'organic') {
+    if (dietTags.includes('organic')) return true
     return values.some(
       (v) =>
         v.includes('органик') || v.includes('organic') || v.includes('био') || v.includes('bio')
@@ -919,14 +994,69 @@ export function hasAttributeMatch(query, product, productText) {
   }
 
   if (attr === 'keto') {
+    if (dietTags.includes('keto')) return true
     return values.some((v) => v.includes('кето') || v.includes('keto'))
   }
 
+  if (attr === 'low_fat') {
+    if (dietTags.includes('low_fat')) return true
+    return values.some(
+      (v) =>
+        v.includes('низкожирн') ||
+        v.includes('обезжирен') ||
+        v.includes('low_fat') ||
+        v.includes('low fat') ||
+        v.includes('аз майлы')
+    )
+  }
+
+  if (attr === 'kid_friendly') {
+    if (dietTags.includes('kid_friendly') || product?.category === 'baby_food') return true
+    return values.some(
+      (v) =>
+        v.includes('kid_friendly') ||
+        v.includes('для детей') ||
+        v.includes('детск') ||
+        v.includes('балалар')
+    )
+  }
+
   if (attr === 'palm_oil') {
-    return values.some((v) => v.includes('пальмов') || v.includes('palm oil'))
+    const matchedPhrase = normalizeText(query?.matchedPhrase || query?.original || '')
+    const wantsPalmOilFree =
+      !matchedPhrase ||
+      matchedPhrase.includes('без') ||
+      matchedPhrase.includes('майысыз') ||
+      matchedPhrase.includes('no ') ||
+      matchedPhrase.includes('free')
+
+    const explicitPalmOilFree =
+      values.some(
+        (v) =>
+          v.includes('без пальмов') ||
+          v.includes('пальма майысыз') ||
+          v.includes('palm_oil_free') ||
+          v.includes('no palm oil') ||
+          v.includes('palm oil free')
+      ) ||
+      normalizedIngredients.includes('без пальмов') ||
+      normalizedIngredients.includes('не содержит пальмов')
+
+    const hasPalmOilInIngredients =
+      !explicitPalmOilFree &&
+      (normalizedIngredients.includes('пальмов') || normalizedIngredients.includes('palm oil'))
+
+    if (wantsPalmOilFree) {
+      if (hasPalmOilInIngredients) return false
+      if (explicitPalmOilFree) return true
+      return Boolean(normalizedIngredients && !hasPalmOilInIngredients)
+    }
+
+    return hasPalmOilInIngredients
   }
 
   if (attr === 'low_calorie') {
+    if (dietTags.includes('low_calorie')) return true
     return values.some(
       (v) =>
         v.includes('низкокалорийн') ||

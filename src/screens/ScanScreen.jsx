@@ -12,10 +12,17 @@ import { CompareIcon } from '../components/icons/CompareIcon.jsx'
 import { IconGallery } from '../components/icons/IconGallery.jsx'
 import ProductSubmissionSheet from '../components/product/ProductSubmissionSheet.jsx'
 import { isValidBarcodeChecksum } from '../utils/barcodeChecksum.js'
+import { lookupScanWhileStopping } from './scanner/scanFlow.js'
 import {
   buildConstraintLadder,
   isPermissionError,
   loadScannerEngine,
+  createCameraController,
+  enumerateCameraDevices,
+  selectFacingCamera,
+  waitForCameraFrames,
+  matchesCameraDirection,
+  watchCameraFrames,
 } from '../utils/scannerEngine.js'
 import './ScanScreen.css'
 
@@ -479,6 +486,8 @@ export default function ScanScreen() {
   const camIdxRef = useRef(0)
   const statusRef = useRef('starting')
   const lastRestartRef = useRef(0)
+  const recoveryAttemptsRef = useRef(0)
+  const resumeCameraRef = useRef(false)
   const handleCameraInterruptedRef = useRef(null)
   const torchTimer = useRef(null)
   const nfTimer = useRef(null)
@@ -487,365 +496,339 @@ export default function ScanScreen() {
   const startScannerRef = useRef(null)
   const startSeqRef = useRef(0)
   const ID = 'korset-scan-view'
+  const videoHostRef = useRef(null)
+  const [cameraController] = useState(createCameraController)
 
   const stopScanner = useCallback(async () => {
-    const scanner = scannerRef.current
     scannerRef.current = null
-    try {
-      if (scanner) {
-        if (scanner.isScanning) {
-          await scanner.stop()
-        }
-        scanner.clear()
-      }
-    } catch {
-      /* noop */
-    }
-    // html5-qrcode only releases tracks when stop() succeeds. A half-opened
-    // stream — permission granted but playback never started — keeps the camera
-    // occupied on iOS and makes every later attempt fail.
-    const stream = streamRef.current
     streamRef.current = null
-    if (stream) {
-      try {
-        stream.getTracks().forEach((track) => track.stop())
-      } catch {
-        /* noop */
-      }
-    }
-    const container = document.getElementById(ID)
-    if (container) {
-      container.innerHTML = ''
-    }
     trackRef.current = null
-  }, [])
+    await cameraController.stop()
+  }, [cameraController])
 
   const startScanner = useCallback(
     async (cameraList = [], idx = 0) => {
       const startSeq = ++startSeqRef.current
       busyRef.current = true
       setStatus('starting')
+      statusRef.current = 'starting'
       setTorchOn(false)
-      await stopScanner()
-      if (!mountedRef.current || startSeq !== startSeqRef.current) return
+      return cameraController
+        .start(async (session) => {
+          const isCurrent = () =>
+            mountedRef.current && startSeq === startSeqRef.current && session.isCurrent()
+          if (!isCurrent()) return
 
-      // If the camera has not gone live by the deadline, surface a tap-to-start
-      // prompt instead of leaving the shopper staring at a grey rectangle. A real
-      // tap re-arms the user activation WebKit needs for programmatic playback.
-      const watchdog = setTimeout(() => {
-        if (!mountedRef.current || startSeq !== startSeqRef.current) return
-        setStatus((prev) => (prev === 'starting' ? 'blocked' : prev))
-      }, CAMERA_WATCHDOG_MS)
+          // A stalled startup must expose a manual retry instead of a silent grey view.
+          const watchdog = setTimeout(() => {
+            if (!isCurrent()) return
+            setStatus((prev) => (prev === 'starting' ? 'blocked' : prev))
+          }, CAMERA_WATCHDOG_MS)
 
-      try {
-        // Decoder loading is bounded: the WASM engine is a bonus, never a blocker.
-        const { Html5Qrcode, Html5QrcodeSupportedFormats, zbarReady } = await loadScannerEngine()
-        if (!mountedRef.current || startSeq !== startSeqRef.current) return
-
-        // WASM ZBar is roughly 3x faster than ZXing on 1D product barcodes, so it
-        // gets the higher frame rate; the pure-JS fallback needs a slower cadence.
-        const targetFps = zbarReady ? 20 : 10
-
-        // Multi-frame confirmation window: widen only on the slower decoder path
-        const confirmWindowMs = zbarReady ? 1200 : 2800
-
-        const createScanner = () =>
-          new Html5Qrcode(ID, {
-            verbose: false,
-            useBarCodeDetectorIfSupported: zbarReady,
-            formatsToSupport: [
-              Html5QrcodeSupportedFormats.EAN_13,
-              Html5QrcodeSupportedFormats.EAN_8,
-              Html5QrcodeSupportedFormats.UPC_A,
-              Html5QrcodeSupportedFormats.UPC_E,
-              Html5QrcodeSupportedFormats.CODE_128,
-            ],
-          })
-
-        const buildScanConfig = (videoConstraints) => ({
-          fps: targetFps,
-          videoConstraints,
-          qrbox: (viewfinderWidth, viewfinderHeight) => {
-            const width = Math.min(
-              viewfinderWidth - 16,
-              Math.max(240, Math.floor(viewfinderWidth * 0.9))
-            )
-            // Wider height for the ZXing fallback — EAN-13 needs more vertical room
-            const heightRatio = zbarReady ? 0.6 : 0.72
-            const height = Math.min(
-              viewfinderHeight - 16,
-              Math.max(200, Math.floor(viewfinderHeight * heightRatio))
-            )
-            return {
-              width: Math.max(120, width),
-              height: Math.max(140, height),
-            }
-          },
-          disableFlip: false,
-        })
-
-        let pendingCandidate = null
-        let candidateHits = 0
-        let candidateTime = 0
-
-        const onScanSuccess = async (rawEan) => {
-          if (busyRef.current || !mountedRef.current) return
-          const cleanEan = String(rawEan || '').trim()
-          if (!cleanEan) return
-
-          // 1. Check GS1 standard checksum for numeric barcodes (EAN-13, EAN-8, UPC-A, ITF-14)
-          const isNumeric = /^\d{8,14}$/.test(cleanEan)
-          if (isNumeric && !isValidBarcodeChecksum(cleanEan)) {
-            // Checksum failed -> optical artifact, reject immediately
-            return
-          }
-
-          // 2. Multi-frame confirmation — window widens for low-fps browsers
-          const now = Date.now()
-          if (pendingCandidate === cleanEan && now - candidateTime < confirmWindowMs) {
-            candidateHits += 1
-          } else {
-            pendingCandidate = cleanEan
-            candidateHits = 1
-            candidateTime = now
-            return
-          }
-
-          if (candidateHits < 2) return
-
-          busyRef.current = true
-          pendingCandidate = null
-          candidateHits = 0
-
-          const ean = cleanEan
-          playSuccessBeep()
           try {
-            if (loadSoundSettings().vibration) {
-              navigator.vibrate?.(60)
-            }
-          } catch {
-            /* noop */
-          }
-          const currentStoreId = storeRef.current?.id || null
-          if (compareModeRef.current) {
-            // Compare mode: wait for product before deciding flow
-            setSearching(true)
-            const [result] = await Promise.all([lookupProduct(ean, currentStoreId), stopScanner()])
-            if (!mountedRef.current) return
+            // Decoder loading is bounded: the WASM engine is a bonus, never a blocker.
+            const { Html5Qrcode, Html5QrcodeSupportedFormats, zbarReady } =
+              await loadScannerEngine()
+            if (!isCurrent()) return
 
-            if (result.type === 'local' || result.type === 'external') {
-              const scannedProduct = result.product
-              const pinned = pinnedProductRef.current
-              if (!pinned) {
-                // First scan in compare mode: pin product A.
-                rememberScan(scannedProduct)
-                pinnedProductRef.current = scannedProduct
-                setPinnedProduct(scannedProduct)
-                setSearching(false)
-                busyRef.current = false
-                startScannerRef.current?.(cameraList, idx)
-              } else {
-                // Second scan: keep both products visible before explicit compare action.
-                rememberScan(scannedProduct)
-                secondCompareProductRef.current = scannedProduct
-                setSecondCompareProduct(scannedProduct)
-                setSearching(false)
-                busyRef.current = false
+            const targetFps = zbarReady ? 20 : 10
+
+            // Multi-frame confirmation window: widen only on the slower decoder path
+            const confirmWindowMs = zbarReady ? 1200 : 2800
+
+            const createScanner = () =>
+              new Html5Qrcode(session.surface.id, {
+                verbose: false,
+                useBarCodeDetectorIfSupported: zbarReady,
+                formatsToSupport: [
+                  Html5QrcodeSupportedFormats.EAN_13,
+                  Html5QrcodeSupportedFormats.EAN_8,
+                  Html5QrcodeSupportedFormats.UPC_A,
+                  Html5QrcodeSupportedFormats.UPC_E,
+                  Html5QrcodeSupportedFormats.CODE_128,
+                ],
+              })
+
+            const buildScanConfig = (videoConstraints) => ({
+              fps: targetFps,
+              videoConstraints,
+              qrbox: (viewfinderWidth, viewfinderHeight) => {
+                const width = Math.min(
+                  viewfinderWidth - 16,
+                  Math.max(240, Math.floor(viewfinderWidth * 0.9))
+                )
+                // Wider height for the ZXing fallback — EAN-13 needs more vertical room
+                const heightRatio = zbarReady ? 0.6 : 0.72
+                const height = Math.min(
+                  viewfinderHeight - 16,
+                  Math.max(200, Math.floor(viewfinderHeight * heightRatio))
+                )
+                return {
+                  width: Math.max(120, width),
+                  height: Math.max(140, height),
+                }
+              },
+              disableFlip: false,
+            })
+
+            let pendingCandidate = null
+            let candidateHits = 0
+            let candidateTime = 0
+
+            const onScanSuccess = async (rawEan, decodedResult) => {
+              if (busyRef.current || !isCurrent()) return
+              const cleanEan = String(rawEan || '').trim()
+              if (!cleanEan) return
+
+              // 1. Check GS1 standard checksum for numeric barcodes (EAN-13, EAN-8, UPC-A, ITF-14)
+              const isNumeric = /^\d{8,14}$/.test(cleanEan)
+              const format = decodedResult?.result?.format?.formatName
+              if (isNumeric && format !== 'CODE_128' && !isValidBarcodeChecksum(cleanEan, format)) {
+                // Checksum failed -> optical artifact, reject immediately
+                return
               }
-            } else {
-              setNotFoundEan(ean)
-              setSearching(false)
-              busyRef.current = false
-              clearTimeout(nfTimer.current)
-              nfTimer.current = setTimeout(() => setNotFoundEan(null), 5000)
-              startScannerRef.current?.(cameraList, idx)
-            }
-          } else {
-            // Normal mode: await fast lookup or navigate immediately with optimistic state
-            setDetectedEan(ean)
-            setScanFlash(true)
-            setTimeout(() => {
-              if (mountedRef.current) setScanFlash(false)
-            }, 350)
-            await stopScanner()
-            let resolvedProduct = null
-            try {
-              const lookupPromise = lookupProduct(ean, currentStoreId)
-              const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(null), 800))
-              const r = await Promise.race([lookupPromise, timeoutPromise])
-              if (r?.product) {
-                resolvedProduct = r.product
-                rememberScan(r.product)
+
+              // 2. Multi-frame confirmation — window widens for low-fps browsers
+              const now = Date.now()
+              if (pendingCandidate === cleanEan && now - candidateTime < confirmWindowMs) {
+                candidateHits += 1
               } else {
-                // If it took >800ms, let it finish and save in background
-                lookupPromise
-                  .then((bgR) => {
-                    if (bgR?.product) rememberScan(bgR.product)
+                pendingCandidate = cleanEan
+                candidateHits = 1
+                candidateTime = now
+                return
+              }
+
+              if (candidateHits < 2) return
+
+              busyRef.current = true
+              pendingCandidate = null
+              candidateHits = 0
+
+              const ean = cleanEan
+              playSuccessBeep()
+              try {
+                if (loadSoundSettings().vibration) {
+                  navigator.vibrate?.(60)
+                }
+              } catch {
+                /* noop */
+              }
+              const currentStoreId = storeRef.current?.id || null
+              if (compareModeRef.current) {
+                // Compare mode: wait for product before deciding flow
+                setSearching(true)
+                const [result] = await Promise.all([
+                  lookupProduct(ean, currentStoreId),
+                  stopScanner(),
+                ])
+                if (!mountedRef.current) return
+
+                if (result.type === 'local' || result.type === 'external') {
+                  const scannedProduct = result.product
+                  const pinned = pinnedProductRef.current
+                  if (!pinned) {
+                    // First scan in compare mode: pin product A.
+                    rememberScan(scannedProduct)
+                    pinnedProductRef.current = scannedProduct
+                    setPinnedProduct(scannedProduct)
+                    setSearching(false)
+                    busyRef.current = false
+                    startScannerRef.current?.(cameraList, idx)
+                  } else {
+                    // Second scan: keep both products visible before explicit compare action.
+                    rememberScan(scannedProduct)
+                    secondCompareProductRef.current = scannedProduct
+                    setSecondCompareProduct(scannedProduct)
+                    setSearching(false)
+                    busyRef.current = false
+                  }
+                } else {
+                  setNotFoundEan(ean)
+                  setSearching(false)
+                  busyRef.current = false
+                  clearTimeout(nfTimer.current)
+                  nfTimer.current = setTimeout(() => setNotFoundEan(null), 5000)
+                  startScannerRef.current?.(cameraList, idx)
+                }
+              } else {
+                // Normal mode: await fast lookup or navigate immediately with optimistic state
+                setDetectedEan(ean)
+                setScanFlash(true)
+                setTimeout(() => {
+                  if (mountedRef.current) setScanFlash(false)
+                }, 350)
+                let resolvedProduct = null
+                try {
+                  const { result: r, lookupPromise } = await lookupScanWhileStopping({
+                    lookup: () => lookupProduct(ean, currentStoreId),
+                    stop: stopScanner,
                   })
-                  .catch(() => {})
+                  if (r?.product) {
+                    resolvedProduct = r.product
+                    rememberScan(r.product)
+                  } else {
+                    // If it took >800ms, let it finish and save in background
+                    lookupPromise
+                      .then((bgR) => {
+                        if (bgR?.product) rememberScan(bgR.product)
+                      })
+                      .catch(() => {})
+                  }
+                } catch {
+                  /* noop */
+                }
+                navigate(buildProductPath(slugRef.current, ean), {
+                  state: { ean, fromScan: true, product: resolvedProduct },
+                })
+              }
+            }
+
+            const facingMode = idx === 1 ? 'user' : 'environment'
+            const ladder = buildConstraintLadder(cameraList[idx]?.id, facingMode)
+
+            let lastStartError = null
+            let live = false
+            for (const videoConstraints of ladder) {
+              if (!isCurrent()) return
+              try {
+                await session.releaseCamera()
+                if (!isCurrent()) return
+                const scanner = createScanner()
+                session.setScanner(scanner)
+                scannerRef.current = scanner
+                // `cameraIdOrConfig` is ignored once `videoConstraints` is supplied,
+                // but html5-qrcode still requires a truthy value.
+                await session.startCapture(async () => {
+                  await scanner.start(
+                    { facingMode: 'environment' },
+                    buildScanConfig(videoConstraints),
+                    onScanSuccess,
+                    () => {}
+                  )
+                  const video = session.getVideo()
+                  if (video?.srcObject) session.setStream(video.srcObject)
+                })
+                const video = session.getVideo()
+                if (!isCurrent()) return
+                if (
+                  !matchesCameraDirection(
+                    video?.srcObject?.getVideoTracks()[0]?.getSettings?.(),
+                    facingMode,
+                    cameraList[idx]?.id
+                  )
+                ) {
+                  throw new Error('requested camera unavailable')
+                }
+                live = await waitForCameraFrames(() => video, {
+                  timeoutMs: VIDEO_LIVE_TIMEOUT_MS,
+                  isCurrent,
+                })
+                if (!isCurrent()) return
+                if (live) {
+                  lastStartError = null
+                  break
+                }
+                // getUserMedia succeeded but nothing renders: that is a playback
+                // policy block, not a constraint problem, so stop burning attempts.
+                lastStartError = new CameraSurfaceError()
+                break
+              } catch (err) {
+                lastStartError = err
+                if (isPermissionError(err?.message || err)) break
+              }
+            }
+
+            if (lastStartError) throw lastStartError
+
+            if (!isCurrent()) return
+            try {
+              const settings = scannerRef.current?.getRunningTrackSettings()
+              const host = document.getElementById('korset-scan-view')
+              if (host && settings?.facingMode === 'user') {
+                host.classList.add('scan-video-mirrored')
+              } else if (host) {
+                host.classList.remove('scan-video-mirrored')
               }
             } catch {
               /* noop */
             }
-            navigate(buildProductPath(slugRef.current, ean), {
-              state: { ean, fromScan: true, product: resolvedProduct },
-            })
-          }
-        }
 
-        // WebKit will not render an inline camera stream unless the element carries
-        // `playsinline`/`muted`/`autoplay`. html5-qrcode sets the first two only.
-        const patchVideoElement = (el) => {
-          try {
-            el.setAttribute('playsinline', '')
-            el.setAttribute('webkit-playsinline', '')
-            el.setAttribute('muted', '')
-            el.muted = true
-            el.setAttribute('autoplay', '')
-          } catch {
-            /* noop */
-          }
-        }
-
-        // html5-qrcode resolves start() as soon as the surface is attached — before
-        // the video actually plays. "Started" is not "live", so verify the frames.
-        const waitForVideoLive = (timeoutMs) =>
-          new Promise((resolve) => {
-            const deadline = Date.now() + timeoutMs
-            const check = () => {
-              const video = document.querySelector('#' + ID + ' video')
-              if (video) {
-                patchVideoElement(video)
-                if (video.readyState >= 2 && video.videoWidth > 0 && !video.paused) {
-                  resolve(true)
-                  return
-                }
-                // WebKit regularly swallows the first play() call; retrying is free.
-                try {
-                  const played = video.play()
-                  if (played && typeof played.catch === 'function') played.catch(() => {})
-                } catch {
-                  /* noop */
+            try {
+              const videoEl = session.getVideo()
+              if (videoEl?.srcObject) {
+                streamRef.current = videoEl.srcObject
+                const track = videoEl.srcObject.getVideoTracks()[0]
+                if (track) {
+                  trackRef.current = track
+                  // iOS tears the capture session down on interruption (call, another
+                  // app taking the camera, backgrounding) and ends the track.
+                  session.addCleanup(
+                    watchCameraFrames(videoEl, track, () => {
+                      if (isCurrent()) handleCameraInterruptedRef.current?.()
+                    })
+                  )
+                  // Continuous autofocus, but only where the platform exposes it —
+                  // iOS Safari has no focusMode and rejects the constraint.
+                  setTimeout(async () => {
+                    try {
+                      if (!isCurrent()) return
+                      const caps = track.getCapabilities?.() || {}
+                      if (!caps.focusMode) return
+                      await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] })
+                    } catch {
+                      /* noop — not all devices/browsers support this */
+                    }
+                  }, 600)
                 }
               }
-              if (Date.now() >= deadline) {
-                resolve(false)
-                return
-              }
-              setTimeout(check, 120)
+            } catch {
+              /* noop */
             }
-            check()
-          })
 
-        const ladder = buildConstraintLadder(idx > 0 ? cameraList[idx]?.id : null)
-
-        let lastStartError = null
-        let live = false
-        for (const videoConstraints of ladder) {
+            const devices = await enumerateCameraDevices()
+            if (!isCurrent()) return
+            const choices = ['environment', 'user'].map((mode) => ({
+              id: selectFacingCamera(devices, mode)?.deviceId || null,
+            }))
+            camerasRef.current = choices
+            setCameras(choices)
+            const selectedId = trackRef.current?.getSettings?.().deviceId
+            if (
+              choices[idx]?.id &&
+              selectedId &&
+              choices[idx].id !== selectedId &&
+              !cameraList[idx]?.id
+            ) {
+              startScannerRef.current?.(choices, idx)
+              return
+            }
+            statusRef.current = 'ready'
+            setStatus('ready')
+            busyRef.current = false
+          } catch (e) {
+            if (!isCurrent()) return
+            await session.releaseCamera()
+            if (!isCurrent()) return
+            busyRef.current = false
+            if (e?.name === 'CameraSurfaceError') {
+              setStatus('blocked')
+            } else if (isPermissionError(e?.message || e)) {
+              setStatus('error_permission')
+            } else {
+              setStatus('error')
+            }
+          } finally {
+            clearTimeout(watchdog)
+          }
+        }, videoHostRef.current)
+        .catch(() => {
           if (!mountedRef.current || startSeq !== startSeqRef.current) return
-          try {
-            await stopScanner()
-            const scanner = createScanner()
-            scannerRef.current = scanner
-            // `cameraIdOrConfig` is ignored once `videoConstraints` is supplied,
-            // but html5-qrcode still requires a truthy value.
-            await scanner.start(
-              { facingMode: 'environment' },
-              buildScanConfig(videoConstraints),
-              onScanSuccess,
-              () => {}
-            )
-            if (!mountedRef.current || startSeq !== startSeqRef.current) return
-            live = await waitForVideoLive(VIDEO_LIVE_TIMEOUT_MS)
-            if (live) {
-              lastStartError = null
-              break
-            }
-            // getUserMedia succeeded but nothing renders: that is a playback
-            // policy block, not a constraint problem, so stop burning attempts.
-            lastStartError = new CameraSurfaceError()
-            break
-          } catch (err) {
-            lastStartError = err
-            if (isPermissionError(err?.message || err)) break
-          }
-        }
-
-        if (lastStartError) throw lastStartError
-
-        if (!mountedRef.current) return
-        setStatus('ready')
-        try {
-          const settings = scannerRef.current?.getRunningTrackSettings()
-          const host = document.getElementById('korset-scan-view')
-          if (host && settings?.facingMode === 'user') {
-            host.classList.add('scan-video-mirrored')
-          } else if (host) {
-            host.classList.remove('scan-video-mirrored')
-          }
-        } catch {
-          /* noop */
-        }
-        busyRef.current = false
-
-        try {
-          const videoEl = document.querySelector('#' + ID + ' video')
-          if (videoEl?.srcObject) {
-            streamRef.current = videoEl.srcObject
-            patchVideoElement(videoEl)
-            const track = videoEl.srcObject.getVideoTracks()[0]
-            if (track) {
-              trackRef.current = track
-              // iOS tears the capture session down on interruption (call, another
-              // app taking the camera, backgrounding) and ends the track.
-              track.addEventListener('ended', () => handleCameraInterruptedRef.current?.())
-              // Continuous autofocus, but only where the platform exposes it —
-              // iOS Safari has no focusMode and rejects the constraint.
-              setTimeout(async () => {
-                try {
-                  const caps = track.getCapabilities?.() || {}
-                  if (!caps.focusMode) return
-                  await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] })
-                } catch {
-                  /* noop — not all devices/browsers support this */
-                }
-              }, 600)
-            }
-          }
-        } catch {
-          /* noop */
-        }
-
-        // Quietly populate camera list in background once permission is active
-        try {
-          const list = await Html5Qrcode.getCameras()
-          if (mountedRef.current && list && list.length > 0) {
-            const sorted = [...list].sort((a, b) => {
-              const backRe = /back|rear|environment|задн|тыльн|сзади|основн|арт|артқы|негізгі/i
-              const aBack = backRe.test(a.label) ? 1 : 0
-              const bBack = backRe.test(b.label) ? 1 : 0
-              return bBack - aBack
-            })
-            setCameras(sorted)
-          }
-        } catch {
-          /* noop */
-        }
-      } catch (e) {
-        busyRef.current = false
-        if (!mountedRef.current) return
-        if (e?.name === 'CameraSurfaceError') {
+          busyRef.current = false
           setStatus('blocked')
-        } else if (isPermissionError(e?.message || e)) {
-          setStatus('error_permission')
-        } else {
-          setStatus('error')
-        }
-      } finally {
-        clearTimeout(watchdog)
-      }
+        })
     },
-    [navigate, rememberScan, stopScanner]
+    [navigate, rememberScan, stopScanner, cameraController]
   )
   useEffect(() => {
     startScannerRef.current = startScanner
@@ -866,18 +849,35 @@ export default function ScanScreen() {
   // the watchdog turns a restart that never goes live into a tap-to-start prompt.
   useEffect(() => {
     handleCameraInterruptedRef.current = () => {
-      if (!mountedRef.current) return
+      if (!mountedRef.current || document.hidden || busyRef.current) return
+      if (recoveryAttemptsRef.current >= 1) {
+        stopScanner()
+        setStatus('blocked')
+        return
+      }
       const now = Date.now()
       if (now - lastRestartRef.current < RESTART_THROTTLE_MS) return
       lastRestartRef.current = now
-      busyRef.current = false
+      recoveryAttemptsRef.current += 1
       startScannerRef.current?.(camerasRef.current, camIdxRef.current)
     }
-  }, [])
+  }, [stopScanner])
 
   useEffect(() => {
     const onVisibilityChange = () => {
-      if (document.hidden || !mountedRef.current) return
+      if (!mountedRef.current) return
+      if (document.hidden) {
+        resumeCameraRef.current =
+          (statusRef.current === 'ready' && !busyRef.current) || statusRef.current === 'starting'
+        if (resumeCameraRef.current) stopScanner()
+        return
+      }
+      if (resumeCameraRef.current) {
+        resumeCameraRef.current = false
+        recoveryAttemptsRef.current = 0
+        startScannerRef.current?.(camerasRef.current, camIdxRef.current)
+        return
+      }
       const track = trackRef.current
       if (statusRef.current === 'ready' && (!track || track.readyState !== 'live')) {
         handleCameraInterruptedRef.current?.()
@@ -885,11 +885,11 @@ export default function ScanScreen() {
     }
     document.addEventListener('visibilitychange', onVisibilityChange)
     return () => document.removeEventListener('visibilitychange', onVisibilityChange)
-  }, [])
+  }, [stopScanner])
 
   useEffect(() => {
     mountedRef.current = true
-    startScanner([], 0)
+    startScannerRef.current?.([], 0)
     return () => {
       mountedRef.current = false
       startSeqRef.current += 1
@@ -902,15 +902,15 @@ export default function ScanScreen() {
   }, [startScanner, stopScanner])
 
   const switchCamera = useCallback(async () => {
-    if (cameras.length < 2) return
-    busyRef.current = false
-    await stopScanner()
-    const nextIdx = (camIdx + 1) % cameras.length
+    if (busyRef.current || statusRef.current === 'starting') return
+    const nextIdx = camIdxRef.current === 0 ? 1 : 0
+    recoveryAttemptsRef.current = 0
+    camIdxRef.current = nextIdx
     setCamIdx(nextIdx)
     setCameraSwitchPressed(nextIdx !== 0)
     setSearching(false)
     startScanner(cameras, nextIdx)
-  }, [cameras, camIdx, stopScanner, startScanner])
+  }, [cameras, startScanner])
 
   const toggleTorch = useCallback(async () => {
     const track = trackRef.current
@@ -984,29 +984,29 @@ export default function ScanScreen() {
       const file = e.target.files?.[0]
       if (!file) return
       e.target.value = ''
+      busyRef.current = true
       setGalleryState('scanning')
-      const TEMP_ID = 'korset-gallery-dec'
-      let div = document.getElementById(TEMP_ID)
-      if (!div) {
-        div = document.createElement('div')
-        div.id = TEMP_ID
-        div.style.cssText = 'position:fixed;visibility:hidden;width:1px;height:1px;'
-        document.body.appendChild(div)
-      }
+      const div = document.createElement('div')
+      div.id = `korset-gallery-dec-${Date.now()}`
+      div.style.cssText = 'position:fixed;visibility:hidden;width:1px;height:1px;'
+      document.body.appendChild(div)
+      let fileScanner
       try {
+        await stopScanner()
+        if (!mountedRef.current) return
         const { Html5Qrcode } = await import('html5-qrcode')
-        const s = new Html5Qrcode(TEMP_ID, { verbose: false })
-        const ean = await s.scanFile(file, false)
-        try {
-          s.clear()
-        } catch {
-          /* noop */
-        }
+        fileScanner = new Html5Qrcode(div.id, { verbose: false })
+        const decodedResult = await fileScanner.scanFileV2(file, false)
+        if (!mountedRef.current) return
+        const ean = decodedResult.decodedText
+        const format = decodedResult.result?.format?.formatName
+        if (/^\d{8,14}$/.test(ean) && format !== 'CODE_128' && !isValidBarcodeChecksum(ean, format))
+          throw new Error('barcode not found')
         setGalleryState('idle')
         playSuccessBeep()
         setSearching(true)
-        await stopScanner()
         const result = await lookupProduct(ean, storeRef.current?.id || slugRef.current)
+        if (!mountedRef.current) return
         if (result.type === 'local' || result.type === 'external') {
           const scannedProduct = result.product
           if (compareModeRef.current) {
@@ -1037,13 +1037,9 @@ export default function ScanScreen() {
           startScanner(cameras, camIdx)
         }
       } catch (err) {
-        try {
-          const { Html5Qrcode } = await import('html5-qrcode')
-          const s = new Html5Qrcode(TEMP_ID, { verbose: false })
-          s.clear()
-        } catch {
-          /* noop */
-        }
+        if (!mountedRef.current) return
+        setSearching(false)
+        startScanner(cameras, camIdx)
         const msg = String(err?.message || err).toLowerCase()
         setGalleryState('error')
         setGalleryError(
@@ -1053,6 +1049,13 @@ export default function ScanScreen() {
           setGalleryState('idle')
           setGalleryError(null)
         }, 3200)
+      } finally {
+        try {
+          fileScanner?.clear()
+        } catch {
+          /* noop */
+        }
+        div.remove()
       }
     },
     [cameras, camIdx, navigate, rememberScan, stopScanner, startScanner]
@@ -1146,6 +1149,7 @@ export default function ScanScreen() {
   }, [navigate])
 
   const retryCamera = useCallback(() => {
+    recoveryAttemptsRef.current = 0
     busyRef.current = false
     setSearching(false)
     setStatus('starting')
@@ -1196,13 +1200,13 @@ export default function ScanScreen() {
   )
 
   const dockLift = manualFocused ? Math.min(keyboardOffset, 340) : 0
-  const canSwitchCamera = cameras.length > 1
+  const canSwitchCamera = status !== 'starting' && !searching
   const hasManualValue = manualInput.trim().length > 0
 
   return (
     <div className="scan-screen">
       <div className="scan-stage" onClick={handleTapFocus} onTouchEnd={handleTapFocus}>
-        <div id={ID} className="scan-video-host" />
+        <div id={ID} ref={videoHostRef} className="scan-video-host" />
 
         <div className="scan-topbar">
           <button

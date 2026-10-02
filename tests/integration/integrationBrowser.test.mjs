@@ -11,7 +11,7 @@ test('browser onboarding confirms ownership through real HTTP and PostgreSQL', {
 }, async () => {
   const root = process.env.KORSET_TEST_UI_URL || 'http://127.0.0.1:5173'
   const db = await createIntegrationTestDatabase()
-  const user = { id: OWNER_ID, email: 'test@example.invalid', aud: 'authenticated', role: 'authenticated', user_metadata: {} }
+  const user = { id: OWNER_ID, email: 'test@example.invalid', aud: 'authenticated', role: 'authenticated', user_metadata: {profile_setup_done:true} }
   const tokenPayload = Buffer.from(JSON.stringify({ sub: OWNER_ID, exp: Math.floor(Date.now()/1000)+3600, role: 'authenticated' })).toString('base64url')
   const ownerToken = `eyJhbGciOiJIUzI1NiJ9.${tokenPayload}.test-signature`
   const events = []
@@ -23,6 +23,7 @@ test('browser onboarding confirms ownership through real HTTP and PostgreSQL', {
         korset_integration_ingest: [args.p_token_hash,JSON.stringify(args.p_envelope),args.p_payload_hash],
         korset_integration_preview: [args.p_token_hash,JSON.stringify(args.p_envelope)],
         korset_integration_resolve: [args.p_owner_id,args.p_store_id,args.p_source_id,args.p_expected_revision,args.p_adopt,args.p_expected_manual_price,args.p_expected_manual_updated_at],
+        korset_integration_issues: [args.p_owner_id,args.p_store_id,args.p_after_id,args.p_limit,args.p_code],
       }
       const values = argumentsByName[name]
       assert.ok(values, 'only fixture-approved RPCs may run')
@@ -71,6 +72,12 @@ test('browser onboarding confirms ownership through real HTTP and PostgreSQL', {
         return route.continue()
       }
       if (url.hostname.endsWith('.supabase.co')) {
+        if (url.pathname.endsWith('/rpc/korset_get_store_source_cards')) {
+          const args=route.request().postDataJSON()
+          const data=(await db.query('select public.korset_get_store_source_cards($1,$2,$3,$4,$5) as result',
+            [args.p_store_id,args.p_after_id||null,args.p_limit||100,args.p_include_out_of_stock||false,args.p_source_id||null])).rows[0].result
+          return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(data)})
+        }
         const data = url.pathname.includes('/auth/v1/') ? user : url.pathname.endsWith('/stores') ? store : url.pathname.endsWith('/users') ? {id:OWNER_ID,auth_id:OWNER_ID,role:'user'} : []
         return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(data)})
       }
@@ -99,6 +106,28 @@ test('browser onboarding confirms ownership through real HTTP and PostgreSQL', {
     assert.equal(events.filter(event=>event.operation==='resolve'&&event.status===200).length,2)
     assert.equal((await db.query('select is_active from public.store_products')).rows[0].is_active,false)
     assert.equal(JSON.stringify(events).includes(connectorToken),false)
+    const complete=envelope(3,{protocol_version:2})
+    complete.items[0]={...complete.items[0],currency:'KZT',observed_at:new Date().toISOString(),stock:{quantity:'5.250',unit:'kg'},price:{regular_minor:123456,sale_minor:null}}
+    complete.items.push({...complete.items[0],external_id:'local-food',name:'Местный продукт',barcodes:[],item_kind:'own_production'})
+    assert.equal((await (await post(complete,connectorToken)).json()).result.applied,2)
+    const sourceId=(await db.query("select id from korset_integration.source_items where external_id='local-food'")).rows[0].id
+    for(const lang of ['ru','kz']) for(const theme of ['light','dark']) {
+      await context.addInitScript(({lang,theme})=>{localStorage.setItem('korset_lang',lang);localStorage.setItem('korset_theme',theme)}, {lang,theme})
+      await page.setViewportSize({width:320,height:850})
+      await page.goto(`${root}/retail/integration-test/integration`,{waitUntil:'networkidle'})
+      await page.locator('.retail-integration__progress').waitFor()
+      assert.equal(await page.locator('.retail-integration__progress').getAttribute('max'),'2')
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false)
+      await page.goto(`${root}/s/integration-test/product/si:${sourceId}`,{waitUntil:'networkidle'})
+      try { await page.getByRole('heading',{name:'Местный продукт',exact:true}).waitFor({timeout:10000}) }
+      catch(error) { throw new Error(`Source page unavailable: ${page.url()} | ${(await page.locator('body').innerText()).slice(-1800)} | ${errors.join('; ')}`,{cause:error}) }
+      const text=await page.locator('.store-source-product').innerText()
+      assert.ok(text.includes('1 234,56')||text.includes('1\u00a0234,56'))
+      assert.equal(await page.locator('.fit-check-collapsible').count(),0)
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false)
+      await page.screenshot({path:`scratch/integration-source-${lang}-${theme}.png`,fullPage:true})
+    }
+    assert.deepEqual(errors,[])
   } finally {
     await browser?.close()
     server.closeAllConnections(); await new Promise(resolve=>server.close(resolve))

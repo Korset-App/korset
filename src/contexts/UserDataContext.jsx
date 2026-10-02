@@ -16,6 +16,8 @@ import {
   syncScanHistoryWithCloud,
 } from '../utils/localHistory.js'
 import { PRIVACY_EVENT } from '../utils/privacySettings.js'
+import { getProductRef } from '../domain/product/storeSourceProduct.js'
+import { loadSourceShoppingItems, sourceShoppingId } from '../utils/sourceShoppingItems.js'
 
 const UserDataContext = createContext()
 
@@ -104,10 +106,20 @@ export function UserDataProvider({ children }) {
       )
       if (guestRows.length > 0) {
         try {
-          const { error } = await supabase
-            .from('store_shopping_items')
-            .upsert(guestRows, { onConflict: 'user_id,store_id,ean' })
-          if (error) throw error
+          const regularRows = guestRows.filter((row) => !row.ean.startsWith('si:'))
+          const sourceRows = guestRows
+            .filter((row) => sourceShoppingId(row.ean))
+            .map(({ ean, ...row }) => ({ ...row, store_source_item_id: sourceShoppingId(ean) }))
+          for (const [table, rows, key] of [
+            ['store_shopping_items', regularRows, 'ean'],
+            ['store_source_shopping_items', sourceRows, 'store_source_item_id'],
+          ]) {
+            if (!rows.length) continue
+            const { error } = await supabase
+              .from(table)
+              .upsert(rows, { onConflict: `user_id,store_id,${key}` })
+            if (error) throw error
+          }
           writeGuestShoppingLists({})
         } catch (err) {
           console.error('Failed to sync guest shopping lists to cloud', err)
@@ -117,11 +129,20 @@ export function UserDataProvider({ children }) {
       const [favRes, scanRes] = await Promise.allSettled([
         withTimeout(
           storeId
-            ? supabase
-                .from('store_shopping_items')
-                .select('ean')
-                .eq('user_id', internalUserId)
-                .eq('store_id', storeId)
+            ? Promise.all([
+                supabase
+                  .from('store_shopping_items')
+                  .select('ean')
+                  .eq('user_id', internalUserId)
+                  .eq('store_id', storeId),
+                loadSourceShoppingItems(supabase, internalUserId, storeId),
+              ]).then(([regular, local]) => ({
+                ...regular,
+                data: [
+                  ...(regular.data || []),
+                  ...local.map((row) => ({ storeSourceItemId: row.store_source_item_id })),
+                ],
+              }))
             : Promise.resolve({ data: [] }),
           5000
         ),
@@ -135,7 +156,7 @@ export function UserDataProvider({ children }) {
 
       const favoriteList =
         favRes.status === 'fulfilled' && !favRes.value?.error
-          ? new Set((favRes.value?.data || []).map((item) => item.ean).filter(Boolean))
+          ? new Set((favRes.value?.data || []).map(getProductRef).filter(Boolean))
           : new Set()
       setShoppingListLoadError(favRes.status !== 'fulfilled' || Boolean(favRes.value?.error))
 
@@ -188,13 +209,13 @@ export function UserDataProvider({ children }) {
     async (product) => {
       if (
         !product ||
-        !product.ean ||
+        !getProductRef(product) ||
         !storeId ||
         favoriteScopeId !== storeId ||
         shoppingListLoadError
       )
         return false
-      const ean = product.ean
+      const ean = getProductRef(product)
       const operationKey = `${storeId}:${ean}`
       if (togglingRef.current.has(operationKey)) return false
       togglingRef.current.add(operationKey)
@@ -222,7 +243,27 @@ export function UserDataProvider({ children }) {
       }
 
       try {
-        if (!wasFavorite) {
+        if (product.storeSourceItemId) {
+          if (product.storeId !== storeId) throw new Error('SOURCE_STORE_MISMATCH')
+          const result = !wasFavorite
+            ? await supabase
+                .from('store_source_shopping_items')
+                .upsert(
+                  {
+                    user_id: internalUserId,
+                    store_id: storeId,
+                    store_source_item_id: product.storeSourceItemId,
+                  },
+                  { onConflict: 'user_id,store_id,store_source_item_id' }
+                )
+            : await supabase
+                .from('store_source_shopping_items')
+                .delete()
+                .eq('user_id', internalUserId)
+                .eq('store_id', storeId)
+                .eq('store_source_item_id', product.storeSourceItemId)
+          if (result.error) throw result.error
+        } else if (!wasFavorite) {
           const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
           const candidateGlobalId =
             product?.globalProductId || product?.sourceMeta?.globalProductId || null

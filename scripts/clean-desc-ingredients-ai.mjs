@@ -101,7 +101,23 @@ function parseAiResponse(content) {
   return list;
 }
 
-async function callGroq(batch) {
+const MODEL_POOL = [
+  ...(groqKey ? [
+    { provider: 'groq', model: 'openai/gpt-oss-120b' },
+    { provider: 'groq', model: 'qwen/qwen3.8-27b' },
+    { provider: 'groq', model: 'openai/gpt-oss-20b' }
+  ] : []),
+  ...(geminiKey ? [
+    { provider: 'gemini', model: 'gemini-3.1-flash-lite' },
+    { provider: 'gemini', model: 'gemini-3.6-flash' },
+    { provider: 'gemini', model: 'gemini-3.5-flash-lite' }
+  ] : [])
+];
+
+const disabledModels = new Set();
+let poolCursor = 0;
+
+async function callGroqModel(batch, model) {
   const userPayload = batch.map(item => ({
     id: item.id,
     name: item.name,
@@ -116,7 +132,7 @@ async function callGroq(batch) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: 'qwen/qwen3.8-27b',
+      model,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: JSON.stringify(userPayload, null, 2) }
@@ -128,18 +144,19 @@ async function callGroq(batch) {
 
   if (!res.ok) {
     const errText = await res.text();
-    const err = new Error(`Groq HTTP ${res.status}: ${errText.slice(0, 150)}`);
+    const err = new Error(`Groq(${model}) HTTP ${res.status}: ${errText.slice(0, 150)}`);
     err.status = res.status;
+    err.raw = errText;
     throw err;
   }
 
   const data = await res.json();
   const content = data.choices?.[0]?.message?.content;
-  if (!content) throw new Error('Empty Groq completion');
+  if (!content) throw new Error(`Empty Groq(${model}) completion`);
   return parseAiResponse(content);
 }
 
-async function callGemini(batch) {
+async function callGeminiModel(batch, model) {
   const userPayload = batch.map(item => ({
     id: item.id,
     name: item.name,
@@ -148,7 +165,7 @@ async function callGemini(batch) {
   }));
 
   const prompt = `${SYSTEM_PROMPT}\n\nВХОДНЫЕ ДАННЫЕ:\n${JSON.stringify(userPayload, null, 2)}`;
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${geminiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
 
   const res = await fetch(url, {
     method: 'POST',
@@ -164,40 +181,49 @@ async function callGemini(batch) {
 
   if (!res.ok) {
     const errText = await res.text();
-    const err = new Error(`Gemini HTTP ${res.status}: ${errText.slice(0, 150)}`);
+    const err = new Error(`Gemini(${model}) HTTP ${res.status}: ${errText.slice(0, 150)}`);
     err.status = res.status;
+    err.raw = errText;
     throw err;
   }
 
   const data = await res.json();
   const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!content) throw new Error('Empty Gemini completion');
+  if (!content) throw new Error(`Empty Gemini(${model}) completion`);
   return parseAiResponse(content);
 }
 
-async function callAiWithFallback(batch, maxRetries = 3) {
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      if (groqKey) {
-        try {
-          return await callGroq(batch);
-        } catch (groqErr) {
-          console.warn(`[Groq attempt ${attempt}]: ${groqErr.message}. Trying Gemini fallback...`);
-          if (geminiKey) {
-            return await callGemini(batch);
-          }
-          throw groqErr;
-        }
-      } else if (geminiKey) {
-        return await callGemini(batch);
-      } else {
-        throw new Error('No AI key available for Groq or Gemini');
-      }
-    } catch (err) {
-      console.warn(`[AI attempt ${attempt}/${maxRetries} failed]: ${err.message}. Waiting ${attempt * 3}s...`);
-      if (attempt === maxRetries) throw err;
-      await new Promise(r => setTimeout(r, attempt * 3000));
+async function callAiWithFallback(batch, maxCycles = 3) {
+  for (let cycle = 1; cycle <= maxCycles; cycle++) {
+    let poolToTry = MODEL_POOL.filter(m => !disabledModels.has(m.model));
+    if (poolToTry.length === 0) {
+      disabledModels.clear();
+      poolToTry = [...MODEL_POOL];
     }
+
+    for (let i = 0; i < poolToTry.length; i++) {
+      const idx = (poolCursor + i) % poolToTry.length;
+      const entry = poolToTry[idx];
+      try {
+        const result = entry.provider === 'groq'
+          ? await callGroqModel(batch, entry.model)
+          : await callGeminiModel(batch, entry.model);
+        poolCursor = (idx + 1) % poolToTry.length;
+        return result;
+      } catch (err) {
+        const raw = err.raw || err.message || '';
+        if (/free_tier_requests|limit:\s*500|per day/i.test(raw)) {
+          console.warn(`⚠️ [Model Disabled] ${entry.model} hit daily quota limit. Removing from active pool.`);
+          disabledModels.add(entry.model);
+          continue;
+        }
+        await new Promise(r => setTimeout(r, 1200));
+      }
+    }
+
+    console.warn(`[AI Pool cycle ${cycle}/${maxCycles} busy]. Waiting ${cycle * 5}s for token buckets to refill...`);
+    if (cycle === maxCycles) throw new Error('All AI models in pool failed after retries');
+    await new Promise(r => setTimeout(r, cycle * 5000));
   }
 }
 
@@ -272,17 +298,19 @@ async function main() {
   if (startAfterArg) {
     lastId = startAfterArg.split('=')[1];
     console.log(`Manual start-after ID: ${lastId}`);
-  } else if (!fromStartArg && fs.existsSync(checkpointPath)) {
+  }
+  if (fs.existsSync(checkpointPath)) {
     try {
       const cp = JSON.parse(fs.readFileSync(checkpointPath, 'utf8'));
-      if (cp.lastId) {
+      totalProcessed = cp.totalProcessed || 0;
+      totalCleanVerified = cp.totalCleanVerified || 0;
+      totalChanged = cp.totalChanged || 0;
+      if (!fromStartArg && !startAfterArg && cp.lastId && !cp.lastId.startsWith('ffff')) {
         lastId = cp.lastId;
         totalScanned = cp.totalScanned || 0;
-        totalProcessed = cp.totalProcessed || 0;
-        totalCleanVerified = cp.totalCleanVerified || 0;
-        totalChanged = cp.totalChanged || 0;
-        totalErrors = cp.totalErrors || 0;
         console.log(`Auto-resuming from checkpoint lastId: ${lastId} (processed: ${totalProcessed}, clean: ${totalCleanVerified}, changed: ${totalChanged})`);
+      } else {
+        console.log(`Starting new pass from ${lastId} (preserving cumulative stats: processed=${totalProcessed}, clean=${totalCleanVerified}, changed=${totalChanged})`);
       }
     } catch {}
   }
@@ -291,7 +319,7 @@ async function main() {
   console.log(`🧠 CATALOG PHASE 2 — DESCRIPTION & INGREDIENTS AI SEPARATION`);
   console.log(`Mode:  ${isDryRun ? '🧪 DRY RUN (no DB writes)' : '🚀 LIVE APPLY (writing to Supabase)'}`);
   if (maxLimit > 0) console.log(`Limit: Process next ${maxLimit} items only`);
-  console.log(`Model: Groq (qwen/qwen3.8-27b) + Gemini 3.5 Flash Lite fallback (100% Free)`);
+  console.log(`Pool:  6-Model Round-Robin (Groq 120B/27B/20B + Gemini 3.1/3.6/3.5 Flash)`);
   console.log(`======================================================\n`);
 
   const now = new Date();
@@ -301,13 +329,14 @@ async function main() {
 
   const sessionProcessedStart = totalProcessed;
 
-  const FETCH_PAGE_SIZE = 36;
-  const AI_BATCH_SIZE = 4;
+  const FETCH_PAGE_SIZE = 30;
+  const AI_BATCH_SIZE = 3;
+  let currentPageSize = FETCH_PAGE_SIZE;
 
   while (true) {
     const sessionProcessed = totalProcessed - sessionProcessedStart;
     if (maxLimit > 0 && sessionProcessed >= maxLimit) break;
-    const fetchLimit = maxLimit > 0 ? Math.min(FETCH_PAGE_SIZE, maxLimit - sessionProcessed) : FETCH_PAGE_SIZE;
+    const fetchLimit = maxLimit > 0 ? Math.min(currentPageSize, maxLimit - sessionProcessed) : currentPageSize;
     if (fetchLimit <= 0) break;
 
     // Fetch active products using indexed primary key pagination
@@ -320,11 +349,13 @@ async function main() {
       .limit(fetchLimit);
 
     if (error) {
-      console.error(`DB Fetch error at lastId ${lastId}:`, error.message);
+      console.error(`DB Fetch error at lastId ${lastId} (limit=${fetchLimit}):`, error.message);
       totalErrors++;
+      currentPageSize = Math.max(5, Math.floor(currentPageSize / 2));
       await new Promise(r => setTimeout(r, 4000));
       continue;
     }
+    currentPageSize = FETCH_PAGE_SIZE;
 
     if (!data || data.length === 0) {
       break;
@@ -540,8 +571,8 @@ async function main() {
         }
       }
 
-      // Pacing between AI calls to stay well within Groq rate limits
-      await new Promise(r => setTimeout(r, 2000));
+      // Pacing between round-robin AI calls
+      await new Promise(r => setTimeout(r, 800));
     }
 
     lastId = pageLastId;

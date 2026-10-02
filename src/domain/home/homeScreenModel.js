@@ -514,21 +514,7 @@ export function getShowcaseProducts(catalogProducts = [], limit = 12, popularity
     }
   }
 
-  // Демо-выборка для визуальной проверки всех тегов покупателем:
-  // гарантируем наличие товаров с каждым типом бейджа среди первых карточек
-  const previewTags = ['sugar_free', 'lactose_free', 'gluten_free', 'vegan', 'keto']
-  let tagIdx = 0
-  return selected.map((p, idx) => {
-    const existingTags = p.dietTags || p.diet_tags || []
-    if (idx > 0 && tagIdx < previewTags.length && existingTags.length === 0) {
-      const demoTag = previewTags[tagIdx++]
-      return {
-        ...p,
-        dietTags: [demoTag],
-      }
-    }
-    return p
-  })
+  return selected
 }
 
 export function buildHomeQuickActions({ routes = {} } = {}) {

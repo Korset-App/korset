@@ -1,0 +1,36 @@
+Use case: productivity-visual. Create a finished horizontal16:9 Russian Körset commercial slide about a grocery store appearing in future Körset social-media content. Match approved reference visual family: warm pale limestone/ivory texture, very large heavy aubergine grotesk typography, FLAT saturated violet accent line, high-end tangible grocery/editorial photography, matte cream/kraft paper with natural sunlight, aubergine footer. Strong taste, restrained serious brand, not stock camera collage. NO chrome, glossy ribbons, glass decoration, generic icons, neon, glitter, dark main background, text gradients or floating UI cards. No page number.
+
+One visual idea: "Your real shelf becomes a filming set." A realistic tall thin matte black smartphone in a black tripod mount on the LEFT records a beautifully art-directed real grocery shelf still life of unbranded bread, milk, eggs and greens. We see its FRONT SCREEN showing that same food scene through a simple camera viewfinder with a discreet recording dot. This is a camera illustration, NOT an actual Körset app screenshot. The full phone is in view, realistic Android device shape height about2.17xwidth, proper visible centered FRONT CAMERA dot at top and thin speaker slit, precise thin bezels, don't cut off top and don't stretch it wide. Matte black tripod legs, no chrome camera/rings. A physically large film clapperboard with ivory/violet diagonal top stripes lies against the tripod near the foreground, creating an unmistakable filmmaking concept. Board text only "Ваш магазин в кадре". A single large warm ivory director's paper board upright on the RIGHT carries three clear commercial scene/action descriptions, no individual cards or icons. All share the same photographic scene with warm stone backdrop and pale counter. Groceries connect left camera to right board, don't cover copy. Not a pasted left image and right panel; it is one natural physical set.
+
+At1672x941 logical layout:
+HEADLINE x65y55–250 ultra-bold heavy grotesk72px:
+"Ваш магазин —" dark aubergine
+"герой контента Körset." vivid flat violet
+Typeset Körset as plain headline text with correct ö, NOT a generated logo. No other logo.
+Under headline x70y275 clean24px:
+"Instagram и TikTok — план запуска"
+This label must remain plainly visible and adjacent to offer; these channels/shoots are PLANNED, not an already included guaranteed subscription benefit.
+
+MAIN y325–815:
+LEFT camera/phone x190–450y330–790, phone outer dimensions about220x477, full top visible with front camera, no unnatural broad short shape. Three delicate black tripod legs end near counter, refined correct filming mount. Screen shows realistic bread/milk/vegetables scene with no invented customer interface, no texts, no fake likes, no view counts, no account usernames, no original logo. Only tiny red recording dot, no social icons.
+Clapperboard x70–510y640–805, matte ivory/violet striped clapper, dark aubergine lowerboard, white plain text "Ваш магазин в кадре". Physical folded kraft grocery bag and fresh produce around x440–715y450–805, no fake brands, real detailed textures, avoid crowding.
+
+RIGHT director's ivory paper board x760–1585y340–797, slight gentle natural curl and shadow, almost frontal with clear large dark-plum print and plenty whitespace. It is one continuous sheet, no glossy box/rounded card UI.
+Three elegant sections:
+At y370 bold30 "Снять в вашем магазине"
+body24 "Показать ассортимент и выбор"
+nextline "с учётом питания, халал и бюджета."
+At y510 bold30 "Назвать вашу точку"
+body24 "Название и адрес в ролике"
+nextline "помогают зрителям найти магазин."
+At y650 bold30 "Дать ещё один повод прийти"
+body24 "Показать удобство сервиса для покупателей"
+nextline "с особыми предпочтениями."
+No bullets or icons, no numbered promises. Violet understated short underline below each main heading. Text highly readable, exact Russian spelling, no overlong tiny sentences.
+
+FOOTER y818–941 fullwidth aubergine, LEFT x65–1240warmivory20–22:
+"Совместные съёмки и публикации — по согласованию."
+"Охваты и посещения зависят от аудитории и формата."
+This calmly preserves original reach/visit contingency without negative warning tone. Do NOT assert guaranteed shoots, guaranteed visitors, budgets, dates, ongoing channel readiness or achievements.
+RIGHTfooterx1320–1620 leave COMPLETELY BLANK darkaubergine for ORIGINAL Körset logo to be composited afterward. Never generate or approximate logo. No extra text or watermark.
+Rich sunlight and tactile editorial photographic craft, no background gradient stock style. Main hierarchy is headline then3 useful benefits, filming still life visually explains the message. Intentional high-quality brand presentation consistent with references. Exacttext only asquoted.

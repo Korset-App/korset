@@ -25,6 +25,33 @@ function hasUsefulValue(value) {
   return true
 }
 
+export function mergeProductEnrichment({
+  currentProduct,
+  enrichedProduct,
+  ean,
+  storeId,
+  eventStoreId,
+}) {
+  if (
+    storeId !== eventStoreId ||
+    !productMatchesRouteEan(currentProduct, ean) ||
+    normalizeEan(currentProduct.ean) !== normalizeEan(enrichedProduct?.ean) ||
+    currentProduct.sourceMeta?.isVerified
+  )
+    return currentProduct
+  const merged = { ...currentProduct }
+  let changed = false
+  for (const key of ['description', 'ingredients', 'allergens', 'dietTags']) {
+    if (!hasUsefulValue(currentProduct[key]) && hasUsefulValue(enrichedProduct[key])) {
+      merged[key] = enrichedProduct[key]
+      changed = true
+    }
+  }
+  if (!changed) return currentProduct
+  merged.sourceMeta = { ...currentProduct.sourceMeta, aiEnriched: true }
+  return merged
+}
+
 function preserveBaseFactsWhenFullIsSparse(baseProduct, fullProduct) {
   if (!baseProduct) return fullProduct
   if (!fullProduct) return baseProduct
@@ -72,11 +99,24 @@ function preserveBaseFactsWhenFullIsSparse(baseProduct, fullProduct) {
   return merged
 }
 
-export function getProductScreenProduct({ baseProduct, fullProduct, ean }) {
-  if (productMatchesRouteEan(fullProduct, ean)) {
-    return preserveBaseFactsWhenFullIsSparse(baseProduct, fullProduct)
-  }
-  return baseProduct || null
+export function getProductScreenProduct({
+  baseProduct,
+  fullProduct,
+  ean,
+  storeId,
+  backgroundEnrichment,
+}) {
+  const currentProduct = productMatchesRouteEan(fullProduct, ean)
+    ? preserveBaseFactsWhenFullIsSparse(baseProduct, fullProduct)
+    : baseProduct || null
+  if (!backgroundEnrichment) return currentProduct
+  return mergeProductEnrichment({
+    currentProduct,
+    enrichedProduct: backgroundEnrichment.product,
+    ean,
+    storeId,
+    eventStoreId: backgroundEnrichment.storeId,
+  })
 }
 
 export function getProductScreenBaseProduct({ catalogProduct, stateProduct, ean }) {

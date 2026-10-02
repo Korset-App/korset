@@ -1,6 +1,22 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
+test('a failed lookup still waits for the camera to stop before rejecting', async () => {
+  const { lookupScanWhileStopping } = await import('../../src/screens/scanner/scanFlow.js')
+  let release
+  let settled = false
+  const stopping = new Promise((resolve) => { release = resolve })
+  const result = lookupScanWhileStopping({
+    lookup: () => Promise.reject(new Error('network failure')),
+    stop: () => stopping,
+  }).catch((error) => { settled = true; return error.message })
+  await new Promise((resolve) => setTimeout(resolve, 5))
+  assert.equal(settled, false)
+  release()
+  assert.equal(await result, 'network failure')
+})
+import * as scanFlow from '../../src/screens/scanner/scanFlow.js'
+
 import {
   buildRecentScanEntry,
   getManualEanError,
@@ -8,6 +24,31 @@ import {
   normalizeManualEan,
   upsertRecentScan,
 } from '../../src/screens/scanner/scanFlow.js'
+
+test('product lookup starts before camera shutdown finishes', async () => {
+  assert.equal(typeof scanFlow.lookupScanWhileStopping, 'function')
+  let finishStop
+  const stopping = new Promise((resolve) => { finishStop = resolve })
+  let lookupStarted = false
+  const work = scanFlow.lookupScanWhileStopping({
+    lookup: async () => { lookupStarted = true; return { product: { name: 'fixture' } } },
+    stop: () => stopping,
+    timeoutMs: 50,
+  })
+  assert.equal(lookupStarted, true)
+  finishStop()
+  assert.equal((await work).result.product.name, 'fixture')
+})
+
+test('a slow scan lookup remains available after navigation deadline', async () => {
+  assert.equal(typeof scanFlow.lookupScanWhileStopping, 'function')
+  let finishLookup
+  const lookup = new Promise((resolve) => { finishLookup = resolve })
+  const result = await scanFlow.lookupScanWhileStopping({ lookup: () => lookup, stop: async () => {}, timeoutMs: 5 })
+  assert.equal(result.result, null)
+  finishLookup({ product: { name: 'fixture' } })
+  assert.equal((await result.lookupPromise).product.name, 'fixture')
+})
 
 test('normalizeManualEan keeps only digits', () => {
   assert.equal(normalizeManualEan(' 4 870-123 abc 45678 '), '487012345678')

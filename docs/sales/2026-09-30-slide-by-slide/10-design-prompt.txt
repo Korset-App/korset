@@ -1,0 +1,39 @@
+Use case: productivity-visual. Create a finished beautiful Russian 16:9 horizontal Körset commercial slide about synchronization from a grocery store's accounting system into its digital storefront. Match the APPROVED input visual references in taste and graphic family: warm pale limestone textured setting, oversized heavy dark aubergine grotesk headline, vivid FLAT violet accents, realistically lit matte paper and grocery photography, full-width aubergine footer. Preserve content faithfully. This slide explains a DEPENDENT integration flow, not an assertion of currently functioning universal integration. No market statistics, no frequency or real-time promises. No page number, to allow flexible final slide order.
+
+Visual idea: "One source, one clear stream of data." A large upright tactile kraft accounting folder on the LEFT, marked with only plain typeset "1С" and "или другая система учёта", is visually connected by THREE broad, flat, matte cream paper bridges running left-to-right over the countertop to a small elegant physical model of a DIGITAL STOREFRONT on the RIGHT. Each bridge carries ONE specific data label and a flat violet arrow printed at its right end: names, prices, stock. Three distinct paper lanes neatly spaced, almost horizontal and readable. These are actual PAPER strips with subtle natural bends and shadows, NOT chrome, glass, shiny ribbons or decorative swirls. The data movement itself is the main composition. Right is a tasteful small cream architectural shopfront on a matte violet plinth, restrained violet-and-ivory straight awning, and a nearly frontal large ivory catalog panel standing inside its front opening. This is a conceptual visual model, NOT a fabricated screenshot of the actual app. No phone needed, no generic software screenshots or icons. Shopfront is grown-up design-studio architectural craft, not a toy/cartoon. An unbranded real bread bag and small milk bottle to far right/behind connect to grocery retail, never cover text. One sunlit tactile photographic scene, no stock fade, no floating software boxes.
+
+Format layout using1672x941 grid:
+Top x65–1580 y55–265 two very large bold grotesk headline lines about70px:
+"Цены и наличие —" in dark aubergine
+"из вашей учётной системы." in vivid flat violet.
+At x70 y285 readable26px subtitle:
+"Работайте в привычной программе. Данные — из одного источника."
+Give generous breathing room, no page numeral at upper right.
+
+Main photo y340–810:
+LEFT folder x85–550 y365–770, tactile premium kraft folder standing at gentle angle, front plane readable. Small cream inset sheet but not another rounded info-card. Very bold52 plain dark burgundy text "1С", NOT a logo imitation. Below clean26:
+"или другая"
+"система учёта"
+At lower part y620 bold24 "Цена · название · остаток"
+Below22 "Магазин работает"
+"в привычной программе".
+No invented table cells, product quantities, discount numbers, chart icons, official accounting software screenshots.
+CENTER bridges x530–1090 across three clear levels y445,550,655. Each lane width560 height65, cream paper with slight natural arc and realistic shadow on stone; enough flat area to typeset bold violet30. Each connects the folder's right edge toward right storefront/catalog; no confusing double direction. Three labels EXACTLY:
+"Названия"
+"Цены"
+"Наличие и остатки"
+Matte violet arrow at right end printed on each paper lane. Arrows point to right receiving catalog. Clear simple readable flow.
+
+RIGHT storefront x1085–1580 y360–800. Minimal cream storefront architecture, violet-and-ivory awning at y370–440. Catalog panel x1135–1515 y450–720 with header bold28 exactly "Каталог вашей точки". Under thin rule three rows bold24, each one line:
+"Названия товаров"
+"Цены"
+"Наличие"
+No other symbols or tiny unreadable gibberish. No generated logo, no photos of imaginary app screens. Can have two subtle small realistic product silhouettes near the model's lower edges, not decorative random objects.
+Overall the folder, paper bridges and storefront create one convincing physical data-transfer scene. More imagination and photographic craft than a generic infographic with two boxes and arrows. Clear priority: headline and three data lanes.
+
+Bottom full-width aubergine brand band y818–941. At x65–1250 warm ivory20–22 two calm, informative lines EXACT:
+"Автоматический обмен включаем после запуска интеграции."
+"Совместимость версии и конфигурации проверяем до подключения."
+Original caveat meaning fully preserved without alarming warning tone.
+RIGHT x1320–1620 footer leave COMPLETELY BLANK aubergine for the original Körset white logo to be inserted after generation. DO NOT DRAW, GENERATE OR APPROXIMATE any logo. No words Körset elsewhere, no watermarks.
+All visible Russian text verbatim, correct Cyrillic. Clear legibility, rich but restrained tangible detail, excellent typography matching references. No chrome, gloss, decorative glass, particles, gradients or generic icons. Single premium sunlit scene; full image should intuitively explain accounting data becoming storefront data.
