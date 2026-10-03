@@ -13,6 +13,7 @@ import { useOverlayLock } from '../hooks/useOverlayLock.js'
 import HomeBannerCarousel from '../components/home/HomeBannerCarousel.jsx'
 import FitCheckDrawer from '../components/home/FitCheckDrawer.jsx'
 import HomeFitGuide from '../components/home/HomeFitGuide.jsx'
+import FitProfileCard from '../components/home/FitProfileCard.jsx'
 import InstallAppSheet from '../components/home/InstallAppSheet.jsx'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useProfile } from '../contexts/ProfileContext.jsx'
@@ -38,7 +39,6 @@ import {
   StorefrontIcon,
   ResetArrowIcon,
   DietIcon,
-  SlidersIcon,
   InstallIcon,
   BarcodeScannerIcon,
   CameraIcon,
@@ -79,6 +79,12 @@ import {
   LockerIcon,
   WifiIcon,
   OrderPickupIcon,
+  BreakfastIcon,
+  TeaCupIcon,
+  SaladIcon,
+  SoupIcon,
+  BurgerIcon,
+  BreadIcon,
 } from '../components/icons/index.js'
 import LandingScreen from './LandingScreen.jsx'
 import './HomeScreen.css'
@@ -246,116 +252,6 @@ function BottomNavAiIcon({ size = 18, className = '' }) {
   )
 }
 
-function BurgerIcon({ size = 18, className = '' }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <path d="M4 10a8 8 0 0 1 16 0H4z" />
-      <rect x="2" y="13" width="20" height="3" rx="1.5" />
-      <path d="M4 19a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1H4v1z" />
-    </svg>
-  )
-}
-
-function BreakfastIcon({ size = 18, className = '' }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <ellipse cx="12" cy="14" rx="8" ry="5" />
-      <circle cx="12" cy="13" r="2.5" fill="currentColor" fillOpacity="0.25" />
-      <path d="M4 12V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4" />
-      <line x1="8" y1="2" x2="8" y2="4" />
-      <line x1="12" y1="2" x2="12" y2="4" />
-      <line x1="16" y1="2" x2="16" y2="4" />
-    </svg>
-  )
-}
-
-function SoupIcon({ size = 18, className = '' }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <path d="M3 11h18a1 1 0 0 1 1 1 8 8 0 0 1-8 8H10a8 8 0 0 1-8-8 1 1 0 0 1 1-1z" />
-      <path d="M7 21h10" />
-      <path d="M9 5c0 1.2.8 2 1 3M12 4c0 1.2.8 2 1 3M15 5c0 1.2.8 2 1 3" strokeWidth="1.4" />
-    </svg>
-  )
-}
-
-function TeaCupIcon({ size = 18, className = '' }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
-      <path d="M2 8h16v7a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
-      <line x1="6" y1="2" x2="6" y2="4" strokeWidth="1.4" />
-      <line x1="10" y1="2" x2="10" y2="4" strokeWidth="1.4" />
-      <line x1="14" y1="2" x2="14" y2="4" strokeWidth="1.4" />
-    </svg>
-  )
-}
-
-function SaladIcon({ size = 18, className = '' }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <path d="M3 12h18a8 8 0 0 1-16 0z" />
-      <path d="M12 12V4a4 4 0 0 1 4 4" />
-      <path d="M8 8a3 3 0 0 1 4-3" />
-    </svg>
-  )
-}
-
 function getAiScenarioIcon(iconKey, size = 16) {
   switch (iconKey) {
     case 'burger':
@@ -373,6 +269,10 @@ function getAiScenarioIcon(iconKey, size = 16) {
       return <DietIcon name="nosugar" size={size} />
     case 'tea':
       return <TeaCupIcon size={size} />
+    case 'bread':
+    case 'pastry':
+    case 'bakery':
+      return <BreadIcon size={size} />
     case 'salad':
       return <SaladIcon size={size} />
     default:
@@ -503,6 +403,7 @@ export default function HomeScreen() {
   const [isHeroPaused, setIsHeroPaused] = useState(false)
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false)
   const [fitDrawerOpen, setFitDrawerOpen] = useState(false)
+  const [fitDrawerSection, setFitDrawerSection] = useState(null)
   const [fitGuideOpen, setFitGuideOpen] = useState(false)
   const [installPrompt, setInstallPrompt] = useState(() => {
     if (typeof window !== 'undefined' && window.__korset_install_prompt) {
@@ -780,71 +681,8 @@ export default function HomeScreen() {
     [currentStore, storeHours]
   )
 
-  // Fit-Check configuration status
-  const isFitConfigured = useMemo(() => {
-    if (!profile) return false
-    const hasDiet = Boolean(profile.halal || profile.halalOnly || profile.dietGoals?.length)
-    const hasAllergen = Boolean(profile.allergens?.length || profile.customAllergens?.length)
-    const hasExplicitNo = Boolean(profile.noDietPreferences && profile.noAllergies)
-    return hasDiet || hasAllergen || hasExplicitNo
-  }, [profile])
-
   // Promotional and explainer banners
   const banners = useMemo(() => getHomeBanners({ isInstalled, lang }), [isInstalled, lang])
-
-  const QUICK_TOGGLES = useMemo(() => {
-    const toggleDiet = (goalId) => {
-      const diets = profile?.dietGoals || []
-      const next = diets.includes(goalId) ? diets.filter((d) => d !== goalId) : [...diets, goalId]
-      updateProfile({ dietGoals: next })
-    }
-
-    return [
-      {
-        id: 'halal',
-        labelKey: 'home.filterHalal',
-        fallback: 'Халал',
-        iconName: 'halal',
-        isActive: Boolean(profile?.halal || profile?.halalOnly),
-        toggle: () => {
-          const nextVal = !(profile?.halal || profile?.halalOnly)
-          updateProfile({ halal: nextVal, halalOnly: nextVal })
-        },
-      },
-      {
-        id: 'sugar_free',
-        labelKey: 'home.filterSugarFree',
-        fallback: 'Без сахара',
-        iconName: 'nosugar',
-        isActive: (profile?.dietGoals || []).includes('sugar_free'),
-        toggle: () => toggleDiet('sugar_free'),
-      },
-      {
-        id: 'lactose_free',
-        labelKey: 'home.filterLactoseFree',
-        fallback: 'Без лактозы',
-        iconName: 'nodairy',
-        isActive: (profile?.dietGoals || []).includes('lactose_free'),
-        toggle: () => toggleDiet('lactose_free'),
-      },
-      {
-        id: 'gluten_free',
-        labelKey: 'home.filterGlutenFree',
-        fallback: 'Без глютена',
-        iconName: 'nogluten',
-        isActive: (profile?.dietGoals || []).includes('gluten_free'),
-        toggle: () => toggleDiet('gluten_free'),
-      },
-      {
-        id: 'vegan',
-        labelKey: 'home.filterVegan',
-        fallback: 'Веган',
-        iconName: 'vegan',
-        isActive: (profile?.dietGoals || []).includes('vegan'),
-        toggle: () => toggleDiet('vegan'),
-      },
-    ]
-  }, [profile, updateProfile])
 
   const categoryProductCounts = useMemo(() => {
     if (!Array.isArray(catalogProducts) || catalogProducts.length === 0) return {}
@@ -876,15 +714,6 @@ export default function HomeScreen() {
     }
     return FALLBACK_COUNTS[deptKey] || 280
   }
-
-  const activeFilterCount = useMemo(() => {
-    let count = 0
-    if (profile?.halal || profile?.halalOnly) count++
-    count += (profile?.dietGoals || []).length
-    count += (profile?.allergens || []).length
-    count += (profile?.customAllergens || []).length
-    return count
-  }, [profile])
 
   const normalizedPhotos = useMemo(() => {
     const rawList =
@@ -1425,74 +1254,16 @@ export default function HomeScreen() {
         </div>
       </div>
 
-      {/* 4. SMART COMPOSITION FILTER — interactive quick toggles */}
-      <section className="home-filter-section" aria-label={t('home.filterTitle')}>
-        <div className={`home-filter-panel${isFitConfigured ? ' is-active' : ''}`}>
-          <div className="home-filter-panel__header">
-            <div className="home-filter-panel__title-row">
-              <div className="home-filter-panel__emblem" aria-hidden="true">
-                <SlidersIcon size={18} color="currentColor" />
-              </div>
-              <div className="home-filter-panel__titles">
-                <h3 className="home-filter-panel__heading">{t('home.filterTitle')}</h3>
-                <span className="home-filter-panel__status">
-                  {activeFilterCount > 0
-                    ? (t('home.filterStatusActive') || '{count} фильтров активно').replace(
-                        '{count}',
-                        activeFilterCount
-                      )
-                    : t('home.filterStatusNone')}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="home-filter-grid" role="group" aria-label={t('home.filterTitle')}>
-            {QUICK_TOGGLES.map(({ id, labelKey, fallback, iconName, isActive, toggle }) => (
-              <button
-                key={id}
-                type="button"
-                className={`home-filter-toggle${isActive ? ' is-on' : ''}`}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  toggle()
-                }}
-                aria-pressed={isActive}
-              >
-                <span className="home-filter-toggle__icon">
-                  <DietIcon name={iconName} size={15} />
-                </span>
-                <span className="home-filter-toggle__label">{t(labelKey) || fallback}</span>
-                {isActive && (
-                  <span className="home-filter-toggle__check" aria-hidden="true">
-                    <svg
-                      width="11"
-                      height="11"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  </span>
-                )}
-              </button>
-            ))}
-            <button
-              type="button"
-              className="home-filter-toggle home-filter-toggle--more"
-              onClick={() => setFitDrawerOpen(true)}
-            >
-              <span className="home-filter-toggle__icon">
-                <SlidersIcon size={13} color="currentColor" />
-              </span>
-              <span className="home-filter-toggle__label">{t('home.filterMore') || 'Ещё'}</span>
-            </button>
-          </div>
-        </div>
+      {/* 4. FIT-CHECK — single compact entry, full editor lives in the sheet */}
+      <section className="home-filter-section" aria-label={t('home.fitCard.title')}>
+        <FitProfileCard
+          profile={profile}
+          updateProfile={updateProfile}
+          onOpen={(section) => {
+            setFitDrawerSection(section || null)
+            setFitDrawerOpen(true)
+          }}
+        />
       </section>
 
       {/* 5. POPULAR DEPARTMENTS (8 CATEGORIES) */}
@@ -2668,7 +2439,11 @@ export default function HomeScreen() {
       />
       <FitCheckDrawer
         open={fitDrawerOpen}
-        onClose={() => setFitDrawerOpen(false)}
+        initialSection={fitDrawerSection}
+        onClose={() => {
+          setFitDrawerOpen(false)
+          setFitDrawerSection(null)
+        }}
         profile={profile}
         updateProfile={updateProfile}
         onOpenFullPreferences={() => navigate(`${routes.profile}?tab=preferences`)}

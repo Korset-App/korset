@@ -44,7 +44,12 @@ import SpecsGrid from '../components/product/SpecsGrid.jsx'
 import SectionLabel from '../components/product/SectionLabel.jsx'
 import ProductSubmissionSheet from '../components/product/ProductSubmissionSheet.jsx'
 import AuthPromptModal from '../components/AuthPromptModal.jsx'
-import { AlertTriangleIcon, CameraIcon } from '../components/icons/index.js'
+import {
+  AlertTriangleIcon,
+  AlternativesIcon,
+  CameraIcon,
+  CompareIcon,
+} from '../components/icons/index.js'
 import { getAllergenShortName } from '../constants/allergens.js'
 import StoreSourceProductScreen from './StoreSourceProductScreen.jsx'
 import { getProductRef } from '../domain/product/storeSourceProduct.js'
@@ -1011,17 +1016,7 @@ function StandardProductScreen() {
                 gap: 8,
               }}
             >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              >
-                <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
-              </svg>
+              <AlternativesIcon size={18} />
               {t('common.alternatives')}
             </button>
             <button
@@ -1077,21 +1072,7 @@ function StandardProductScreen() {
               gap: 8,
             }}
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="17 1 21 5 17 9" />
-              <path d="M3 11V9a4 4 0 0 1 4-4h14" />
-              <polyline points="7 23 3 19 7 15" />
-              <path d="M21 13v2a4 4 0 0 1-4 4H3" />
-            </svg>
+            <CompareIcon size={18} />
             {t('compare.btnLabel') || t('product.addToCompare')}
           </button>
         </div>

@@ -26,3 +26,5 @@ scratch/
 screenshots/
 tmp-*/
 dist_verify_stage*/
+.chart-data*
+supabase/.temp/

@@ -6,6 +6,16 @@ export { GalleryIcon } from './GalleryIcon.jsx'
 export { HeartIcon } from './HeartIcon.jsx'
 export { HistoryIcon } from './HistoryIcon.jsx'
 export { IconGallery } from './IconGallery.jsx'
+export { AlternativesIcon } from './AlternativesIcon.jsx'
+export { ShoppingListIcon } from './ShoppingListIcon.jsx'
+export {
+  BreakfastIcon,
+  TeaCupIcon,
+  SaladIcon,
+  SoupIcon,
+  BurgerIcon,
+  BreadIcon,
+} from './AiScenarioIcons.jsx'
 export { TrashIcon } from './TrashIcon.jsx'
 export { WalletIcon } from './WalletIcon.jsx'
 
@@ -46,6 +56,7 @@ export { SortPriceyIcon } from './SortPriceyIcon.jsx'
 export { SortProteinIcon } from './SortProteinIcon.jsx'
 export { SortSugarIcon } from './SortSugarIcon.jsx'
 export { SlidersIcon } from './SlidersIcon.jsx'
+export { FitCheckIcon } from './FitCheckIcon.jsx'
 export { InstallIcon } from './InstallIcon.jsx'
 export { AddToHomeScreenIcon } from './AddToHomeScreenIcon.jsx'
 export { MenuDotsIcon } from './MenuDotsIcon.jsx'

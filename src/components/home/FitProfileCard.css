@@ -1,0 +1,418 @@
+/* -------------------------------------------------------------------------- */
+/* KÖRSET — FIT PROFILE CARD (HOME SCREEN)                                    */
+/* High-end, minimal, balanced 50/50 dashboard for nutrition & allergens     */
+/* -------------------------------------------------------------------------- */
+
+.home-filter-section {
+  width: 100%;
+}
+
+.fit-card {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border-radius: var(--home-radius, 18px);
+  border: 1px solid color-mix(in srgb, var(--primary) 20%, var(--home-line));
+  background:
+    radial-gradient(ellipse 80% 50% at 8% 0%, color-mix(in srgb, var(--primary) 8%, transparent) 0%, transparent 60%),
+    color-mix(in srgb, var(--home-surface) 96%, var(--home-ink) 4%);
+  color: var(--home-ink);
+  box-shadow:
+    0 8px 24px color-mix(in srgb, #000 12%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  position: relative;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+  user-select: none;
+}
+
+/* 1. Header */
+.fit-card__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* Classic minimalist accent squircle with white icon inside — zero glass noise */
+.fit-card__emblem {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--primary) 30%, transparent);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.fit-card__emblem:hover {
+  transform: scale(1.02);
+}
+
+.fit-card__titles {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.fit-card__title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.fit-card__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  color: var(--home-ink);
+  line-height: 1.2;
+}
+
+.fit-card__status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  background: color-mix(in srgb, var(--home-ink) 7%, transparent);
+  color: var(--home-muted);
+  border: 1px solid color-mix(in srgb, var(--home-ink) 10%, transparent);
+  flex-shrink: 0;
+  transition: all 200ms ease;
+}
+
+.fit-card__status-pill.is-complete {
+  background: color-mix(in srgb, var(--success-bright) 14%, transparent);
+  color: var(--success-bright);
+  border-color: color-mix(in srgb, var(--success-bright) 30%, transparent);
+}
+
+.fit-card__sub {
+  margin: 0;
+  font-size: 12px;
+  color: var(--home-muted);
+  line-height: 1.35;
+  white-space: normal;
+  word-break: normal;
+}
+
+/* 2. Interactive 2-Column Dashboard (50% / 50%) */
+.fit-card__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+}
+
+.fit-card__tile {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 13px 10px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--home-ink) 8%, var(--home-line));
+  background: color-mix(in srgb, var(--home-ink) 3%, var(--home-surface));
+  color: var(--home-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.fit-card__tile:hover {
+  border-color: color-mix(in srgb, var(--home-ink) 16%, var(--home-line));
+  background: color-mix(in srgb, var(--home-ink) 5%, var(--home-surface));
+  transform: translateY(-1px);
+}
+
+.fit-card__tile:active {
+  transform: scale(0.975);
+}
+
+/* Tasteful solid tint when preferences configured */
+.fit-card__tile--diet.is-decided {
+  background: color-mix(in srgb, var(--primary) 10%, var(--home-surface));
+  border-color: color-mix(in srgb, var(--primary) 36%, transparent);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.fit-card__tile--diet.is-decided:hover {
+  background: color-mix(in srgb, var(--primary) 14%, var(--home-surface));
+  border-color: color-mix(in srgb, var(--primary) 50%, transparent);
+}
+
+.fit-card__tile--diet.is-decided.is-none {
+  background: color-mix(in srgb, var(--success-bright) 9%, var(--home-surface));
+  border-color: color-mix(in srgb, var(--success-bright) 36%, transparent);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--success-bright) 10%, transparent);
+}
+
+.fit-card__tile--diet.is-decided.is-none:hover {
+  background: color-mix(in srgb, var(--success-bright) 13%, var(--home-surface));
+  border-color: color-mix(in srgb, var(--success-bright) 48%, transparent);
+}
+
+/* Tasteful solid tint when allergens configured */
+.fit-card__tile--allergen.is-decided {
+  background: color-mix(in srgb, #ef4444 10%, var(--home-surface));
+  border-color: color-mix(in srgb, #ef4444 38%, transparent);
+  box-shadow: 0 2px 10px color-mix(in srgb, #ef4444 14%, transparent);
+}
+
+.fit-card__tile--allergen.is-decided:hover {
+  background: color-mix(in srgb, #ef4444 14%, var(--home-surface));
+  border-color: color-mix(in srgb, #ef4444 50%, transparent);
+}
+
+.fit-card__tile--allergen.is-decided.is-none {
+  background: color-mix(in srgb, var(--success-bright) 9%, var(--home-surface));
+  border-color: color-mix(in srgb, var(--success-bright) 36%, transparent);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--success-bright) 10%, transparent);
+}
+
+.fit-card__tile--allergen.is-decided.is-none:hover {
+  background: color-mix(in srgb, var(--success-bright) 13%, var(--home-surface));
+  border-color: color-mix(in srgb, var(--success-bright) 48%, transparent);
+}
+
+.fit-card__tile-top {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+}
+
+.fit-card__tile-title-group {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.fit-card__tile-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: var(--primary-bright);
+  flex-shrink: 0;
+  transition: color 180ms ease;
+}
+
+.fit-card__tile-icon--allergen {
+  color: #ef4444;
+}
+
+.fit-card__tile.is-none .fit-card__tile-icon,
+.fit-card__tile.is-none .fit-card__tile-icon--allergen {
+  color: var(--success-bright);
+}
+
+.fit-card__tile-label {
+  font-size: 11px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--home-muted);
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 180ms ease;
+}
+
+.fit-card__tile.is-decided .fit-card__tile-label {
+  color: color-mix(in srgb, var(--home-ink) 82%, var(--home-muted));
+}
+
+.fit-card__tile-value {
+  font-size: 13px;
+  font-weight: 550;
+  line-height: 1.25;
+  color: var(--home-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 17px;
+  transition: color 180ms ease, font-weight 180ms ease;
+}
+
+.fit-card__tile-value.is-decided {
+  color: var(--home-ink);
+  font-weight: 700;
+}
+
+/* Progress / accent bar inside tile */
+.fit-card__bar-track {
+  width: 100%;
+  height: 2.5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--home-ink) 9%, transparent);
+  overflow: hidden;
+  position: relative;
+}
+
+.fit-card__bar-fill {
+  width: 0%;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 320ms cubic-bezier(0.34, 1.2, 0.64, 1), background-color 200ms ease;
+}
+
+.fit-card__bar-fill.is-active-diet {
+  width: 100%;
+  background: var(--primary);
+}
+
+.fit-card__bar-fill.is-active-allergen {
+  width: 100%;
+  background: #ef4444;
+}
+
+.fit-card__bar-fill.is-none {
+  width: 100%;
+  background: var(--success-bright);
+}
+
+/* 3. Single Full-Width Primary Action */
+.fit-card__actions {
+  display: flex;
+  width: 100%;
+}
+
+.fit-card__btn--primary {
+  width: 100%;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--primary) 70%, transparent);
+  background: var(--primary);
+  color: var(--text-inverse, #ffffff);
+  box-shadow: 0 3px 12px color-mix(in srgb, var(--primary) 28%, transparent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.fit-card__btn--primary:hover {
+  background: var(--primary-mid);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--primary) 38%, transparent);
+}
+
+.fit-card__btn--primary:active {
+  transform: scale(0.985);
+}
+
+.fit-card__btn-arrow {
+  margin-left: 2px;
+  opacity: 0.8;
+  transition: transform 160ms ease;
+}
+
+.fit-card__btn--primary:hover .fit-card__btn-arrow {
+  transform: translateX(2px);
+  opacity: 1;
+}
+
+/* -------------------------------------------------------------------------- */
+/* LIGHT THEME OVERRIDES                                                      */
+/* -------------------------------------------------------------------------- */
+:root[data-theme='light'] .fit-card {
+  background:
+    radial-gradient(ellipse 75% 55% at 8% 0%, rgba(124, 58, 237, 0.05) 0%, transparent 60%),
+    linear-gradient(165deg, rgba(255, 255, 255, 0.99) 0%, rgba(248, 250, 255, 0.96) 100%);
+  border-color: rgba(124, 58, 237, 0.18);
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.05);
+}
+
+:root[data-theme='light'] .fit-card__tile {
+  background: #ffffff;
+  border-color: rgba(148, 163, 184, 0.26);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.03);
+}
+
+:root[data-theme='light'] .fit-card__tile:hover {
+  background: #ffffff;
+  border-color: color-mix(in srgb, var(--primary) 35%, #94a3b8);
+}
+
+:root[data-theme='light'] .fit-card__tile--diet.is-decided {
+  background: rgba(124, 58, 237, 0.06);
+  border-color: rgba(124, 58, 237, 0.28);
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.08);
+}
+
+:root[data-theme='light'] .fit-card__tile--diet.is-decided:hover {
+  background: rgba(124, 58, 237, 0.09);
+  border-color: rgba(124, 58, 237, 0.42);
+}
+
+:root[data-theme='light'] .fit-card__tile--diet.is-decided.is-none {
+  background: rgba(16, 185, 129, 0.06);
+  border-color: rgba(16, 185, 129, 0.28);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08);
+}
+
+:root[data-theme='light'] .fit-card__tile--diet.is-decided.is-none:hover {
+  background: rgba(16, 185, 129, 0.09);
+  border-color: rgba(16, 185, 129, 0.42);
+}
+
+:root[data-theme='light'] .fit-card__tile--allergen.is-decided {
+  background: rgba(239, 68, 68, 0.06);
+  border-color: rgba(239, 68, 68, 0.32);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.08);
+}
+
+:root[data-theme='light'] .fit-card__tile--allergen.is-decided:hover {
+  background: rgba(239, 68, 68, 0.09);
+  border-color: rgba(239, 68, 68, 0.45);
+}
+
+:root[data-theme='light'] .fit-card__tile--allergen.is-decided.is-none {
+  background: rgba(16, 185, 129, 0.06);
+  border-color: rgba(16, 185, 129, 0.28);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08);
+}
+
+:root[data-theme='light'] .fit-card__tile--allergen.is-decided.is-none:hover {
+  background: rgba(16, 185, 129, 0.09);
+  border-color: rgba(16, 185, 129, 0.42);
+}
+
+:root[data-theme='light'] .fit-card__bar-track {
+  background: rgba(148, 163, 184, 0.22);
+}

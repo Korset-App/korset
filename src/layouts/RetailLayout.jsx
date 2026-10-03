@@ -4,17 +4,20 @@ import { useAuth } from '../contexts/AuthContext.jsx'
 import RetailBottomNav from '../components/RetailBottomNav.jsx'
 import RetailDesktopSidebar from '../components/retail/RetailDesktopSidebar.jsx'
 import RetailDesktopTopbar from '../components/retail/RetailDesktopTopbar.jsx'
-import { LockIcon, StorefrontIcon, EyeIcon } from '../components/icons/index.js'
+import { LockIcon, EyeIcon } from '../components/icons/index.js'
+import ProfileAvatar from '../components/ProfileAvatar.jsx'
 import { buildAuthNavigateState } from '../utils/authFlow.js'
 import { useI18n } from '../i18n/index.js'
 import { useStore } from '../contexts/StoreContext.jsx'
+import './retail-tokens.css'
+import './RetailShell.css'
 import './RetailLayout.css'
 
 const spinnerStyle = {
   width: 32,
   height: 32,
-  border: '3px solid rgba(56,189,248,0.15)',
-  borderTop: '3px solid var(--retail-accent)',
+  border: '3px solid var(--rc-line-strong)',
+  borderTop: '3px solid var(--rc-accent)',
   borderRadius: '50%',
   animation: 'spin 0.8s linear infinite',
 }
@@ -178,47 +181,24 @@ export default function RetailLayout() {
   return (
     <div className="retail-mobile-shell app-frame" style={{ background: 'var(--retail-bg)' }}>
       {!isSettings && (
-        <div
-          style={{
-            position: 'sticky',
-            top: 0,
-            zIndex: 10,
-            background: 'var(--retail-header-bg)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            borderBottom: '1px solid var(--retail-border)',
-            padding: '16px 20px',
-            paddingTop: 'max(16px, env(safe-area-inset-top))',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <div>
-            <div
-              style={{
-                fontSize: 18,
-                fontWeight: 800,
-                fontFamily: 'var(--font-display)',
-                color: 'var(--retail-accent)',
-                letterSpacing: '-0.3px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-              }}
-            >
-              <StorefrontIcon size={20} />
-              {t('retail.cabinetTitle') || 'Кабинет магазина'}
+        <div className="rc-mhead">
+          <div className="rc-mhead__store">
+            <div className="rc-avatar">
+              <ProfileAvatar
+                avatarId={currentStore?.logo_url}
+                name={currentStore?.name || 'K'}
+                rounded="circle"
+              />
             </div>
-            <div
-              style={{
-                fontSize: 12,
-                color: 'var(--text-sub)',
-                marginTop: 2,
-                fontFamily: 'var(--font-body)',
-              }}
-            >
-              {currentStore?.name || 'Körset'}
+            <div className="rc-mhead__copy">
+              <span className="rc-mhead__name">{currentStore?.name || 'Körset'}</span>
+              <span
+                className={`rc-status ${currentStore?.is_published === false ? 'rc-status--draft' : ''}`}
+              >
+                {currentStore?.is_published === false
+                  ? t('retail.desktop.storeOffline') || 'Черновик'
+                  : t('retail.desktop.storeOnline') || 'В сети'}
+              </span>
             </div>
           </div>
 
@@ -227,23 +207,10 @@ export default function RetailLayout() {
               href={`/s/${currentStore.slug}`}
               target="_blank"
               rel="noopener noreferrer"
+              className="rc-btn"
               title={t('retail.viewStoreFront') || 'Открыть витрину покупателя'}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '6px 12px',
-                borderRadius: 10,
-                background: 'rgba(56, 189, 248, 0.1)',
-                border: '1px solid rgba(56, 189, 248, 0.25)',
-                color: 'var(--retail-accent, #38BDF8)',
-                fontSize: 12,
-                fontWeight: 600,
-                textDecoration: 'none',
-                cursor: 'pointer',
-              }}
             >
-              <EyeIcon size={14} />
+              <EyeIcon size={15} color="currentColor" />
               <span>{t('retail.viewStoreFrontShort') || 'Витрина'}</span>
             </a>
           )}

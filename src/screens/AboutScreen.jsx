@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../i18n/index.js'
-import { useTheme } from '../utils/theme.js'
+import { AIChatIcon, CompareIcon, HistoryIcon } from '../components/icons/index.js'
 
 const APP_VERSION = '1.0.0'
 const APP_YEAR = new Date().getFullYear()
@@ -9,21 +9,10 @@ const APP_YEAR = new Date().getFullYear()
 const getFeatures = (t) => [
   {
     icon: (
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M4 8V6a2 2 0 0 1 2-2h2" />
-        <path d="M16 4h2a2 2 0 0 1 2 2v2" />
-        <path d="M20 16v2a2 2 0 0 1-2 2h-2" />
-        <path d="M8 20H6a2 2 0 0 1-2-2v-2" />
-        <line x1="5" y1="12" x2="19" y2="12" strokeWidth="2.2" />
+      <svg width="20" height="20" viewBox="0 0 512 512" fill="currentColor" aria-hidden="true">
+        <g transform="translate(42.666667, 41.600000)">
+          <path d="M85.334,107.733 L85.335,150.399 L42.6666667,150.4 L42.6666667,342.4 L175.702784,342.4 L192,350.539 L192,250.91 L202.665434,256.831437 L213.331989,262.740708 L223.998544,256.831437 L234.666,250.909 L234.666,350.539 L250.963883,342.4 L384,342.4 L384,150.4 L341.332,150.399 L341.331,107.733 L426.666667,107.733333 L426.666667,385.066667 L261.013333,385.066667 L213.333333,408.918058 L165.632,385.066667 L3.55271368e-14,385.066667 L3.55271368e-14,107.733333 L85.334,107.733 Z M362.666667,278.4 L362.666667,310.4 L256,310.4 L256,278.4 L362.666667,278.4 Z M170.666667,278.4 L170.666667,310.4 L64,310.4 L64,278.4 L170.666667,278.4 Z M362.666667,214.4 L362.666667,246.4 L256,246.4 L256,239.065 L300.43,214.399 L362.666667,214.4 Z M126.237,214.399 L170.666,239.065 L170.666667,246.4 L64,246.4 L64,214.4 L126.237,214.399 Z M213.333333,7.10542736e-15 L320,59.2604278 L320,177.780929 L213.333333,237.041357 L106.666667,177.780929 L106.666667,59.2604278 L213.333333,7.10542736e-15 Z M170.666667,107.370667 L170.666667,188.928 L192,200.789333 L192,119.232 L170.666667,107.370667 Z M128,83.6693333 L128,165.226723 L149.333333,177.088 L149.333333,95.5306667 L128,83.6693333 Z M256.768,48.5333333 L182.037333,89.28 L202.346667,100.565333 L276.373333,59.4133333 L256.768,48.5333333 Z M213.333333,24.4053901 L139.306667,65.536 L159.957333,77.0133333 L234.688,36.2666667 L213.333333,24.4053901 Z" />
+        </g>
       </svg>
     ),
     title: t('about.feat1Title'),
@@ -39,6 +28,7 @@ const getFeatures = (t) => [
         stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"
+        aria-hidden="true"
       >
         <line x1="4" y1="21" x2="4" y2="14" />
         <line x1="4" y1="10" x2="4" y2="3" />
@@ -55,6 +45,16 @@ const getFeatures = (t) => [
     desc: t('about.feat2Desc'),
   },
   {
+    icon: <AIChatIcon size={20} />,
+    title: t('about.feat3Title'),
+    desc: t('about.feat3Desc'),
+  },
+  {
+    icon: <CompareIcon size={20} />,
+    title: t('about.feat4Title'),
+    desc: t('about.feat4Desc'),
+  },
+  {
     icon: (
       <svg
         width="20"
@@ -65,32 +65,13 @@ const getFeatures = (t) => [
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
+        aria-hidden="true"
       >
         <path d="M2 12C2 7.28595 2 4.92893 3.46447 3.46447C4.92893 2 7.28595 2 12 2C16.714 2 19.0711 2 20.5355 3.46447C22 4.92893 22 7.28595 22 12C22 16.714 22 19.0711 20.5355 20.5355C19.0711 22 16.714 22 12 22C7.28595 22 4.92893 22 3.46447 20.5355C2 19.0711 2 16.714 2 12Z" />
         <path d="M6 15.8L7.14286 17L10 14" />
         <path d="M6 8.8L7.14286 10L10 7" />
         <path d="M13 9L18 9" />
         <path d="M13 16L18 16" />
-      </svg>
-    ),
-    title: t('about.feat3Title'),
-    desc: t('about.feat3Desc'),
-  },
-  {
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 512 512" fill="currentColor">
-        <g transform="translate(42.666667, 41.600000)">
-          <path d="M85.334,107.733 L85.335,150.399 L42.6666667,150.4 L42.6666667,342.4 L175.702784,342.4 L192,350.539 L192,250.91 L202.665434,256.831437 L213.331989,262.740708 L223.998544,256.831437 L234.666,250.909 L234.666,350.539 L250.963883,342.4 L384,342.4 L384,150.4 L341.332,150.399 L341.331,107.733 L426.666667,107.733333 L426.666667,385.066667 L261.013333,385.066667 L213.333333,408.918058 L165.632,385.066667 L3.55271368e-14,385.066667 L3.55271368e-14,107.733333 L85.334,107.733 Z M362.666667,278.4 L362.666667,310.4 L256,310.4 L256,278.4 L362.666667,278.4 Z M170.666667,278.4 L170.666667,310.4 L64,310.4 L64,278.4 L170.666667,278.4 Z M362.666667,214.4 L362.666667,246.4 L256,246.4 L256,239.065 L300.43,214.399 L362.666667,214.4 Z M126.237,214.399 L170.666,239.065 L170.666667,246.4 L64,246.4 L64,214.4 L126.237,214.399 Z M213.333333,7.10542736e-15 L320,59.2604278 L320,177.780929 L213.333333,237.041357 L106.666667,177.780929 L106.666667,59.2604278 L213.333333,7.10542736e-15 Z M170.666667,107.370667 L170.666667,188.928 L192,200.789333 L192,119.232 L170.666667,107.370667 Z M128,83.6693333 L128,165.226723 L149.333333,177.088 L149.333333,95.5306667 L128,83.6693333 Z M256.768,48.5333333 L182.037333,89.28 L202.346667,100.565333 L276.373333,59.4133333 L256.768,48.5333333 Z M213.333333,24.4053901 L139.306667,65.536 L159.957333,77.0133333 L234.688,36.2666667 L213.333333,24.4053901 Z" />
-        </g>
-      </svg>
-    ),
-    title: t('about.feat4Title'),
-    desc: t('about.feat4Desc'),
-  },
-  {
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M5.46257 4.43262C7.21556 2.91688 9.5007 2 12 2C17.5228 2 22 6.47715 22 12C22 14.1361 21.3302 16.1158 20.1892 17.7406L17 12H20C20 7.58172 16.4183 4 12 4C9.84982 4 7.89777 4.84827 6.46023 6.22842L5.46257 4.43262ZM18.5374 19.5674C16.7844 21.0831 14.4993 22 12 22C6.47715 22 2 17.5228 2 12C2 9.86386 2.66979 7.88416 3.8108 6.25944L7 12H4C4 16.4183 7.58172 20 12 20C14.1502 20 16.1022 19.1517 17.5398 17.7716L18.5374 19.5674Z" />
       </svg>
     ),
     title: t('about.feat5Title'),
@@ -107,13 +88,40 @@ const getFeatures = (t) => [
         strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"
+        aria-hidden="true"
       >
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-        <path d="M9.5 12l1.8 1.8 3.5-3.6" />
+        <path d="M4 8V6a2 2 0 0 1 2-2h2" />
+        <path d="M16 4h2a2 2 0 0 1 2 2v2" />
+        <path d="M20 16v2a2 2 0 0 1-2 2h-2" />
+        <path d="M8 20H6a2 2 0 0 1-2-2v-2" />
+        <line x1="5" y1="12" x2="19" y2="12" strokeWidth="2.2" />
       </svg>
     ),
     title: t('about.feat6Title'),
     desc: t('about.feat6Desc'),
+  },
+  {
+    icon: <HistoryIcon size={20} />,
+    title: t('about.feat7Title'),
+    desc: t('about.feat7Desc'),
+  },
+  {
+    icon: (
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        <path d="M19.4491 6.94063V9.45062C19.4491 10.1606 18.7291 10.6206 18.0591 10.3706C17.2191 10.0606 16.2891 9.94062 15.3091 10.0406C12.9291 10.3006 10.4891 12.5906 10.0891 14.9606C9.75906 16.9306 10.3891 18.7706 11.5991 20.0706C12.1491 20.6706 11.7791 21.6406 10.9691 21.7306C10.2791 21.8106 9.59906 21.7906 9.21906 21.5106L3.71906 17.4006C3.06906 16.9106 2.53906 15.8506 2.53906 15.0306V6.94063C2.53906 5.81063 3.39906 4.57063 4.44906 4.17063L9.94906 2.11062C10.5191 1.90063 11.4591 1.90063 12.0291 2.11062L17.5291 4.17063C18.5891 4.57063 19.4491 5.81063 19.4491 6.94063Z" />
+        <path d="M16 11.5117C13.52 11.5117 11.5 13.5317 11.5 16.0117C11.5 18.4917 13.52 20.5117 16 20.5117C18.48 20.5117 20.5 18.4917 20.5 16.0117C20.5 13.5217 18.48 11.5117 16 11.5117Z" />
+        <path d="M21 22.0009C20.73 22.0009 20.48 21.8909 20.29 21.7109C20.25 21.6609 20.2 21.6109 20.17 21.5509C20.13 21.5009 20.1 21.4409 20.08 21.3809C20.05 21.3209 20.03 21.2609 20.02 21.2009C20.01 21.1309 20 21.0709 20 21.0009C20 20.8709 20.03 20.7409 20.08 20.6209C20.13 20.4909 20.2 20.3909 20.29 20.2909C20.52 20.0609 20.87 19.9509 21.19 20.0209C21.26 20.0309 21.32 20.0509 21.38 20.0809C21.44 20.1009 21.5 20.1309 21.55 20.1709C21.61 20.2009 21.66 20.2509 21.71 20.2909C21.8 20.3909 21.87 20.4909 21.92 20.6209C21.97 20.7409 22 20.8709 22 21.0009C22 21.2609 21.89 21.5209 21.71 21.7109C21.66 21.7509 21.61 21.7909 21.55 21.8309C21.5 21.8709 21.44 21.9009 21.38 21.9209C21.32 21.9509 21.26 21.9709 21.19 21.9809C21.13 21.9909 21.06 22.0009 21 22.0009Z" />
+      </svg>
+    ),
+    title: t('about.feat8Title'),
+    desc: t('about.feat8Desc'),
   },
 ]
 
@@ -121,8 +129,11 @@ const getFeatures = (t) => [
 export default function AboutScreen() {
   const navigate = useNavigate()
   const { t } = useI18n()
-  const { isLight } = useTheme()
   const features = getFeatures(t)
+  const missionParagraphs = String(t('about.missionText') || '')
+    .split(/\n\n+/)
+    .map((p) => p.trim())
+    .filter(Boolean)
 
   return (
     <div
@@ -186,51 +197,55 @@ export default function AboutScreen() {
         <div style={{ width: 44 }} />
       </div>
 
-      {/* ── Hero logo block ── */}
+      {/* ── Hero brand block ── */}
       <div style={{ padding: '0 22px 24px' }}>
         <div
           className="glass-card"
           style={{
-            padding: '24px 24px 20px',
+            padding: '28px 24px 22px',
             textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
           }}
         >
-          {/* Logo container */}
+          {/* Single full wordmark on signature dark brand surface so the white
+              logo is crisp and high-contrast in both dark and light themes */}
           <div
             style={{
-              width: 64,
-              height: 64,
-              borderRadius: 20,
-              background: 'var(--bg-app)',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              margin: '0 auto 14px',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
-              border: '1px solid var(--glass-soft-border)',
-              overflow: 'hidden',
-              padding: 8,
+              padding: '16px 28px',
+              borderRadius: 22,
+              background: 'linear-gradient(135deg, #090d1a 0%, #171638 100%)',
+              border: '1px solid rgba(160, 135, 255, 0.32)',
+              boxShadow:
+                '0 10px 28px rgba(15, 23, 42, 0.24), 0 0 24px rgba(124, 58, 237, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.14)',
+              marginBottom: 16,
+              maxWidth: '100%',
             }}
           >
             <img
-              src="/brand/korset-icon.svg"
-              alt="Korset Logo"
-              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+              src="/brand/korset-wordmark-white.svg"
+              alt="Körset"
+              style={{
+                height: 44,
+                width: 'auto',
+                maxWidth: '100%',
+                objectFit: 'contain',
+                display: 'block',
+              }}
             />
           </div>
 
-          <div style={{ marginBottom: 6 }}>
-            <img
-              src={isLight ? '/brand/korset-wordmark-dark.png' : '/brand/korset-wordmark-white.png'}
-              alt="Körset"
-              style={{ height: 34, objectFit: 'contain', display: 'block', margin: '0 auto' }}
-            />
-          </div>
           <div
             style={{
               fontFamily: 'var(--font-body)',
               fontSize: 14,
+              lineHeight: 1.5,
               color: 'var(--text-sub)',
+              maxWidth: 320,
               marginBottom: 16,
             }}
           >
@@ -288,18 +303,29 @@ export default function AboutScreen() {
         >
           {t('about.missionTitle')}
         </div>
-        <div className="glass-card" style={{ padding: '20px 22px' }}>
-          <p
-            style={{
-              fontFamily: 'var(--font-body)',
-              fontSize: 14,
-              lineHeight: 1.7,
-              color: 'var(--text-sub)',
-              margin: 0,
-            }}
-          >
-            {t('about.missionText')}
-          </p>
+        <div
+          className="glass-card"
+          style={{
+            padding: '20px 22px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+          }}
+        >
+          {missionParagraphs.map((paragraph, idx) => (
+            <p
+              key={idx}
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: 14,
+                lineHeight: 1.68,
+                color: 'var(--text-sub)',
+                margin: 0,
+              }}
+            >
+              {paragraph}
+            </p>
+          ))}
         </div>
       </div>
 

@@ -5,7 +5,6 @@ import { useTheme } from '../../utils/theme.js'
 import { useAuth } from '../../contexts/AuthContext.jsx'
 import ProfileAvatar from '../ProfileAvatar.jsx'
 import KorsetBrandMark from '../brand/KorsetBrandMark.jsx'
-import SegmentedToggle from '../SegmentedToggle.jsx'
 import RetailAccountModal from './RetailAccountModal.jsx'
 import {
   StorefrontIcon,
@@ -23,7 +22,7 @@ export default function RetailDesktopSidebar({ currentStore, collapsed, onToggle
   const { pathname, search } = useLocation()
   const { t, lang } = useI18n()
   const isKz = lang === 'kz'
-  const { theme, toggleTheme, isLight } = useTheme()
+  const { theme, toggleTheme } = useTheme()
   const { user, signOut } = useAuth()
 
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
@@ -32,7 +31,6 @@ export default function RetailDesktopSidebar({ currentStore, collapsed, onToggle
   const [isAppInstalled, setIsAppInstalled] = useState(false)
   const userMenuRef = useRef(null)
 
-  // Listen for PWA installation capability
   useEffect(() => {
     const handleBeforeInstall = (e) => {
       e.preventDefault()
@@ -51,23 +49,28 @@ export default function RetailDesktopSidebar({ currentStore, collapsed, onToggle
     }
   }, [])
 
-  // Close popover when clicking outside
   useEffect(() => {
+    if (!isUserMenuOpen) return undefined
     const handleClickOutside = (e) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
         setIsUserMenuOpen(false)
       }
     }
-    if (isUserMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
+    const handleKey = (e) => {
+      if (e.key === 'Escape') setIsUserMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleKey)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKey)
     }
   }, [isUserMenuOpen])
 
-  // Close popover when collapsing/expanding sidebar
-  useEffect(() => {
+  const handleToggleCollapse = () => {
     setIsUserMenuOpen(false)
-  }, [collapsed])
+    onToggleCollapse()
+  }
 
   const handleInstallApp = async () => {
     if (installPrompt) {
@@ -86,7 +89,11 @@ export default function RetailDesktopSidebar({ currentStore, collapsed, onToggle
   }
 
   const storeSlug = currentStore?.slug || ''
+  const storeName = currentStore?.name || 'Körset Store'
   const isPublished = currentStore?.is_published !== false
+  const statusLabel = isPublished
+    ? t('retail.desktop.storeOnline') || 'В сети'
+    : t('retail.desktop.storeOffline') || 'Черновик'
 
   const getActiveTab = () => {
     if (pathname.includes('/products')) return 'products'
@@ -135,42 +142,38 @@ export default function RetailDesktopSidebar({ currentStore, collapsed, onToggle
 
   const userName =
     user?.user_metadata?.name || user?.email?.split('@')[0] || (isKz ? 'Басқарушы' : 'Управляющий')
-
   const userEmail = user?.email || 'admin@korset.app'
   const userAvatarId = user?.user_metadata?.avatar_id
+  const collapseLabel = collapsed
+    ? isKz
+      ? 'Мәзірді ашу'
+      : 'Развернуть меню'
+    : isKz
+      ? 'Мәзірді жию'
+      : 'Свернуть меню'
 
   return (
     <>
       <aside
-        className={`retail-sidebar ${collapsed ? 'retail-sidebar--collapsed' : ''}`}
-        aria-label="Боковая навигация кабинета"
+        className={`rc-side ${collapsed ? 'rc-side--collapsed' : ''}`}
+        aria-label={isKz ? 'Кабинет навигациясы' : 'Навигация кабинета'}
       >
-        {/* ── Brand Header: Official Logo + Name + Collapse Toggle ── */}
-        <div className="retail-sidebar__brand">
-          <div className="retail-sidebar__brand-identity">
+        <div className="rc-side__brand">
+          <div className="rc-side__identity">
             <KorsetBrandMark size={30} />
             {!collapsed && (
-              <div className="retail-sidebar__brand-copy">
-                <span className="retail-sidebar__brand-title">Körset</span>
-                <span className="retail-sidebar__brand-tag">RETAIL</span>
+              <div>
+                <span className="rc-side__title">Körset</span>
+                <span className="rc-side__tag">RETAIL</span>
               </div>
             )}
           </div>
-
           <button
             type="button"
-            onClick={onToggleCollapse}
-            className="retail-sidebar__collapse-toggle"
-            title={
-              collapsed
-                ? isKz
-                  ? 'Мәзірді ашу'
-                  : 'Развернуть меню'
-                : isKz
-                  ? 'Мәзірді жию'
-                  : 'Свернуть меню'
-            }
-            aria-label={collapsed ? 'Развернуть меню' : 'Свернуть меню'}
+            onClick={handleToggleCollapse}
+            className="rc-side__collapse"
+            title={collapseLabel}
+            aria-label={collapseLabel}
           >
             <svg
               width="16"
@@ -178,7 +181,7 @@ export default function RetailDesktopSidebar({ currentStore, collapsed, onToggle
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2.2"
+              strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
               style={{
@@ -191,330 +194,194 @@ export default function RetailDesktopSidebar({ currentStore, collapsed, onToggle
           </button>
         </div>
 
-        {/* ── Store Context Pill ── */}
-        <div
-          className="retail-sidebar__store-context"
-          title={collapsed ? currentStore?.name || 'Körset Store' : undefined}
-        >
-          <div className="retail-sidebar__store-avatar-wrap">
-            <ProfileAvatar
-              avatarId={currentStore?.logo_url}
-              name={currentStore?.name || 'K'}
-              rounded="circle"
-            />
-            <span
-              className={`retail-sidebar__store-status-dot ${isPublished ? 'online' : 'offline'}`}
-              title={isPublished ? (isKz ? 'Желіде' : 'В сети') : isKz ? 'Черновик' : 'Черновик'}
-            />
+        <div className="rc-side__store" title={collapsed ? storeName : undefined}>
+          <div className="rc-avatar">
+            <ProfileAvatar avatarId={currentStore?.logo_url} name={storeName} rounded="circle" />
           </div>
-
           {!collapsed && (
-            <div className="retail-sidebar__store-info">
-              <span
-                className="retail-sidebar__store-name"
-                title={currentStore?.name || 'Körset Store'}
-              >
-                {currentStore?.name || 'Körset Store'}
+            <div className="rc-side__store-copy">
+              <span className="rc-side__store-name" title={storeName}>
+                {storeName}
               </span>
-              <span className="retail-sidebar__store-meta">
-                <span className={isPublished ? 'retail-meta-online' : 'retail-meta-draft'}>
-                  {isPublished ? (isKz ? 'Желіде' : 'В сети') : isKz ? 'Черновик' : 'Черновик'}
-                </span>
-                {storeSlug && <span className="retail-meta-slug"> · /s/{storeSlug}</span>}
+              <span className={`rc-status ${isPublished ? '' : 'rc-status--draft'}`}>
+                {statusLabel}
               </span>
             </div>
           )}
         </div>
 
-        {/* ── Main Nav Section (5 Primary Tabs) ── */}
-        <nav className="retail-sidebar__nav">
-          <div className="retail-sidebar__nav-list">
-            {NAV_ITEMS.map((item) => {
-              const isActive = activeTab === item.id
-              const Icon = item.icon
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => navigate(`${item.path}${search}`)}
-                  className={`retail-sidebar__nav-item ${
-                    isActive ? 'retail-sidebar__nav-item--active' : ''
-                  }`}
-                  title={collapsed ? item.label : undefined}
-                  aria-current={isActive ? 'page' : undefined}
-                >
-                  <span className="retail-sidebar__nav-icon-wrap">
-                    <Icon
-                      size={20}
-                      color={
-                        isActive
-                          ? 'var(--retail-accent, #38bdf8)'
-                          : 'var(--text-sub, rgba(255,255,255,0.65))'
-                      }
-                    />
-                  </span>
-                  {!collapsed && <span className="retail-sidebar__nav-label">{item.label}</span>}
-                  {isActive && <span className="retail-sidebar__nav-active-pill" />}
-                </button>
-              )
-            })}
-          </div>
+        <nav className="rc-side__nav">
+          {NAV_ITEMS.map((item) => {
+            const isActive = activeTab === item.id
+            const Icon = item.icon
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => navigate(`${item.path}${search}`)}
+                className={`rc-side__item ${isActive ? 'rc-side__item--active' : ''}`}
+                title={collapsed ? item.label : undefined}
+                aria-label={collapsed ? item.label : undefined}
+                aria-current={isActive ? 'page' : undefined}
+              >
+                <Icon size={19} color="currentColor" />
+                {!collapsed && <span>{item.label}</span>}
+              </button>
+            )
+          })}
         </nav>
 
-        {/* ── Dignified Footer: Clean User Profile Trigger & Floating Popover ── */}
-        <div className="retail-sidebar__footer" ref={userMenuRef}>
+        <div className="rc-side__foot" ref={userMenuRef}>
           <button
             type="button"
-            className={`retail-sidebar__user-card ${
-              isUserMenuOpen ? 'retail-sidebar__user-card--active' : ''
-            }`}
+            className="rc-side__user"
             onClick={() => setIsUserMenuOpen((prev) => !prev)}
             title={collapsed ? userName : undefined}
             aria-expanded={isUserMenuOpen}
             aria-haspopup="menu"
           >
-            <div className="retail-sidebar__user-avatar-wrap">
+            <div className="rc-side__user-avatar">
               <ProfileAvatar avatarId={userAvatarId} name={userName} rounded="circle" />
             </div>
-
             {!collapsed && (
-              <div className="retail-sidebar__user-details">
-                <span className="retail-sidebar__user-name" title={userName}>
+              <div className="rc-side__user-copy">
+                <span className="rc-side__user-name" title={userName}>
                   {userName}
                 </span>
-                <span className="retail-sidebar__user-role">
+                <span className="rc-side__user-role">
                   {isKz ? 'Дүкен басқарушысы' : 'Администратор'}
                 </span>
               </div>
             )}
-
             {!collapsed && (
-              <span className="retail-sidebar__user-chevron">
+              <span className="rc-side__user-more">
                 <MenuDotsIcon size={16} />
               </span>
             )}
           </button>
 
-          {/* ── User Floating Dropdown / Popover ── */}
           {isUserMenuOpen && (
-            <div
-              className={`retail-user-popover ${collapsed ? 'retail-user-popover--collapsed' : ''}`}
-              role="menu"
-            >
-              {/* User Header */}
-              <div className="retail-user-popover__header">
-                <div className="retail-user-popover__name">{userName}</div>
-                <div className="retail-user-popover__email" title={userEmail}>
+            <div className={`rc-menu ${collapsed ? 'rc-menu--side' : 'rc-menu--up'}`} role="menu">
+              <div className="rc-menu__head">
+                <div className="rc-menu__name">{userName}</div>
+                <div className="rc-menu__sub" title={userEmail}>
                   {userEmail}
                 </div>
               </div>
 
-              {/* Edit Account Settings trigger */}
               <button
                 type="button"
-                className="retail-user-popover__item"
+                className="rc-menu__item"
                 role="menuitem"
                 onClick={() => {
                   setIsUserMenuOpen(false)
                   setIsAccountModalOpen(true)
                 }}
               >
-                <div className="retail-user-popover__icon">
-                  <SlidersIcon size={15} color="var(--retail-accent, #38bdf8)" />
-                </div>
-                <span className="retail-user-popover__label">
-                  {isKz ? 'Профиль және қауіпсіздік' : 'Управление аккаунтом'}
-                </span>
+                <SlidersIcon size={16} color="currentColor" />
+                <span>{isKz ? 'Профиль және қауіпсіздік' : 'Управление аккаунтом'}</span>
               </button>
 
-              <div className="retail-user-popover__divider" />
+              <div className="rc-menu__sep" />
 
-              {/* Theme Segmented Toggle */}
-              <div className="retail-user-popover__row">
-                <span className="retail-user-popover__row-label">{isKz ? 'Тақырып' : 'Тема'}</span>
-                <SegmentedToggle
-                  ariaLabel="Переключение темы оформления"
-                  activeKey={theme}
-                  onChange={() => toggleTheme()}
-                  options={[
-                    {
-                      key: 'dark',
-                      render: (active) => (
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: 26,
-                            height: 20,
-                            color: active ? '#ffffff' : 'var(--text-dim)',
-                          }}
-                        >
-                          <svg
-                            width="13"
-                            height="13"
-                            viewBox="0 0 24 24"
-                            fill={active ? 'currentColor' : 'none'}
-                            stroke="currentColor"
-                            strokeWidth="2"
-                          >
-                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-                          </svg>
-                        </span>
-                      ),
-                    },
-                    {
-                      key: 'light',
-                      render: (active) => (
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: 26,
-                            height: 20,
-                            color: active ? '#080c18' : 'var(--text-dim)',
-                          }}
-                        >
-                          <svg
-                            width="13"
-                            height="13"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                          >
-                            <circle cx="12" cy="12" r="5" fill={active ? 'currentColor' : 'none'} />
-                            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
-                          </svg>
-                        </span>
-                      ),
-                    },
-                  ]}
-                />
+              <div className="rc-menu__row">
+                <span>{isKz ? 'Тақырып' : 'Тема'}</span>
+                <div className="rc-seg" role="group" aria-label={isKz ? 'Тақырып' : 'Тема'}>
+                  {[
+                    ['light', isKz ? 'Ашық' : 'Светлая'],
+                    ['dark', isKz ? 'Қараңғы' : 'Тёмная'],
+                  ].map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      className="rc-seg__btn"
+                      aria-pressed={theme === key}
+                      onClick={() => theme !== key && toggleTheme()}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {/* Language Segmented Toggle */}
-              <div className="retail-user-popover__row">
-                <span className="retail-user-popover__row-label">{isKz ? 'Тіл' : 'Язык'}</span>
-                <SegmentedToggle
-                  ariaLabel="Переключение языка интерфейса"
-                  activeKey={lang}
-                  onChange={(key) => setLang(key)}
-                  options={[
-                    {
-                      key: 'ru',
-                      render: (active) => (
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            padding: '2px 7px',
-                            fontWeight: 700,
-                            fontSize: 11,
-                            color: active ? (isLight ? '#ffffff' : '#080c18') : 'var(--text-dim)',
-                          }}
-                        >
-                          RU
-                        </span>
-                      ),
-                    },
-                    {
-                      key: 'kz',
-                      render: (active) => (
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            padding: '2px 7px',
-                            fontWeight: 700,
-                            fontSize: 11,
-                            color: active ? (isLight ? '#ffffff' : '#080c18') : 'var(--text-dim)',
-                          }}
-                        >
-                          KZ
-                        </span>
-                      ),
-                    },
-                  ]}
-                />
+              <div className="rc-menu__row">
+                <span>{isKz ? 'Тіл' : 'Язык'}</span>
+                <div className="rc-seg" role="group" aria-label={isKz ? 'Тіл' : 'Язык'}>
+                  {['ru', 'kz'].map((key) => (
+                    <button
+                      key={key}
+                      type="button"
+                      className="rc-seg__btn"
+                      aria-pressed={lang === key}
+                      onClick={() => setLang(key)}
+                    >
+                      {key.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {/* Install on PC */}
+              <div className="rc-menu__sep" />
+
               {!isAppInstalled && installPrompt && (
                 <button
                   type="button"
-                  className="retail-user-popover__item"
+                  className="rc-menu__item"
                   role="menuitem"
                   onClick={() => {
                     setIsUserMenuOpen(false)
                     handleInstallApp()
                   }}
                 >
-                  <div className="retail-user-popover__icon">
-                    <InstallIcon size={15} color="var(--retail-accent, #38bdf8)" />
-                  </div>
-                  <span className="retail-user-popover__label">
-                    {isKz ? 'ДК-ге орнату' : 'Установить на ПК'}
-                  </span>
+                  <InstallIcon size={16} color="currentColor" />
+                  <span>{isKz ? 'ДК-ге орнату' : 'Установить на ПК'}</span>
                 </button>
               )}
 
-              {/* Telegram Support link */}
               <a
                 href="https://t.me/korset_support_bot"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="retail-user-popover__item"
+                className="rc-menu__item"
                 role="menuitem"
                 onClick={() => setIsUserMenuOpen(false)}
               >
-                <div className="retail-user-popover__icon">
-                  <TelegramIcon size={15} color="#229ED9" />
-                </div>
-                <span className="retail-user-popover__label">
-                  {isKz ? 'Telegram қолдау' : 'Поддержка в Telegram'}
-                </span>
+                <TelegramIcon size={16} color="currentColor" />
+                <span>{isKz ? 'Telegram қолдау' : 'Поддержка в Telegram'}</span>
               </a>
 
-              <div className="retail-user-popover__divider" />
+              <div className="rc-menu__sep" />
 
-              {/* Sign Out */}
               <button
                 type="button"
-                className="retail-user-popover__item retail-user-popover__item--danger"
+                className="rc-menu__item rc-menu__item--danger"
                 role="menuitem"
                 onClick={() => {
                   setIsUserMenuOpen(false)
                   signOut()
                 }}
               >
-                <div className="retail-user-popover__icon">
-                  <svg
-                    width="15"
-                    height="15"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                    <polyline points="16 17 21 12 16 7" />
-                    <line x1="21" y1="12" x2="9" y2="12" />
-                  </svg>
-                </div>
-                <span className="retail-user-popover__label">
-                  {isKz ? 'Шығу' : 'Выйти из аккаунта'}
-                </span>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                <span>{isKz ? 'Шығу' : 'Выйти из аккаунта'}</span>
               </button>
             </div>
           )}
         </div>
       </aside>
 
-      {/* Account Settings Modal */}
       <RetailAccountModal
         isOpen={isAccountModalOpen}
         onClose={() => setIsAccountModalOpen(false)}

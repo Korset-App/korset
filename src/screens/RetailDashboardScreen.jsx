@@ -17,675 +17,27 @@ import {
   getAlternativeEventsSummary,
   getCompareEventsSummary,
 } from '../utils/retailAnalytics.js'
+import { AlertTriangleIcon, EyeIcon } from '../components/icons/index.js'
 import {
-  AlertTriangleIcon,
-  ArrowForwardIcon,
-  BarcodeScannerIcon,
-  CheckCircleIcon,
-  CompareIcon,
-  EditIcon,
-  ExploreIcon,
-  EyeIcon,
-  FactCheckIcon,
-  InventoryIcon,
-  SparklesIcon,
-  VerifiedBadgeIcon,
-  WalletIcon,
-} from '../components/icons/index.js'
+  Card,
+  Kpi,
+  ProductRow,
+  MissedRow,
+  InsightRow,
+  StatList,
+  FactLine,
+  EmptyState,
+  QueryError,
+} from '../components/retail/overview/OverviewParts.jsx'
+import '../components/retail/overview/overview.css'
 
-function renderIcon(icon, { size = 16, color = 'currentColor', style = {} } = {}) {
-  if (!icon) return null
-  if (typeof icon === 'function' || (typeof icon === 'object' && icon !== null && icon.$$typeof)) {
-    const IconComp = icon
-    return <IconComp size={size} color={color} style={style} />
-  }
-  const map = {
-    barcode_scanner: BarcodeScannerIcon,
-    inventory: InventoryIcon,
-    inventory_2: InventoryIcon,
-    category_search: ExploreIcon,
-    verified: VerifiedBadgeIcon,
-    verified_user: VerifiedBadgeIcon,
-    query_stats: FactCheckIcon,
-    group: ExploreIcon,
-    warning: AlertTriangleIcon,
-    trending_down: ArrowForwardIcon,
-    money_off: WalletIcon,
-    payments: WalletIcon,
-    fact_check: FactCheckIcon,
-    compare_arrows: CompareIcon,
-    auto_awesome: SparklesIcon,
-    insights: ExploreIcon,
-    trending_up: ArrowForwardIcon,
-    sentiment_dissatisfied: AlertTriangleIcon,
-    bar_chart: FactCheckIcon,
-    check_circle: CheckCircleIcon,
-    visibility_off: EyeIcon,
-    arrow_forward: ArrowForwardIcon,
-    qr_code_2: BarcodeScannerIcon,
-    edit_note: EditIcon,
-    block: AlertTriangleIcon,
-  }
-  const IconComp = map[icon] || ExploreIcon
-  return <IconComp size={size} color={color} style={style} />
+const STALE = 2 * 60_000
+const GC = 10 * 60_000
+
+function useRetailQuery(key, fn, enabled, staleTime = STALE) {
+  return useQuery({ queryKey: key, queryFn: fn, enabled, staleTime, gcTime: GC })
 }
 
-// ── Skeleton placeholder ───────────────────────────────────────────
-function Skel({ w = '100%', h = 20, r = 6 }) {
-  return <div className="retail-skel" style={{ width: w, height: h, borderRadius: r }} />
-}
-
-// ── Metric card ────────────────────────────────────────────────────
-const CARD_THEME = {
-  blue: { bg: 'rgba(56,189,248,0.08)', border: 'rgba(56,189,248,0.2)', color: '#38BDF8' },
-  amber: { bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)', color: '#F59E0B' },
-  green: { bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)', color: '#10B981' },
-  red: { bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.2)', color: '#F87171' },
-  neutral: { bg: 'var(--glass-subtle)', border: 'var(--glass-soft-border)', color: 'var(--text)' },
-}
-
-function MetricCard({ label, sub, value, icon, accent = 'neutral', loading }) {
-  const th = CARD_THEME[accent] ?? CARD_THEME.neutral
-  return (
-    <div
-      style={{
-        background: th.bg,
-        border: `1px solid ${th.border}`,
-        borderRadius: 16,
-        padding: '14px 16px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 4,
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 5,
-          fontSize: 12,
-          color: 'var(--text-dim)',
-        }}
-      >
-        {renderIcon(icon, { size: 14, color: th.color })}
-        {label}
-      </div>
-      {loading ? (
-        <Skel h={32} w="55%" r={8} />
-      ) : (
-        <div
-          style={{
-            fontSize: 28,
-            fontWeight: 700,
-            fontFamily: 'var(--font-display)',
-            color: th.color,
-            lineHeight: 1.15,
-          }}
-        >
-          {value}
-        </div>
-      )}
-      {sub && <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 1 }}>{sub}</div>}
-    </div>
-  )
-}
-
-function AlternativeSignalsCard({ summary, loading, error, onRetry, d, t }) {
-  const topScenarioLabel = summary?.topScenario?.scenario
-    ? t(`retail.dashboard.alternatives.scenario.${summary.topScenario.scenario}`)
-    : null
-  const topSourceText = summary?.topSource?.ean ? `EAN ${summary.topSource.ean}` : null
-
-  return (
-    <div
-      style={{
-        background: 'rgba(16,185,129,0.07)',
-        border: '1px solid rgba(16,185,129,0.18)',
-        borderRadius: 16,
-        padding: '14px 16px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 12,
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <SectionHeader icon="compare_arrows" iconColor="#10B981" title={d.alternativesTitle} />
-        {loading ? (
-          <Skel h={28} w={58} r={8} />
-        ) : (
-          <div
-            style={{
-              fontSize: 24,
-              fontWeight: 800,
-              fontFamily: 'var(--font-display)',
-              color: '#10B981',
-              lineHeight: 1,
-            }}
-          >
-            {error ? '—' : (summary?.total ?? 0)}
-          </div>
-        )}
-      </div>
-
-      {error ? (
-        <QueryError label={d.loadError} retryLabel={d.retry} onRetry={onRetry} />
-      ) : (
-        <>
-          <div style={{ fontSize: 12, color: 'var(--text-dim)', lineHeight: 1.4 }}>
-            {d.alternativesSub}
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <MiniSignal
-              label={d.alternativesCompare}
-              value={summary?.compareCount ?? 0}
-              loading={loading}
-            />
-            <MiniSignal
-              label={d.alternativesAI}
-              value={summary?.aiHelpCount ?? 0}
-              loading={loading}
-            />
-          </div>
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 5,
-              fontSize: 12,
-              color: 'var(--text-dim)',
-            }}
-          >
-            <div>
-              <strong style={{ color: 'var(--text)' }}>{d.alternativesTopScenario}:</strong>{' '}
-              {loading ? '...' : topScenarioLabel || d.alternativesNoSignal}
-            </div>
-            <div>
-              <strong style={{ color: 'var(--text)' }}>{d.alternativesTopSource}:</strong>{' '}
-              {loading ? '...' : topSourceText || d.alternativesNoSignal}
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
-
-function MiniSignal({ label, value, loading }) {
-  return (
-    <div
-      style={{
-        background: 'var(--glass-subtle)',
-        border: '1px solid var(--glass-soft-border)',
-        borderRadius: 12,
-        padding: '10px 12px',
-      }}
-    >
-      <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 4 }}>{label}</div>
-      {loading ? (
-        <Skel h={22} w={42} r={7} />
-      ) : (
-        <div
-          style={{
-            fontSize: 20,
-            fontWeight: 800,
-            fontFamily: 'var(--font-display)',
-            color: '#10B981',
-            lineHeight: 1,
-          }}
-        >
-          {value}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ── Compare signals card ─────────────────────────────────────────
-function CompareSignalsCard({ summary, loading, error, onRetry, d }) {
-  const topPairText = summary?.topPair ? `${summary.topPair.eanA} ↔ ${summary.topPair.eanB}` : null
-
-  return (
-    <div
-      style={{
-        background: 'rgba(56,189,248,0.07)',
-        border: '1px solid rgba(56,189,248,0.18)',
-        borderRadius: 16,
-        padding: '14px 16px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 12,
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <SectionHeader icon="compare_arrows" iconColor="#38BDF8" title={d.compareTitle} />
-        {loading ? (
-          <Skel h={28} w={58} r={8} />
-        ) : (
-          <div
-            style={{
-              fontSize: 24,
-              fontWeight: 800,
-              fontFamily: 'var(--font-display)',
-              color: '#38BDF8',
-              lineHeight: 1,
-            }}
-          >
-            {error ? '—' : (summary?.total ?? 0)}
-          </div>
-        )}
-      </div>
-
-      {error ? (
-        <QueryError label={d.loadError} retryLabel={d.retry} onRetry={onRetry} />
-      ) : (
-        <>
-          <div style={{ fontSize: 12, color: 'var(--text-dim)', lineHeight: 1.4 }}>
-            {d.compareSub}
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-            <MiniSignal
-              label={d.compareWinner}
-              value={summary?.winnerCount ?? 0}
-              loading={loading}
-            />
-            <MiniSignal label={d.compareDraw} value={summary?.drawCount ?? 0} loading={loading} />
-            <MiniSignal
-              label={d.compareBlocked}
-              value={summary?.blockedCount ?? 0}
-              loading={loading}
-            />
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--text-dim)' }}>
-            <strong style={{ color: 'var(--text)' }}>{d.compareTopPair}:</strong>{' '}
-            {loading ? '...' : topPairText || d.compareNoPair}
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
-
-// ── Product row (top-5) ────────────────────────────────────────────
-function ProductRow({ rank, name, scanCount, imageUrl, scanLabel, loading }) {
-  const rowStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    background: 'var(--glass-subtle)',
-    border: '1px solid var(--glass-soft-border)',
-    padding: '10px 12px',
-    borderRadius: 12,
-    gap: 12,
-  }
-  if (loading) {
-    return (
-      <div style={rowStyle}>
-        <Skel w={32} h={32} r={8} />
-        <Skel w={40} h={40} r={8} />
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <Skel h={13} w="65%" />
-          <Skel h={10} w="30%" />
-        </div>
-        <Skel h={18} w={44} r={6} />
-      </div>
-    )
-  }
-  return (
-    <div style={rowStyle}>
-      <div
-        style={{
-          width: 28,
-          height: 28,
-          borderRadius: 7,
-          background: 'rgba(56,189,248,0.12)',
-          border: '1px solid rgba(56,189,248,0.2)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 12,
-          fontWeight: 700,
-          fontFamily: 'var(--font-display)',
-          color: '#38BDF8',
-          flexShrink: 0,
-        }}
-      >
-        {rank}
-      </div>
-      <div
-        className="catalog-img-box"
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 8,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
-          flexShrink: 0,
-        }}
-      >
-        {imageUrl ? (
-          <img
-            src={imageUrl}
-            alt={name ?? ''}
-            className="product-img-blend"
-            style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 2 }}
-          />
-        ) : (
-          <InventoryIcon size={20} color="var(--text-dim)" />
-        )}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            fontSize: 13,
-            fontWeight: 500,
-            color: 'var(--text)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {name ?? `EAN: ${rank}`}
-        </div>
-      </div>
-      <div
-        style={{
-          fontSize: 14,
-          fontWeight: 600,
-          color: '#38BDF8',
-          fontFamily: 'var(--font-display)',
-          flexShrink: 0,
-        }}
-      >
-        {scanCount}{' '}
-        <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-dim)' }}>{scanLabel}</span>
-      </div>
-    </div>
-  )
-}
-
-// ── Missed opportunity row ─────────────────────────────────────────
-function MissedRow({
-  ean,
-  name,
-  scanCount,
-  imageUrl,
-  reason,
-  scanLabel,
-  labelNotInCatalog,
-  labelOutOfStock,
-  loading,
-}) {
-  const rowStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    background: 'var(--glass-subtle)',
-    border: '1px solid var(--glass-soft-border)',
-    padding: '10px 12px',
-    borderRadius: 12,
-    gap: 12,
-  }
-  if (loading) {
-    return (
-      <div style={rowStyle}>
-        <Skel w={40} h={40} r={8} />
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <Skel h={13} w="65%" />
-          <Skel h={18} w="38%" r={6} />
-        </div>
-        <Skel h={18} w={44} r={6} />
-      </div>
-    )
-  }
-
-  const isOOS = reason === 'out_of_stock'
-  const badgeBg = isOOS ? 'rgba(245,158,11,0.12)' : 'rgba(248,113,113,0.10)'
-  const badgeBorder = isOOS ? 'rgba(245,158,11,0.3)' : 'rgba(248,113,113,0.3)'
-  const badgeColor = isOOS ? '#F59E0B' : '#F87171'
-  const badgeIcon = isOOS ? 'inventory' : 'block'
-  const badgeLabel = isOOS ? labelOutOfStock : labelNotInCatalog
-
-  return (
-    <div style={rowStyle}>
-      <div
-        className="catalog-img-box"
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 8,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
-          flexShrink: 0,
-        }}
-      >
-        {imageUrl ? (
-          <img
-            src={imageUrl}
-            alt={name ?? ''}
-            className="product-img-blend"
-            style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 2 }}
-          />
-        ) : (
-          <InventoryIcon size={20} color="var(--text-dim)" />
-        )}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            fontSize: 13,
-            fontWeight: 500,
-            color: 'var(--text)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {name ?? ean}
-        </div>
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 3,
-            marginTop: 3,
-            background: badgeBg,
-            border: `1px solid ${badgeBorder}`,
-            borderRadius: 6,
-            padding: '1px 6px',
-            fontSize: 10,
-            fontWeight: 600,
-            color: badgeColor,
-          }}
-        >
-          {isOOS ? (
-            <InventoryIcon size={10} color={badgeColor} />
-          ) : (
-            <AlertTriangleIcon size={10} color={badgeColor} />
-          )}
-          {badgeLabel}
-        </div>
-      </div>
-      <div
-        style={{
-          fontSize: 13,
-          fontWeight: 600,
-          color: 'var(--text-sub)',
-          fontFamily: 'var(--font-display)',
-          flexShrink: 0,
-        }}
-      >
-        {scanCount}{' '}
-        <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-dim)' }}>{scanLabel}</span>
-      </div>
-    </div>
-  )
-}
-
-// ── Error block ────────────────────────────────────────────────────
-function QueryError({ label, retryLabel, onRetry }) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 8,
-        padding: '16px',
-        background: 'rgba(248,113,113,0.06)',
-        border: '1px solid rgba(248,113,113,0.15)',
-        borderRadius: 12,
-      }}
-    >
-      <AlertTriangleIcon size={22} color="#F87171" />
-      <div style={{ fontSize: 13, color: '#F87171' }}>{label}</div>
-      <button
-        onClick={onRetry}
-        style={{
-          fontSize: 12,
-          color: '#38BDF8',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          textDecoration: 'underline',
-          padding: 0,
-        }}
-      >
-        {retryLabel}
-      </button>
-    </div>
-  )
-}
-
-// ── Section header ─────────────────────────────────────────────────
-function SectionHeader({ icon, iconColor, title }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-      {renderIcon(icon, { size: 18, color: iconColor })}
-      <h3
-        style={{
-          fontSize: 15,
-          fontFamily: 'var(--font-display)',
-          fontWeight: 600,
-          color: 'var(--text)',
-          margin: 0,
-        }}
-      >
-        {title}
-      </h3>
-    </div>
-  )
-}
-
-// ── AI insights ────────────────────────────────────────────────────
-const AI_INSIGHT_THEME = {
-  danger: { bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.2)', color: '#F87171' },
-  warning: { bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.22)', color: '#F59E0B' },
-  positive: { bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)', color: '#10B981' },
-  info: { bg: 'rgba(56,189,248,0.08)', border: 'rgba(56,189,248,0.2)', color: '#38BDF8' },
-}
-
-function AIInsightRow({ insight, t, exists, loading }) {
-  if (loading) {
-    return (
-      <div
-        style={{
-          background: 'var(--glass-subtle)',
-          border: '1px solid var(--glass-soft-border)',
-          borderRadius: 12,
-          padding: '11px 12px',
-          display: 'flex',
-          gap: 10,
-        }}
-      >
-        <Skel w={30} h={30} r={8} />
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 7 }}>
-          <Skel h={13} w="55%" />
-          <Skel h={11} w="88%" />
-        </div>
-      </div>
-    )
-  }
-
-  const theme = AI_INSIGHT_THEME[insight.tone] ?? AI_INSIGHT_THEME.info
-  const values = {
-    ...insight.values,
-    amountText:
-      insight.values?.amount != null ? formatPrice(Number(insight.values.amount) || 0) : undefined,
-  }
-
-  return (
-    <div
-      style={{
-        background: theme.bg,
-        border: `1px solid ${theme.border}`,
-        borderRadius: 12,
-        padding: '11px 12px',
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 10,
-      }}
-    >
-      <div
-        style={{
-          width: 30,
-          height: 30,
-          borderRadius: 8,
-          background: 'var(--glass-bg)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}
-      >
-        {renderIcon(insight.icon, { size: 17, color: theme.color })}
-      </div>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', lineHeight: 1.25 }}>
-          {t(insight.titleKey, values)}
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--text-dim)', lineHeight: 1.35, marginTop: 3 }}>
-          {t(insight.bodyKey, values)}
-        </div>
-        {exists?.(insight.actionKey) && (
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 5,
-              marginTop: 8,
-              fontSize: 11,
-              fontWeight: 700,
-              color: theme.color,
-              lineHeight: 1.3,
-            }}
-          >
-            <ArrowForwardIcon size={14} color={theme.color} />
-            {t(insight.actionKey, values)}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ── Empty state ────────────────────────────────────────────────────
-function EmptyState({ icon, label, sub }) {
-  return (
-    <div
-      style={{ textAlign: 'center', padding: '24px 16px', color: 'var(--text-dim)', fontSize: 13 }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8, opacity: 0.45 }}>
-        {renderIcon(icon, { size: 30, color: 'currentColor' })}
-      </div>
-      <div>{label}</div>
-      {sub && <div style={{ fontSize: 11, marginTop: 4, opacity: 0.7 }}>{sub}</div>}
-    </div>
-  )
-}
-
-// ── Main screen ────────────────────────────────────────────────────
 export default function RetailDashboardScreen() {
   const { t, exists } = useI18n()
   const navigate = useNavigate()
@@ -712,135 +64,65 @@ export default function RetailDashboardScreen() {
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
 
-  const d = useMemo(
-    () => ({
-      title: t('retail.dashboard.title'),
-      subtitle: t('retail.dashboard.subtitle'),
-      period7d: t('retail.dashboard.period7d'),
-      period30d: t('retail.dashboard.period30d'),
-      scansTitle: t('retail.dashboard.scansTitle'),
-      uniqueCustomers: t('retail.dashboard.uniqueCustomers'),
-      missedProducts: t('retail.dashboard.missedProducts'),
-      totalProducts: t('retail.dashboard.totalProducts'),
-      lostRevenue: t('retail.dashboard.lostRevenue'),
-      lostRevenueHint: t('retail.dashboard.lostRevenueHint'),
-      catalogCoverage: t('retail.dashboard.catalogCoverage'),
-      catalogCoverageHint: t('retail.dashboard.catalogCoverageHint'),
-      topProducts: t('retail.dashboard.topProducts'),
-      loadError: t('retail.dashboard.loadError'),
-      retry: t('retail.dashboard.retry'),
-      topEmpty: t('retail.dashboard.topEmpty'),
-      noDataSub: t('retail.dashboard.noDataSub'),
-      scans: t('retail.dashboard.scans'),
-      missedTitle: t('retail.dashboard.missedTitle'),
-      missedEmpty: t('retail.dashboard.missedEmpty'),
-      missedEmptySub: t('retail.dashboard.missedEmptySub'),
-      notInCatalog: t('retail.dashboard.notInCatalog'),
-      outOfStock: t('retail.dashboard.outOfStock'),
-      missedFilterAll: t('retail.dashboard.missedFilterAll'),
-      missedFilterNotInCatalog: t('retail.dashboard.missedFilterNotInCatalog'),
-      missedFilterOutOfStock: t('retail.dashboard.missedFilterOutOfStock'),
-      aiInsightsTitle: t('retail.dashboard.aiInsightsTitle'),
-      aiInsightsEmpty: t('retail.dashboard.aiInsightsEmpty'),
-      aiInsightsEmptySub: t('retail.dashboard.aiInsightsEmptySub'),
-      alternativesTitle: t('retail.dashboard.alternativesTitle'),
-      alternativesSub: t('retail.dashboard.alternativesSub'),
-      alternativesCompare: t('retail.dashboard.alternativesCompare'),
-      alternativesAI: t('retail.dashboard.alternativesAI'),
-      alternativesTopScenario: t('retail.dashboard.alternativesTopScenario'),
-      alternativesTopSource: t('retail.dashboard.alternativesTopSource'),
-      alternativesNoSignal: t('retail.dashboard.alternativesNoSignal'),
-      compareTitle: t('retail.dashboard.compareTitle'),
-      compareSub: t('retail.dashboard.compareSub'),
-      compareWinner: t('retail.dashboard.compareWinner'),
-      compareDraw: t('retail.dashboard.compareDraw'),
-      compareBlocked: t('retail.dashboard.compareBlocked'),
-      compareTopPair: t('retail.dashboard.compareTopPair'),
-      compareNoPair: t('retail.dashboard.compareNoPair'),
-    }),
-    [t]
-  )
+  const d = (key) => t(`retail.dashboard.${key}`)
+  const o = (key, values) => t(`retail.overview.${key}`, values)
+
   const enabled = Boolean(storeId)
-  const periodLabel = period === 7 ? d.period7d : d.period30d
+  const periodLabel = period === 7 ? d('period7d') : d('period30d')
 
-  const STALE = 2 * 60_000 // 2 мин — не перезагружать при переключении вкладок
-  const GC = 10 * 60_000 // 10 мин — держать кэш в памяти после размонтирования
-
-  const scansQ = useQuery({
-    queryKey: ['retail-scans', storeId, period],
-    queryFn: () => getScansCount(storeId, period),
+  const scansQ = useRetailQuery(
+    ['retail-scans', storeId, period],
+    () => getScansCount(storeId, period),
+    enabled
+  )
+  const uniqueQ = useRetailQuery(
+    ['retail-unique-customers', storeId, period],
+    () => getUniqueCustomers(storeId, period),
+    enabled
+  )
+  const lostQ = useRetailQuery(
+    ['retail-lost-revenue', storeId, period],
+    () => getLostRevenue(storeId, period),
+    enabled
+  )
+  const coverageQ = useRetailQuery(
+    ['retail-coverage', storeId, period],
+    () => getScanCoverage(storeId, period),
+    enabled
+  )
+  const totalQ = useRetailQuery(
+    ['retail-total', storeId],
+    () => getTotalProducts(storeId),
     enabled,
-    staleTime: STALE,
-    gcTime: GC,
-  })
+    5 * 60_000
+  )
+  const topQ = useRetailQuery(
+    ['retail-top', storeId, period],
+    () => getTopScannedProducts(storeId, period, 5),
+    enabled
+  )
+  const missedQ = useRetailQuery(
+    ['retail-missed', storeId, period],
+    () => getMissedOpportunities(storeId, period),
+    enabled
+  )
+  const alternativesQ = useRetailQuery(
+    ['retail-alternatives-summary', storeId, period],
+    () => getAlternativeEventsSummary(storeId, period),
+    enabled
+  )
+  const compareQ = useRetailQuery(
+    ['retail-compare-summary', storeId, period],
+    () => getCompareEventsSummary(storeId, period),
+    enabled
+  )
 
-  const uniqueQ = useQuery({
-    queryKey: ['retail-unique-customers', storeId, period],
-    queryFn: () => getUniqueCustomers(storeId, period),
-    enabled,
-    staleTime: STALE,
-    gcTime: GC,
-  })
-
-  const lostQ = useQuery({
-    queryKey: ['retail-lost-revenue', storeId, period],
-    queryFn: () => getLostRevenue(storeId, period),
-    enabled,
-    staleTime: STALE,
-    gcTime: GC,
-  })
-
-  const coverageQ = useQuery({
-    queryKey: ['retail-coverage', storeId, period],
-    queryFn: () => getScanCoverage(storeId, period),
-    enabled,
-    staleTime: STALE,
-    gcTime: GC,
-  })
-
-  const totalQ = useQuery({
-    queryKey: ['retail-total', storeId],
-    queryFn: () => getTotalProducts(storeId),
-    enabled,
-    staleTime: 5 * 60_000,
-    gcTime: GC,
-  })
-
-  const topQ = useQuery({
-    queryKey: ['retail-top', storeId, period],
-    queryFn: () => getTopScannedProducts(storeId, period, 5),
-    enabled,
-    staleTime: STALE,
-    gcTime: GC,
-  })
-
-  const missedQ = useQuery({
-    queryKey: ['retail-missed', storeId, period],
-    queryFn: () => getMissedOpportunities(storeId, period),
-    enabled,
-    staleTime: STALE,
-    gcTime: GC,
-  })
-
-  const alternativesQ = useQuery({
-    queryKey: ['retail-alternatives-summary', storeId, period],
-    queryFn: () => getAlternativeEventsSummary(storeId, period),
-    enabled,
-    staleTime: STALE,
-    gcTime: GC,
-  })
-
-  const compareQ = useQuery({
-    queryKey: ['retail-compare-summary', storeId, period],
-    queryFn: () => getCompareEventsSummary(storeId, period),
-    enabled,
-    staleTime: STALE,
-    gcTime: GC,
-  })
-
-  const missedFiltered = (missedQ.data ?? []).filter(
+  const missedAll = missedQ.data ?? []
+  const missedFiltered = missedAll.filter(
     (item) => missedFilter === 'all' || item.reason === missedFilter
   )
+  const notInCatalogCount = missedAll.filter((i) => i.reason === 'not_in_catalog').length
+  const outOfStockCount = missedAll.filter((i) => i.reason === 'out_of_stock').length
 
   const aiInsights = useMemo(
     () =>
@@ -873,449 +155,312 @@ export default function RetailDashboardScreen() {
     topQ.isLoading ||
     alternativesQ.isLoading
 
-  const MISSED_TABS = [
-    { key: 'all', label: d.missedFilterAll },
-    { key: 'not_in_catalog', label: d.missedFilterNotInCatalog },
-    { key: 'out_of_stock', label: d.missedFilterOutOfStock },
+  const missedTabs = [
+    { key: 'all', label: d('missedFilterAll') },
+    { key: 'not_in_catalog', label: d('missedFilterNotInCatalog') },
+    { key: 'out_of_stock', label: d('missedFilterOutOfStock') },
   ]
 
   const coverageVal = coverageQ.data ?? 0
-  const coverageColor = coverageVal >= 70 ? '#10B981' : coverageVal >= 40 ? '#F59E0B' : '#F87171'
-  const coverageGradient =
-    coverageVal >= 70
-      ? 'linear-gradient(90deg, #10B981, #34D399)'
-      : coverageVal >= 40
-        ? 'linear-gradient(90deg, #F59E0B, #FBBF24)'
-        : 'linear-gradient(90deg, #F87171, #FCA5A5)'
+  const coverageTone = coverageVal >= 70 ? 'pos' : coverageVal >= 40 ? 'warn' : 'neg'
+  const topMax = Math.max(1, ...(topQ.data ?? []).map((p) => Number(p.scan_count) || 0))
+  const lostValue = lostQ.data ?? 0
+
+  const attention = []
+  if (notInCatalogCount > 0) {
+    attention.push({
+      id: 'nic',
+      tone: 'neg',
+      text: o('attentionNotInCatalog', { count: notInCatalogCount }),
+    })
+  }
+  if (outOfStockCount > 0) {
+    attention.push({
+      id: 'oos',
+      tone: 'warn',
+      text: o('attentionOutOfStock', { count: outOfStockCount }),
+    })
+  }
+
+  const goProducts = () => navigate(`/retail/${currentStore?.slug}/products`)
+
+  const altSummary = alternativesQ.data
+  const cmpSummary = compareQ.data
+  const topScenario = altSummary?.topScenario?.scenario
+    ? t(`retail.dashboard.alternatives.scenario.${altSummary.topScenario.scenario}`)
+    : null
+  const topSource = altSummary?.topSource?.ean ? `EAN ${altSummary.topSource.ean}` : null
+  const topPair = cmpSummary?.topPair
+    ? `${cmpSummary.topPair.eanA} ↔ ${cmpSummary.topPair.eanB}`
+    : null
+  const noSignal = d('alternativesNoSignal')
 
   return (
-    <div
-      className="retail-screen-canvas"
-      style={{ padding: '24px 20px 48px', display: 'flex', flexDirection: 'column', gap: 24 }}
-    >
+    <div className="retail-screen-canvas ov">
       {currentStore?.isPublished === false && (
-        <div
-          style={{
-            background: 'rgba(245, 158, 11, 0.08)',
-            border: '1px solid rgba(245, 158, 11, 0.22)',
-            borderRadius: 16,
-            padding: '12px 18px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 12,
-            boxShadow: 'var(--shadow-card)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
-            <EyeIcon size={24} color="#F59E0B" style={{ flexShrink: 0 }} />
-            <div style={{ fontSize: 13, color: 'var(--text-sub)', lineHeight: 1.4 }}>
-              {t('retail.dashboard.draftWarning') ||
-                'Ваш магазин находится в режиме черновика и не виден покупателям. Настройте каталог и опубликуйте его в Настройках.'}
-            </div>
+        <div className="ov-banner">
+          <div className="ov-banner__text">
+            <EyeIcon size={20} color="currentColor" />
+            <span>{d('draftWarning')}</span>
           </div>
           <button
+            type="button"
+            className="rc-btn"
             onClick={() => navigate(`/retail/${currentStore.slug}/settings`)}
-            style={{
-              background: 'rgba(245, 158, 11, 0.15)',
-              border: '1px solid rgba(245, 158, 11, 0.3)',
-              color: '#F59E0B',
-              padding: '7px 14px',
-              borderRadius: 8,
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
           >
-            {t('retail.dashboard.draftWarningBtn') || 'Настроить'}
+            {d('draftWarningBtn')}
           </button>
         </div>
       )}
 
-      {/* ── Top Hero Row: Store Header + Period Selector ── */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 16,
-          flexWrap: 'wrap',
-        }}
-      >
+      <header className="ov-head">
         <div>
-          <h1
-            style={{
-              fontSize: 24,
-              fontWeight: 800,
-              fontFamily: 'var(--font-display)',
-              color: 'var(--text)',
-              lineHeight: 1.25,
-              margin: 0,
-              letterSpacing: '-0.3px',
-            }}
-          >
-            {currentStore?.name || d.title}
-          </h1>
-          <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '4px 0 0' }}>{d.subtitle}</p>
+          <h1 className="ov-title">{currentStore?.name || d('title')}</h1>
+          <p className="ov-sub">{d('subtitle')}</p>
         </div>
-
-        <div
-          style={{
-            display: 'flex',
-            flexShrink: 0,
-            background: 'var(--glass-bg)',
-            border: '1px solid var(--retail-border)',
-            borderRadius: 12,
-            padding: 3,
-            gap: 4,
-          }}
-        >
+        <div className="rc-seg ov-period" role="group" aria-label={d('title')}>
           {[7, 30].map((p) => (
             <button
               key={p}
+              type="button"
+              className="rc-seg__btn"
+              aria-pressed={period === p}
               onClick={() => {
-                if (p !== 7) {
-                  window.history.pushState({}, '')
-                }
+                if (p !== 7) window.history.pushState({}, '')
                 setPeriod(p)
               }}
-              style={{
-                padding: '6px 16px',
-                borderRadius: 9,
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: 12.5,
-                fontWeight: 700,
-                fontFamily: 'var(--font-body)',
-                background: period === p ? 'var(--retail-accent, #38BDF8)' : 'transparent',
-                color: period === p ? '#080c18' : 'var(--text-dim)',
-                transition: 'all 0.15s ease',
-              }}
             >
-              {p === 7 ? d.period7d : d.period30d}
+              {p === 7 ? d('period7d') : d('period30d')}
             </button>
           ))}
         </div>
-      </div>
+      </header>
 
-      {/* ── Bento Grid ── */}
-      <div className="retail-bento-grid">
-        {/* Row 1: 4 Key Metrics (col-12 with 4 responsive columns inside) */}
-        <div className="bento-col-12">
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: 14,
-            }}
-          >
-            <MetricCard
-              label={d.scansTitle}
-              sub={periodLabel}
-              value={scansQ.isError ? '—' : (scansQ.data ?? 0).toLocaleString()}
-              icon="query_stats"
-              accent="blue"
-              loading={scansQ.isLoading}
-            />
-            <MetricCard
-              label={d.uniqueCustomers}
-              sub={periodLabel}
-              value={uniqueQ.isError ? '—' : (uniqueQ.data ?? 0).toLocaleString()}
-              icon="group"
-              accent="green"
-              loading={uniqueQ.isLoading}
-            />
-            <MetricCard
-              label={d.missedProducts}
-              sub={periodLabel}
-              value={missedQ.isError ? '—' : (missedQ.data ?? []).length.toLocaleString()}
-              icon="warning"
-              accent="amber"
-              loading={missedQ.isLoading}
-            />
-            <MetricCard
-              label={d.totalProducts}
-              value={totalQ.isError ? '—' : (totalQ.data ?? 0).toLocaleString()}
-              icon="inventory_2"
-              accent="neutral"
-              loading={totalQ.isLoading}
-            />
-          </div>
-        </div>
-
-        {/* Row 2, Col 6: Lost Revenue */}
-        <div
-          className="bento-col-6 retail-card"
-          style={{
-            background: 'rgba(248,113,113,0.06)',
-            borderColor: 'rgba(248,113,113,0.22)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 16,
-          }}
+      <section className="ov-kpis" aria-label={d('title')}>
+        <Kpi
+          label={d('scansTitle')}
+          value={scansQ.isError ? '—' : (scansQ.data ?? 0).toLocaleString()}
+          sub={periodLabel}
+          loading={scansQ.isLoading}
+        />
+        <Kpi
+          label={d('uniqueCustomers')}
+          value={uniqueQ.isError ? '—' : (uniqueQ.data ?? 0).toLocaleString()}
+          sub={periodLabel}
+          loading={uniqueQ.isLoading}
+        />
+        <Kpi
+          label={d('catalogCoverage')}
+          value={coverageQ.isError ? '—' : `${coverageVal}%`}
+          sub={
+            totalQ.data != null
+              ? o('coverageOf', { total: Number(totalQ.data).toLocaleString() })
+              : d('catalogCoverageHint')
+          }
+          loading={coverageQ.isLoading}
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                fontSize: 13,
-                fontWeight: 700,
-                color: 'var(--text-sub)',
-              }}
-            >
-              <ArrowForwardIcon size={14} color="#F87171" style={{ transform: 'rotate(45deg)' }} />
-              <span>{d.lostRevenue}</span>
+          {!coverageQ.isLoading && !coverageQ.isError && (
+            <div className={`ov-meter ov-meter--${coverageTone}`}>
+              <span style={{ width: `${Math.min(coverageVal, 100)}%` }} />
             </div>
-            {lostQ.isLoading ? (
-              <div className="retail-skel" style={{ height: 32, width: 140, borderRadius: 8 }} />
-            ) : (
-              <div
-                style={{
-                  fontSize: 28,
-                  fontWeight: 800,
-                  fontFamily: 'var(--font-display)',
-                  color: '#F87171',
-                  lineHeight: 1.2,
-                }}
-              >
-                {lostQ.isError ? '—' : `~${formatPrice(lostQ.data ?? 0)}`}
-              </div>
-            )}
-            <div style={{ fontSize: 11.5, color: 'var(--text-dim)' }}>
-              {periodLabel} · {d.lostRevenueHint}
-            </div>
-          </div>
-          <WalletIcon size={44} color="rgba(248,113,113,0.22)" style={{ flexShrink: 0 }} />
-        </div>
-
-        {/* Row 2, Col 6: Scan Coverage Progress */}
-        <div
-          className="bento-col-6 retail-card"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            gap: 10,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                fontSize: 13,
-                fontWeight: 700,
-                color: 'var(--text-sub)',
-              }}
-            >
-              <FactCheckIcon size={16} color="var(--retail-accent, #38BDF8)" />
-              <span>{d.catalogCoverage}</span>
-            </div>
-            <div
-              style={{
-                fontSize: 20,
-                fontWeight: 800,
-                fontFamily: 'var(--font-display)',
-                color: coverageColor,
-              }}
-            >
-              {coverageQ.isLoading ? '...' : coverageQ.isError ? '—' : `${coverageQ.data ?? 0}%`}
-            </div>
-          </div>
-
-          <div
-            style={{
-              height: 8,
-              borderRadius: 4,
-              background: 'var(--glass-bg)',
-              border: '1px solid var(--retail-border)',
-              overflow: 'hidden',
-            }}
-          >
-            <div
-              style={{
-                height: '100%',
-                width: coverageQ.isLoading ? '0%' : `${Math.min(coverageQ.data ?? 0, 100)}%`,
-                borderRadius: 4,
-                background: coverageGradient,
-                transition: 'width 0.6s ease',
-              }}
-            />
-          </div>
-
-          <div style={{ fontSize: 11.5, color: 'var(--text-dim)' }}>{d.catalogCoverageHint}</div>
-        </div>
-
-        {/* Row 3, Col 6: Top-5 Scanned Products */}
-        <div
-          className="bento-col-6 retail-card"
-          style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
-        >
-          <SectionHeader
-            icon="trending_up"
-            iconColor="var(--retail-accent, #38BDF8)"
-            title={d.topProducts}
-          />
-
-          {topQ.isError ? (
-            <QueryError label={d.loadError} retryLabel={d.retry} onRetry={() => topQ.refetch()} />
-          ) : topQ.isLoading ? (
-            Array.from({ length: 5 }).map((_, i) => <ProductRow key={i} loading />)
-          ) : !topQ.data?.length ? (
-            <EmptyState icon="bar_chart" label={d.topEmpty} sub={d.noDataSub} />
-          ) : (
-            topQ.data.map((p, i) => (
-              <ProductRow
-                key={p.ean}
-                rank={i + 1}
-                name={p.name}
-                scanCount={Number(p.scan_count)}
-                imageUrl={getImageUrl(p.image_url)}
-                scanLabel={d.scans}
-                loading={false}
-              />
-            ))
           )}
-        </div>
+        </Kpi>
+        <Kpi
+          label={d('lostRevenue')}
+          value={lostQ.isError ? '—' : `~${formatPrice(lostValue)}`}
+          sub={`${periodLabel} · ${d('lostRevenueHint')}`}
+          tone={lostValue > 0 ? 'neg' : undefined}
+          loading={lostQ.isLoading}
+        />
+      </section>
 
-        {/* Row 3, Col 6: Missed Opportunities */}
-        <div
-          className="bento-col-6 retail-card"
-          style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 10,
-              flexWrap: 'wrap',
-            }}
-          >
-            <SectionHeader
-              icon="sentiment_dissatisfied"
-              iconColor="#F59E0B"
-              title={d.missedTitle}
-            />
+      {attention.length > 0 && (
+        <Card title={o('attentionTitle')} className="ov-attn">
+          {attention.map((item) => (
+            <div key={item.id} className={`ov-attn__row ov-tone--${item.tone}`}>
+              <span className="ov-attn__icon">
+                <AlertTriangleIcon size={16} color="currentColor" />
+              </span>
+              <span className="ov-attn__text">{item.text}</span>
+              <button type="button" className="rc-btn" onClick={goProducts}>
+                {o('attentionAction')}
+              </button>
+            </div>
+          ))}
+        </Card>
+      )}
 
-            {/* Filter tabs */}
-            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-              {MISSED_TABS.map((tab) => {
-                const active = missedFilter === tab.key
+      <div className="ov-grid">
+        <div className="ov-col">
+          <Card title={d('topProducts')}>
+            {topQ.isError ? (
+              <QueryError
+                label={d('loadError')}
+                retryLabel={d('retry')}
+                onRetry={() => topQ.refetch()}
+              />
+            ) : topQ.isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => <ProductRow key={i} loading />)
+            ) : !topQ.data?.length ? (
+              <EmptyState icon="bar_chart" label={d('topEmpty')} sub={d('noDataSub')} />
+            ) : (
+              topQ.data.map((p, i) => {
+                const count = Number(p.scan_count) || 0
                 return (
+                  <ProductRow
+                    key={p.ean}
+                    rank={i + 1}
+                    name={p.name}
+                    scanCount={count}
+                    share={(count / topMax) * 100}
+                    imageUrl={getImageUrl(p.image_url)}
+                    scanLabel={d('scans')}
+                  />
+                )
+              })
+            )}
+          </Card>
+
+          <Card
+            title={d('missedTitle')}
+            aside={
+              <div className="ov-filter">
+                {missedTabs.map((tab) => (
                   <button
                     key={tab.key}
+                    type="button"
+                    aria-pressed={missedFilter === tab.key}
                     onClick={() => {
-                      if (tab.key !== 'all') {
-                        window.history.pushState({}, '')
-                      }
+                      if (tab.key !== 'all') window.history.pushState({}, '')
                       setMissedFilter(tab.key)
-                    }}
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: 8,
-                      border: `1px solid ${active ? 'rgba(245,158,11,0.45)' : 'var(--retail-border)'}`,
-                      cursor: 'pointer',
-                      fontSize: 11,
-                      fontWeight: 700,
-                      fontFamily: 'var(--font-body)',
-                      background: active ? 'rgba(245,158,11,0.15)' : 'transparent',
-                      color: active ? '#F59E0B' : 'var(--text-dim)',
-                      transition: 'all 0.15s ease',
                     }}
                   >
                     {tab.label}
                   </button>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* List */}
-          {missedQ.isError ? (
-            <QueryError
-              label={d.loadError}
-              retryLabel={d.retry}
-              onRetry={() => missedQ.refetch()}
-            />
-          ) : missedQ.isLoading ? (
-            Array.from({ length: 3 }).map((_, i) => <MissedRow key={i} loading />)
-          ) : missedFiltered.length === 0 ? (
-            <EmptyState icon="check_circle" label={d.missedEmpty} sub={d.missedEmptySub} />
-          ) : (
-            missedFiltered.map((item) => (
-              <MissedRow
-                key={item.ean}
-                ean={item.ean}
-                name={item.name}
-                scanCount={Number(item.scan_count)}
-                imageUrl={getImageUrl(item.image_url)}
-                reason={item.reason}
-                scanLabel={d.scans}
-                labelNotInCatalog={d.notInCatalog}
-                labelOutOfStock={d.outOfStock}
-                loading={false}
+                ))}
+              </div>
+            }
+          >
+            {missedQ.isError ? (
+              <QueryError
+                label={d('loadError')}
+                retryLabel={d('retry')}
+                onRetry={() => missedQ.refetch()}
               />
-            ))
-          )}
-        </div>
-
-        {/* Row 4, Col 7: KÖRSET AI Insights */}
-        <div
-          className="bento-col-7 retail-card"
-          style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
-        >
-          <SectionHeader
-            icon="auto_awesome"
-            iconColor="var(--retail-accent, #38BDF8)"
-            title={d.aiInsightsTitle}
-          />
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {aiInsightsLoading ? (
-              Array.from({ length: 3 }).map((_, i) => (
-                <AIInsightRow key={i} loading t={t} exists={exists} />
-              ))
-            ) : aiInsights.length === 0 ? (
-              <EmptyState icon="insights" label={d.aiInsightsEmpty} sub={d.aiInsightsEmptySub} />
+            ) : missedQ.isLoading ? (
+              Array.from({ length: 3 }).map((_, i) => <MissedRow key={i} loading />)
+            ) : missedFiltered.length === 0 ? (
+              <EmptyState icon="check_circle" label={d('missedEmpty')} sub={d('missedEmptySub')} />
             ) : (
-              aiInsights.map((insight) => (
-                <AIInsightRow
-                  key={insight.id}
-                  insight={insight}
-                  t={t}
-                  exists={exists}
-                  loading={false}
+              missedFiltered.map((item) => (
+                <MissedRow
+                  key={item.ean}
+                  ean={item.ean}
+                  name={item.name}
+                  scanCount={Number(item.scan_count) || 0}
+                  imageUrl={getImageUrl(item.image_url)}
+                  reason={item.reason}
+                  scanLabel={d('scans')}
+                  labelNotInCatalog={d('notInCatalog')}
+                  labelOutOfStock={d('outOfStock')}
                 />
               ))
             )}
-          </div>
+          </Card>
         </div>
 
-        {/* Row 4, Col 5: Shopper Behavior Signals (Alternatives & Compare) */}
-        <div className="bento-col-5" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <AlternativeSignalsCard
-            summary={alternativesQ.data}
-            loading={alternativesQ.isLoading}
-            error={alternativesQ.isError}
-            onRetry={() => alternativesQ.refetch()}
-            d={d}
-            t={t}
-          />
+        <aside className="ov-col">
+          <Card title={d('aiInsightsTitle')}>
+            {aiInsightsLoading ? (
+              Array.from({ length: 3 }).map((_, i) => <InsightRow key={i} loading />)
+            ) : aiInsights.length === 0 ? (
+              <EmptyState
+                icon="insights"
+                label={d('aiInsightsEmpty')}
+                sub={d('aiInsightsEmptySub')}
+              />
+            ) : (
+              aiInsights.map((insight) => {
+                const values = {
+                  ...insight.values,
+                  amountText:
+                    insight.values?.amount != null
+                      ? formatPrice(Number(insight.values.amount) || 0)
+                      : undefined,
+                }
+                return (
+                  <InsightRow
+                    key={insight.id}
+                    insight={insight}
+                    title={t(insight.titleKey, values)}
+                    body={t(insight.bodyKey, values)}
+                    action={exists?.(insight.actionKey) ? t(insight.actionKey, values) : null}
+                  />
+                )
+              })
+            )}
+          </Card>
 
-          <CompareSignalsCard
-            summary={compareQ.data}
-            loading={compareQ.isLoading}
-            error={compareQ.isError}
-            onRetry={() => compareQ.refetch()}
-            d={d}
-          />
-        </div>
+          <Card title={o('signalsTitle')}>
+            <div className="ov-signal">
+              <div className="ov-signal__head">
+                <span className="ov-signal__name">{d('alternativesTitle')}</span>
+                <span className="ov-signal__total rc-num">
+                  {alternativesQ.isError ? '—' : (altSummary?.total ?? 0)}
+                </span>
+              </div>
+              {alternativesQ.isError ? (
+                <QueryError
+                  label={d('loadError')}
+                  retryLabel={d('retry')}
+                  onRetry={() => alternativesQ.refetch()}
+                />
+              ) : (
+                <>
+                  <p className="ov-signal__hint">{d('alternativesSub')}</p>
+                  <StatList
+                    loading={alternativesQ.isLoading}
+                    items={[
+                      { label: d('alternativesCompare'), value: altSummary?.compareCount ?? 0 },
+                      { label: d('alternativesAI'), value: altSummary?.aiHelpCount ?? 0 },
+                    ]}
+                  />
+                  <FactLine label={d('alternativesTopScenario')} value={topScenario || noSignal} />
+                  <FactLine label={d('alternativesTopSource')} value={topSource || noSignal} />
+                </>
+              )}
+            </div>
+
+            <div className="ov-signal">
+              <div className="ov-signal__head">
+                <span className="ov-signal__name">{d('compareTitle')}</span>
+                <span className="ov-signal__total rc-num">
+                  {compareQ.isError ? '—' : (cmpSummary?.total ?? 0)}
+                </span>
+              </div>
+              {compareQ.isError ? (
+                <QueryError
+                  label={d('loadError')}
+                  retryLabel={d('retry')}
+                  onRetry={() => compareQ.refetch()}
+                />
+              ) : (
+                <>
+                  <p className="ov-signal__hint">{d('compareSub')}</p>
+                  <StatList
+                    loading={compareQ.isLoading}
+                    items={[
+                      { label: d('compareWinner'), value: cmpSummary?.winnerCount ?? 0 },
+                      { label: d('compareDraw'), value: cmpSummary?.drawCount ?? 0 },
+                      { label: d('compareBlocked'), value: cmpSummary?.blockedCount ?? 0 },
+                    ]}
+                  />
+                  <FactLine label={d('compareTopPair')} value={topPair || d('compareNoPair')} />
+                </>
+              )}
+            </div>
+          </Card>
+        </aside>
       </div>
     </div>
   )

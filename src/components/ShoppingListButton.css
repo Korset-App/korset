@@ -22,8 +22,7 @@
   color: var(--success-bright);
 }
 .shopping-list-button.is-active svg { animation: shopping-button-confirm .28s ease-out; }
-.shopping-list-button svg { width: 26px; height: 26px; overflow: visible; }
-.shopping-list-button__dot { fill: var(--bg); stroke: currentColor; stroke-width: 1.7; }
+.shopping-list-button svg { width: 22px; height: 22px; }
 @keyframes shopping-button-confirm {
   0% { transform: scale(.88); }
   75% { transform: scale(1.08); }

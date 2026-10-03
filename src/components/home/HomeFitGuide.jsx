@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useOverlayLock } from '../../hooks/useOverlayLock.js'
-import { BarcodeScannerIcon, CloseIcon, SlidersIcon } from '../icons/index.js'
+import { BarcodeScannerIcon, CloseIcon, FitCheckIcon } from '../icons/index.js'
 import './HomeFitGuide.css'
 
 export default function HomeFitGuide({ open, onClose, onScan, onFilters, image, t }) {
@@ -68,7 +68,7 @@ export default function HomeFitGuide({ open, onClose, onScan, onFilters, image, 
       </div>
       <div className="home-fit-guide__actions">
         <button type="button" onClick={onFilters}>
-          <SlidersIcon size={18} />
+          <FitCheckIcon size={18} active />
           {t('home.banners.scan.guide.filtersCta')}
         </button>
         <button type="button" className="home-fit-guide__scan" onClick={onScan}>

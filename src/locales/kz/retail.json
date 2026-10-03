@@ -521,5 +521,11 @@
   "retail.settings.teamRolesTeaserTitle": "Қызметкерлердің жеке рөлдері",
   "retail.settings.teamRolesTeaserBody": "Келесі жаңартуда шектеулі құқықтары бар қызметкерлерді қосу мүмкіндігі шығады: «Кассир» (тек сканерлеу және чек), «Тауартанушы» (қабылдау, қалдықтар мен бағалар), «Бухгалтер» (есептер мен шот-фактуралар).",
   "retail.settings.storefrontLinkNotice": "Витринаны безендіру, логотип, мұқаба және кассалық QR басып шығару бөлек бөлімге ауыстырылды",
-  "retail.settings.goToStorefront": "Витринаға өту"
+  "retail.settings.goToStorefront": "Витринаға өту",
+  "retail.overview.attentionTitle": "Назар аударатын мәселелер",
+  "retail.overview.attentionNotInCatalog": "Сатып алушылар іздеген {count} тауар каталогта жоқ",
+  "retail.overview.attentionOutOfStock": "Сатып алушылар іздеген {count} тауар қоймада жоқ",
+  "retail.overview.attentionAction": "Каталогты ашу",
+  "retail.overview.coverageOf": "Каталог: {total} тауар",
+  "retail.overview.signalsTitle": "Сатып алушылар мінез-құлқы"
 }

@@ -39,15 +39,17 @@ nurly, kalina; наличие, публикацию, цены и остатки 
 - Приоритеты: `docs/ROADMAP_PILOT_V1.md` и
   `docs/vault/plans/2026-09-18-pilot-revival-master-plan.md`.
 - Каталог: `docs/vault/plans/2026-09-27-food-catalog-quality-plan.md`.
-  **Статус на 30.09.2026 02:00 AST** — коммит `6ae3de0`:
-  Активных: 23 947 (+42 воскрешено за сессию). КБЖУ всего: 6 079; активная еда с КБЖУ: ~5 325.
-  С составом: ~15 655. Стран: ~11 451. Сроков годности: ~4 980. Условий хранения: ~5 938.
-  Пайплайны: OFF full-dump stream, Arbuz KZ, Staples ГОСТ-эталоны (214),
-  Official Manufacturers (163, 42 воскрешено), Korzina v Dom text (444, без фото).
+  **Статус на 03.10.2026**:
+  Активных: 22 512 (чистка PLU 20–29 и мусора: 1 435 деактивировано).
+  Обогащено в сессии: Barista Ltd (292), Arbuz KZ residual (348), внутренний КБЖУ (53). Итого 693 товара обновлено.
+  Актуальные метрики: с составом 13 749, КБЖУ 5 464, бренды 19 220, упаковка 20 392, страны 8 546, сроки 4 010, условия 5 030.
+  Пайплайны: Barista harvest, Arbuz KZ, Staples ГОСТ-эталоны, Official Manufacturers, Korzina text (без фото).
   Korzina images — запрещены (водяные знаки). Galmart — заморожен. Halal Damu — применён ранее.
   Фаза 1 нормализации названий (rule-based): завершена 30.09.2026. Обработано 23 947 активных, обновлено 22 233 (93%) без AI, 1 712 без изменений, 0 ошибок.
   Следующий шаг: Фаза 2 (детекция свапа description vs ingredients).
-  Полный план: `docs/vault/plans/2026-09-30-catalog-normalization-plan.md`
+  Полный план: `docs/vault/plans/2026-09-30-catalog-normalization-plan.md`.
+  Теги, диеты и архитектура карточки (решения 03.10.2026):
+  `docs/vault/decisions/2026-10-03-diet-tags-and-catalog-quality-roadmap.md`.
 - Профиль и списки по магазинам: `docs/vault/plans/2026-09-26-store-scoped-shopping-profile-plan.md`
   (локальная реализация готова, миграции ещё не применены; прежняя попытка — `docs/vault/plans/2026-09-25-profile-screen-redesign-handoff-and-stages.md`).
 - Сравнение: `docs/vault/plans/2026-09-23-compare-feature-master-plan.md`.

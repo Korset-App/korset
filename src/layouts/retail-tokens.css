@@ -1,0 +1,65 @@
+/* Retail Cabinet design tokens. Scoped to the cabinet via .retail-root-active (set by RetailLayout). */
+
+:root.retail-root-active {
+  --rc-bg: #0b0b11;
+  --rc-surface: #12121a;
+  --rc-surface-2: #181822;
+  --rc-sunken: #0e0e15;
+  --rc-ink: #f2f2f7;
+  --rc-ink-2: #b4b4c6;
+  --rc-ink-3: #7e7e94;
+  --rc-line: rgba(255, 255, 255, 0.075);
+  --rc-line-strong: rgba(255, 255, 255, 0.14);
+  --rc-hover: rgba(255, 255, 255, 0.045);
+  --rc-accent: #a78bfa;
+  --rc-accent-strong: #c4b5fd;
+  --rc-accent-soft: rgba(167, 139, 250, 0.12);
+  --rc-on-accent: #14102a;
+  --rc-pos: #4ade80;
+  --rc-pos-soft: rgba(74, 222, 128, 0.12);
+  --rc-warn: #fbbf24;
+  --rc-warn-soft: rgba(251, 191, 36, 0.12);
+  --rc-neg: #f87171;
+  --rc-neg-soft: rgba(248, 113, 113, 0.12);
+  --rc-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px -12px rgba(0, 0, 0, 0.5);
+  --rc-focus: 0 0 0 2px var(--rc-bg), 0 0 0 4px var(--rc-accent);
+}
+
+:root.retail-root-active[data-theme='light'] {
+  --rc-bg: #f5f5f8;
+  --rc-surface: #ffffff;
+  --rc-surface-2: #fafafc;
+  --rc-sunken: #eeeef3;
+  --rc-ink: #14141f;
+  --rc-ink-2: #4a4a5e;
+  --rc-ink-3: #82829a;
+  --rc-line: rgba(20, 20, 40, 0.08);
+  --rc-line-strong: rgba(20, 20, 40, 0.16);
+  --rc-hover: rgba(20, 20, 40, 0.04);
+  --rc-accent: #5b3fd9;
+  --rc-accent-strong: #4a2fc0;
+  --rc-accent-soft: rgba(91, 63, 217, 0.09);
+  --rc-on-accent: #ffffff;
+  --rc-pos: #15803d;
+  --rc-pos-soft: rgba(21, 128, 61, 0.09);
+  --rc-warn: #b45309;
+  --rc-warn-soft: rgba(180, 83, 9, 0.09);
+  --rc-neg: #c2410c;
+  --rc-neg-soft: rgba(194, 65, 12, 0.09);
+  --rc-shadow: 0 1px 2px rgba(20, 20, 40, 0.05), 0 12px 32px -16px rgba(20, 20, 40, 0.14);
+}
+
+/* Legacy aliases: screens not yet migrated pick up the new palette automatically. */
+:root.retail-root-active,
+:root.retail-root-active[data-theme='light'] {
+  --retail-bg: var(--rc-bg);
+  --retail-header-bg: var(--rc-surface);
+  --retail-border: var(--rc-line);
+  --retail-accent: var(--rc-accent);
+}
+
+.rc-num {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.02em;
+}

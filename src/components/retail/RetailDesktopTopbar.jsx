@@ -1,9 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import QRCode from 'react-qr-code'
-import { useI18n, setLang } from '../../i18n/index.js'
-import { useTheme } from '../../utils/theme.js'
-import { useAuth } from '../../contexts/AuthContext.jsx'
+import { useI18n } from '../../i18n/index.js'
 import {
   MenuDotsIcon,
   EyeIcon,
@@ -12,46 +10,21 @@ import {
   ShareIcon,
   CheckCircleIcon,
   CloseIcon,
-  TelegramIcon,
-  InstallIcon,
 } from '../icons/index.js'
 
 export default function RetailDesktopTopbar({ currentStore }) {
   const { pathname } = useLocation()
   const { t, lang } = useI18n()
   const isKz = lang === 'kz'
-  const { toggleTheme, isLight } = useTheme()
-  const { signOut } = useAuth()
 
   const [menuOpen, setMenuOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState(null)
   const [qrModalType, setQrModalType] = useState(null) // 'mobile_login' | 'cashier_qr' | null
-  const [installPrompt, setInstallPrompt] = useState(null)
   const menuRef = useRef(null)
-
-  useEffect(() => {
-    const handleBeforeInstall = (e) => {
-      e.preventDefault()
-      setInstallPrompt(e)
-    }
-    window.addEventListener('beforeinstallprompt', handleBeforeInstall)
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall)
-  }, [])
-
-  const handleInstallApp = async () => {
-    if (installPrompt) {
-      installPrompt.prompt()
-      const { outcome } = await installPrompt.userChoice
-      if (outcome === 'accepted') {
-        setInstallPrompt(null)
-      }
-    }
-  }
 
   const storeSlug = currentStore?.slug || ''
   const isPublished = currentStore?.is_published !== false
 
-  // Determine section title and breadcrumbs
   const getSectionTitle = () => {
     if (pathname.includes('/integration')) return t('retail.nav.integration') || 'Синхронизация'
     if (pathname.includes('/storefront')) return t('retail.nav.storefront') || 'Витрина'
@@ -64,32 +37,33 @@ export default function RetailDesktopTopbar({ currentStore }) {
 
   const section = getSectionTitle()
 
-  // Close dropdown on click outside
   useEffect(() => {
-    function handleClickOutside(e) {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setMenuOpen(false)
-      }
+    if (!menuOpen) return undefined
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false)
     }
-    if (menuOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
+    const handleKey = (e) => {
+      if (e.key === 'Escape') setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleKey)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKey)
     }
   }, [menuOpen])
 
-  // Toast auto-hide
   useEffect(() => {
-    if (!toastMessage) return
+    if (!toastMessage) return undefined
     const timer = setTimeout(() => setToastMessage(null), 3000)
     return () => clearTimeout(timer)
   }, [toastMessage])
 
   const handleCopyLink = async () => {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://korset.kz'
-    const fullUrl = `${origin}/s/${storeSlug}`
     try {
       if (navigator.clipboard) {
-        await navigator.clipboard.writeText(fullUrl)
+        await navigator.clipboard.writeText(`${origin}/s/${storeSlug}`)
       }
       setToastMessage(t('retail.desktop.linkCopied') || 'Ссылка скопирована в буфер!')
     } catch {
@@ -98,239 +72,84 @@ export default function RetailDesktopTopbar({ currentStore }) {
     setMenuOpen(false)
   }
 
+  const openQr = (type) => {
+    setQrModalType(type)
+    setMenuOpen(false)
+  }
+
   return (
     <>
       <header className="retail-topbar">
-        {/* Left: Breadcrumbs & Status */}
         <div className="retail-topbar__left">
-          <div className="retail-topbar__breadcrumbs">
-            <span className="retail-topbar__crumb-root">{currentStore?.name || 'Körset'}</span>
-            <span className="retail-topbar__crumb-sep">/</span>
-            <span className="retail-topbar__crumb-current">{section}</span>
+          <div className="retail-topbar__crumbs">
+            <span className="retail-topbar__root">{currentStore?.name || 'Körset'}</span>
+            <span className="retail-topbar__sep">/</span>
+            <span className="retail-topbar__current">{section}</span>
           </div>
-          <span
-            className={`retail-topbar__status-pill ${
-              isPublished
-                ? 'retail-topbar__status-pill--published'
-                : 'retail-topbar__status-pill--draft'
-            }`}
-          >
-            <span className="retail-topbar__status-dot" />
-            <span>
-              {isPublished
-                ? t('retail.desktop.storeOnline') || 'В сети'
-                : t('retail.desktop.storeOffline') || 'Черновик'}
+          {!isPublished && (
+            <span className="rc-status rc-status--draft">
+              {t('retail.desktop.storeOffline') || 'Черновик'}
             </span>
-          </span>
+          )}
         </div>
 
-        {/* Right: Actions */}
         <div className="retail-topbar__right">
-          {/* Quick Action: Copy link */}
-          {storeSlug && (
-            <button
-              type="button"
-              onClick={handleCopyLink}
-              className="retail-topbar__storefront-btn"
-              style={{
-                background: 'var(--glass-bg)',
-                borderColor: 'var(--retail-border)',
-                color: 'var(--text-sub)',
-              }}
-              title={t('retail.desktop.copyStoreLink') || 'Скопировать ссылку на магазин'}
-            >
-              <ShareIcon size={14} color="var(--retail-accent)" />
-              <span style={{ fontSize: 12 }}>{isKz ? 'Сілтеме' : 'Ссылка'}</span>
-            </button>
-          )}
-
-          {/* Quick Action: Open Storefront */}
           {storeSlug && (
             <a
               href={`/s/${storeSlug}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="retail-topbar__storefront-btn"
+              className="rc-btn"
               title={t('retail.desktop.openStorefront') || 'Открыть витрину покупателя'}
             >
-              <EyeIcon size={15} />
+              <EyeIcon size={15} color="currentColor" />
               <span>{t('retail.viewStoreFrontShort') || 'Витрина'}</span>
               <ExternalLinkIcon size={12} color="currentColor" />
             </a>
           )}
 
-          {/* Quick Action: Install on PC if supported */}
-          {installPrompt && (
-            <button
-              type="button"
-              onClick={handleInstallApp}
-              className="retail-topbar__storefront-btn"
-              style={{
-                background: 'rgba(56, 189, 248, 0.1)',
-                borderColor: 'rgba(56, 189, 248, 0.3)',
-                color: 'var(--retail-accent, #38bdf8)',
-              }}
-              title={t('retail.desktop.installApp') || 'Установить на ПК'}
-            >
-              <InstallIcon size={14} color="var(--retail-accent, #38bdf8)" />
-              <span style={{ fontSize: 12 }}>{isKz ? 'Орнату' : 'Установить'}</span>
-            </button>
-          )}
-
-          {/* Three dots dropdown menu button */}
           <div className="retail-topbar__menu-wrap" ref={menuRef}>
             <button
               type="button"
-              onClick={() => setMenuOpen(!menuOpen)}
-              className={`retail-topbar__menu-btn ${menuOpen ? 'active' : ''}`}
+              onClick={() => setMenuOpen((open) => !open)}
+              className="rc-iconbtn"
               title={t('retail.desktop.quickActions') || 'Быстрые действия'}
-              aria-label="Быстрые действия"
+              aria-label={t('retail.desktop.quickActions') || 'Быстрые действия'}
               aria-expanded={menuOpen}
+              aria-haspopup="menu"
             >
               <MenuDotsIcon size={18} />
             </button>
 
             {menuOpen && (
-              <div className="retail-topbar__dropdown" role="menu">
-                <div className="retail-topbar__dropdown-header">
-                  <span className="retail-topbar__dropdown-title">
-                    {t('retail.desktop.quickActions') || 'Быстрые действия'}
-                  </span>
-                </div>
-
-                <div className="retail-topbar__dropdown-group">
-                  {/* Print QR for cashier desk */}
+              <div className="rc-menu rc-menu--down" role="menu">
+                {storeSlug && (
                   <button
                     type="button"
-                    className="retail-topbar__dropdown-item"
+                    className="rc-menu__item"
                     role="menuitem"
-                    onClick={() => {
-                      setQrModalType('cashier_qr')
-                      setMenuOpen(false)
-                    }}
+                    onClick={handleCopyLink}
                   >
-                    <QrCodeIcon size={16} color="var(--success-bright, #10b981)" />
-                    <span>{t('retail.desktop.printQr') || 'Печать QR на кассу'}</span>
-                  </button>
-
-                  {/* Mobile login QR */}
-                  <button
-                    type="button"
-                    className="retail-topbar__dropdown-item"
-                    role="menuitem"
-                    onClick={() => {
-                      setQrModalType('mobile_login')
-                      setMenuOpen(false)
-                    }}
-                  >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="var(--additive, #f59e0b)"
-                      strokeWidth="2"
-                    >
-                      <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
-                      <line x1="12" y1="18" x2="12.01" y2="18" />
-                    </svg>
-                    <span>{t('retail.desktop.mobileQr') || 'Вход со смартфона'}</span>
-                  </button>
-                </div>
-
-                <div className="retail-topbar__dropdown-divider" />
-
-                <div className="retail-topbar__dropdown-group">
-                  {/* Theme Switch */}
-                  <button
-                    type="button"
-                    className="retail-topbar__dropdown-item"
-                    role="menuitem"
-                    onClick={() => {
-                      toggleTheme()
-                      setMenuOpen(false)
-                    }}
-                  >
-                    {isLight ? (
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      >
-                        <circle cx="12" cy="12" r="5" />
-                        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
-                      </svg>
-                    ) : (
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      >
-                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-                      </svg>
-                    )}
+                    <ShareIcon size={16} color="currentColor" />
                     <span>
-                      {isLight
-                        ? t('retail.desktop.themeDark') || 'Тёмная тема'
-                        : t('retail.desktop.themeLight') || 'Светлая тема'}
+                      {t('retail.desktop.copyStoreLink') || 'Скопировать ссылку на магазин'}
                     </span>
                   </button>
-
-                  {/* Language switch */}
-                  <button
-                    type="button"
-                    className="retail-topbar__dropdown-item"
-                    role="menuitem"
-                    onClick={() => {
-                      setLang(lang === 'ru' ? 'kz' : 'ru')
-                      setMenuOpen(false)
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 800,
-                        width: 16,
-                        textAlign: 'center',
-                        color: 'var(--retail-accent)',
-                      }}
-                    >
-                      {lang === 'ru' ? 'KZ' : 'RU'}
-                    </span>
-                    <span>{lang === 'ru' ? 'Қазақ тіліне ауысу' : 'Переключить на русский'}</span>
-                  </button>
-
-                  {/* Support */}
-                  <a
-                    href="https://t.me/korset_support_bot"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="retail-topbar__dropdown-item"
-                    role="menuitem"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    <TelegramIcon size={16} color="#229ED9" />
-                    <span>{t('retail.desktop.support') || 'Служба заботы Körset'}</span>
-                  </a>
-                </div>
-
-                <div className="retail-topbar__dropdown-divider" />
-
-                {/* Logout */}
+                )}
                 <button
                   type="button"
-                  className="retail-topbar__dropdown-item retail-topbar__dropdown-item--danger"
+                  className="rc-menu__item"
                   role="menuitem"
-                  onClick={() => {
-                    setMenuOpen(false)
-                    signOut()
-                  }}
+                  onClick={() => openQr('cashier_qr')}
+                >
+                  <QrCodeIcon size={16} color="currentColor" />
+                  <span>{t('retail.desktop.printQr') || 'Печать QR на кассу'}</span>
+                </button>
+                <button
+                  type="button"
+                  className="rc-menu__item"
+                  role="menuitem"
+                  onClick={() => openQr('mobile_login')}
                 >
                   <svg
                     width="16"
@@ -339,12 +158,13 @@ export default function RetailDesktopTopbar({ currentStore }) {
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                   >
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                    <polyline points="16 17 21 12 16 7" />
-                    <line x1="21" y1="12" x2="9" y2="12" />
+                    <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+                    <line x1="12" y1="18" x2="12.01" y2="18" />
                   </svg>
-                  <span>{t('retail.desktop.logout') || 'Выйти из кабинета'}</span>
+                  <span>{t('retail.desktop.mobileQr') || 'Вход со смартфона'}</span>
                 </button>
               </div>
             )}
@@ -352,15 +172,13 @@ export default function RetailDesktopTopbar({ currentStore }) {
         </div>
       </header>
 
-      {/* Floating Toast Notification */}
       {toastMessage && (
         <div className="retail-toast">
-          <CheckCircleIcon size={18} color="var(--success-bright, #10b981)" />
+          <CheckCircleIcon size={18} color="var(--rc-pos)" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Modal for QR Codes (Mobile Login or Cashier QR) */}
       {qrModalType && (
         <div
           className="retail-modal-backdrop"
@@ -379,7 +197,7 @@ export default function RetailDesktopTopbar({ currentStore }) {
                 type="button"
                 className="retail-modal-close-btn"
                 onClick={() => setQrModalType(null)}
-                aria-label="Закрыть"
+                aria-label={isKz ? 'Жабу' : 'Закрыть'}
               >
                 <CloseIcon size={20} />
               </button>
@@ -389,7 +207,7 @@ export default function RetailDesktopTopbar({ currentStore }) {
               <p
                 style={{
                   fontSize: 13,
-                  color: 'var(--text-sub)',
+                  color: 'var(--rc-ink-2)',
                   margin: '0 0 20px',
                   lineHeight: 1.5,
                 }}
@@ -402,13 +220,14 @@ export default function RetailDesktopTopbar({ currentStore }) {
                     : 'Покупатели сканируют этот код у кассы или на входной группе, чтобы открыть витрину магазина'}
               </p>
 
+              {/* QR must stay white for scanner contrast in both themes */}
               <div
                 style={{
                   display: 'inline-block',
                   padding: 16,
                   borderRadius: 16,
                   background: '#ffffff',
-                  boxShadow: '0 8px 30px rgba(0,0,0,0.25)',
+                  border: '1px solid var(--rc-line)',
                 }}
               >
                 <QRCode

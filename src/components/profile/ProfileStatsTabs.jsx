@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../../contexts/StoreContext.jsx'
 import ProductMiniCard from '../ProductMiniCard.jsx'
+import { FitCheckIcon } from '../icons/FitCheckIcon.jsx'
+import { ShoppingListIcon } from '../icons/ShoppingListIcon.jsx'
 import './ProfileStatsTabs.css'
 
 /**
@@ -51,22 +53,7 @@ export default function ProfileStatsTabs({
       iconBg: 'rgba(245,158,11,0.18)',
       iconBorder: 'rgba(251,191,36,0.55)',
       iconShadow: '0 4px 22px rgba(245,158,11,0.36)',
-      icon: (
-        <svg
-          width="22"
-          height="22"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="var(--warning)"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M4.5 8.5h15l-1 12h-13l-1-12ZM8.5 8.5V6a3.5 3.5 0 0 1 7 0v2.5" />
-          <path d="m9.5 14.5 1.8 1.8 3.5-3.6" />
-        </svg>
-      ),
+      icon: <ShoppingListIcon size={22} color="var(--warning)" active />,
     },
     {
       id: 'preferences',
@@ -76,27 +63,7 @@ export default function ProfileStatsTabs({
       iconBg: 'rgba(124,58,237,0.18)',
       iconBorder: 'rgba(167,139,250,0.55)',
       iconShadow: '0 4px 22px rgba(124,58,237,0.36)',
-      icon: (
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#A78BFA"
-          strokeWidth="2"
-          strokeLinecap="round"
-        >
-          <line x1="4" y1="21" x2="4" y2="14" />
-          <line x1="4" y1="10" x2="4" y2="3" />
-          <line x1="12" y1="21" x2="12" y2="12" />
-          <line x1="12" y1="8" x2="12" y2="3" />
-          <line x1="20" y1="21" x2="20" y2="16" />
-          <line x1="20" y1="12" x2="20" y2="3" />
-          <line x1="1" y1="14" x2="7" y2="14" />
-          <line x1="9" y1="8" x2="15" y2="8" />
-          <line x1="17" y1="16" x2="23" y2="16" />
-        </svg>
-      ),
+      icon: <FitCheckIcon size={27} active={preferencesCount > 0} style={{ color: '#A78BFA' }} />,
     },
     {
       id: 'history',

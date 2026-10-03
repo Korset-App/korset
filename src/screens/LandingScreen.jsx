@@ -5,6 +5,7 @@ import './LandingScreen.css'
 import { useI18n } from '../i18n/index.js'
 import useReveal from '../hooks/useReveal.js'
 import { useOverlayLock } from '../hooks/useOverlayLock.js'
+import { AlternativesIcon } from '../components/icons/index.js'
 
 function collectStrArr(t, exists, prefix) {
   const arr = []
@@ -171,20 +172,6 @@ function FitExampleProduct({ tone }) {
         <div className="lp-fit__card-product-note">{p.note}</div>
       </div>
     </div>
-  )
-}
-
-function AlternativesIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-      <path
-        d="M3 9h12M9 3l6 6-6 6"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   )
 }
 

@@ -69,15 +69,16 @@
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  gap: 3px;
-  padding: 20px 6px 10px;
+  gap: 5px;
+  padding: 26px 8px 14px;
   /*
-   * Compact height: 108px removes dead whitespace while keeping
-   * numbers perfectly centered and baseline-aligned.
+   * Fixed pixel height ensures identical rendering across Chromium, Firefox,
+   * and WebKit without aspect-ratio grid discrepancies, while maintaining a
+   * balanced vertical rectangular proportion (~1:1.18 on mobile).
    */
-  height: 108px;
+  height: 128px;
   border: 1.5px solid var(--glass-border);
-  border-radius: 20px;
+  border-radius: 22px;
   background: var(--glass-bg);
   cursor: pointer;
   outline: none;
@@ -118,11 +119,11 @@
 
 .stat-card__icon-wrap {
   position: absolute;
-  top: -16px;
+  top: -18px;
   left: 50%;
   transform: translateX(-50%);
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -136,34 +137,35 @@
  * Baseline numbers: centered inside card body.
  */
 .stat-card__value {
-  font-size: 32px;
+  font-size: 36px;
   font-weight: 700;
   line-height: 1;
   color: var(--text);
   margin-top: auto;
+  margin-bottom: auto;
   letter-spacing: -0.025em;
   font-variant-numeric: tabular-nums;
 }
 
 /*
- * Fixed 26px height accommodates 2 lines ("Список покупок", "Сатып алу тізімі")
+ * Fixed 28px height accommodates 2 lines ("Список покупок", "Сатып алу тізімі")
  * without clipping, while single-line labels remain vertically centered.
  * Guarantees all 3 digits share identical vertical baseline.
  */
 .stat-card__label {
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 600;
   color: var(--text-sub);
   letter-spacing: -0.1px;
   text-align: center;
   line-height: 1.25;
-  height: 26px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
   max-width: 100%;
-  margin-top: 1px;
+  margin-top: 2px;
   word-break: normal;
   overflow-wrap: break-word;
 }
@@ -171,15 +173,20 @@
 /* Smaller phones (≤360px width — iPhone SE, older Androids): scale down slightly */
 @media (max-width: 360px) {
   .stat-card {
-    height: 102px;
-    padding: 18px 4px 8px;
+    height: 120px;
+    padding: 22px 4px 12px;
+  }
+  .stat-card__icon-wrap {
+    width: 40px;
+    height: 40px;
+    top: -16px;
   }
   .stat-card__value {
-    font-size: 28px;
+    font-size: 32px;
   }
   .stat-card__label {
-    font-size: 9px;
-    height: 24px;
+    font-size: 9.5px;
+    height: 26px;
     line-height: 1.2;
   }
 }
@@ -187,22 +194,22 @@
 /* Tablets and up: bigger, more impactful. */
 @media (min-width: 600px) {
   .stat-card {
-    height: 140px;
-    padding: 26px 12px 16px;
-    border-radius: 24px;
+    height: 160px;
+    padding: 32px 12px 18px;
+    border-radius: 26px;
   }
   .stat-card__icon-wrap {
-    width: 48px;
-    height: 48px;
-    top: -20px;
+    width: 52px;
+    height: 52px;
+    top: -22px;
   }
   .stat-card__value {
-    font-size: 44px;
+    font-size: 46px;
   }
   .stat-card__label {
     font-size: 12px;
-    height: 20px;
-    line-height: 20px;
+    height: 28px;
+    line-height: 1.25;
   }
 }
 

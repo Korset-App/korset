@@ -1,40 +1,114 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useI18n } from '../../i18n/index.js'
-import { ALLERGENS } from '../../constants/allergens.js'
+import { ALLERGENS, getAllergenShortName } from '../../constants/allergens.js'
 import { DIET_PREFERENCES } from '../../constants/dietGoals.js'
-import { CloseIcon, CheckCircleIcon, DietIcon, SlidersIcon } from '../../components/icons/index.js'
+import { CloseIcon, DietIcon } from '../../components/icons/index.js'
+import { FitCheckIcon } from '../icons/FitCheckIcon.jsx'
+import { getFitProfileStatus } from '../../utils/fitProfileStatus.js'
 import './FitCheckDrawer.css'
 
-const PRIMARY_ALLERGEN_IDS = ['milk', 'eggs', 'gluten', 'peanuts', 'tree_nuts', 'soy']
+function toggleIn(list, id) {
+  return list.includes(id) ? list.filter((item) => item !== id) : [...list, id]
+}
+
+function Chip({ active, icon, label, onClick, variant = 'diet' }) {
+  return (
+    <button
+      type="button"
+      className={`fit-sheet__chip fit-sheet__chip--${variant}${active ? ' is-active' : ''}`}
+      onClick={onClick}
+      aria-pressed={active}
+    >
+      <DietIcon name={icon} size={16} />
+      <span>{label}</span>
+    </button>
+  )
+}
+
+function PresetOption({ active, label, subtitle, onClick, variant = 'diet' }) {
+  return (
+    <button
+      type="button"
+      className={`fit-sheet__preset fit-sheet__preset--${variant}${active ? ' is-active' : ''}`}
+      onClick={onClick}
+      aria-pressed={active}
+    >
+      <div className="fit-sheet__preset-icon-box" aria-hidden="true">
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      </div>
+      <div className="fit-sheet__preset-texts">
+        <span className="fit-sheet__preset-title">{label}</span>
+        {subtitle ? <span className="fit-sheet__preset-sub">{subtitle}</span> : null}
+      </div>
+      <div className="fit-sheet__preset-indicator" aria-hidden="true">
+        <span className="fit-sheet__preset-indicator-dot" />
+      </div>
+    </button>
+  )
+}
 
 export default function FitCheckDrawer({
   open,
+  initialSection = null,
   onClose,
   profile = {},
   updateProfile,
   onOpenFullPreferences,
 }) {
   const { lang, t } = useI18n()
-  const [draftHalal, setDraftHalal] = useState(Boolean(profile.halal || profile.halalOnly))
-  const [draftDietGoals, setDraftDietGoals] = useState(profile.dietGoals || [])
-  const [draftAllergens, setDraftAllergens] = useState(profile.allergens || [])
-  const [draftNoRestrictions, setDraftNoRestrictions] = useState(
-    Boolean(profile.noDietPreferences && profile.noAllergies)
-  )
-  const [showAllAllergens, setShowAllAllergens] = useState(false)
+  const [prevOpen, setPrevOpen] = useState(false)
+  const [halal, setHalal] = useState(false)
+  const [diets, setDiets] = useState([])
+  const [allergens, setAllergens] = useState([])
+  const [noDiet, setNoDiet] = useState(false)
+  const [noAllergies, setNoAllergies] = useState(false)
   const [saving, setSaving] = useState(false)
+
+  const dietSectionRef = useRef(null)
+  const allergensSectionRef = useRef(null)
+
+  const customCount = (profile.customAllergens || []).length
+
+  // Synchronize draft state when opening drawer without cascading effect setState warning
+  if (open && !prevOpen) {
+    setPrevOpen(true)
+    const status = getFitProfileStatus(profile)
+    setHalal(status.halal)
+    setDiets(status.diets)
+    setAllergens(status.allergens)
+    setNoDiet(status.noDiet)
+    setNoAllergies(status.noAllergies)
+  } else if (!open && prevOpen) {
+    setPrevOpen(false)
+  }
 
   useEffect(() => {
     if (open) {
       document.documentElement.classList.add('fitcheck-drawer-open')
       document.body.classList.add('fitcheck-drawer-open')
-      setDraftHalal(Boolean(profile.halal || profile.halalOnly))
-      setDraftDietGoals(profile.dietGoals || [])
-      setDraftAllergens(profile.allergens || [])
-      setDraftNoRestrictions(Boolean(profile.noDietPreferences && profile.noAllergies))
-      setShowAllAllergens(false)
+      if (initialSection) {
+        const timer = setTimeout(() => {
+          const target =
+            initialSection === 'allergens' ? allergensSectionRef.current : dietSectionRef.current
+          if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+          }
+        }, 100)
+        return () => clearTimeout(timer)
+      }
     } else {
       document.documentElement.classList.remove('fitcheck-drawer-open')
       document.body.classList.remove('fitcheck-drawer-open')
@@ -43,56 +117,45 @@ export default function FitCheckDrawer({
       document.documentElement.classList.remove('fitcheck-drawer-open')
       document.body.classList.remove('fitcheck-drawer-open')
     }
-  }, [open, profile])
+  }, [open, initialSection])
 
-  function toggleHalal() {
-    setDraftNoRestrictions(false)
-    setDraftHalal((prev) => !prev)
+  function pickHalal() {
+    setNoDiet(false)
+    setHalal((prev) => !prev)
   }
 
-  function toggleDiet(id) {
-    setDraftNoRestrictions(false)
-    setDraftDietGoals((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    )
+  function pickDiet(id) {
+    setNoDiet(false)
+    setDiets((prev) => toggleIn(prev, id))
   }
 
-  function toggleAllergen(id) {
-    setDraftNoRestrictions(false)
-    setDraftAllergens((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    )
+  function pickAllergen(id) {
+    setNoAllergies(false)
+    setAllergens((prev) => toggleIn(prev, id))
   }
 
-  function toggleNoRestrictions() {
-    setDraftNoRestrictions(true)
-    setDraftHalal(false)
-    setDraftDietGoals([])
-    setDraftAllergens([])
+  function pickNoDiet() {
+    setNoDiet((prev) => !prev)
+    setHalal(false)
+    setDiets([])
+  }
+
+  function pickNoAllergies() {
+    setNoAllergies((prev) => !prev)
+    setAllergens([])
   }
 
   async function handleSave() {
     setSaving(true)
     try {
-      if (draftNoRestrictions) {
-        await updateProfile({
-          halal: false,
-          halalOnly: false,
-          dietGoals: [],
-          allergens: [],
-          noDietPreferences: true,
-          noAllergies: true,
-        })
-      } else {
-        await updateProfile({
-          halal: draftHalal,
-          halalOnly: draftHalal,
-          dietGoals: draftDietGoals,
-          allergens: draftAllergens,
-          noDietPreferences: false,
-          noAllergies: draftAllergens.length === 0,
-        })
-      }
+      await updateProfile({
+        halal,
+        halalOnly: halal,
+        dietGoals: diets,
+        allergens,
+        noDietPreferences: noDiet,
+        noAllergies: noAllergies && customCount === 0,
+      })
       onClose()
     } catch (err) {
       console.error('Failed to save Fit-Check preferences', err)
@@ -101,15 +164,9 @@ export default function FitCheckDrawer({
     }
   }
 
-  const primaryDiets = DIET_PREFERENCES.filter((d) => d.id !== 'halal')
-  const visibleAllergens = showAllAllergens
-    ? ALLERGENS
-    : ALLERGENS.filter((a) => PRIMARY_ALLERGEN_IDS.includes(a.id) || draftAllergens.includes(a.id))
-  const remainingCount = ALLERGENS.length - visibleAllergens.length
-
-  const activeCount = draftNoRestrictions
-    ? 0
-    : (draftHalal ? 1 : 0) + draftDietGoals.length + draftAllergens.length
+  const otherDiets = DIET_PREFERENCES.filter((d) => d.id !== 'halal')
+  const activeCount = (halal ? 1 : 0) + diets.length + allergens.length
+  const canSave = activeCount > 0 || noDiet || noAllergies || customCount > 0
 
   if (typeof document === 'undefined') return null
 
@@ -146,7 +203,7 @@ export default function FitCheckDrawer({
             }}
             role="dialog"
             aria-modal="true"
-            aria-label={t('home.shieldTitle') || 'Fit-Check'}
+            aria-label={t('home.fitCard.title')}
           >
             <div className="fitcheck-drawer__handle-wrap">
               <div className="fitcheck-drawer__handle" />
@@ -155,15 +212,11 @@ export default function FitCheckDrawer({
             <div className="fitcheck-drawer__header">
               <div className="fitcheck-drawer__title-wrap">
                 <div className="fitcheck-drawer__icon">
-                  <SlidersIcon size={20} color="var(--primary-bright)" />
+                  <FitCheckIcon size={24} active={activeCount > 0} />
                 </div>
                 <div className="fitcheck-drawer__titles">
-                  <h3 className="fitcheck-drawer__title">
-                    {t('home.drawerTitle') || 'Персональный Fit-Check'}
-                  </h3>
-                  <p className="fitcheck-drawer__subtitle">
-                    {t('home.drawerSubtitle') || 'Выберите то, о чем Körset должен предупреждать'}
-                  </p>
+                  <h3 className="fitcheck-drawer__title">{t('home.fitCard.title')}</h3>
+                  <p className="fitcheck-drawer__subtitle">{t('home.fitCard.sheetSub')}</p>
                 </div>
               </div>
               <button
@@ -177,84 +230,83 @@ export default function FitCheckDrawer({
             </div>
 
             <div className="fitcheck-drawer__body">
-              <div className="fitcheck-drawer__section-title">
-                {t('home.fitPreferencesTitle') || 'Особенности питания'}
-              </div>
-              <div className="fitcheck-drawer__chips">
-                <button
-                  type="button"
-                  className={`fitcheck-chip${draftHalal && !draftNoRestrictions ? ' is-active' : ''}`}
-                  onClick={toggleHalal}
-                >
-                  <DietIcon name="halal" size={17} />
-                  <span>{t('home.preferenceHalal') || 'Халал'}</span>
-                </button>
+              <section ref={dietSectionRef} className="fit-sheet__section">
+                <div className="fit-sheet__section-head">
+                  <span className="fit-sheet__badge fit-sheet__badge--diet">
+                    <span className="fit-sheet__badge-dot fit-sheet__badge-dot--diet" />
+                    <h4 className="fit-sheet__section-title fit-sheet__section-title--diet">
+                      {t('home.fitCard.stepDiet')}
+                    </h4>
+                  </span>
+                </div>
 
-                {primaryDiets.map((diet) => {
-                  const isActive = draftDietGoals.includes(diet.id) && !draftNoRestrictions
-                  const label = diet.label?.[lang] || diet.label?.ru || diet.id
-                  return (
-                    <button
+                <PresetOption
+                  active={noDiet}
+                  label={t('home.fitCard.noRestrictions')}
+                  subtitle={t('home.fitCard.noRestrictionsSub')}
+                  onClick={pickNoDiet}
+                  variant="diet"
+                />
+
+                <div className="fit-sheet__chips">
+                  <Chip
+                    active={halal}
+                    icon="halal"
+                    label={t('home.preferenceHalal')}
+                    onClick={pickHalal}
+                    variant="diet"
+                  />
+                  {otherDiets.map((diet) => (
+                    <Chip
                       key={diet.id}
-                      type="button"
-                      className={`fitcheck-chip${isActive ? ' is-active' : ''}`}
-                      onClick={() => toggleDiet(diet.id)}
-                    >
-                      <DietIcon name={diet.icon} size={17} />
-                      <span>{label}</span>
-                    </button>
-                  )
-                })}
-              </div>
+                      active={diets.includes(diet.id)}
+                      icon={diet.icon}
+                      label={diet.label?.[lang] || diet.label?.ru || diet.id}
+                      onClick={() => pickDiet(diet.id)}
+                      variant="diet"
+                    />
+                  ))}
+                </div>
+              </section>
 
-              <div className="fitcheck-drawer__section-title">
-                {t('home.fitAllergensTitle') || 'Аллергены'}
-              </div>
-              <div className="fitcheck-drawer__chips">
-                {visibleAllergens.map((allergen) => {
-                  const isActive = draftAllergens.includes(allergen.id) && !draftNoRestrictions
-                  const label = allergen.label?.[lang] || allergen.label?.ru || allergen.id
-                  return (
-                    <button
+              <section ref={allergensSectionRef} className="fit-sheet__section">
+                <div className="fit-sheet__section-head">
+                  <span className="fit-sheet__badge fit-sheet__badge--allergen">
+                    <span className="fit-sheet__badge-dot fit-sheet__badge-dot--allergen" />
+                    <h4 className="fit-sheet__section-title fit-sheet__section-title--allergen">
+                      {t('home.fitCard.stepAllergens')}
+                    </h4>
+                  </span>
+                </div>
+
+                {customCount === 0 && (
+                  <PresetOption
+                    active={noAllergies}
+                    label={t('home.fitCard.noAllergies')}
+                    subtitle={t('home.fitCard.noAllergiesSub')}
+                    onClick={pickNoAllergies}
+                    variant="allergen"
+                  />
+                )}
+
+                <div className="fit-sheet__chips">
+                  {ALLERGENS.map((allergen) => (
+                    <Chip
                       key={allergen.id}
-                      type="button"
-                      className={`fitcheck-chip${isActive ? ' is-active' : ''}`}
-                      onClick={() => toggleAllergen(allergen.id)}
-                    >
-                      <DietIcon name={allergen.icon} size={17} />
-                      <span>{label}</span>
-                    </button>
-                  )
-                })}
-
-                {/* Expand / Collapse all 14 allergens */}
-                <button
-                  type="button"
-                  className="fitcheck-chip fitcheck-chip--expand"
-                  onClick={() => setShowAllAllergens((prev) => !prev)}
-                  aria-expanded={showAllAllergens}
-                >
-                  {showAllAllergens ? (
-                    <span>{t('home.allergensCollapse') || 'Свернуть аллергены'}</span>
-                  ) : (
-                    <span>
-                      {remainingCount > 0
-                        ? t('home.allergensExpand', { count: remainingCount }) ||
-                          `+ Ещё ${remainingCount} аллергенов`
-                        : t('home.allergensCollapse') || 'Все аллергены'}
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  className={`fitcheck-chip fitcheck-chip--reset${draftNoRestrictions ? ' is-active' : ''}`}
-                  onClick={toggleNoRestrictions}
-                >
-                  <CheckCircleIcon size={17} />
-                  <span>{t('home.noPreferences') || 'Без ограничений'}</span>
-                </button>
-              </div>
+                      active={allergens.includes(allergen.id)}
+                      icon={allergen.icon}
+                      label={getAllergenShortName(allergen.id, lang)}
+                      onClick={() => pickAllergen(allergen.id)}
+                      variant="allergen"
+                    />
+                  ))}
+                </div>
+                {customCount > 0 ? (
+                  <p className="fit-sheet__note">
+                    {t('home.fitCard.sheetCustomNote', { count: customCount })}
+                  </p>
+                ) : null}
+              </section>
             </div>
 
             <div className="fitcheck-drawer__footer">
@@ -262,16 +314,13 @@ export default function FitCheckDrawer({
                 type="button"
                 className="fitcheck-drawer__submit"
                 onClick={handleSave}
-                disabled={saving}
+                disabled={saving || !canSave}
               >
-                <CheckCircleIcon size={19} />
-                <span>
-                  {saving
-                    ? t('home.fitSaving')
-                    : activeCount > 0
-                      ? `${t('home.fitSaveCount') || 'Применить'} (${activeCount})`
-                      : t('home.fitSaveCount') || 'Применить'}
-                </span>
+                {saving
+                  ? t('home.fitSaving')
+                  : activeCount > 0
+                    ? t('home.fitCard.saveCount', { count: activeCount })
+                    : t('home.fitCard.save')}
               </button>
 
               {onOpenFullPreferences && (
@@ -283,7 +332,7 @@ export default function FitCheckDrawer({
                     onOpenFullPreferences()
                   }}
                 >
-                  <span>{t('home.allSettingsInProfile') || 'Все настройки в профиле'}</span>
+                  {t('home.allSettingsInProfile')}
                 </button>
               )}
             </div>

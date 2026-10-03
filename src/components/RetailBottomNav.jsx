@@ -25,118 +25,27 @@ export default function RetailBottomNav() {
   if (!storeSlug) return null
 
   const TABS = [
-    {
-      id: 'dashboard',
-      label: t('retail.nav.dashboard') || 'Обзор',
-      path: `/retail/${storeSlug}/dashboard`,
-      Icon: StorefrontIcon,
-    },
-    {
-      id: 'products',
-      label: t('retail.nav.products') || 'Каталог',
-      path: `/retail/${storeSlug}/products`,
-      Icon: InventoryIcon,
-    },
-    {
-      id: 'storefront',
-      label: t('retail.nav.storefront') || 'Витрина',
-      path: `/retail/${storeSlug}/storefront`,
-      Icon: EyeIcon,
-    },
-    {
-      id: 'integration',
-      label: t('retail.nav.integration') || 'Синхронизация',
-      path: `/retail/${storeSlug}/integration`,
-      Icon: SyncIcon,
-    },
-    {
-      id: 'settings',
-      label: t('retail.nav.settings') || 'Настройки',
-      path: `/retail/${storeSlug}/settings`,
-      Icon: SlidersIcon,
-    },
+    { id: 'dashboard', label: t('retail.nav.dashboard') || 'Обзор', Icon: StorefrontIcon },
+    { id: 'products', label: t('retail.nav.products') || 'Каталог', Icon: InventoryIcon },
+    { id: 'storefront', label: t('retail.nav.storefront') || 'Витрина', Icon: EyeIcon },
+    { id: 'integration', label: t('retail.nav.integration') || 'Синхронизация', Icon: SyncIcon },
+    { id: 'settings', label: t('retail.nav.settings') || 'Настройки', Icon: SlidersIcon },
   ]
 
   return (
-    <nav
-      style={{
-        position: 'fixed',
-        bottom: 0,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: '100%',
-        maxWidth: 430,
-        boxSizing: 'border-box',
-        zIndex: 100,
-        display: 'grid',
-        gridTemplateColumns: 'repeat(5, 1fr)',
-        alignItems: 'end',
-        columnGap: 2,
-        padding: '6px 4px calc(10px + env(safe-area-inset-bottom, 0px))',
-        background: 'var(--retail-nav-bg, var(--bg-card))',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
-        borderTop: '1px solid var(--retail-border, var(--border))',
-        boxShadow: '0 -18px 48px rgba(15,23,42,0.12)',
-      }}
-    >
-      {TABS.map((tab) => {
-        const on = active === tab.id
-        const tabCol = on
-          ? 'var(--retail-accent, #38BDF8)'
-          : 'var(--nav-muted, rgba(140, 140, 180, 0.45))'
-        const IconComponent = tab.Icon
-
+    <nav className="rc-mnav">
+      {TABS.map(({ id, label, Icon }) => {
+        const on = active === id
         return (
           <button
-            key={tab.id}
+            key={id}
             type="button"
-            onClick={() => navigate(tab.path)}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'flex-end',
-              gap: 3,
-              width: '100%',
-              minWidth: 0,
-              height: 48,
-              padding: '4px 2px',
-              borderRadius: 10,
-              border: 'none',
-              cursor: 'pointer',
-              background: 'transparent',
-              outline: 'none',
-            }}
+            onClick={() => navigate(`/retail/${storeSlug}/${id}`)}
+            className={`rc-mnav__tab ${on ? 'rc-mnav__tab--active' : ''}`}
+            aria-current={on ? 'page' : undefined}
           >
-            <div
-              style={{
-                transition: 'transform 0.18s ease',
-                transform: on ? 'translateY(-2px)' : 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <IconComponent size={20} color={tabCol} />
-            </div>
-            <span
-              style={{
-                fontSize: 9.5,
-                fontWeight: on ? 700 : 500,
-                color: tabCol,
-                fontFamily: 'var(--font-body)',
-                transition: 'color 0.18s ease',
-                lineHeight: 1.1,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                maxWidth: '100%',
-                textAlign: 'center',
-              }}
-            >
-              {tab.label}
-            </span>
+            <Icon size={21} color="currentColor" />
+            <span className="rc-mnav__label">{label}</span>
           </button>
         )
       })}

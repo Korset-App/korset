@@ -1055,7 +1055,7 @@ export default function ProfileScreen() {
                             width: 6,
                             height: 6,
                             borderRadius: '50%',
-                            background: 'var(--success-bright)',
+                            background: 'var(--primary-bright)',
                           }}
                         />
                         <span
@@ -1063,7 +1063,7 @@ export default function ProfileScreen() {
                             fontFamily: 'var(--font-display)',
                             fontSize: 13,
                             fontWeight: 600,
-                            color: 'var(--success-bright)',
+                            color: 'var(--primary-bright)',
                             textTransform: 'uppercase',
                             letterSpacing: 1,
                           }}
@@ -1119,23 +1119,23 @@ export default function ProfileScreen() {
                           padding: '9px 6px',
                           borderRadius: 12,
                           background: profile.halal
-                            ? 'rgba(16, 185, 129, 0.16)'
+                            ? 'rgba(124, 58, 237, 0.16)'
                             : 'var(--glass-subtle)',
-                          border: `1.5px solid ${profile.halal ? 'var(--success-bright)' : 'var(--glass-border)'}`,
-                          boxShadow: profile.halal ? '0 0 12px rgba(16, 185, 129, 0.22)' : 'none',
-                          color: profile.halal ? 'var(--success-bright)' : 'var(--text)',
+                          border: `1.5px solid ${profile.halal ? 'var(--primary-bright)' : 'var(--glass-border)'}`,
+                          boxShadow: profile.halal ? '0 0 12px rgba(124, 58, 237, 0.25)' : 'none',
+                          color: profile.halal ? 'var(--primary-bright)' : 'var(--text)',
                           cursor: 'pointer',
                           transition: 'all 0.2s cubic-bezier(0.22, 1, 0.36, 1)',
                           userSelect: 'none',
                         }}
                       >
-                        <DietIcon name="halal" size={30} />
+                        <DietIcon name="halal" size={18} />
                         <span
                           style={{
                             fontFamily: 'var(--font-display)',
                             fontSize: 12,
                             fontWeight: profile.halal ? 600 : 500,
-                            color: profile.halal ? 'var(--success-bright)' : 'var(--text)',
+                            color: profile.halal ? 'var(--primary-bright)' : 'var(--text)',
                           }}
                         >
                           {t('profile.halalLabel')}
@@ -1157,10 +1157,10 @@ export default function ProfileScreen() {
                               gap: 6,
                               padding: '9px 6px',
                               borderRadius: 12,
-                              background: a ? 'rgba(16, 185, 129, 0.16)' : 'var(--glass-subtle)',
-                              border: `1.5px solid ${a ? 'var(--success-bright)' : 'var(--glass-border)'}`,
-                              boxShadow: a ? '0 0 12px rgba(16, 185, 129, 0.22)' : 'none',
-                              color: a ? 'var(--success-bright)' : 'var(--text)',
+                              background: a ? 'rgba(124, 58, 237, 0.16)' : 'var(--glass-subtle)',
+                              border: `1.5px solid ${a ? 'var(--primary-bright)' : 'var(--glass-border)'}`,
+                              boxShadow: a ? '0 0 12px rgba(124, 58, 237, 0.25)' : 'none',
+                              color: a ? 'var(--primary-bright)' : 'var(--text)',
                               cursor: 'pointer',
                               transition: 'all 0.2s cubic-bezier(0.22, 1, 0.36, 1)',
                               userSelect: 'none',
@@ -1172,7 +1172,7 @@ export default function ProfileScreen() {
                                 fontFamily: 'var(--font-display)',
                                 fontSize: 12,
                                 fontWeight: a ? 600 : 500,
-                                color: a ? 'var(--success-bright)' : 'var(--text)',
+                                color: a ? 'var(--primary-bright)' : 'var(--text)',
                               }}
                             >
                               {tr(d.label)}

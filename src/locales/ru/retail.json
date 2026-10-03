@@ -521,5 +521,11 @@
   "retail.settings.teamRolesTeaserTitle": "Раздельные роли сотрудников",
   "retail.settings.teamRolesTeaserBody": "В следующем обновлении появится добавление сотрудников с ограниченными правами: «Кассир» (только сканирование и кассовый чек), «Товаровед» (приемка, остатки и цены), «Бухгалтер» (отчеты и накладные).",
   "retail.settings.storefrontLinkNotice": "Оформление витрины, логотип, обложка и печать QR-кодов для кассы перенесены в раздел",
-  "retail.settings.goToStorefront": "Перейти в Витрину"
+  "retail.settings.goToStorefront": "Перейти в Витрину",
+  "retail.overview.attentionTitle": "Требует внимания",
+  "retail.overview.attentionNotInCatalog": "Покупатели искали {count} товаров, которых нет в каталоге",
+  "retail.overview.attentionOutOfStock": "Покупатели искали {count} товаров, которых нет в наличии",
+  "retail.overview.attentionAction": "Открыть каталог",
+  "retail.overview.coverageOf": "Каталог: {total} товаров",
+  "retail.overview.signalsTitle": "Поведение покупателей"
 }
