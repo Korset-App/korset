@@ -1,52 +1,29 @@
-import { useNavigate, useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useI18n } from '../i18n/index.js'
 import { useStore } from '../contexts/StoreContext.jsx'
-import { StorefrontIcon, InventoryIcon, EyeIcon, SyncIcon, SlidersIcon } from './icons/index.js'
+import { RETAIL_NAVIGATION, getRetailPath, getRetailSection } from '../domain/retail/navigation.js'
+import { RETAIL_NAV_ICONS } from './retail/RetailGlyphs.jsx'
 
 export default function RetailBottomNav() {
-  const navigate = useNavigate()
-  const { pathname } = useLocation()
   const { currentStore } = useStore()
+  const { pathname, search } = useLocation()
   const { t } = useI18n()
-
-  const getActive = () => {
-    if (pathname.includes('/products')) return 'products'
-    if (pathname.includes('/import')) return 'products'
-    if (pathname.includes('/ean-recovery')) return 'products'
-    if (pathname.includes('/storefront')) return 'storefront'
-    if (pathname.includes('/integration')) return 'integration'
-    if (pathname.includes('/settings')) return 'settings'
-    return 'dashboard'
-  }
-
-  const active = getActive()
-  const storeSlug = currentStore?.slug
-
-  if (!storeSlug) return null
-
-  const TABS = [
-    { id: 'dashboard', label: t('retail.nav.dashboard') || 'Обзор', Icon: StorefrontIcon },
-    { id: 'products', label: t('retail.nav.products') || 'Каталог', Icon: InventoryIcon },
-    { id: 'storefront', label: t('retail.nav.storefront') || 'Витрина', Icon: EyeIcon },
-    { id: 'integration', label: t('retail.nav.integration') || 'Синхронизация', Icon: SyncIcon },
-    { id: 'settings', label: t('retail.nav.settings') || 'Настройки', Icon: SlidersIcon },
-  ]
-
+  const active = getRetailSection(pathname)
+  if (!currentStore?.slug) return null
   return (
-    <nav className="rc-mnav">
-      {TABS.map(({ id, label, Icon }) => {
-        const on = active === id
+    <nav className="rc-mnav" aria-label={t('retail.shell.navigation')}>
+      {RETAIL_NAVIGATION.map((item) => {
+        const Icon = RETAIL_NAV_ICONS[item.id]
         return (
-          <button
-            key={id}
-            type="button"
-            onClick={() => navigate(`/retail/${storeSlug}/${id}`)}
-            className={`rc-mnav__tab ${on ? 'rc-mnav__tab--active' : ''}`}
-            aria-current={on ? 'page' : undefined}
+          <Link
+            key={item.id}
+            to={`${getRetailPath(currentStore.slug, item.id)}${search}`}
+            className={`rc-mnav__tab ${active === item.id ? 'rc-mnav__tab--active' : ''}`}
+            aria-current={active === item.id ? 'page' : undefined}
           >
-            <Icon size={21} color="currentColor" />
-            <span className="rc-mnav__label">{label}</span>
-          </button>
+            <Icon size={20} />
+            <span>{t(item.labelKey)}</span>
+          </Link>
         )
       })}
     </nav>

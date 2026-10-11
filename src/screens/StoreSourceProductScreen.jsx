@@ -119,11 +119,7 @@ export default function StoreSourceProductScreen() {
               )}
             </>
           )}
-          {product.ean && (
-            <p className="store-source-product__barcode">
-              {t('integration.consumer.barcode')}: {product.ean}
-            </p>
-          )}
+
         </>
       )}
     </main>

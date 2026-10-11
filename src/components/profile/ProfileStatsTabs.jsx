@@ -3,6 +3,7 @@ import { useStore } from '../../contexts/StoreContext.jsx'
 import ProductMiniCard from '../ProductMiniCard.jsx'
 import { FitCheckIcon } from '../icons/FitCheckIcon.jsx'
 import { ShoppingListIcon } from '../icons/ShoppingListIcon.jsx'
+import { HistoryIcon } from '../icons/HistoryIcon.jsx'
 import './ProfileStatsTabs.css'
 
 /**
@@ -50,45 +51,21 @@ export default function ProfileStatsTabs({
       tone: 'favorites',
       value: isGuest ? '—' : favoritesLoadError ? '—' : favoritesCount,
       label: t('profile.favorites'),
-      iconBg: 'rgba(245,158,11,0.18)',
-      iconBorder: 'rgba(251,191,36,0.55)',
-      iconShadow: '0 4px 22px rgba(245,158,11,0.36)',
-      icon: <ShoppingListIcon size={22} color="var(--warning)" active />,
+      icon: <ShoppingListIcon size={32} active />,
     },
     {
       id: 'preferences',
       tone: 'preferences',
       value: preferencesCount,
       label: t('profile.preferencesTitle'),
-      iconBg: 'rgba(124,58,237,0.18)',
-      iconBorder: 'rgba(167,139,250,0.55)',
-      iconShadow: '0 4px 22px rgba(124,58,237,0.36)',
-      icon: <FitCheckIcon size={27} active={preferencesCount > 0} style={{ color: '#A78BFA' }} />,
+      icon: <FitCheckIcon size={32} active={preferencesCount > 0} />,
     },
     {
       id: 'history',
       tone: 'history',
       value: scanCount,
       label: t('profile.scans'),
-      iconBg: 'rgba(16,185,129,0.18)',
-      iconBorder: 'rgba(52,211,153,0.55)',
-      iconShadow: '0 4px 22px rgba(16,185,129,0.32)',
-      icon: (
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#34D399"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M12 8v4l2.5 2.5" />
-          <path d="M5.6 5.6 4.34 6.87l2.54.01M4.32 4.33l.02 2.54M3 12a9 9 0 0 0 13.5 7.79M19.8 16.5A9 9 0 0 0 5.67 5.6" />
-        </svg>
-      ),
+      icon: <HistoryIcon size={32} />,
     },
   ]
 
@@ -231,9 +208,6 @@ export default function ProfileStatsTabs({
 
   return (
     <div className={`stats-tabs ${activeTab ? `stats-tabs--open tone-${activeTab}` : ''}`}>
-      {/* Row of three cards. Each is a fully rounded button with its own
-          subtle border. The active card lights up via tone-coloured border
-          + a faint background tint (per the mock-ups). */}
       <div className="stats-tabs__row">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id
@@ -241,21 +215,12 @@ export default function ProfileStatsTabs({
             <button
               key={tab.id}
               type="button"
-              className={`stat-card ${isActive ? `is-active is-${tab.tone}` : ''}`}
+              className={`stat-card stat-card--${tab.tone}${isActive ? ' is-active' : ''}`}
               onClick={() => toggleTab(tab.id)}
               aria-expanded={isActive}
               aria-controls="profile-stats-panel"
             >
-              <span
-                className="stat-card__icon-wrap"
-                style={{
-                  background: tab.iconBg,
-                  borderColor: tab.iconBorder,
-                  boxShadow: tab.iconShadow,
-                }}
-              >
-                {tab.icon}
-              </span>
+              <span className="stat-card__icon-wrap">{tab.icon}</span>
               <span className="stat-card__value">{tab.value}</span>
               <span className="stat-card__label">{tab.label}</span>
             </button>

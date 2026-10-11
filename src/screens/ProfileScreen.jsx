@@ -571,8 +571,6 @@ export default function ProfileScreen() {
         @keyframes floatOrb1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(30px,-20px) scale(1.1)} }
         @keyframes floatOrb2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-25px,15px) scale(0.9)} }
         @keyframes floatOrb3 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(15px,25px) scale(1.05)} }
-        .pref-chip { transition: all 0.2s ease; cursor: pointer; }
-        .pref-chip:active { transform: scale(0.95); }
         .settings-item { transition: background 0.15s; }
         .settings-item:active { background: var(--glass-bg) !important; }
       `}</style>
@@ -981,7 +979,7 @@ export default function ProfileScreen() {
           <AuthPromptModal open={authPromptOpen} onClose={() => setAuthPromptOpen(false)} />
 
           {/* ── STATS TABS (favorites / preferences / history) ── */}
-          <div style={{ padding: '38px 20px 28px' }}>
+          <div style={{ padding: '22px 20px 28px' }}>
             <ProfileStatsTabs
               activeTab={activeTab}
               onTabChange={(tab) => {
@@ -1039,238 +1037,68 @@ export default function ProfileScreen() {
               onRemoveFavorite={handleRemoveFavorite}
               preferencesContent={
                 <>
-                  {/* Diet */}
-                  <div style={{ marginBottom: 20 }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        marginBottom: 12,
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div
-                          style={{
-                            width: 6,
-                            height: 6,
-                            borderRadius: '50%',
-                            background: 'var(--primary-bright)',
-                          }}
-                        />
-                        <span
-                          style={{
-                            fontFamily: 'var(--font-display)',
-                            fontSize: 13,
-                            fontWeight: 600,
-                            color: 'var(--primary-bright)',
-                            textTransform: 'uppercase',
-                            letterSpacing: 1,
-                          }}
-                        >
-                          {t('profile.diet')}
-                        </span>
-                      </div>
-
-                      {/* Subtle auto-save status pill */}
-                      <div
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 5,
-                          fontSize: 11,
-                          fontWeight: 600,
-                          fontFamily: 'var(--font-display)',
-                          color: 'var(--success-bright)',
-                          opacity: autoSaveNotice ? 1 : 0,
-                          transform: autoSaveNotice ? 'scale(1)' : 'scale(0.95)',
-                          transition: 'opacity 0.25s ease, transform 0.25s ease',
-                          pointerEvents: 'none',
-                        }}
+                  <section className="pref-section">
+                    <div className="pref-section__heading">
+                      <h3 className="pref-section__title">{t('profile.diet')}</h3>
+                      <span
+                        className="pref-save-status"
+                        style={{ opacity: autoSaveNotice ? 1 : 0 }}
+                        role="status"
+                        aria-live="polite"
                       >
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
-                        >
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                        <span>{t('profile.autoSaved') || 'Сохранено'}</span>
-                      </div>
+                        {autoSaveNotice ? t('profile.autoSaved') : ''}
+                      </span>
                     </div>
-
                     <div className="pref-choice-grid">
                       <button
                         type="button"
                         className="pref-chip"
                         onClick={toggleHalal}
                         aria-pressed={profile.halal}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 6,
-                          padding: '9px 6px',
-                          borderRadius: 12,
-                          background: profile.halal
-                            ? 'rgba(124, 58, 237, 0.16)'
-                            : 'var(--glass-subtle)',
-                          border: `1.5px solid ${profile.halal ? 'var(--primary-bright)' : 'var(--glass-border)'}`,
-                          boxShadow: profile.halal ? '0 0 12px rgba(124, 58, 237, 0.25)' : 'none',
-                          color: profile.halal ? 'var(--primary-bright)' : 'var(--text)',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s cubic-bezier(0.22, 1, 0.36, 1)',
-                          userSelect: 'none',
-                        }}
                       >
                         <DietIcon name="halal" size={18} />
-                        <span
-                          style={{
-                            fontFamily: 'var(--font-display)',
-                            fontSize: 12,
-                            fontWeight: profile.halal ? 600 : 500,
-                            color: profile.halal ? 'var(--primary-bright)' : 'var(--text)',
-                          }}
-                        >
-                          {t('profile.halalLabel')}
-                        </span>
+                        <span>{t('profile.halalLabel')}</span>
                       </button>
-                      {DIET_GOALS.map((d) => {
-                        const a = profile.dietGoals.includes(d.id)
-                        return (
-                          <button
-                            type="button"
-                            key={d.id}
-                            className="pref-chip"
-                            onClick={() => toggleDiet(d.id)}
-                            aria-pressed={a}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: 6,
-                              padding: '9px 6px',
-                              borderRadius: 12,
-                              background: a ? 'rgba(124, 58, 237, 0.16)' : 'var(--glass-subtle)',
-                              border: `1.5px solid ${a ? 'var(--primary-bright)' : 'var(--glass-border)'}`,
-                              boxShadow: a ? '0 0 12px rgba(124, 58, 237, 0.25)' : 'none',
-                              color: a ? 'var(--primary-bright)' : 'var(--text)',
-                              cursor: 'pointer',
-                              transition: 'all 0.2s cubic-bezier(0.22, 1, 0.36, 1)',
-                              userSelect: 'none',
-                            }}
-                          >
-                            <DietIcon name={d.icon} size={18} />
-                            <span
-                              style={{
-                                fontFamily: 'var(--font-display)',
-                                fontSize: 12,
-                                fontWeight: a ? 600 : 500,
-                                color: a ? 'var(--primary-bright)' : 'var(--text)',
-                              }}
-                            >
-                              {tr(d.label)}
-                            </span>
-                          </button>
-                        )
-                      })}
+                      {DIET_GOALS.map((d) => (
+                        <button
+                          type="button"
+                          key={d.id}
+                          className="pref-chip"
+                          onClick={() => toggleDiet(d.id)}
+                          aria-pressed={profile.dietGoals.includes(d.id)}
+                        >
+                          <DietIcon name={d.icon} size={18} />
+                          <span>{tr(d.label)}</span>
+                        </button>
+                      ))}
                     </div>
-                  </div>
+                  </section>
 
-                  <div
-                    style={{
-                      height: 1,
-                      background: 'var(--glass-soft-border)',
-                      margin: '0 0 20px',
-                    }}
-                  />
+                  <div className="pref-section-divider" />
 
-                  {/* Allergens */}
-                  <div>
-                    <div
-                      style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}
-                    >
-                      <div
-                        style={{
-                          width: 6,
-                          height: 6,
-                          borderRadius: '50%',
-                          background: 'var(--error-bright)',
-                        }}
-                      />
-                      <span
-                        style={{
-                          fontFamily: 'var(--font-display)',
-                          fontSize: 13,
-                          fontWeight: 600,
-                          color: 'var(--error-bright)',
-                          textTransform: 'uppercase',
-                          letterSpacing: 1,
-                        }}
-                      >
-                        {t('profile.allergens')}
-                      </span>
+                  <section className="pref-section pref-section--allergens">
+                    <div className="pref-section__heading">
+                      <h3 className="pref-section__title">{t('profile.allergens')}</h3>
                     </div>
                     <div className="pref-allergen-grid">
-                      {ALLERGENS.map((al) => {
-                        const a = profile.allergens.includes(al.id)
-                        return (
-                          <button
-                            type="button"
-                            key={al.id}
-                            className="pref-chip"
-                            onClick={() => toggleAllergen(al.id)}
-                            aria-pressed={a}
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 6,
-                              padding: '8px 12px',
-                              borderRadius: 12,
-                              background: a ? 'rgba(239, 68, 68, 0.16)' : 'var(--glass-subtle)',
-                              border: `1.5px solid ${a ? 'var(--error-bright)' : 'var(--glass-border)'}`,
-                              boxShadow: a ? '0 0 12px rgba(239, 68, 68, 0.22)' : 'none',
-                              color: a ? 'var(--error-bright)' : 'var(--text)',
-                              cursor: 'pointer',
-                              transition: 'all 0.2s cubic-bezier(0.22, 1, 0.36, 1)',
-                              userSelect: 'none',
-                            }}
-                          >
-                            <DietIcon name={al.icon} size={16} />
-                            <span
-                              style={{
-                                fontFamily: 'var(--font-display)',
-                                fontSize: 12,
-                                fontWeight: a ? 600 : 500,
-                                color: a ? 'var(--error-bright)' : 'var(--text)',
-                                transition: 'color 0.2s ease',
-                              }}
-                            >
-                              {tr(al.shortLabel || al.label)}
-                            </span>
-                          </button>
-                        )
-                      })}
+                      {ALLERGENS.map((al) => (
+                        <button
+                          type="button"
+                          key={al.id}
+                          className="pref-chip"
+                          onClick={() => toggleAllergen(al.id)}
+                          aria-pressed={profile.allergens.includes(al.id)}
+                          aria-label={tr(al.label)}
+                          title={tr(al.label)}
+                        >
+                          <DietIcon name={al.icon} size={18} />
+                          <span>{tr(al.shortLabel || al.label)}</span>
+                        </button>
+                      ))}
                     </div>
 
                     {/* Custom allergen input card */}
-                    <div
-                      style={{
-                        padding: '14px',
-                        borderRadius: 16,
-                        background: 'var(--glass-subtle)',
-                        border: '1px solid var(--glass-soft-border)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 10,
-                      }}
-                    >
+                    <div className="pref-custom-entry">
                       <div>
                         <div
                           style={{
@@ -1286,6 +1114,8 @@ export default function ProfileScreen() {
 
                       <div style={{ position: 'relative', width: '100%' }}>
                         <input
+                          className="pref-custom-input"
+                          aria-label={t('profile.customAllergensTitle')}
                           ref={allergenInputRef}
                           value={allergenInput}
                           onChange={(e) => setAllergenInput(e.target.value)}
@@ -1296,8 +1126,8 @@ export default function ProfileScreen() {
                           style={{
                             width: '100%',
                             boxSizing: 'border-box',
-                            background: 'var(--glass-bg)',
-                            border: '1px solid var(--glass-border)',
+                            background: 'var(--surface)',
+                            border: '1px solid var(--border)',
                             borderRadius: 12,
                             padding: '10px 44px 10px 14px',
                             color: 'var(--text)',
@@ -1321,7 +1151,7 @@ export default function ProfileScreen() {
                             borderRadius: 8,
                             background: allergenInput.trim()
                               ? 'var(--primary)'
-                              : 'var(--glass-subtle)',
+                              : 'var(--surface)',
                             color: allergenInput.trim()
                               ? 'var(--text-inverse)'
                               : 'var(--text-disabled)',
@@ -1407,7 +1237,7 @@ export default function ProfileScreen() {
                         </div>
                       )}
                     </div>
-                  </div>
+                  </section>
                 </>
               }
             />

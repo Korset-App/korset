@@ -4,6 +4,7 @@ import {
   applySyncedConditions,
   applySyncedRegularFallback,
 } from '../domain/product/syncedConditions.js'
+import { getMissedOpportunitiesPage as loadMissedOpportunitiesPage } from '../domain/retail/missedOpportunities.js'
 
 export function applyRetailSyncedConditions(product, now = Date.now()) {
   if (!product.syncConditions) return product
@@ -66,12 +67,12 @@ export async function getTopScannedProducts(storeId, days, limit = 5) {
 }
 
 export async function getMissedOpportunities(storeId, days) {
-  const { data, error } = await supabase.rpc('get_missed_opportunities', {
-    p_store_id: storeId,
-    p_days_back: days,
-  })
-  if (error) throw new Error(error.message ?? error)
-  return data ?? []
+  const { items } = await getMissedOpportunitiesPage(storeId, days)
+  return items
+}
+
+export async function getMissedOpportunitiesPage(storeId, days, limit) {
+  return loadMissedOpportunitiesPage(supabase, storeId, days, limit)
 }
 
 export async function getUniqueCustomers(storeId, days) {

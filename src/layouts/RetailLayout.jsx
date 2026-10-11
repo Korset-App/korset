@@ -4,8 +4,11 @@ import { useAuth } from '../contexts/AuthContext.jsx'
 import RetailBottomNav from '../components/RetailBottomNav.jsx'
 import RetailDesktopSidebar from '../components/retail/RetailDesktopSidebar.jsx'
 import RetailDesktopTopbar from '../components/retail/RetailDesktopTopbar.jsx'
-import { LockIcon, EyeIcon } from '../components/icons/index.js'
+import RetailAccountMenu from '../components/retail/RetailAccountMenu.jsx'
+import RetailStoreActions from '../components/retail/RetailStoreActions.jsx'
+import { LockIcon } from '../components/icons/index.js'
 import ProfileAvatar from '../components/ProfileAvatar.jsx'
+import { StoreGlyph } from '../components/retail/RetailGlyphs.jsx'
 import { buildAuthNavigateState } from '../utils/authFlow.js'
 import { useI18n } from '../i18n/index.js'
 import { useStore } from '../contexts/StoreContext.jsx'
@@ -158,8 +161,6 @@ export default function RetailLayout() {
     return <NoAccessScreen storeName={currentStore?.name} />
   }
 
-  const isSettings = location.pathname.endsWith('/settings')
-
   if (isDesktop) {
     return (
       <div className="retail-desktop-shell">
@@ -180,42 +181,38 @@ export default function RetailLayout() {
 
   return (
     <div className="retail-mobile-shell app-frame" style={{ background: 'var(--retail-bg)' }}>
-      {!isSettings && (
+      {
         <div className="rc-mhead">
           <div className="rc-mhead__store">
             <div className="rc-avatar">
-              <ProfileAvatar
-                avatarId={currentStore?.logo_url}
-                name={currentStore?.name || 'K'}
-                rounded="circle"
-              />
+              {currentStore?.logo_url ? (
+                <ProfileAvatar
+                  avatarId={currentStore?.logo_url}
+                  name={currentStore?.name || 'K'}
+                  rounded="circle"
+                />
+              ) : (
+                <StoreGlyph size={28} />
+              )}
             </div>
             <div className="rc-mhead__copy">
               <span className="rc-mhead__name">{currentStore?.name || 'Körset'}</span>
               <span
-                className={`rc-status ${currentStore?.is_published === false ? 'rc-status--draft' : ''}`}
+                className={`rc-status ${currentStore?.isPublished === false ? 'rc-status--draft' : ''}`}
               >
-                {currentStore?.is_published === false
+                {currentStore?.isPublished === false
                   ? t('retail.desktop.storeOffline') || 'Черновик'
                   : t('retail.desktop.storeOnline') || 'В сети'}
               </span>
             </div>
           </div>
 
-          {currentStore?.slug && (
-            <a
-              href={`/s/${currentStore.slug}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rc-btn"
-              title={t('retail.viewStoreFront') || 'Открыть витрину покупателя'}
-            >
-              <EyeIcon size={15} color="currentColor" />
-              <span>{t('retail.viewStoreFrontShort') || 'Витрина'}</span>
-            </a>
-          )}
+          <div className="rc-mhead__actions">
+            <RetailStoreActions currentStore={currentStore} compact />
+            <RetailAccountMenu compact mobile />
+          </div>
         </div>
-      )}
+      }
 
       <div className="screen" style={{ paddingBottom: '100px' }}>
         <Outlet />
