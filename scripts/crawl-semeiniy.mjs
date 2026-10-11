@@ -16,6 +16,7 @@ import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { createRequire } from 'module'
+import { extractSourceCompositions } from '../src/domain/catalog/sourceComposition.js'
 
 const require = createRequire(import.meta.url)
 const { classifyBarcode } = require('./validate-ean.cjs')
@@ -307,6 +308,7 @@ function parsePageHtml(html, url) {
 
   // Features table
   const features = { ...embeddedFeatures }
+  const compositionFeatureEntries = Object.entries(embeddedFeatures)
   const featureRows = [...html.matchAll(/<tr[^>]*class=["'][^"']*s-features-wrapper__feature[^"']*["'][^>]*>([\s\S]*?)<\/tr>/gi)]
   for (const row of featureRows) {
     const nameMatch = row[1].match(/class=["'][^"']*s-features-wrapper__name[^"']*["'][^>]*>([\s\S]*?)<\/td>/i)
@@ -314,30 +316,25 @@ function parsePageHtml(html, url) {
     if (nameMatch && valMatch) {
       const fName = nameMatch[1].replace(/<[^>]+>/g, '').trim().toLowerCase()
       const fVal = valMatch[1].replace(/<[^>]+>/g, '').trim()
-      if (fName && fVal) features[fName] = fVal
+      if (fName && fVal) {
+        features[fName] = fVal
+        compositionFeatureEntries.push([fName, fVal])
+      }
     }
   }
 
   // Compositions
   const descMatch = html.match(/class=["'][^"']*s-product-desc[^"']*["'][^>]*>([\s\S]*?)<\/div>/i)
-  const fullDesc = descMatch ? descMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : ''
-  let compositionRu = null
-  if (/состав[:\s]/i.test(fullDesc)) {
-    const compPart = fullDesc.replace(/^[\s\S]*?состав[:\s]/i, '').trim()
-    compositionRu = compPart.split(/(?:пищевая ценность|условия хранения|срок годности)/i)[0].trim()
-  }
-
-  let compositionKz = null
-  for (const [k, v] of Object.entries(features)) {
-    if (k.includes('құрамы') || k.includes('курам')) {
-      compositionKz = v
-      break
-    }
-    if (typeof v === 'string' && (v.includes('Құрамы:') || v.includes('құрамы:'))) {
-      compositionKz = v.replace(/^[\s\S]*?құрамы[:\s]/i, '').trim()
-      break
-    }
-  }
+  const fullDesc = descMatch ? descMatch[1]
+    .replace(/<(?:br|\/p|\/li)\b[^>]*>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/[^\S\n]+/g, ' ')
+    .replace(/ *\n */g, '\n')
+    .trim() : ''
+  const { ru: compositionRu, kz: compositionKz } = extractSourceCompositions({
+    description: fullDesc,
+    features: compositionFeatureEntries,
+  })
 
   // Product ID in Webasyst (e.g. data-product-id="117759" or id="product-form-117759")
   const idMatch = html.match(/data-product-id=["'](\d+)["']/i) || html.match(/id=["']product-form-(\d+)["']/i) || html.match(/s-product-(\d+)/i)
