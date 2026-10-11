@@ -86,6 +86,7 @@ test('rejects apply, corrupt pages, duplicate IDs and escaping paths before outp
     { id: 'not-a-uuid' },
     { category: 'dairy' },
     { normalized_marker: true },
+    { normalized_marker: undefined },
   ]) {
     const invalid = await fixture([{ ...base, ...changed }]);
     assert.notEqual(spawnSync(process.execPath, [script, '--snapshot', invalid.snapshot, '--output', invalid.output], { encoding: 'utf8' }).status, 0);

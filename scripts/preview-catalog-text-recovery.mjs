@@ -31,7 +31,7 @@ function parseJson(value, label) {
   try { return JSON.parse(value); } catch { return fail(`Invalid JSON in ${label}`); }
 }
 
-async function readSnapshot(snapshot) {
+export async function readSnapshot(snapshot) {
   const manifest = parseJson(await readFile(join(snapshot, 'manifest.json'), 'utf8'), 'manifest');
   if (!isObject(manifest) || manifest.complete !== true || manifest.scope?.active !== true || manifest.scope?.normalized !== false ||
       !Array.isArray(manifest.scope?.excludedCategories) || !['personal_care', 'household'].every(category => manifest.scope.excludedCategories.includes(category)) ||
@@ -57,7 +57,7 @@ async function readSnapshot(snapshot) {
       const row = parseJson(line, page.path);
       if (!isObject(row) || typeof row.id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu.test(row.id) ||
           !Object.hasOwn(row, 'ean') || (typeof row.ean !== 'string' && row.ean !== null) || ids.has(row.id) ||
-          !Object.hasOwn(CATEGORIES, row.category) || manifest.scope.excludedCategories.includes(row.category) || row.normalized_marker === true) fail('Invalid, duplicate or out-of-scope record');
+          !Object.hasOwn(CATEGORIES, row.category) || manifest.scope.excludedCategories.includes(row.category) || row.normalized_marker !== false) fail('Invalid, duplicate or out-of-scope record');
       ids.add(row.id);
       records.push({ row, inputHash: hash(line) });
     }
@@ -80,7 +80,7 @@ async function readAppliedLogs(paths) {
   return ids;
 }
 
-async function publish(output, queue, summary) {
+export async function publish(output, queue, summary) {
   await mkdir(output, { recursive: true });
   const lockPath = join(output, '.preview.lock');
   let lock;
