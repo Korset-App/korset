@@ -73,7 +73,7 @@ function cellToString(value) {
       return value.richText.map((part) => part.text || '').join('')
     }
     if (typeof value.text === 'string') return value.text
-    if (typeof value.result !== 'undefined') return String(value.result)
+    if (typeof value.result !== 'undefined') return typeof value.result === 'number' ? value.result : String(value.result)
     if (value instanceof Date) return value.toISOString()
     return ''
   }
@@ -100,8 +100,8 @@ export async function parseRetailImportFile(file) {
   sheet.eachRow({ includeEmpty: false }, (row) => {
     // row.values — array с пустым элементом на 0-ой позиции (1-indexed cells)
     const values = Array.isArray(row.values) ? row.values.slice(1) : []
-    const normalized = values.map(cellToString)
-    if (normalized.some((v) => v && v.length > 0)) rows.push(normalized)
+    const normalized = values.map((value) => typeof value === 'number' ? value : cellToString(value))
+    if (normalized.some((value) => String(value ?? '').trim().length > 0)) rows.push(normalized)
   })
 
   return buildRetailImportPreview(rows)

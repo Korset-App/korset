@@ -12,7 +12,7 @@ const hook = registerHooks({
     return nextResolve(specifier, context)
   },
 })
-const { applyRetailImport } = await import('../../src/utils/retailImport.js')
+const { applyRetailImport, parseRetailImportFile } = await import('../../src/utils/retailImport.js')
 hook.deregister()
 const { supabase } = await import(clientUrl)
 
@@ -113,4 +113,32 @@ test('an import containing invalid availability excludes that row from writes', 
   assert.deepEqual(calls[0].args.p_eans, [unknown.ean])
   assert.deepEqual(calls[0].args.p_stock_statuses, ['low_stock'])
   assert.equal(preview.errors.length, 1)
+})
+
+test('XLSX barcode cells retain text identity and numeric cells are not repaired', async () => {
+  const { default: ExcelJS } = await import('exceljs')
+  const workbook = new ExcelJS.Workbook()
+  const sheet = workbook.addWorksheet('Import')
+  sheet.addRow(['EAN', 'Цена', 'Наличие'])
+  sheet.addRow([known.ean, 1290, 'есть'])
+  sheet.addRow([Number(unknown.ean), 890, 'аз'])
+  sheet.getCell('A3').numFmt = '0000000000000'
+  const bytes = await workbook.xlsx.writeBuffer()
+  const preview = await parseRetailImportFile({ name: 'pilot.xlsx', arrayBuffer: async () => bytes })
+  assert.deepEqual(preview.rows.map(row => row.ean), [known.ean])
+  assert.equal(preview.rows[0].priceKzt, 1290)
+  assert.equal(preview.errors[0].code, 'non_text_ean')
+})
+
+test('XLSX numeric formula result is not treated as a proven text barcode', async () => {
+  const { default: ExcelJS } = await import('exceljs')
+  const workbook = new ExcelJS.Workbook()
+  workbook.addWorksheet('Import').addRows([
+    ['EAN', 'Цена', 'Наличие'],
+    [{ formula: '1+1', result: Number(known.ean) }, 1290, 'есть'],
+  ])
+  const bytes = await workbook.xlsx.writeBuffer()
+  const preview = await parseRetailImportFile({ name: 'formula.xlsx', arrayBuffer: async () => bytes })
+  assert.deepEqual(preview.rows, [])
+  assert.equal(preview.errors[0].code, 'non_text_ean')
 })

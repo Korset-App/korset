@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import {
   applyRetailImport,
   downloadRetailImportTemplate,
@@ -10,6 +10,32 @@ import { useStore } from '../contexts/StoreContext.jsx'
 import { UploadFileIcon } from '../components/icons/index.js'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024
+const IMPORT_ERROR_KEYS = {
+  invalid_stock_status: 'invalidStockStatus',
+  missing_stock_status: 'missingStockStatus',
+  non_text_ean: 'nonTextEan',
+  invalid_price: 'invalidPrice',
+  invalid_ean: 'invalidEan',
+  duplicate_ean: 'duplicateEan',
+  missing_ean_column: 'missingEanColumn',
+  missing_price_column: 'missingPriceColumn',
+}
+let applyInProgress = false
+const applyListeners = new Set()
+
+function setApplyInProgress(value) {
+  applyInProgress = value
+  applyListeners.forEach((listener) => listener())
+}
+
+function subscribeToApply(listener) {
+  applyListeners.add(listener)
+  return () => applyListeners.delete(listener)
+}
+
+function getApplySnapshot() {
+  return applyInProgress
+}
 
 function StatCard({ label, value, color = '#38BDF8' }) {
   return (
@@ -79,8 +105,12 @@ function RowCard({ row, accent = '#A7F3D0', reason }) {
 }
 
 export default function RetailImportScreen() {
-  const { t: translate } = useI18n()
   const { storeId } = useStore()
+  return <RetailImportContent key={storeId || 'no-store'} storeId={storeId} />
+}
+
+function RetailImportContent({ storeId }) {
+  const { t: translate } = useI18n()
   const t = useMemo(
     () => new Proxy({}, { get: (_, prop) => translate(`retail.import.${String(prop)}`) }),
     [translate]
@@ -91,33 +121,47 @@ export default function RetailImportScreen() {
   const [result, setResult] = useState(null)
   const [status, setStatus] = useState('idle')
   const [message, setMessage] = useState('')
+  const [rowsStoreId, setRowsStoreId] = useState(null)
+  const isApplying = useSyncExternalStore(subscribeToApply, getApplySnapshot)
+  const generation = useRef(0)
 
-  const canApply = storeId && rows.length > 0 && status !== 'applying'
-  const previewRows = useMemo(() => rows.slice(0, 8), [rows])
-  const unknownRows = result?.unknownRows || result?.skipped || []
-  const failedRows = result?.failed || []
+  const visible = rowsStoreId === storeId
+  const visibleRows = useMemo(() => visible ? rows : [], [visible, rows])
+  const visibleErrors = visible ? errors : []
+  const visibleResult = visible ? result : null
+  const canApply = storeId && visibleRows.length > 0 && status === 'ready' && !isApplying
+  const previewRows = useMemo(() => visibleRows.slice(0, 8), [visibleRows])
+  const unknownRows = visibleResult?.unknownRows || visibleResult?.skipped || []
+  const failedRows = visibleResult?.failed || []
 
   const handleFile = async (event) => {
     const file = event.target.files?.[0]
     event.target.value = ''
-    if (!file) return
+    if (!file || applyInProgress || status === 'applying') return
+    const request = ++generation.current
+    const requestedStoreId = storeId
+    setRows([])
+    setErrors([])
+    setResult(null)
+    setRowsStoreId(requestedStoreId)
+    setFileName(file.name)
     if (file.size > MAX_FILE_SIZE) {
+      setStatus('idle')
       setMessage(t.fileTooLarge)
       return
     }
 
     setStatus('parsing')
     setMessage('')
-    setResult(null)
-    setFileName(file.name)
-
     try {
       const parsed = await parseRetailImportFile(file)
+      if (request !== generation.current) return
       setRows(parsed.rows)
       setErrors(parsed.errors)
       setStatus('ready')
       if (parsed.rows.length === 0) setMessage(t.empty)
     } catch {
+      if (request !== generation.current) return
       setRows([])
       setErrors([])
       setStatus('idle')
@@ -126,16 +170,24 @@ export default function RetailImportScreen() {
   }
 
   const handleApply = async () => {
-    if (!canApply) return
+    if (!canApply || applyInProgress) return
+    setApplyInProgress(true)
+    const request = ++generation.current
+    const requestedStoreId = storeId
+    const requestedRows = rows
     setStatus('applying')
     setMessage('')
     try {
-      const nextResult = await applyRetailImport(storeId, rows)
+      const nextResult = await applyRetailImport(requestedStoreId, requestedRows)
+      if (request !== generation.current) return
       setResult(nextResult)
       setStatus('done')
     } catch (error) {
+      if (request !== generation.current) return
       setStatus('ready')
       setMessage(error.message || t.parseError)
+    } finally {
+      setApplyInProgress(false)
     }
   }
 
@@ -157,25 +209,28 @@ export default function RetailImportScreen() {
   }
 
   const reset = () => {
+    if (applyInProgress) return
+    generation.current += 1
     setFileName('')
     setRows([])
     setErrors([])
     setResult(null)
+    setRowsStoreId(null)
     setStatus('idle')
     setMessage('')
   }
 
-  const statCards = result
+  const statCards = visibleResult
     ? [
-        { label: t.updated, value: result.updated, color: '#34D399' },
-        { label: t.autoResolved, value: result.autoResolved || 0, color: '#38BDF8' },
-        { label: t.staged, value: result.staged || 0, color: '#FBBF24' },
+        { label: t.updated, value: visibleResult.updated, color: '#34D399' },
+        { label: t.autoResolved, value: visibleResult.autoResolved || 0, color: '#38BDF8' },
+        { label: t.staged, value: visibleResult.staged || 0, color: '#FBBF24' },
         { label: t.failedRows, value: failedRows.length, color: '#F87171' },
       ]
     : [
-        { label: t.validRows, value: rows.length, color: '#34D399' },
-        { label: t.errors, value: errors.length, color: '#FBBF24' },
-        { label: t.readyToApply, value: rows.length > 0 ? 'OK' : '—', color: '#38BDF8' },
+        { label: t.validRows, value: visibleRows.length, color: '#34D399' },
+        { label: t.errors, value: visibleErrors.length, color: '#FBBF24' },
+        { label: t.readyToApply, value: visibleRows.length > 0 ? 'OK' : '—', color: '#38BDF8' },
       ]
 
   return (
@@ -243,7 +298,7 @@ export default function RetailImportScreen() {
       >
         <UploadFileIcon size={38} color="#38BDF8" />
         <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginTop: 12 }}>
-          {fileName || t.choose}
+          {(visible && fileName) || t.choose}
         </div>
         <div style={{ fontSize: 13, color: 'var(--text-dim)', textAlign: 'center', marginTop: 6 }}>
           {t.formats}
@@ -255,6 +310,7 @@ export default function RetailImportScreen() {
           type="file"
           accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
           onChange={handleFile}
+          disabled={isApplying}
           style={{ display: 'none' }}
         />
       </label>
@@ -274,7 +330,7 @@ export default function RetailImportScreen() {
         </div>
       )}
 
-      {(rows.length > 0 || errors.length > 0 || result) && (
+      {(visibleRows.length > 0 || visibleErrors.length > 0 || visibleResult) && (
         <div style={{ display: 'flex', gap: 10 }}>
           {statCards.map((card) => (
             <StatCard key={card.label} label={card.label} value={card.value} color={card.color} />
@@ -282,7 +338,7 @@ export default function RetailImportScreen() {
         </div>
       )}
 
-      {rows.length > 0 && (
+      {visibleRows.length > 0 && (
         <div>
           <div
             style={{
@@ -300,7 +356,7 @@ export default function RetailImportScreen() {
                 fontFamily: 'var(--font-display)',
               }}
             >
-              {result ? t.report : t.preview}
+              {visibleResult ? t.report : t.preview}
             </h3>
             <button
               onClick={reset}
@@ -325,14 +381,14 @@ export default function RetailImportScreen() {
         </div>
       )}
 
-      {errors.length > 0 && (
+      {visibleErrors.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ color: 'var(--text)', fontWeight: 800, fontSize: 14 }}>{t.parseErrors}</div>
-          {errors.slice(0, 5).map((error, index) => (
+          {visibleErrors.slice(0, 5).map((error, index) => (
             <div key={`${error.row}-${index}`} style={{ fontSize: 12, color: '#FBBF24' }}>
               {error.row ? `${t.rowLabel} ${error.row}: ` : ''}
               {error.ean ? `${error.ean} — ` : ''}
-              {error.code === 'invalid_stock_status' ? t.invalidStockStatus : error.message}
+              {IMPORT_ERROR_KEYS[error.code] ? t[IMPORT_ERROR_KEYS[error.code]] : error.message}
             </div>
           ))}
         </div>
@@ -361,9 +417,9 @@ export default function RetailImportScreen() {
                 {t.unknownTitle}
               </div>
               <div style={{ color: 'var(--text-dim)', fontSize: 12, marginTop: 4 }}>
-                {result.resolutionError
+                {visibleResult.resolutionError
                   ? t.unknownProcessingFailedHint
-                  : result.staged > 0 || result.autoResolved > 0
+                  : visibleResult.staged > 0 || visibleResult.autoResolved > 0
                     ? t.unknownHint
                     : t.unknownUnconfirmedHint}
               </div>
@@ -439,10 +495,10 @@ export default function RetailImportScreen() {
       >
         {!storeId
           ? t.noStore
-          : status === 'applying'
+          : visible && status === 'applying'
             ? t.applying
-            : result
-              ? `${t.updated}: ${result.updated} / ${t.autoResolved}: ${result.autoResolved || 0}`
+            : visibleResult
+              ? `${t.updated}: ${visibleResult.updated} / ${t.autoResolved}: ${visibleResult.autoResolved || 0}`
               : t.apply}
       </button>
     </div>
