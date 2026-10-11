@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { searchStoreProductsRPC } from '../domain/product/search.js'
 import { useStore } from '../contexts/StoreContext.jsx'
 import {
@@ -11,7 +11,8 @@ import { buildSearchSuggestions } from '../domain/catalog/catalogSorting.js'
 import { getEffectiveSearchQuery } from '../domain/product/searchQuality.js'
 
 export function useCatalogSearch({ storeId, storeSlug, isOnline, location }) {
-  const { getCachedCatalogSearch, setCachedCatalogSearch } = useStore() || {}
+  const { getCachedCatalogSearch, setCachedCatalogSearch, catalogRevision = 0 } = useStore() || {}
+  const searchRevision = useRef(catalogRevision)
 
   const initialQ = useMemo(() => {
     if (typeof window !== 'undefined') {
@@ -100,6 +101,8 @@ export function useCatalogSearch({ storeId, storeSlug, isOnline, location }) {
 
   // Server RPC search execution with instant cache restoration & silent background revalidation
   useEffect(() => {
+    const invalidated = searchRevision.current !== catalogRevision
+    searchRevision.current = catalogRevision
     if (!canUseServerSearch) {
       setServerSearch({ results: [], query: '', status: 'idle' })
       return undefined
@@ -114,7 +117,7 @@ export function useCatalogSearch({ storeId, storeSlug, isOnline, location }) {
       }
     } else {
       setServerSearch((state) =>
-        state.query === normalizedQuery && state.results.length > 0
+        !invalidated && state.query === normalizedQuery && state.results.length > 0
           ? state
           : { results: [], query: normalizedQuery, status: 'pending' }
       )
@@ -142,7 +145,7 @@ export function useCatalogSearch({ storeId, storeSlug, isOnline, location }) {
     return () => {
       cancelled = true
     }
-  }, [canUseServerSearch, normalizedQuery, storeId, getCachedCatalogSearch, setCachedCatalogSearch])
+  }, [canUseServerSearch, normalizedQuery, storeId, getCachedCatalogSearch, setCachedCatalogSearch, catalogRevision])
 
   const isSearchPending =
     canUseServerSearch &&

@@ -9,11 +9,13 @@ async function readState(page) {
   return JSON.parse(await page.getByTestId('state').textContent())
 }
 
-async function openProbe(page, { cached = ['pilot-a'], deferred = null, deferredSettings = false, failed = [] } = {}) {
+async function openProbe(page, { cached = ['pilot-a'], deferred = null, deferredSettings = false, deferredImport = false, failed = [] } = {}) {
   let release
   let requested
   const responseReady = new Promise((resolve) => { release = resolve })
   const requestReady = new Promise((resolve) => { requested = resolve })
+  const imported = new Map()
+  const catalogRequests = []
   await page.addInitScript(({ stores, cached }) => {
     localStorage.setItem('korset_store_slug', 'pilot-a')
     for (const slug of cached) localStorage.setItem(`korset_store_data_${slug}`, JSON.stringify(stores[slug]))
@@ -39,21 +41,32 @@ async function openProbe(page, { cached = ['pilot-a'], deferred = null, deferred
       if (failed.includes(slug)) return route.fulfill({ status: 403, json: { message: 'Test store unavailable' } })
       return route.fulfill({ json: stores[slug] ?? null })
     }
-    if (url.pathname.endsWith('/fn_get_store_catalog_page')) {
+    if (url.pathname === '/rest/v1/store_products') return route.fulfill({ json: [{ id: 'fixture-product', ean: '4870201234567' }] })
+    if (url.pathname.endsWith('/bulk_update_store_products')) {
+      const payload = request.postDataJSON()
+      if (deferredImport) {
+        requested()
+        await responseReady
+      }
+      imported.set(payload.p_store_id, { price: payload.p_price_kzts[0], stock: payload.p_stock_statuses[0] })
+      return route.fulfill({ json: 1 })
+    }
+    if (url.pathname.endsWith('/fn_get_store_catalog_page') || url.pathname.endsWith('/fn_search_store_products')) {
       const storeId = request.postDataJSON().p_store_id
       const store = Object.values(stores).find((value) => value.id === storeId)
+      if (url.pathname.endsWith('/fn_get_store_catalog_page')) catalogRequests.push(storeId)
       return route.fulfill({ json: [{
         ean: '4870201234567',
         name: `Fixture ${store?.slug}`,
-        price_kzt: 100,
-        stock_status: 'in_stock',
+        price_kzt: imported.get(storeId)?.price ?? 100,
+        stock_status: imported.get(storeId)?.stock ?? 'in_stock',
       }] })
     }
     return route.fulfill({ json: [] })
   })
   await page.goto('/tests/pilot/store-context.html')
   await expect.poll(async () => (await readState(page)).products).toEqual(['Fixture pilot-a'])
-  return { release, requestReady }
+  return { release, requestReady, catalogRequests }
 }
 
 test('changing store clears the previous store and prices before the new response arrives', async ({ page }) => {
@@ -74,6 +87,40 @@ test('changing store clears the previous store and prices before the new respons
   }
   await expect.poll(async () => (await readState(page)).products).toEqual(['Fixture pilot-b'])
   expect((await readState(page)).catalogPath).toBe('/s/pilot-b/catalog')
+})
+
+test('import refreshes the active catalog price and availability without changing stores', async ({ page }) => {
+  await openProbe(page)
+  await expect.poll(async () => (await readState(page)).prices).toEqual([100])
+  await page.getByRole('button', { name: 'Import fixture' }).click()
+  await expect.poll(async () => (await readState(page)).importResult?.updated).toBe(1)
+  await expect.poll(async () => (await readState(page)).prices).toEqual([200])
+  expect((await readState(page)).stocks).toEqual(['out_of_stock'])
+})
+
+test('import refreshes an unchanged active search instead of keeping its old cached price', async ({ page }) => {
+  await openProbe(page)
+  await page.getByRole('textbox', { name: 'Search fixture' }).fill('Fixture')
+  await expect.poll(async () => (await readState(page)).searchPrices).toEqual([100])
+  await page.getByRole('button', { name: 'Import fixture' }).click()
+  await expect.poll(async () => (await readState(page)).importResult?.updated).toBe(1)
+  await expect.poll(async () => (await readState(page)).searchPrices).toEqual([200])
+})
+
+test('a completed import for the previous store does not reload the newly selected catalog', async ({ page }) => {
+  const deferred = await openProbe(page, { deferredImport: true })
+  try {
+    await page.getByRole('button', { name: 'Import fixture' }).click()
+    await deferred.requestReady
+    await page.getByRole('link', { name: 'pilot-b' }).click()
+    await expect.poll(async () => (await readState(page)).products).toEqual(['Fixture pilot-b'])
+    deferred.release()
+    await expect.poll(async () => (await readState(page)).importResult?.updated).toBe(1)
+    expect((await readState(page)).prices).toEqual([100])
+    expect(deferred.catalogRequests.filter((id) => id === stores['pilot-b'].id)).toHaveLength(1)
+  } finally {
+    deferred.release()
+  }
 })
 
 test('a failed uncached store request never leaves the previous store available', async ({ page }) => {

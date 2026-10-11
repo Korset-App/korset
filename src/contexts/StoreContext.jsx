@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { supabase } from '../utils/supabase.js'
 import { normalizeNutrition, parseJson } from '../domain/product/model.js'
@@ -239,8 +239,30 @@ export function StoreProvider({ children }) {
   const [catalogStoreId, setCatalogStoreId] = useState(null)
   const [isCatalogLoading, setIsCatalogLoading] = useState(false)
   const [catalogLoadError, setCatalogLoadError] = useState(false)
+  const [catalogRevision, setCatalogRevision] = useState(0)
+  const activeStoreIdRef = useRef(currentStore?.id)
+  useLayoutEffect(() => {
+    activeStoreIdRef.current = currentStore?.id
+  }, [currentStore?.id])
 
   const catalogSearchCacheRef = useRef(new Map())
+
+  const refreshCatalog = useCallback((storeId) => {
+    if (!storeId) return
+    for (const key of catalogSearchCacheRef.current.keys()) {
+      if (key.startsWith(`${storeId}:`)) catalogSearchCacheRef.current.delete(key)
+    }
+    try {
+      const prefix = `korset_sc_${storeId}:`
+      for (let index = sessionStorage.length - 1; index >= 0; index--) {
+        const key = sessionStorage.key(index)
+        if (key?.startsWith(prefix)) sessionStorage.removeItem(key)
+      }
+    } catch {
+      // Session storage may be unavailable in private browsing.
+    }
+    if (activeStoreIdRef.current === storeId) setCatalogRevision((revision) => revision + 1)
+  }, [])
 
   const getCachedCatalogSearch = useCallback((storeId, query) => {
     if (!storeId || !query) return null
@@ -451,7 +473,7 @@ export function StoreProvider({ children }) {
     return () => {
       aborted = true
     }
-  }, [currentStore?.id, isOnline])
+  }, [currentStore?.id, isOnline, catalogRevision])
 
   useEffect(() => {
     if (!fullCatalog?.length) return undefined
@@ -555,6 +577,8 @@ export function StoreProvider({ children }) {
       isCatalogReady,
       isCatalogLoading,
       catalogLoadError,
+      catalogRevision,
+      refreshCatalog,
       isStoreApp,
       isStorePublic,
       isPublicMarketing,
@@ -591,6 +615,8 @@ export function StoreProvider({ children }) {
       isCatalogReady,
       isCatalogLoading,
       catalogLoadError,
+      catalogRevision,
+      refreshCatalog,
       isStoreApp,
       isStorePublic,
       isPublicMarketing,

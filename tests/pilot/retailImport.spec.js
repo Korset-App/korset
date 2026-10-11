@@ -7,6 +7,22 @@ const validCsv = (ean = '4870207654321') => ({
   buffer: Buffer.from(`EAN,Цена,Наличие\n${ean},200,аз`),
 })
 
+test('a successful known-product import requests a fresh catalog for its store', async ({ page }) => {
+  await openRetail(page)
+  const catalogRequests = []
+  await page.route('**/rest/v1/store_products*', (route) => route.fulfill({ json: [{ id: 'fixture-product', ean: '4870201234567' }] }))
+  await page.route('**/rest/v1/rpc/bulk_update_store_products', (route) => route.fulfill({ json: 1 }))
+  await page.route('**/rest/v1/rpc/fn_get_store_catalog_page', (route) => {
+    catalogRequests.push(route.request().postDataJSON())
+    return route.fulfill({ json: [] })
+  })
+  await page.goto('/retail/audit/import?preview')
+  await page.locator('input[type="file"]').setInputFiles(validCsv('4870201234567'))
+  await page.getByRole('button', { name: 'Применить изменения', exact: true }).click()
+  await expect.poll(() => catalogRequests.length).toBe(1)
+  expect(catalogRequests[0].p_store_id).toBe('00000000-0000-4000-8000-000000000001')
+})
+
 test('new parsing or oversized selection cannot apply previous rows', async ({ page }) => {
   await openRetail(page)
   await page.goto('/retail/audit/import?preview')

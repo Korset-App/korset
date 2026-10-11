@@ -105,11 +105,11 @@ function RowCard({ row, accent = '#A7F3D0', reason }) {
 }
 
 export default function RetailImportScreen() {
-  const { storeId } = useStore()
-  return <RetailImportContent key={storeId || 'no-store'} storeId={storeId} />
+  const { storeId, refreshCatalog } = useStore()
+  return <RetailImportContent key={storeId || 'no-store'} storeId={storeId} refreshCatalog={refreshCatalog} />
 }
 
-function RetailImportContent({ storeId }) {
+function RetailImportContent({ storeId, refreshCatalog }) {
   const { t: translate } = useI18n()
   const t = useMemo(
     () => new Proxy({}, { get: (_, prop) => translate(`retail.import.${String(prop)}`) }),
@@ -179,6 +179,7 @@ function RetailImportContent({ storeId }) {
     setMessage('')
     try {
       const nextResult = await applyRetailImport(requestedStoreId, requestedRows)
+      if (nextResult.updated > 0 || nextResult.autoResolved > 0) refreshCatalog?.(requestedStoreId)
       if (request !== generation.current) return
       setResult(nextResult)
       setStatus('done')
