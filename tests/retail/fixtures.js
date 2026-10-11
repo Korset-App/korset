@@ -39,7 +39,11 @@ export async function openRetail(
     const request = route.request()
     const url = new URL(request.url())
     if (url.hostname === '127.0.0.1' || url.hostname === 'localhost') return route.continue()
-    if (live?.top.some((product) => product.image_url === request.url())) return route.continue()
+    if (live?.top.some((product) => product.image_url === request.url()))
+      return route.fulfill({
+        contentType: 'image/svg+xml',
+        body: '<svg xmlns="http://www.w3.org/2000/svg" width="52" height="58"><rect width="52" height="58" fill="#dedbd3"/></svg>',
+      })
     if (url.pathname === '/rest/v1/stores') return route.fulfill({ json: store })
     if (url.pathname.startsWith('/rest/v1/')) {
       if (mode === 'error' || (mode === 'partial-error' && url.pathname.endsWith('/scan_events')))
@@ -92,7 +96,8 @@ export async function openRetail(
     }
     return route.fulfill({ json: {} })
   })
-  await page.goto(`/retail/${slug}/dashboard${preview ? '?preview' : ''}`)
-  await page.waitForLoadState('networkidle')
+  await page.goto(`/retail/${slug}/dashboard${preview ? '?preview' : ''}`, {
+    waitUntil: 'domcontentloaded',
+  })
   if (preview) await page.locator('.ov-title').waitFor()
 }

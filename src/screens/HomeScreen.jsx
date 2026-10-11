@@ -7,7 +7,6 @@ import ShoppingListButton from '../components/ShoppingListButton.jsx'
 import KorsetAvatar from '../components/KorsetAvatar.jsx'
 import SegmentedToggle from '../components/SegmentedToggle.jsx'
 import { MoonGlyph, SunGlyph } from '../components/ThemeGlyphs.jsx'
-import AuthPromptModal from '../components/AuthPromptModal.jsx'
 import { buildAuthNavigateState } from '../utils/authFlow.js'
 import { detectBrowserContext } from '../utils/browserDetection.js'
 import { useOverlayLock } from '../hooks/useOverlayLock.js'
@@ -331,7 +330,6 @@ export default function HomeScreen() {
   const { lang, t } = useI18n()
   const { theme, setTheme } = useTheme()
   const { avatarId, displayName, user } = useAuth()
-  const [authPromptOpen, setAuthPromptOpen] = useState(false)
   const { profile, updateProfile } = useProfile()
   const {
     currentStore,
@@ -878,10 +876,6 @@ export default function HomeScreen() {
 
   function handleProductFavoriteClick(e, product) {
     e.stopPropagation()
-    if (!user) {
-      setAuthPromptOpen(true)
-      return
-    }
     if (typeof window !== 'undefined' && navigator?.vibrate) {
       navigator.vibrate(18)
     }
@@ -1161,12 +1155,6 @@ export default function HomeScreen() {
                 </>,
                 document.body
               )}
-            <AuthPromptModal
-              open={authPromptOpen}
-              onClose={() => setAuthPromptOpen(false)}
-              title={t('shopping.authPromptTitle')}
-              description={t('shopping.authPromptDesc')}
-            />
           </div>
         </header>
         <div className="home-top-bar-divider" aria-hidden="true" />

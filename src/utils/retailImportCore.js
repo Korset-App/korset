@@ -121,7 +121,8 @@ export function buildRetailImportPreview(rows) {
     const rowNumber = index + 2
     const ean = normalizeEan(cell(row, columns.ean))
     const priceKzt = parsePrice(cell(row, columns.price))
-    const stockStatus = parseStockStatus(cell(row, columns.stockStatus)) || 'in_stock'
+    const stockValue = String(cell(row, columns.stockStatus)).trim()
+    const stockStatus = stockValue ? parseStockStatus(stockValue) : 'in_stock'
     const shelfZone = String(cell(row, columns.shelfZone) || '').trim()
     const localName = String(cell(row, columns.localName) || '').trim()
 
@@ -139,6 +140,10 @@ export function buildRetailImportPreview(rows) {
     }
     if (!priceKzt) {
       errors.push({ row: rowNumber, ean, message: 'Некорректная цена' })
+      return
+    }
+    if (!stockStatus) {
+      errors.push({ row: rowNumber, ean, code: 'invalid_stock_status', message: 'Некорректный статус наличия' })
       return
     }
 

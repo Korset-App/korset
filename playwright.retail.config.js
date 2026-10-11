@@ -14,6 +14,10 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev -- --host 127.0.0.1 --port 5187 --strictPort',
     url: 'http://127.0.0.1:5187',
-    reuseExistingServer: true,
+    reuseExistingServer: false,
+    env: {
+      VITE_SUPABASE_URL: 'https://retail.invalid',
+      VITE_SUPABASE_ANON_KEY: 'retail-test-public-key',
+    },
   },
 })

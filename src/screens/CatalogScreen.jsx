@@ -14,8 +14,6 @@ import { useProfile } from '../contexts/ProfileContext.jsx'
 import { useStore } from '../contexts/StoreContext.jsx'
 import { useOffline } from '../contexts/OfflineContext.jsx'
 import { useUserData } from '../contexts/UserDataContext.jsx'
-import { useAuth } from '../contexts/AuthContext.jsx'
-import AuthPromptModal from '../components/AuthPromptModal.jsx'
 import { useI18n } from '../i18n/index.js'
 import { getLocalName } from '../utils/localName.js'
 import { getCatalogFromIndexedDB } from '../utils/offlineDB.js'
@@ -78,11 +76,9 @@ export default function CatalogScreen() {
     catalogLoadError,
   } = useStore()
   const { isOnline } = useOffline()
-  const { user } = useAuth()
   const { favoriteEans = new Set(), toggleFavorite } = useUserData() || {}
   const location = useLocation()
 
-  const [authPromptOpen, setAuthPromptOpen] = useState(false)
   const [offlineCatalog, setOfflineCatalog] = useState([])
   const [viewMode, setViewMode] = useState(
     () => sessionStorage.getItem('korset_catalog_view') || 'grid'
@@ -94,13 +90,9 @@ export default function CatalogScreen() {
 
   const handleToggleFavorite = useCallback(
     (product) => {
-      if (!user) {
-        setAuthPromptOpen(true)
-        return
-      }
       toggleFavorite?.(product)
     },
-    [user, toggleFavorite]
+    [toggleFavorite]
   )
 
   const handleShowcaseScroll = useCallback((e) => {
@@ -832,12 +824,6 @@ export default function CatalogScreen() {
         onResetAllFilters={resetAllFilters}
         lang={lang}
         t={t}
-      />
-      <AuthPromptModal
-        open={authPromptOpen}
-        onClose={() => setAuthPromptOpen(false)}
-        title={t('shopping.authPromptTitle')}
-        description={t('shopping.authPromptDesc')}
       />
     </div>
   )

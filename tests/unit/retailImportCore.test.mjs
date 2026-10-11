@@ -62,3 +62,43 @@ test('partitionRetailImportRows separates known rows from unknown ean candidates
     reason: 'Товар с таким EAN не найден в каталоге магазина',
   })
 })
+
+test('buildRetailImportPreview rejects supplied unrecognized availability', () => {
+  for (const value of ['unavailable', 'нетт', 'unknown', 0]) {
+    const preview = buildRetailImportPreview([
+      ['EAN', 'Цена', 'Наличие'],
+      ['4870201234567', '1290', value],
+    ])
+
+    assert.deepEqual(preview.rows, [], `Invalid availability: ${value}`)
+    assert.deepEqual(preview.errors, [
+      { row: 2, ean: '4870201234567', code: 'invalid_stock_status', message: 'Некорректный статус наличия' },
+    ])
+  }
+})
+
+test('buildRetailImportPreview preserves empty availability defaults and supported aliases', () => {
+  for (const value of ['', '  ', null, undefined]) {
+    const preview = buildRetailImportPreview([
+      ['EAN', 'Цена', 'Наличие'],
+      ['4870201234567', '1290', value],
+    ])
+    assert.equal(preview.rows[0].stockStatus, 'in_stock')
+    assert.deepEqual(preview.errors, [])
+  }
+  assert.equal(buildRetailImportPreview([
+    ['EAN', 'Цена'], ['4870201234567', '1290'],
+  ]).rows[0].stockStatus, 'in_stock')
+
+  for (const [value, expected] of [
+    [' В НАЛИЧИИ ', 'in_stock'], ['бар', 'in_stock'],
+    ['low_stock', 'low_stock'], ['аз', 'low_stock'],
+    ['out of stock', 'out_of_stock'], ['жоқ', 'out_of_stock'],
+  ]) {
+    const preview = buildRetailImportPreview([
+      ['EAN', 'Цена', 'Наличие'], ['4870201234567', '1290', value],
+    ])
+    assert.equal(preview.rows[0].stockStatus, expected)
+    assert.deepEqual(preview.errors, [])
+  }
+})

@@ -420,7 +420,7 @@ test('keto goal + high carbs → caution', () => {
 
 test('keto goal + low carbs and low sugar → safe confirmation', () => {
   const r = checkProductFit(
-    baseProduct({ nutritionPer100: { carbs: 4, sugar: 1 } }),
+    baseProduct({ ingredients: 'Миндаль', nutritionPer100: { carbs: 4, sugar: 1, protein: 20, fat: 50 } }),
     baseProfile({ dietGoals: ['keto'] })
   )
   assert.equal(r.verdict, 'safe')
@@ -429,7 +429,7 @@ test('keto goal + low carbs and low sugar → safe confirmation', () => {
 
 test('keto goal + fiber lowers net carbs → safe confirmation', () => {
   const r = checkProductFit(
-    baseProduct({ nutritionPer100: { carbs: 12, fiber: 7, sugar: 2 } }),
+    baseProduct({ ingredients: 'Миндаль', nutritionPer100: { carbs: 12, fiber: 7, sugar: 2, protein: 20, fat: 50 } }),
     baseProfile({ dietGoals: ['keto'] })
   )
   assert.equal(r.verdict, 'safe')
@@ -438,7 +438,7 @@ test('keto goal + fiber lowers net carbs → safe confirmation', () => {
 
 test('keto goal + explicit keto tag is safe when nutrition is not contradictory', () => {
   const r = checkProductFit(
-    baseProduct({ dietTags: ['keto'], nutritionPer100: { carbs: 3, sugar: 1 } }),
+    baseProduct({ ingredients: 'Миндаль', dietTags: ['keto'], nutritionPer100: { carbs: 3, sugar: 1, protein: 20, fat: 50 } }),
     baseProfile({ dietGoals: ['keto'] })
   )
   assert.equal(r.verdict, 'safe')
@@ -462,7 +462,7 @@ test('keto goal + label-only keto tag without nutrition stays caution', () => {
 
 test('keto goal + low_carb tag with low carbs stays safe', () => {
   const r = checkProductFit(
-    baseProduct({ dietTags: ['low_carb'], nutritionPer100: { carbs: 6, fiber: 2, sugar: 1 } }),
+    baseProduct({ ingredients: 'Миндаль', dietTags: ['low_carb'], nutritionPer100: { carbs: 6, fiber: 2, sugar: 1, protein: 20, fat: 50 } }),
     baseProfile({ dietGoals: ['keto'] })
   )
   assert.equal(r.verdict, 'safe')
@@ -995,6 +995,86 @@ test('pilot#12: empty composition never claims "Не содержит ваших
   )
   const missingNotice = r.reasons.find((reason) => reason.source === 'missing_data')
   assert.ok(missingNotice)
+  assert.equal(r.verdict, 'caution')
+  assert.equal(r.fits, false)
+  assert.equal(missingNotice.severity, 'caution')
   assert.ok(missingNotice.text.includes('Состав не указан'))
   assert.ok(missingNotice.textKz && missingNotice.textKz.includes('Құрамы көрсетілмеген'))
+})
+
+test('a missing composition notice for an unconfirmed diet never yields a safe verdict', () => {
+  const r = checkProductFit(baseProduct(), baseProfile({ dietGoals: ['vegan'] }))
+  assert.equal(r.verdict, 'caution')
+  assert.equal(r.fits, false)
+  assert.ok(r.reasons.some((reason) => reason.source === 'missing_data'))
+})
+
+test('a sugar-free tag cannot override added sugar in the composition', () => {
+  const result = checkProductFit(
+    baseProduct({ ingredients: 'Сахар, какао', dietTags: ['sugar_free'], nutritionPer100: { sugars: 0 } }),
+    baseProfile({ dietGoals: ['sugar_free'] })
+  )
+  assert.equal(result.verdict, 'caution')
+  assert.ok(result.reasons.some((reason) => reason.text.includes('Содержит добавленный сахар')))
+  assert.equal(result.reasons.some((reason) => reason.text.includes('Без сахара ✓')), false)
+})
+
+test('a negated sugar claim cannot suppress sugar listed in another clause', () => {
+  const result = checkProductFit(
+    baseProduct({ ingredients: 'Не содержит сахара. Сахар, какао' }),
+    baseProfile({ dietGoals: ['sugar_free'] })
+  )
+  assert.equal(result.verdict, 'caution')
+  assert.equal(result.reasons.some((reason) => reason.text.includes('Без сахара ✓')), false)
+})
+
+test('keto cannot be confirmed from carbohydrates alone', () => {
+  const result = checkProductFit(
+    baseProduct({ ingredients: 'Миндаль', nutritionPer100: { carbs: 5 } }),
+    baseProfile({ dietGoals: ['keto'] })
+  )
+  assert.equal(result.verdict, 'caution')
+  assert.equal(result.reasons.some((reason) => reason.severity === 'safe'), false)
+})
+
+test('keto cannot be confirmed without composition evidence', () => {
+  const result = checkProductFit(
+    baseProduct({ nutritionPer100: { carbs: 3, sugar: 0, fat: 30, protein: 10 } }),
+    baseProfile({ dietGoals: ['keto'] })
+  )
+  assert.equal(result.verdict, 'caution')
+  assert.equal(result.reasons.some((reason) => reason.severity === 'safe'), false)
+})
+
+test('low carbohydrates without protein or fat do not confirm keto', () => {
+  const result = checkProductFit(
+    baseProduct({ ingredients: 'Вода, соль', nutritionPer100: { carbs: 0, sugar: 0 } }),
+    baseProfile({ dietGoals: ['keto'] })
+  )
+  assert.equal(result.verdict, 'caution')
+})
+
+test('lactose-free milk still fails a milk-protein allergy check', () => {
+  const product = baseProduct({ ingredients: 'Молоко без лактозы', allergens: ['milk'], dietTags: ['lactose_free'] })
+  assert.equal(checkProductFit(product, baseProfile({ dietGoals: ['lactose_free'] })).verdict, 'safe')
+  assert.equal(checkProductFit(product, baseProfile({ allergens: ['milk'], dietGoals: ['lactose_free'] })).verdict, 'danger')
+})
+
+test('a positive halal result cannot hide missing evidence for a vegan goal', () => {
+  const result = checkProductFit(
+    baseProduct({ halalStatus: 'yes' }),
+    baseProfile({ halal: true, dietGoals: ['vegan'] })
+  )
+  assert.equal(result.verdict, 'caution')
+  assert.equal(result.fits, false)
+  assert.ok(result.reasons.some((reason) => reason.source === 'missing_data'))
+})
+
+test('nutrition-only low-fat confirmation does not confirm a separate vegetarian goal', () => {
+  const result = checkProductFit(
+    baseProduct({ nutritionPer100: { fat: 3 } }),
+    baseProfile({ dietGoals: ['low_fat', 'vegetarian'] })
+  )
+  assert.equal(result.verdict, 'caution')
+  assert.ok(result.reasons.some((reason) => reason.source === 'missing_data'))
 })

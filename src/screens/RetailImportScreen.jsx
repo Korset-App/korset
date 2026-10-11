@@ -332,7 +332,7 @@ export default function RetailImportScreen() {
             <div key={`${error.row}-${index}`} style={{ fontSize: 12, color: '#FBBF24' }}>
               {error.row ? `${t.rowLabel} ${error.row}: ` : ''}
               {error.ean ? `${error.ean} — ` : ''}
-              {error.message}
+              {error.code === 'invalid_stock_status' ? t.invalidStockStatus : error.message}
             </div>
           ))}
         </div>
@@ -361,7 +361,11 @@ export default function RetailImportScreen() {
                 {t.unknownTitle}
               </div>
               <div style={{ color: 'var(--text-dim)', fontSize: 12, marginTop: 4 }}>
-                {t.unknownHint}
+                {result.resolutionError
+                  ? t.unknownProcessingFailedHint
+                  : result.staged > 0 || result.autoResolved > 0
+                    ? t.unknownHint
+                    : t.unknownUnconfirmedHint}
               </div>
             </div>
             <button

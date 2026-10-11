@@ -226,11 +226,17 @@ export function StoreProvider({ children }) {
 
   const storeSlug = pathStoreSlug || rememberedStoreSlug || null
 
-  const [currentStore, setCurrentStore] = useState(() => loadStoreFromCache(storeSlug))
-  const [isStoreLoading, setIsStoreLoading] = useState(() =>
-    Boolean(storeSlug && !loadStoreFromCache(storeSlug))
+  const [loadedStore, setCurrentStore] = useState(() => loadStoreFromCache(storeSlug))
+  const currentStore = loadedStore?.slug === storeSlug ? loadedStore : null
+  const [storeLoadState, setStoreLoadState] = useState(() => ({
+    slug: storeSlug,
+    loading: Boolean(storeSlug && !loadStoreFromCache(storeSlug)),
+  }))
+  const isStoreLoading = Boolean(
+    storeSlug && (storeLoadState.slug !== storeSlug || storeLoadState.loading)
   )
   const [fullCatalog, setFullCatalog] = useState(null)
+  const [catalogStoreId, setCatalogStoreId] = useState(null)
   const [isCatalogLoading, setIsCatalogLoading] = useState(false)
   const [catalogLoadError, setCatalogLoadError] = useState(false)
 
@@ -298,16 +304,17 @@ export function StoreProvider({ children }) {
     async function loadStore() {
       if (!storeSlug) {
         setCurrentStore(null)
-        setIsStoreLoading(false)
+        setStoreLoadState({ slug: storeSlug, loading: false })
         return
       }
 
       const cached = loadStoreFromCache(storeSlug)
       if (cached) {
         setCurrentStore(cached)
-        setIsStoreLoading(false)
+        setStoreLoadState({ slug: storeSlug, loading: false })
       } else {
-        setIsStoreLoading(true)
+        setCurrentStore(null)
+        setStoreLoadState({ slug: storeSlug, loading: true })
       }
 
       if (aborted) return
@@ -319,9 +326,9 @@ export function StoreProvider({ children }) {
           setCurrentStore(store)
           saveStoreToCache(storeSlug, store)
         }
-        setIsStoreLoading(false)
+        setStoreLoadState({ slug: storeSlug, loading: false })
       } catch {
-        if (!aborted) setIsStoreLoading(false)
+        if (!aborted) setStoreLoadState({ slug: storeSlug, loading: false })
       }
     }
 
@@ -342,15 +349,18 @@ export function StoreProvider({ children }) {
       if (!storeId) {
         if (loadedStoreIdRef.current !== null) {
           setFullCatalog(null)
+          setCatalogStoreId(null)
           loadedStoreIdRef.current = null
         }
         setCatalogLoadError(false)
+        setIsCatalogLoading(false)
         return
       }
 
       if (loadedStoreIdRef.current !== storeId) {
         loadedStoreIdRef.current = storeId
         setFullCatalog(null)
+        setCatalogStoreId(storeId)
       }
       setCatalogLoadError(false)
 
@@ -477,9 +487,15 @@ export function StoreProvider({ children }) {
     return () => window.clearTimeout(timer)
   }, [fullCatalog])
 
-  const catalogProducts = useMemo(() => fullCatalog || [], [fullCatalog])
+  const currentStoreId = currentStore?.id
+  const catalogProducts = useMemo(
+    () => currentStoreId && catalogStoreId === currentStoreId ? fullCatalog || [] : [],
+    [fullCatalog, currentStoreId, catalogStoreId]
+  )
 
-  const isCatalogReady = fullCatalog !== null
+  const isCatalogReady = Boolean(
+    currentStoreId && catalogStoreId === currentStoreId && fullCatalog !== null
+  )
 
   const isStoreApp = /^\/s\/[^/]+/.test(location.pathname)
   const isStorePublic = /^\/stores\/[^/]+/.test(location.pathname)
@@ -508,7 +524,7 @@ export function StoreProvider({ children }) {
 
       if (error) return { error: error.message, warning }
       const updated = { ...currentStore, ...appliedPayload }
-      setCurrentStore(updated)
+      setCurrentStore((loaded) => loaded?.id === updated.id ? { ...loaded, ...appliedPayload } : loaded)
       saveStoreToCache(updated.slug || updated.code, updated)
       return { error: null, warning }
     },

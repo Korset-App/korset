@@ -204,14 +204,18 @@ export async function applyRetailImport(storeId, rows, _fileName) {
       p_shelf_zones: unknownRows.map((r) => r.shelfZone || ''),
     })
 
-    result.staged = staged || 0
-
-    if (!stageError) {
-      const { data: resolved } = await supabase.rpc('resolve_unknown_eans', {
+    if (stageError) {
+      unknownRows.forEach((row) => {
+        result.failed.push({ ...row, reason: stageError.message || String(stageError) })
+      })
+    } else {
+      result.staged = staged || 0
+      const { data: resolved, error: resolveError } = await supabase.rpc('resolve_unknown_eans', {
         p_store_id: storeId,
         p_limit: unknownRows.length,
       })
-      result.autoResolved = resolved || 0
+      if (resolveError) result.resolutionError = resolveError.message || String(resolveError)
+      else result.autoResolved = resolved || 0
     }
   }
 
