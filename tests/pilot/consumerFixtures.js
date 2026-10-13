@@ -64,20 +64,24 @@ const rows = {
   ],
 }
 
-export async function openConsumer(page, { lang = 'ru', theme = 'light', slug = 'pilot-a' } = {}) {
-  await page.addInitScript(({ stores, lang, theme }) => {
+export async function openConsumer(page, { lang = 'ru', theme = 'light', slug = 'pilot-a', cachedStores = true, cachedProfile = true, screen = 'catalog' } = {}) {
+  await page.addInitScript(({ stores, lang, theme, cachedStores, cachedProfile }) => {
     globalThis.localStorage.setItem('korset_lang', lang)
     globalThis.localStorage.setItem('korset_theme', theme)
-    globalThis.localStorage.setItem('korset_profile', JSON.stringify({
-      halal: false,
-      dietGoals: [],
-      allergens: ['milk'],
-      customAllergens: [],
-    }))
-    for (const store of Object.values(stores)) {
-      globalThis.localStorage.setItem(`korset_store_data_${store.slug}`, JSON.stringify(store))
+    if (cachedProfile) {
+      globalThis.localStorage.setItem('korset_profile', JSON.stringify({
+        halal: false,
+        dietGoals: [],
+        allergens: ['milk'],
+        customAllergens: [],
+      }))
     }
-  }, { stores, lang, theme })
+    if (cachedStores) {
+      for (const store of Object.values(stores)) {
+        globalThis.localStorage.setItem(`korset_store_data_${store.slug}`, JSON.stringify(store))
+      }
+    }
+  }, { stores, lang, theme, cachedStores, cachedProfile })
 
   await page.route('**/*', async (route) => {
     const request = route.request()
@@ -110,5 +114,5 @@ export async function openConsumer(page, { lang = 'ru', theme = 'light', slug = 
     return route.fulfill({ status: 404, json: { message: 'Unmocked pilot endpoint' } })
   })
 
-  await page.goto(`/s/${slug}/catalog`)
+  await page.goto(`/s/${slug}${screen === 'home' ? '' : '/catalog'}`)
 }
