@@ -1142,9 +1142,7 @@ export function checkProductFit(product, profile = {}) {
   }
 
   // 8. Determine Verdict
-  const hasAllergenData = Boolean(
-    ingredientsRaw.trim() || prodAllergens.length > 0 || productTraces.length > 0
-  )
+  const hasCompositionData = Boolean(mainText)
 
   let verdict = 'safe'
   if (reasons.some((r) => r.severity === 'danger')) verdict = 'danger'
@@ -1166,7 +1164,7 @@ export function checkProductFit(product, profile = {}) {
       userAllergens.length > 0 &&
       !reasons.some((r) => r.category === 'allergen' || r.category === 'trace')
     ) {
-      if (hasAllergenData) {
+      if (hasCompositionData) {
         addReason({
           severity: 'safe',
           category: 'allergen',
@@ -1187,10 +1185,9 @@ export function checkProductFit(product, profile = {}) {
   }
 
   const hasHealthConditionMissingData = healthConditions.some((hc) => {
-    if (hc === 'pku') return isNaN(parseFloat(protein100g)) && !ingredientsRaw.trim()
-    if (hc === 'diabetes') return isNaN(parseFloat(sugar100g)) && !ingredientsRaw.trim()
-    if (hc === 'celiac') return !ingredientsRaw.trim() && prodAllergens.length === 0
-    return !ingredientsRaw.trim()
+    if (hc === 'pku') return isNaN(parseFloat(protein100g)) && !hasCompositionData
+    if (hc === 'diabetes') return isNaN(parseFloat(sugar100g)) && !hasCompositionData
+    return !hasCompositionData
   })
 
   const hasUnconfirmedDietGoal = goals.some((goal) => {
@@ -1203,13 +1200,13 @@ export function checkProductFit(product, profile = {}) {
   const hasDietOrHealthRules =
     customAllergens.length > 0 ||
     hasHealthConditionMissingData ||
-    (hasUnconfirmedDietGoal && !ingredientsRaw.trim()) ||
-    (Boolean(profile.sugarFree) && isNaN(parseFloat(sugar100g)) && !ingredientsRaw.trim())
+    (hasUnconfirmedDietGoal && !hasCompositionData) ||
+    (Boolean(profile.sugarFree) && isNaN(parseFloat(sugar100g)) && !hasCompositionData)
 
   if (
     verdict === 'safe' &&
     hasDietOrHealthRules &&
-    !ingredientsRaw.trim()
+    !hasCompositionData
   ) {
     addReason({
       severity: 'caution',

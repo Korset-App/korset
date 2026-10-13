@@ -67,9 +67,9 @@ test('peanuts allergen → danger', () => {
   assert.equal(r.verdict, 'danger')
 })
 
-test('user has milk allergy but product has no allergens → safe', () => {
+test('milk allergy with known wheat composition and no milk → safe', () => {
   const r = checkProductFit(
-    baseProduct({ allergens: ['gluten'] }),
+    baseProduct({ ingredients: 'Мука пшеничная, вода', allergens: ['gluten'] }),
     baseProfile({ allergens: ['milk'] })
   )
   assert.equal(r.verdict, 'safe')
@@ -151,9 +151,9 @@ test('structured traces — warning, not danger', () => {
   assert.ok(hasReasonByCategory(r, 'allergen'))
 })
 
-test('trace allergen NOT relevant to user → safe', () => {
+test('known rice composition and trace allergen NOT relevant to user → safe', () => {
   const r = checkProductFit(
-    baseProduct({ traces: ['fish'] }),
+    baseProduct({ ingredients: 'Вода, рис, соль', traces: ['fish'] }),
     baseProfile({ allergens: ['milk'] })
   )
   assert.equal(r.verdict, 'safe')
@@ -549,9 +549,9 @@ test('display reasons for safe include positive confirmation when no other reaso
   assert.ok(r.reasons.every((x) => x.severity === 'safe'))
 })
 
-test('safe verdict — no allergens means positive "no allergens" confirmation', () => {
+test('known fish composition without user allergens permits a positive confirmation', () => {
   const r = checkProductFit(
-    baseProduct({ allergens: ['fish'] }),
+    baseProduct({ ingredients: 'Рыба, вода, соль', allergens: ['fish'] }),
     baseProfile({ allergens: ['milk', 'gluten'] })
   )
   assert.equal(r.verdict, 'safe')
@@ -1007,6 +1007,28 @@ test('a missing composition notice for an unconfirmed diet never yields a safe v
   assert.equal(r.verdict, 'caution')
   assert.equal(r.fits, false)
   assert.ok(r.reasons.some((reason) => reason.source === 'missing_data'))
+})
+
+for (const partial of [{ allergens: ['gluten'] }, { traces: ['fish'] }, { ingredients: 'Может содержать следы рыбы' }]) {
+  test(`an unrelated partial allergen record cannot confirm absence of milk (${JSON.stringify(partial)})`, () => {
+    const result = checkProductFit(baseProduct(partial), baseProfile({ allergens: ['milk'] }))
+    assert.equal(result.verdict, 'caution')
+    assert.equal(result.fits, false)
+    assert.ok(result.reasons.some((reason) => reason.source === 'missing_data'))
+    assert.equal(result.reasons.some((reason) => reason.text.includes('Не содержит ваших аллергенов')), false)
+  })
+}
+
+test('a milk-only partial record cannot confirm a celiac preference without composition', () => {
+  const result = checkProductFit(baseProduct({ allergens: ['milk'] }), baseProfile({ healthConditions: ['celiac'] }))
+  assert.equal(result.verdict, 'caution')
+  assert.ok(result.reasons.some((reason) => reason.source === 'missing_data'))
+})
+
+test('trace-only text cannot confirm an otherwise unconfirmed vegan preference', () => {
+  const result = checkProductFit(baseProduct({ ingredients: 'Может содержать следы рыбы' }), baseProfile({ dietGoals: ['vegan'] }))
+  assert.equal(result.verdict, 'caution')
+  assert.ok(result.reasons.some((reason) => reason.source === 'missing_data'))
 })
 
 test('a sugar-free tag cannot override added sugar in the composition', () => {
