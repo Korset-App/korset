@@ -1,4 +1,5 @@
 import { supabase } from './supabase.js'
+import { quoteLiteralSearchPattern } from './literalSearch.js'
 import { hydrateSyncedConditions } from './syncedConditions.js'
 import {
   applySyncedConditions,
@@ -231,13 +232,14 @@ export async function getStoreCatalogProducts(storeId, { page = 0, search = '' }
   const runQuery = async (includePromo, includeShopping, includeSync) => {
     let { q, s } = buildQuery(includePromo, includeShopping, includeSync)
     if (s) {
+      const pattern = quoteLiteralSearchPattern(s)
       const { data: gpMatches } = await supabase
         .from('global_products')
         .select('id')
-        .or(`name.ilike.%${s}%,brand.ilike.%${s}%`)
+        .or(`name.imatch.${pattern},brand.imatch.${pattern}`)
 
       const gpIds = (gpMatches ?? []).map((g) => g.id)
-      const orParts = [`local_name.ilike.%${s}%`, `ean.ilike.%${s}%`]
+      const orParts = [`local_name.imatch.${pattern}`, `ean.imatch.${pattern}`]
       if (gpIds.length) orParts.push(`global_product_id.in.(${gpIds.join(',')})`)
       q = q.or(orParts.join(','))
     }

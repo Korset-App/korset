@@ -20,6 +20,7 @@ import RetailScannerModal from '../components/RetailScannerModal.jsx'
 import AddScannedProductModal from '../components/retail/AddScannedProductModal.jsx'
 import { buildProductPath } from '../utils/routes.js'
 import { useNavigate } from 'react-router-dom'
+import { escapeLiteralPattern } from '../utils/literalSearch.js'
 import {
   CloseIcon,
   InventoryIcon,
@@ -56,12 +57,12 @@ function nextStockStatus(p) {
 // ── Highlight helper ───────────────────────────────────────────────
 function Highlight({ text, q }) {
   if (!q || !q.trim() || !text) return <>{text}</>
-  const regex = new RegExp(`(${q.trim()})`, 'gi')
+  const regex = new RegExp(`(${escapeLiteralPattern(q.trim())})`, 'gi')
   const parts = String(text).split(regex)
   return (
     <>
       {parts.map((part, i) =>
-        regex.test(part) ? (
+        i % 2 === 1 ? (
           <span
             key={i}
             style={{
