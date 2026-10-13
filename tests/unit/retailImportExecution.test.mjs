@@ -19,23 +19,198 @@ const { supabase } = await import(clientUrl)
 const known = { ean: '4870201234567', priceKzt: 1290, stockStatus: 'in_stock' }
 const unknown = { ean: '4870207654321', priceKzt: 890, stockStatus: 'low_stock' }
 
-function configureClient({ existing = [], responses = {} } = {}) {
+function configureClient({ existing = [], responses = {}, updateResponses = [] } = {}) {
   const calls = []
   supabase.from = (table) => {
     assert.equal(table, 'store_products')
     return {
-      select() { return this },
+      select() { return this.isUpdate ? Promise.resolve(updateResponses.shift()) : this },
       eq() { return this },
+      update(payload) { calls.push({ name: 'update', payload }); this.isUpdate = true; return this },
       async in() { return { data: existing, error: null } },
     }
   }
   supabase.rpc = async (name, args) => {
     calls.push({ name, args })
     assert.ok(Object.hasOwn(responses, name), `Unexpected write: ${name}`)
-    return responses[name]
+    return typeof responses[name] === 'function' ? responses[name]() : responses[name]
   }
   return calls
 }
+
+test('confirmed known updates survive a thrown staging request', async () => {
+  const calls = configureClient({
+    existing: [{ id: 'known-1', ean: known.ean }],
+    responses: {
+      bulk_update_store_products: { data: 1, error: null },
+      stage_unknown_eans: () => { throw new TypeError('Failed to fetch') },
+    },
+  })
+  const result = await applyRetailImport('store-1', [known, unknown])
+  assert.equal(result.updated, 1)
+  assert.equal(result.staged, 0)
+  assert.deepEqual(result.unconfirmed, [{ ...unknown, code: 'write_unconfirmed', phase: 'staging' }])
+  assert.equal(result.catalogMayHaveChanged, true)
+  assert.deepEqual(calls.map(({ name }) => name), ['bulk_update_store_products', 'stage_unknown_eans'])
+})
+
+test('lost bulk response is unconfirmed and never replayed', async () => {
+  const calls = configureClient({
+    existing: [{ id: 'known-1', ean: known.ean }],
+    responses: { bulk_update_store_products: () => { throw new TypeError('Failed to fetch') } },
+  })
+  const result = await applyRetailImport('store-1', [known])
+  assert.equal(result.updated, 0)
+  assert.deepEqual(result.failed, [])
+  assert.deepEqual(result.unconfirmed, [{ ...known, code: 'write_unconfirmed', phase: 'known' }])
+  assert.equal(result.catalogMayHaveChanged, true)
+  assert.deepEqual(calls.map(({ name }) => name), ['bulk_update_store_products'])
+})
+
+test('partial bulk and staging acknowledgments retain counts without guessing identities', async () => {
+  const calls = configureClient({
+    existing: [{ id: 'known-1', ean: known.ean }, { id: 'known-2', ean: unknown.ean }],
+    responses: { bulk_update_store_products: { data: 1, error: null } },
+  })
+  const bulk = await applyRetailImport('store-1', [known, unknown])
+  assert.equal(bulk.updated, 1)
+  assert.deepEqual(bulk.unconfirmed, [known, unknown].map(row => ({ ...row, code: 'write_unconfirmed', phase: 'known' })))
+  assert.equal(bulk.catalogMayHaveChanged, true)
+  assert.deepEqual(calls.map(({ name }) => name), ['bulk_update_store_products'])
+
+  const stageCalls = configureClient({
+    responses: { stage_unknown_eans: { data: 1, error: null } },
+  })
+  const staged = await applyRetailImport('store-1', [known, unknown])
+  assert.equal(staged.staged, 1)
+  assert.deepEqual(staged.unconfirmed, [known, unknown].map(row => ({ ...row, code: 'write_unconfirmed', phase: 'staging' })))
+  assert.deepEqual(stageCalls.map(({ name }) => name), ['stage_unknown_eans'])
+})
+
+test('zero bulk acknowledgment reports definite not-updated rows', async () => {
+  configureClient({ existing: [{ id: 'known-1', ean: known.ean }], responses: {
+    bulk_update_store_products: { data: 0, error: null },
+  } })
+  const result = await applyRetailImport('store-1', [known])
+  assert.deepEqual(result.failed, [{ ...known, code: 'not_updated', reason: 'Not updated' }])
+  assert.deepEqual(result.unconfirmed, [])
+  assert.equal(result.catalogMayHaveChanged, false)
+})
+
+test('zero staging acknowledgment reports definite unstaged rows without resolving', async () => {
+  const calls = configureClient({ responses: {
+    stage_unknown_eans: { data: 0, error: null },
+  } })
+  const result = await applyRetailImport('store-1', [unknown])
+  assert.equal(result.staged, 0)
+  assert.deepEqual(result.failed, [{ ...unknown, code: 'not_updated', reason: 'Not staged' }])
+  assert.deepEqual(result.unconfirmed, [])
+  assert.deepEqual(calls.map(({ name }) => name), ['stage_unknown_eans'])
+})
+
+test('missing bulk function falls back sequentially and preserves prior successes', async () => {
+  const calls = configureClient({
+    existing: [{ id: 'known-1', ean: known.ean }, { id: 'known-2', ean: unknown.ean }],
+    responses: { bulk_update_store_products: { data: null, error: { code: 'PGRST202', message: 'Missing function' } } },
+    updateResponses: [{ data: [{ id: 'known-1' }], error: null }, { data: null, error: { code: '42501', message: 'Denied' } }],
+  })
+  const result = await applyRetailImport('store-1', [known, unknown])
+  assert.equal(result.updated, 1)
+  assert.deepEqual(result.failed, [{ ...unknown, reason: 'Denied' }])
+  assert.deepEqual(result.unconfirmed, [])
+  assert.equal(result.catalogMayHaveChanged, true)
+  assert.deepEqual(calls.map(({ name }) => name), ['bulk_update_store_products', 'update', 'update'])
+})
+
+test('permission bulk error never falls back', async () => {
+  const calls = configureClient({
+    existing: [{ id: 'known-1', ean: known.ean }],
+    responses: { bulk_update_store_products: { data: null, error: { code: '42501', message: 'Denied' } } },
+  })
+  const result = await applyRetailImport('store-1', [known])
+  assert.deepEqual(result.failed, [{ ...known, reason: 'Denied' }])
+  assert.deepEqual(result.unconfirmed, [])
+  assert.deepEqual(calls.map(({ name }) => name), ['bulk_update_store_products'])
+})
+
+test('thrown resolver preserves staged count and records resolution error', async () => {
+  configureClient({ responses: {
+    stage_unknown_eans: { data: 1, error: null },
+    resolve_unknown_eans: () => { throw new TypeError('Failed to fetch') },
+  } })
+  const result = await applyRetailImport('store-1', [unknown])
+  assert.equal(result.staged, 1)
+  assert.equal(result.autoResolved, 0)
+  assert.match(result.resolutionError, /Failed to fetch/)
+  assert.deepEqual(result.unconfirmed, [{ ...unknown, code: 'write_unconfirmed', phase: 'resolution' }])
+})
+
+test('HTTP 5xx on bulk write is unconfirmed even with missing-function code', async () => {
+  const calls = configureClient({
+    existing: [{ id: 'known-1', ean: known.ean }],
+    responses: { bulk_update_store_products: { data: null, status: 503, error: { code: 'PGRST202', message: 'Service unavailable' } } },
+  })
+  const result = await applyRetailImport('store-1', [known])
+  assert.deepEqual(result.unconfirmed, [{ ...known, code: 'write_unconfirmed', phase: 'known' }])
+  assert.deepEqual(calls.map(({ name }) => name), ['bulk_update_store_products'])
+})
+
+test('staging HTTP 5xx with an empty error code leaves rows unconfirmed', async () => {
+  const calls = configureClient({ responses: {
+    stage_unknown_eans: { data: null, status: 503, error: { message: 'Response unavailable' } },
+  } })
+  const result = await applyRetailImport('store-1', [unknown])
+  assert.equal(result.staged, 0)
+  assert.deepEqual(result.unconfirmed, [{ ...unknown, code: 'write_unconfirmed', phase: 'staging' }])
+  assert.deepEqual(calls.map(({ name }) => name), ['stage_unknown_eans'])
+})
+
+test('empty-code fetch error is unconfirmed and is not replayed', async () => {
+  const calls = configureClient({
+    existing: [{ id: 'known-1', ean: known.ean }],
+    responses: { bulk_update_store_products: { data: null, error: { message: 'Failed to fetch' } } },
+  })
+  const result = await applyRetailImport('store-1', [known])
+  assert.deepEqual(result.unconfirmed, [{ ...known, code: 'write_unconfirmed', phase: 'known' }])
+  assert.deepEqual(calls.map(({ name }) => name), ['bulk_update_store_products'])
+})
+
+test('malformed write acknowledgments are unconfirmed', async () => {
+  const calls = configureClient({
+    existing: [{ id: 'known-1', ean: known.ean }],
+    responses: { bulk_update_store_products: { data: '1', error: null }, stage_unknown_eans: { data: 3, error: null } },
+  })
+  const result = await applyRetailImport('store-1', [known, unknown])
+  assert.equal(result.updated, 0)
+  assert.equal(result.staged, 0)
+  assert.deepEqual(result.unconfirmed, [
+    { ...known, code: 'write_unconfirmed', phase: 'known' },
+    { ...unknown, code: 'write_unconfirmed', phase: 'staging' },
+  ])
+  assert.deepEqual(calls.map(({ name }) => name), ['bulk_update_store_products', 'stage_unknown_eans'])
+})
+
+test('null bulk RPC response is unconfirmed', async () => {
+  const calls = configureClient({
+    existing: [{ id: 'known-1', ean: known.ean }],
+    responses: { bulk_update_store_products: null },
+  })
+  const result = await applyRetailImport('store-1', [known])
+  assert.deepEqual(result.unconfirmed, [{ ...known, code: 'write_unconfirmed', phase: 'known' }])
+  assert.equal(result.catalogMayHaveChanged, true)
+  assert.deepEqual(calls.map(({ name }) => name), ['bulk_update_store_products'])
+})
+
+test('resolver may acknowledge rows from an existing global queue', async () => {
+  configureClient({ responses: {
+    stage_unknown_eans: { data: 1, error: null },
+    resolve_unknown_eans: { data: 9, error: null },
+  } })
+  const result = await applyRetailImport('store-1', [unknown])
+  assert.equal(result.staged, 1)
+  assert.equal(result.autoResolved, 9)
+  assert.deepEqual(result.unconfirmed, [])
+})
 
 test('applyRetailImport reports every failed staging row while retaining known updates', async () => {
   const calls = configureClient({

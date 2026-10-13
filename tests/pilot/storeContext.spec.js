@@ -9,7 +9,7 @@ async function readState(page) {
   return JSON.parse(await page.getByTestId('state').textContent())
 }
 
-async function openProbe(page, { cached = ['pilot-a'], deferred = null, deferredSettings = false, deferredImport = false, failed = [] } = {}) {
+async function openProbe(page, { cached = ['pilot-a'], deferred = null, deferredSettings = false, deferredImport = false, failedReload = false, failed = [] } = {}) {
   let release
   let requested
   const responseReady = new Promise((resolve) => { release = resolve })
@@ -55,6 +55,9 @@ async function openProbe(page, { cached = ['pilot-a'], deferred = null, deferred
       const storeId = request.postDataJSON().p_store_id
       const store = Object.values(stores).find((value) => value.id === storeId)
       if (url.pathname.endsWith('/fn_get_store_catalog_page')) catalogRequests.push(storeId)
+      if (failedReload && url.pathname.endsWith('/fn_get_store_catalog_page') && catalogRequests.length > 1) {
+        return route.fulfill({ status: 503, json: { message: 'Read temporarily unavailable' } })
+      }
       return route.fulfill({ json: [{
         ean: '4870201234567',
         name: `Fixture ${store?.slug}`,
@@ -105,6 +108,17 @@ test('import refreshes an unchanged active search instead of keeping its old cac
   await page.getByRole('button', { name: 'Import fixture' }).click()
   await expect.poll(async () => (await readState(page)).importResult?.updated).toBe(1)
   await expect.poll(async () => (await readState(page)).searchPrices).toEqual([200])
+})
+
+test('a failed read after import retains the confirmed write count and reports stale catalog data', async ({ page }) => {
+  await openProbe(page, { failedReload: true })
+  await expect.poll(async () => (await readState(page)).prices).toEqual([100])
+  await page.getByRole('button', { name: 'Import fixture' }).click()
+  await expect.poll(async () => (await readState(page)).importResult?.updated).toBe(1)
+  await expect.poll(async () => (await readState(page)).catalogError).toBe(true)
+  const state = await readState(page)
+  expect(state.prices).toEqual([100])
+  expect(state.catalogLoading).toBe(false)
 })
 
 test('a completed import for the previous store does not reload the newly selected catalog', async ({ page }) => {

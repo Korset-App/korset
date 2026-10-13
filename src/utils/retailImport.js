@@ -127,6 +127,25 @@ async function fetchExistingProducts(storeId, eans) {
   return map
 }
 
+function isValidCount(count, limit = Infinity) {
+  return Number.isInteger(count) && count >= 0 && count <= limit
+}
+
+function isUnconfirmedWriteError(error, responseStatus) {
+  const status = Number(responseStatus ?? error?.status)
+  const message = errorReason(error)
+  return status >= 500 || String(error?.code || '').startsWith('5') ||
+    (!error?.code && /fetch|network|timeout|connection|failed to send request/i.test(message))
+}
+
+function markUnconfirmed(result, rows, phase) {
+  rows.forEach(({ reason: _reason, ...row }) => result.unconfirmed.push({ ...row, code: 'write_unconfirmed', phase }))
+}
+
+function errorReason(error) {
+  return error?.message || String(error)
+}
+
 export async function applyRetailImport(storeId, rows, _fileName) {
   if (!storeId) throw new Error('Store is not loaded')
 
@@ -143,79 +162,153 @@ export async function applyRetailImport(storeId, rows, _fileName) {
     skipped: unknownRows,
     unknownRows,
     failed: [],
+    unconfirmed: [],
+    catalogMayHaveChanged: false,
   }
 
   if (knownRows.length > 0) {
-    const { data: updated, error: bulkError } = await supabase.rpc('bulk_update_store_products', {
-      p_store_id: storeId,
-      p_eans: knownRows.map((r) => r.ean),
-      p_price_kzts: knownRows.map((r) => r.priceKzt),
-      p_stock_statuses: knownRows.map((r) => r.stockStatus),
-      p_shelf_zones: knownRows.map((r) => r.shelfZone || ''),
-    })
+    let bulkResponse
+    let bulkThrew = false
+    try {
+      bulkResponse = await supabase.rpc('bulk_update_store_products', {
+        p_store_id: storeId,
+        p_eans: knownRows.map((r) => r.ean),
+        p_price_kzts: knownRows.map((r) => r.priceKzt),
+        p_stock_statuses: knownRows.map((r) => r.stockStatus),
+        p_shelf_zones: knownRows.map((r) => r.shelfZone || ''),
+      })
+    } catch {
+      bulkThrew = true
+      markUnconfirmed(result, knownRows, 'known')
+      result.catalogMayHaveChanged = true
+    }
 
-    if (bulkError) {
-      const batchSize = 20
-      for (let i = 0; i < knownRows.length; i += batchSize) {
-        const batch = knownRows.slice(i, i + batchSize)
-        const updates = await Promise.all(
-          batch.map(async (row) => {
-            const product = existing.get(String(row.ean))
-            if (!product) {
-              return { ok: false, row, reason: 'Строка отсутствует (race кэша)' }
-            }
-            const payload = {
-              price_kzt: row.priceKzt,
-              stock_status: row.stockStatus,
-              shelf_zone: row.shelfZone || null,
-              updated_at: new Date().toISOString(),
-            }
-            const { data, error } = await supabase
+    if (bulkResponse?.error) {
+      const error = bulkResponse.error
+      if (!isUnconfirmedWriteError(error, bulkResponse.status) && (error.code === 'PGRST202' || error.code === '42883')) {
+        for (const row of knownRows) {
+          const product = existing.get(String(row.ean))
+          if (!product) {
+            result.failed.push({ ...row, reason: 'Строка отсутствует (race кэша)' })
+            continue
+          }
+          const payload = {
+            price_kzt: row.priceKzt,
+            stock_status: row.stockStatus,
+            shelf_zone: row.shelfZone || null,
+            updated_at: new Date().toISOString(),
+          }
+          try {
+            const { data, error: updateError, status } = await supabase
               .from('store_products')
               .update(payload)
               .eq('id', product.id)
               .eq('store_id', storeId)
               .select('id')
 
-            if (error || !data?.length) {
-              return { ok: false, row, reason: error?.message || 'RLS или строка не найдена' }
+            if (updateError) {
+              if (isUnconfirmedWriteError(updateError, status)) {
+                markUnconfirmed(result, [row], 'known')
+                result.catalogMayHaveChanged = true
+              } else {
+                result.failed.push({ ...row, reason: errorReason(updateError) })
+              }
+            } else if (data?.length === 1) {
+              result.updated += 1
+              result.catalogMayHaveChanged = true
+            } else if (Array.isArray(data) && data.length === 0) {
+              result.failed.push({ ...row, reason: 'RLS или строка не найдена' })
+            } else {
+              markUnconfirmed(result, [row], 'known')
+              result.catalogMayHaveChanged = true
             }
-            return { ok: true }
-          })
-        )
-
-        updates.forEach((item) => {
-          if (item.ok) result.updated += 1
-          else result.failed.push({ ...item.row, reason: item.reason })
-        })
+          } catch {
+            markUnconfirmed(result, [row], 'known')
+            result.catalogMayHaveChanged = true
+          }
+        }
+      } else if (isUnconfirmedWriteError(error, bulkResponse.status)) {
+        markUnconfirmed(result, knownRows, 'known')
+        result.catalogMayHaveChanged = true
+      } else {
+        knownRows.forEach((row) => result.failed.push({ ...row, reason: errorReason(error) }))
       }
-    } else {
-      result.updated = updated || 0
+    } else if (bulkResponse) {
+      const count = bulkResponse.data
+      if (isValidCount(count, knownRows.length)) {
+        result.updated = count
+        if (count > 0) result.catalogMayHaveChanged = true
+        if (count === 0) {
+          knownRows.forEach((row) => result.failed.push({ ...row, code: 'not_updated', reason: 'Not updated' }))
+        } else if (count < knownRows.length) {
+          markUnconfirmed(result, knownRows, 'known')
+        }
+      } else {
+        markUnconfirmed(result, knownRows, 'known')
+        result.catalogMayHaveChanged = true
+      }
+    } else if (!bulkThrew) {
+      markUnconfirmed(result, knownRows, 'known')
+      result.catalogMayHaveChanged = true
     }
   }
 
   if (unknownRows.length > 0) {
-    const { data: staged, error: stageError } = await supabase.rpc('stage_unknown_eans', {
-      p_store_id: storeId,
-      p_eans: unknownRows.map((r) => r.ean),
-      p_local_names: unknownRows.map((r) => r.localName || ''),
-      p_price_kzts: unknownRows.map((r) => r.priceKzt),
-      p_stock_statuses: unknownRows.map((r) => r.stockStatus),
-      p_shelf_zones: unknownRows.map((r) => r.shelfZone || ''),
-    })
-
-    if (stageError) {
-      unknownRows.forEach((row) => {
-        result.failed.push({ ...row, reason: stageError.message || String(stageError) })
-      })
-    } else {
-      result.staged = staged || 0
-      const { data: resolved, error: resolveError } = await supabase.rpc('resolve_unknown_eans', {
+    let stageResponse
+    let stageThrew = false
+    try {
+      stageResponse = await supabase.rpc('stage_unknown_eans', {
         p_store_id: storeId,
-        p_limit: unknownRows.length,
+        p_eans: unknownRows.map((r) => r.ean),
+        p_local_names: unknownRows.map((r) => r.localName || ''),
+        p_price_kzts: unknownRows.map((r) => r.priceKzt),
+        p_stock_statuses: unknownRows.map((r) => r.stockStatus),
+        p_shelf_zones: unknownRows.map((r) => r.shelfZone || ''),
       })
-      if (resolveError) result.resolutionError = resolveError.message || String(resolveError)
-      else result.autoResolved = resolved || 0
+    } catch {
+      stageThrew = true
+      markUnconfirmed(result, unknownRows, 'staging')
+    }
+
+    if (stageResponse?.error) {
+      if (isUnconfirmedWriteError(stageResponse.error, stageResponse.status)) {
+        markUnconfirmed(result, unknownRows, 'staging')
+      } else {
+        unknownRows.forEach((row) => result.failed.push({ ...row, reason: errorReason(stageResponse.error) }))
+      }
+    } else if (stageResponse) {
+      const count = stageResponse.data
+      if (isValidCount(count, unknownRows.length)) result.staged = count
+      if (count === 0) {
+        unknownRows.forEach((row) => result.failed.push({ ...row, code: 'not_updated', reason: 'Not staged' }))
+      } else if (count !== unknownRows.length) {
+        markUnconfirmed(result, unknownRows, 'staging')
+      } else {
+        result.catalogMayHaveChanged = true
+        try {
+          const resolveResponse = await supabase.rpc('resolve_unknown_eans', {
+            p_store_id: storeId,
+            p_limit: unknownRows.length,
+          })
+          const { data: resolved, error: resolveError } = resolveResponse
+          if (resolveError) {
+            result.resolutionError = errorReason(resolveError)
+            if (isUnconfirmedWriteError(resolveError, resolveResponse.status)) {
+              markUnconfirmed(result, unknownRows, 'resolution')
+            }
+          } else if (isValidCount(resolved)) {
+            result.autoResolved = resolved
+          } else {
+            result.resolutionError = 'Invalid resolution acknowledgment'
+            markUnconfirmed(result, unknownRows, 'resolution')
+          }
+        } catch (error) {
+          result.resolutionError = errorReason(error)
+          markUnconfirmed(result, unknownRows, 'resolution')
+        }
+      }
+    } else if (!stageThrew) {
+      markUnconfirmed(result, unknownRows, 'staging')
     }
   }
 

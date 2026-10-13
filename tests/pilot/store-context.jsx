@@ -8,7 +8,7 @@ import { useCatalogSearch } from '../../src/hooks/useCatalogSearch.js'
 
 function Probe() {
   const location = useLocation()
-  const { currentStore, catalogProducts, isCatalogReady, isStoreLoading, isCatalogLoading, routes, updateStoreSettings, refreshCatalog } = useStore()
+  const { currentStore, catalogProducts, isCatalogReady, isStoreLoading, isCatalogLoading, catalogLoadError, routes, updateStoreSettings, refreshCatalog } = useStore()
   const search = useCatalogSearch({ storeId: currentStore?.id, storeSlug: currentStore?.slug, isOnline: true, location })
   const [settingsResult, setSettingsResult] = useState(null)
   const [importResult, setImportResult] = useState(null)
@@ -23,6 +23,7 @@ function Probe() {
     ready: isCatalogReady,
     loading: isStoreLoading,
     catalogLoading: isCatalogLoading,
+    catalogError: catalogLoadError,
     catalogPath: routes?.catalog ?? null,
     settingsResult,
     importResult,

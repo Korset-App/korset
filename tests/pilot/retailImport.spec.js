@@ -7,6 +7,36 @@ const validCsv = (ean = '4870207654321') => ({
   buffer: Buffer.from(`EAN,Цена,Наличие\n${ean},200,аз`),
 })
 
+for (const [lang, theme] of [['ru', 'light'], ['kz', 'dark']]) {
+  test(`lost bulk response is unconfirmed and is not automatically replayed (${lang})`, async ({ page }) => {
+    await openRetail(page, { lang, theme })
+    let fallbackWrites = 0
+    await page.route('**/rest/v1/store_products*', (route) => {
+      if (route.request().method() === 'PATCH') fallbackWrites++
+      return route.fulfill({ json: [{ id: 'fixture-product', ean: '4870201234567' }] })
+    })
+    await page.route('**/rest/v1/rpc/bulk_update_store_products', (route) => route.fulfill({ status: 503, json: { message: 'Response unavailable' } }))
+    await page.goto('/retail/audit/import?preview')
+    await page.locator('input[type="file"]').setInputFiles(validCsv('4870201234567'))
+    await page.getByRole('button', { name: lang === 'ru' ? 'Применить изменения' : 'Өзгерістерді қолдану', exact: true }).click()
+    await expect(page.getByText(lang === 'ru' ? 'Результат записи не подтверждён' : 'Жазу нәтижесі расталмады', { exact: true })).toBeVisible()
+    expect(fallbackWrites).toBe(0)
+    await expect(page.getByRole('button', { name: lang === 'ru' ? 'Обновлено: 0 / Найдено авто: 0' : 'Жаңартылды: 0 / Авто табылды: 0', exact: true })).toBeDisabled()
+  })
+
+  test(`a lost staging response retains acknowledged known updates (${lang})`, async ({ page }) => {
+    await openRetail(page, { lang, theme })
+    await page.route('**/rest/v1/store_products*', (route) => route.fulfill({ json: [{ id: 'fixture-product', ean: '4870201234567' }] }))
+    await page.route('**/rest/v1/rpc/bulk_update_store_products', (route) => route.fulfill({ json: 1 }))
+    await page.route('**/rest/v1/rpc/stage_unknown_eans', (route) => route.abort('failed'))
+    await page.goto('/retail/audit/import?preview')
+    await page.locator('input[type="file"]').setInputFiles({ name: 'partial.csv', mimeType: 'text/csv', buffer: Buffer.from('EAN,Цена,Наличие\n4870201234567,200,есть\n4870207654321,300,аз') })
+    await page.getByRole('button', { name: lang === 'ru' ? 'Применить изменения' : 'Өзгерістерді қолдану', exact: true }).click()
+    await expect(page.getByText(lang === 'ru' ? 'Результат записи не подтверждён' : 'Жазу нәтижесі расталмады', { exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: lang === 'ru' ? 'Обновлено: 1 / Найдено авто: 0' : 'Жаңартылды: 1 / Авто табылды: 0', exact: true })).toBeDisabled()
+  })
+}
+
 test('a successful known-product import requests a fresh catalog for its store', async ({ page }) => {
   await openRetail(page)
   const catalogRequests = []
@@ -163,8 +193,8 @@ for (const lang of ['ru', 'kz']) {
       })
       await page.getByRole('button', { name: lang === 'ru' ? 'Применить изменения' : 'Өзгерістерді қолдану', exact: true }).click()
       await expect(page.getByText(lang === 'ru'
-        ? 'Товары сохранены в очереди. Автоматическое сопоставление завершилось ошибкой.'
-        : 'Тауарлар кезекте сақталды. Автоматты сәйкестендіру қатемен аяқталды.', { exact: true })).toBeVisible()
+        ? 'Товары сохранены в очереди. Результат автоматического сопоставления не подтверждён.'
+        : 'Тауарлар кезекте сақталды. Автоматты сәйкестендіру нәтижесі расталмады.', { exact: true })).toBeVisible()
       await expect(page.getByText(lang === 'ru'
         ? 'Постановка новых товаров в очередь не подтверждена.'
         : 'Жаңа тауарлардың кезекке қосылғаны расталмады.', { exact: false })).toHaveCount(0)

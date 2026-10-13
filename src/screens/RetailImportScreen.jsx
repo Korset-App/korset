@@ -133,6 +133,10 @@ function RetailImportContent({ storeId, refreshCatalog }) {
   const previewRows = useMemo(() => visibleRows.slice(0, 8), [visibleRows])
   const unknownRows = visibleResult?.unknownRows || visibleResult?.skipped || []
   const failedRows = visibleResult?.failed || []
+  const unconfirmedRows = visibleResult?.unconfirmed || []
+  const unconfirmedEans = new Set(unconfirmedRows.filter((row) => row.phase === 'staging').map((row) => row.ean))
+  const unknownUnconfirmed = unknownRows.some((row) => unconfirmedEans.has(row.ean))
+  const resolutionUnconfirmed = unconfirmedRows.some((row) => row.phase === 'resolution')
 
   const handleFile = async (event) => {
     const file = event.target.files?.[0]
@@ -179,7 +183,7 @@ function RetailImportContent({ storeId, refreshCatalog }) {
     setMessage('')
     try {
       const nextResult = await applyRetailImport(requestedStoreId, requestedRows)
-      if (nextResult.updated > 0 || nextResult.autoResolved > 0) refreshCatalog?.(requestedStoreId)
+      if (nextResult.updated > 0 || nextResult.autoResolved > 0 || nextResult.catalogMayHaveChanged) refreshCatalog?.(requestedStoreId)
       if (request !== generation.current) return
       setResult(nextResult)
       setStatus('done')
@@ -418,7 +422,11 @@ function RetailImportContent({ storeId, refreshCatalog }) {
                 {t.unknownTitle}
               </div>
               <div style={{ color: 'var(--text-dim)', fontSize: 12, marginTop: 4 }}>
-                {visibleResult.resolutionError
+                {unknownUnconfirmed
+                  ? t.unknownUnconfirmedHint
+                  : resolutionUnconfirmed
+                    ? t.unknownProcessingUnconfirmedHint
+                  : visibleResult.resolutionError
                   ? t.unknownProcessingFailedHint
                   : visibleResult.staged > 0 || visibleResult.autoResolved > 0
                     ? t.unknownHint
@@ -451,6 +459,17 @@ function RetailImportContent({ storeId, refreshCatalog }) {
         </div>
       )}
 
+      {unconfirmedRows.length > 0 && (
+        <div role="status" style={{ padding: 13, borderRadius: 14, background: 'var(--glass-subtle)', border: '1px solid var(--glass-soft-border)' }}>
+          <div style={{ color: 'var(--text)', fontWeight: 800, fontSize: 14 }}>{t.unconfirmedTitle}</div>
+          <div style={{ color: 'var(--text-dim)', fontSize: 12, marginTop: 8 }}>{t.unconfirmedHint}</div>
+          <div style={{ color: 'var(--text-dim)', fontSize: 12, marginTop: 8 }}>{t.unconfirmedCandidates}: {unconfirmedRows.length}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
+            {unconfirmedRows.slice(0, 5).map((row, index) => <RowCard key={`unconfirmed-${row.ean}-${index}`} row={row} reason={t.writeUnconfirmed} />)}
+          </div>
+        </div>
+      )}
+
       {failedRows.length > 0 && (
         <div
           style={{
@@ -469,7 +488,7 @@ function RetailImportContent({ storeId, refreshCatalog }) {
                 key={`failed-${row.ean}-${index}`}
                 row={row}
                 accent="#FCA5A5"
-                reason={row.reason}
+                reason={row.code === 'not_updated' ? t.notUpdated : row.reason}
               />
             ))}
           </div>
