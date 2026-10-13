@@ -1,4 +1,5 @@
 import { liveSnapshots } from './liveSnapshot.js'
+import { signInRetail } from './authFixture.js'
 
 export async function openRetail(
   page,
@@ -99,5 +100,6 @@ export async function openRetail(
   await page.goto(`/retail/${slug}/dashboard${preview ? '?preview' : ''}`, {
     waitUntil: 'domcontentloaded',
   })
+  if (preview && store.is_published === false) await signInRetail(page, { storeSlug: slug })
   if (preview) await page.locator('.ov-title').waitFor()
 }

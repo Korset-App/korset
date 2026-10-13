@@ -1,6 +1,6 @@
-export async function signInRetail(page, { owner = true } = {}) {
-  const store = await page.evaluate(() =>
-    JSON.parse(localStorage.getItem('korset_store_data_audit'))
+export async function signInRetail(page, { owner = true, storeSlug = 'audit' } = {}) {
+  const store = await page.evaluate((storeSlug) =>
+    JSON.parse(localStorage.getItem(`korset_store_data_${storeSlug}`)), storeSlug
   )
   const user = {
     id: owner ? store.owner_id : '00000000-0000-4000-8000-000000000003',
@@ -43,5 +43,5 @@ export async function signInRetail(page, { owner = true } = {}) {
     },
     { accessToken: token }
   )
-  await page.goto('/retail/audit/dashboard')
+  await page.goto(`/retail/${storeSlug}/dashboard`)
 }

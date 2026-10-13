@@ -187,14 +187,17 @@ function normalizeStore(data) {
 
 async function fetchStoreBySlug(slug) {
   if (!slug) return null
-  const { data, error } = await supabase
+  const { data, error, status } = await supabase
     .from('stores')
     .select('*')
     .eq('code', slug)
     .eq('is_active', true)
     .maybeSingle()
-  if (!error && data) return normalizeStore(data)
-  return null
+  if (error) {
+    if (status === 401 || status === 403) return null
+    throw error
+  }
+  return normalizeStore(data)
 }
 
 export async function fetchFullProduct(storeId, ean) {
@@ -227,7 +230,15 @@ export function StoreProvider({ children }) {
   const storeSlug = pathStoreSlug || rememberedStoreSlug || null
 
   const [loadedStore, setCurrentStore] = useState(() => loadStoreFromCache(storeSlug))
-  const currentStore = loadedStore?.slug === storeSlug ? loadedStore : null
+  const matchingStore = loadedStore?.slug === storeSlug ? loadedStore : null
+  const canViewDraft = Boolean(matchingStore && user && (matchingStore.owner_id === user.id || isSuperadmin))
+  const canPreviewDeniedCache = canViewDraft &&
+    Array.isArray(matchingStore.accessRevokedFor) && !matchingStore.accessRevokedFor.includes(user.id)
+  const currentStore = matchingStore &&
+    (matchingStore.accessRevoked !== true || canPreviewDeniedCache) &&
+    matchingStore.is_active !== false && matchingStore.isActive !== false &&
+    (canViewDraft || (matchingStore.is_published !== false && matchingStore.isPublished !== false))
+    ? matchingStore : null
   const [storeLoadState, setStoreLoadState] = useState(() => ({
     slug: storeSlug,
     loading: Boolean(storeSlug && !loadStoreFromCache(storeSlug)),
@@ -340,6 +351,10 @@ export function StoreProvider({ children }) {
       }
 
       if (aborted) return
+      if (!isOnline) {
+        setStoreLoadState({ slug: storeSlug, loading: false })
+        return
+      }
 
       try {
         const store = await fetchStoreBySlug(storeSlug)
@@ -347,6 +362,17 @@ export function StoreProvider({ children }) {
         if (store) {
           setCurrentStore(store)
           saveStoreToCache(storeSlug, store)
+        } else {
+          const deniedCache = loadStoreFromCache(storeSlug)
+          if (deniedCache) {
+            const previousDenials = Array.isArray(deniedCache.accessRevokedFor) ? deniedCache.accessRevokedFor : []
+            saveStoreToCache(storeSlug, {
+              ...deniedCache,
+              accessRevoked: true,
+              accessRevokedFor: [...new Set([...previousDenials, user?.id || 'guest'])],
+            })
+          }
+          setCurrentStore(null)
         }
         setStoreLoadState({ slug: storeSlug, loading: false })
       } catch {
@@ -359,7 +385,7 @@ export function StoreProvider({ children }) {
     return () => {
       aborted = true
     }
-  }, [storeSlug])
+  }, [storeSlug, user?.id, isSuperadmin, isOnline])
 
   const loadedStoreIdRef = useRef(null)
 
@@ -545,8 +571,8 @@ export function StoreProvider({ children }) {
       }
 
       if (error) return { error: error.message, warning }
-      const updated = { ...currentStore, ...appliedPayload }
-      setCurrentStore((loaded) => loaded?.id === updated.id ? { ...loaded, ...appliedPayload } : loaded)
+      const updated = normalizeStore({ ...currentStore, ...appliedPayload })
+      setCurrentStore((loaded) => loaded?.id === updated.id ? normalizeStore({ ...loaded, ...appliedPayload }) : loaded)
       saveStoreToCache(updated.slug || updated.code, updated)
       return { error: null, warning }
     },

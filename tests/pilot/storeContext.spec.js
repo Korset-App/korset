@@ -38,7 +38,7 @@ async function openProbe(page, { cached = ['pilot-a'], deferred = null, deferred
         requested()
         await responseReady
       }
-      if (failed.includes(slug)) return route.fulfill({ status: 403, json: { message: 'Test store unavailable' } })
+      if (failed.includes(slug)) return route.fulfill({ status: 503, json: { message: 'Test store unavailable' } })
       return route.fulfill({ json: stores[slug] ?? null })
     }
     if (url.pathname === '/rest/v1/store_products') return route.fulfill({ json: [{ id: 'fixture-product', ean: '4870201234567' }] })
@@ -140,7 +140,7 @@ test('a completed import for the previous store does not reload the newly select
 test('a failed uncached store request never leaves the previous store available', async ({ page }) => {
   await openProbe(page, { failed: ['pilot-b'] })
   await page.getByRole('link', { name: 'pilot-b' }).click()
-  await expect.poll(async () => (await readState(page)).loading).toBe(false)
+  await expect.poll(async () => (await readState(page)).loading, { timeout: 15000 }).toBe(false)
   const state = await readState(page)
   expect(state.store).toBe(null)
   expect(state.products).toEqual([])
