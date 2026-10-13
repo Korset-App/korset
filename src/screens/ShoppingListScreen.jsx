@@ -172,9 +172,12 @@ export default function ShoppingListScreen() {
   const handleShare = async () => {
     if (!products?.length) return
     const lines = products.map((product, index) => {
+      const unit = product.saleUnit && product.saleUnit !== 'piece'
+        ? ` / ${t(`integration.unit.${product.saleUnit}`)}`
+        : ''
       const price =
         Number.isFinite(product.priceKzt) && product.priceKzt > 0
-          ? ` — ${product.priceKzt.toLocaleString('ru-RU')} ₸`
+          ? ` — ${product.priceKzt.toLocaleString('ru-RU')} ₸${unit}`
           : ''
       return `${index + 1}. ${product.source === 'unknown' ? t('shopping.unknownProduct') : getLocalName(product)}${price}`
     })
