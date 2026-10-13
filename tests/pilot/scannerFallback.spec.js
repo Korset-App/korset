@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { openConsumer, MILK_EAN, UNKNOWN_EAN } from './consumerFixtures.js'
+import { openConsumer, MILK_EAN, UNKNOWN_EAN, stores } from './consumerFixtures.js'
 
 async function openDeniedScanner(page, { lang = 'ru', theme = 'light', slug = 'pilot-a' } = {}) {
   await page.addInitScript(() => {
@@ -90,4 +90,53 @@ test('an eight-digit entry reaches lookup with every digit and its store intact'
     p_store_id: '00000000-0000-4000-8000-000000000001',
     p_barcode: barcode,
   })
+})
+
+test('a late manual lookup from the first store cannot navigate the second store or fill its scan tray', async ({ page }) => {
+  await openDeniedScanner(page)
+  await page.evaluate(async () => (await import('/src/utils/resolverCache.js')).clearResolverCache())
+  let release
+  let requested
+  const response = new Promise((resolve) => { release = resolve })
+  const request = new Promise((resolve) => { requested = resolve })
+  await page.route('**/rpc/korset_find_store_source_card', async (route) => {
+    const body = route.request().postDataJSON()
+    if (body.p_store_id !== stores['pilot-a'].id) return route.fulfill({ json: [] })
+    requested()
+    await response
+    return route.fulfill({ json: [{
+      store_source_item_id: '11111111-1111-4111-8111-111111111111',
+      store_id: stores['pilot-a'].id,
+      ean: UNKNOWN_EAN,
+      name: 'Pilot unknown ingredients',
+      regular_minor: 42000,
+      unit: 'piece',
+      stock_status: 'unknown',
+      observed_at: new Date().toISOString(),
+    }] })
+  })
+  try {
+    await page.locator('.scan-manual-input input').fill(UNKNOWN_EAN)
+    await page.locator('.scan-submit-btn').click()
+    await request
+    await page.evaluate(() => {
+      globalThis.history.pushState({}, '', '/s/pilot-b/scan')
+      globalThis.dispatchEvent(new globalThis.PopStateEvent('popstate'))
+    })
+    await expect(page.locator('.scan-status-overlay--error strong')).toHaveText('Нет доступа к камере', { timeout: 15000 })
+    release()
+    await expect.poll(() => page.evaluate(async ({ ean, storeId }) => {
+      const cache = await import('/src/utils/resolverCache.js')
+      return Boolean(cache.getInflightPromise(`${storeId}:${ean}`))
+    }, { ean: UNKNOWN_EAN, storeId: stores['pilot-a'].id })).toBe(false)
+    await page.evaluate(() => new Promise((resolve) => globalThis.requestAnimationFrame(() => globalThis.requestAnimationFrame(resolve))))
+    await expect(page).toHaveURL('/s/pilot-b/scan')
+    expect(await page.evaluate(() => JSON.parse(globalThis.localStorage.getItem('korset_recent_scans') || '[]'))).toEqual([])
+    await page.locator('.scan-manual-input input').fill(UNKNOWN_EAN)
+    await page.locator('.scan-submit-btn').click()
+    await expect(page).toHaveURL(`/s/pilot-b/product/${UNKNOWN_EAN}`)
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Pilot B product')
+  } finally {
+    release()
+  }
 })

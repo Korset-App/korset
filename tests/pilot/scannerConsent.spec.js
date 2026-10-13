@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { openConsumer, stores } from './consumerFixtures.js'
+import { openConsumer, stores, UNKNOWN_EAN } from './consumerFixtures.js'
 
 async function prepareCamera(page, { accepted = false, mode = 'denied' } = {}) {
   await page.addInitScript(({ accepted, mode }) => {
@@ -47,6 +47,94 @@ async function prepareCamera(page, { accepted = false, mode = 'denied' } = {}) {
 
 async function cameraCalls(page) {
   return page.evaluate(() => globalThis.__firstCameraCalls)
+}
+
+for (const { destination, stay = false, background = false } of [
+  { destination: '/s/pilot-b/scan' },
+  { destination: '/s/pilot-a/catalog' },
+  { destination: '/s/pilot-a/scan', stay: true },
+  { destination: '/s/pilot-b/scan', background: true },
+]) {
+  test(`camera lookup preserves its store scope (${destination}, stay=${stay}, background=${background})`, async ({ page }) => {
+    await prepareCamera(page, { accepted: true, mode: 'live' })
+    await openConsumer(page)
+    await expect(page.locator('.catalog-category-card').first()).toBeVisible()
+    await page.evaluate(async () => {
+      const { Html5Qrcode } = await (await import('/src/utils/scannerEngine.js')).loadScannerEngine()
+      const start = Html5Qrcode.prototype.start
+      Html5Qrcode.prototype.start = function (...args) {
+        globalThis.__scanSuccess = args[2]
+        return start.apply(this, args)
+      }
+      ;(await import('/src/utils/resolverCache.js')).clearResolverCache()
+    })
+    await page.evaluate(() => {
+      globalThis.history.pushState({}, '', '/s/pilot-a/scan')
+      globalThis.dispatchEvent(new globalThis.PopStateEvent('popstate'))
+    })
+    await expect.poll(() => page.evaluate(() => Boolean(globalThis.__scanSuccess))).toBe(true)
+    await expect.poll(() => page.locator('.scan-video-host video').evaluate((video) => video.currentTime)).toBeGreaterThan(0)
+    await expect(page.getByText('Наведите камеру на штрихкод товара', { exact: true })).toBeVisible()
+    let release
+    let requested
+    const response = new Promise((resolve) => { release = resolve })
+    const request = new Promise((resolve) => { requested = resolve })
+    const sourceCard = {
+        store_source_item_id: '11111111-1111-4111-8111-111111111111',
+        store_id: stores['pilot-a'].id,
+        ean: UNKNOWN_EAN,
+        name: 'Pilot unknown ingredients',
+        regular_minor: 42000,
+        unit: 'piece',
+        stock_status: 'unknown',
+        observed_at: new Date().toISOString(),
+    }
+    await page.route('**/rpc/korset_get_store_source_cards', (route) => route.fulfill({ json: [sourceCard] }))
+    await page.route('**/rpc/korset_find_store_source_card', async (route) => {
+      requested()
+      await response
+      return route.fulfill({ json: [sourceCard] })
+    })
+    try {
+      await page.evaluate(async (ean) => {
+        const decoded = { result: { format: { formatName: 'CODE_128' } } }
+        await globalThis.__scanSuccess(ean, decoded)
+        globalThis.__pendingOldScan = globalThis.__scanSuccess(ean, decoded)
+      }, UNKNOWN_EAN)
+      await request
+      if (background) {
+        await page.evaluate(() => globalThis.__pendingOldScan)
+        await expect(page).toHaveURL(new RegExp(`/s/pilot-a/product/${UNKNOWN_EAN}$`))
+      }
+      if (!stay) {
+        await page.evaluate((path) => {
+          globalThis.history.pushState({}, '', path)
+          globalThis.dispatchEvent(new globalThis.PopStateEvent('popstate'))
+        }, destination)
+      }
+      await expect(page).toHaveURL(destination)
+      await page.evaluate(() => new Promise((resolve) => globalThis.requestAnimationFrame(() => globalThis.requestAnimationFrame(resolve))))
+      release()
+      await page.evaluate(() => globalThis.__pendingOldScan)
+      if (stay) {
+        await expect(page).toHaveURL(/\/s\/pilot-a\/product\//u)
+        await expect(page.getByRole('heading', { level: 1 })).toHaveText('Pilot unknown ingredients')
+        expect(await page.evaluate(() => JSON.parse(globalThis.localStorage.getItem('korset_recent_scans') || '[]'))).toEqual([
+          { ean: UNKNOWN_EAN, name: 'Pilot unknown ingredients', image_url: null },
+        ])
+      } else {
+        await expect.poll(() => page.evaluate(async ({ ean, storeId }) => {
+          const cache = await import('/src/utils/resolverCache.js')
+          return Boolean(cache.getInflightPromise(`${storeId}:${ean}`))
+        }, { ean: UNKNOWN_EAN, storeId: stores['pilot-a'].id })).toBe(false)
+        await page.evaluate(() => new Promise((resolve) => globalThis.requestAnimationFrame(() => globalThis.requestAnimationFrame(resolve))))
+        await expect(page).toHaveURL(destination)
+        expect(await page.evaluate(() => JSON.parse(globalThis.localStorage.getItem('korset_recent_scans') || '[]'))).toEqual([])
+      }
+    } finally {
+      release()
+    }
+  })
 }
 
 async function liveTracks(page) {

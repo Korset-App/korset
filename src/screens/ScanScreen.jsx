@@ -621,6 +621,8 @@ export default function ScanScreen() {
                 /* noop */
               }
               const currentStoreId = storeRef.current?.id || null
+              const scanStoreSlug = slugRef.current
+              const isLookupCurrent = () => mountedRef.current && startSeq === startSeqRef.current
               if (compareModeRef.current) {
                 // Compare mode: wait for product before deciding flow
                 setSearching(true)
@@ -628,7 +630,7 @@ export default function ScanScreen() {
                   lookupProduct(ean, currentStoreId),
                   stopScanner(),
                 ])
-                if (!mountedRef.current) return
+                if (!isLookupCurrent()) return
 
                 if (result.type === 'local' || result.type === 'external') {
                   const scannedProduct = result.product
@@ -670,6 +672,7 @@ export default function ScanScreen() {
                     lookup: () => lookupProduct(ean, currentStoreId),
                     stop: stopScanner,
                   })
+                  if (!isLookupCurrent()) return
                   if (r?.product) {
                     resolvedProduct = r.product
                     rememberScan(r.product)
@@ -677,14 +680,18 @@ export default function ScanScreen() {
                     // If it took >800ms, let it finish and save in background
                     lookupPromise
                       .then((bgR) => {
-                        if (bgR?.product) rememberScan(bgR.product)
+                        if (
+                          bgR?.product &&
+                          window.location.pathname.startsWith(`/s/${scanStoreSlug}/`)
+                        ) rememberScan(bgR.product)
                       })
                       .catch(() => {})
                   }
                 } catch {
                   /* noop */
                 }
-                navigate(buildProductPath(slugRef.current, ean), {
+                if (!isLookupCurrent()) return
+                navigate(buildProductPath(scanStoreSlug, ean), {
                   state: { ean, fromScan: true, product: resolvedProduct },
                 })
               }
