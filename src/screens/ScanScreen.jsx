@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, Navigate } from 'react-router-dom'
 import { lookupProduct } from '../utils/productLookup.js'
 import { useStore } from '../contexts/StoreContext.jsx'
+import { useAuth } from '../contexts/AuthContext.jsx'
 import { useOffline } from '../contexts/OfflineContext.jsx'
 import { buildProductPath, buildComparePath } from '../utils/routes.js'
 import { useI18n } from '../i18n/index.js'
@@ -10,6 +11,7 @@ import { buildTermsPath, buildPrivacyPath } from '../utils/routes.js'
 import TermsConsentSheet, { isTermsAccepted } from '../components/TermsConsentSheet.jsx'
 import { CompareIcon } from '../components/icons/CompareIcon.jsx'
 import { IconGallery } from '../components/icons/IconGallery.jsx'
+import RouteLoader from '../components/RouteLoader.jsx'
 import { ArrowBackIcon, ArrowForwardIcon, BarcodeScannerIcon, CameraIcon, SearchIcon } from '../components/icons/index.js'
 import ProductSubmissionSheet from '../components/product/ProductSubmissionSheet.jsx'
 import { isValidBarcodeChecksum } from '../utils/barcodeChecksum.js'
@@ -363,7 +365,8 @@ export default function ScanScreen() {
   const navigate = useNavigate()
   const location = useLocation()
   const { t } = useI18n()
-  const { currentStore } = useStore()
+  const { currentStore, isStoreLoading } = useStore()
+  const { loading: authLoading } = useAuth()
   const { isOnline } = useOffline()
   const storeSlug = currentStore?.slug || null
 
@@ -510,6 +513,7 @@ export default function ScanScreen() {
 
   const startScanner = useCallback(
     async (cameraList = [], idx = 0) => {
+      if (!isTermsAccepted() || !storeRef.current?.id) return
       const startSeq = ++startSeqRef.current
       busyRef.current = true
       setStatus('starting')
@@ -891,7 +895,7 @@ export default function ScanScreen() {
 
   useEffect(() => {
     mountedRef.current = true
-    startScannerRef.current?.([], 0)
+    if (!consentOpen && currentStore?.id) startScannerRef.current?.([], 0)
     return () => {
       mountedRef.current = false
       startSeqRef.current += 1
@@ -901,7 +905,7 @@ export default function ScanScreen() {
       clearTimeout(focusTimer.current)
       cleanupAudioContext()
     }
-  }, [startScanner, stopScanner])
+  }, [startScanner, stopScanner, consentOpen, currentStore?.id])
 
   const switchCamera = useCallback(async () => {
     if (busyRef.current || statusRef.current === 'starting') return
@@ -1204,6 +1208,10 @@ export default function ScanScreen() {
   const dockLift = manualFocused ? Math.min(keyboardOffset, 340) : 0
   const canSwitchCamera = status !== 'starting' && !searching
   const hasManualValue = manualInput.trim().length > 0
+
+  if (!currentStore) {
+    return isStoreLoading || authLoading ? <RouteLoader /> : <Navigate to="/stores" replace />
+  }
 
   return (
     <div className="scan-screen">

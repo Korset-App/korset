@@ -30,14 +30,64 @@ function markTermsAccepted() {
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useI18n } from '../i18n/index.js'
 
 export default function TermsConsentSheet({ open, onAccept, onNavigateTerms, onNavigatePolicy }) {
   const [checked, setChecked] = useState(false)
+  const { t } = useI18n()
+  const dialogRef = useRef(null)
+
+  useEffect(() => {
+    if (!open) return undefined
+
+    const previousFocus = document.activeElement
+    const dialog = dialogRef.current
+    dialog?.querySelector('#consent-checkbox')?.focus()
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        event.stopPropagation()
+        return
+      }
+      if (event.key !== 'Tab' || !dialog) return
+
+      const focusable = [...dialog.querySelectorAll('input:not(:disabled), button:not(:disabled)')]
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (!first || !last) return
+
+      if (!dialog.contains(document.activeElement)) {
+        event.preventDefault()
+        const target = event.shiftKey ? last : first
+        target.focus()
+      } else if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+
+    const keepFocusInside = (event) => {
+      if (!dialog?.contains(event.target)) dialog?.querySelector('#consent-checkbox')?.focus()
+    }
+
+    document.addEventListener('keydown', handleKeyDown, true)
+    document.addEventListener('focusin', keepFocusInside, true)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown, true)
+      document.removeEventListener('focusin', keepFocusInside, true)
+      if (previousFocus?.isConnected) previousFocus.focus()
+    }
+  }, [open])
 
   if (!open) return null
 
   const handleAccept = () => {
+    if (!checked) return
     markTermsAccepted()
     onAccept()
   }
@@ -58,6 +108,7 @@ export default function TermsConsentSheet({ open, onAccept, onNavigateTerms, onN
 
       {/* Sheet */}
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="consent-title"
@@ -121,7 +172,7 @@ export default function TermsConsentSheet({ open, onAccept, onNavigateTerms, onN
               color: 'var(--text)',
             }}
           >
-            Прежде чем начать
+            {t('scan.consent.title')}
           </div>
         </div>
 
@@ -135,60 +186,40 @@ export default function TermsConsentSheet({ open, onAccept, onNavigateTerms, onN
             margin: '0 0 24px',
           }}
         >
-          Körset предоставляет информацию о составе товаров в справочных целях.{' '}
+          {t('scan.consent.bodyStart')}{' '}
           <strong style={{ color: 'var(--text)', fontWeight: 600 }}>
-            Данные не заменяют проверку упаковки и не являются медицинской рекомендацией.
+            {t('scan.consent.bodyEmphasis')}
           </strong>{' '}
-          Ответственность за конечный выбор продукта лежит на вас.
+          {t('scan.consent.bodyEnd')}
         </p>
 
         {/* Checkbox Row */}
-        <label
+        <div
           style={{
             display: 'flex',
             alignItems: 'flex-start',
             gap: 12,
             marginBottom: 28,
-            cursor: 'pointer',
-            WebkitTapHighlightColor: 'transparent',
           }}
         >
-          <div
+          <input
+            id="consent-checkbox"
+            className="tc-checkbox"
+            type="checkbox"
+            checked={checked}
+            onChange={(e) => setChecked(e.target.checked)}
+            aria-label={t('scan.consent.checkboxLabel')}
             style={{
               width: 22,
               height: 22,
-              borderRadius: 6,
-              border: checked ? '1.5px solid var(--primary)' : '1.5px solid var(--text-disabled)',
-              background: checked ? 'var(--primary)' : 'transparent',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              accentColor: 'var(--primary)',
               flexShrink: 0,
               marginTop: 2,
-              transition: 'all 0.2s ease',
+              marginLeft: 0,
+              marginRight: 0,
+              cursor: 'pointer',
             }}
-          >
-            {checked && (
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#fff"
-                strokeWidth="3"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            )}
-            <input
-              type="checkbox"
-              checked={checked}
-              onChange={(e) => setChecked(e.target.checked)}
-              style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
-            />
-          </div>
+          />
           <div
             style={{
               fontFamily: 'var(--font-body)',
@@ -197,31 +228,29 @@ export default function TermsConsentSheet({ open, onAccept, onNavigateTerms, onN
               lineHeight: 1.5,
             }}
           >
-            Я ознакомился(ась) и согласен(сна) с{' '}
-            <span
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                onNavigateTerms()
-              }}
+            <label htmlFor="consent-checkbox" style={{ cursor: 'pointer' }}>
+              {t('scan.consent.agreementStart')}{' '}
+            </label>
+            <button
+              type="button"
+              className="tc-link"
+              onClick={onNavigateTerms}
               style={{ color: 'var(--text)', textDecoration: 'underline', textUnderlineOffset: 3 }}
             >
-              условиями использования
-            </span>{' '}
-            и{' '}
-            <span
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                onNavigatePolicy()
-              }}
+              {t('scan.consent.terms')}
+            </button>{' '}
+            {t('scan.consent.agreementJoin')}{' '}
+            <button
+              type="button"
+              className="tc-link"
+              onClick={onNavigatePolicy}
               style={{ color: 'var(--text)', textDecoration: 'underline', textUnderlineOffset: 3 }}
             >
-              политикой конфиденциальности
-            </span>
-            .
+              {t('scan.consent.policy')}
+            </button>
+            {t('scan.consent.agreementEnd')}
           </div>
-        </label>
+        </div>
 
         {/* Accept button */}
         <button
@@ -244,7 +273,7 @@ export default function TermsConsentSheet({ open, onAccept, onNavigateTerms, onN
             transition: 'all 0.2s ease',
           }}
         >
-          Принять и продолжить
+          {t('scan.consent.accept')}
         </button>
       </div>
 
@@ -252,6 +281,21 @@ export default function TermsConsentSheet({ open, onAccept, onNavigateTerms, onN
         @keyframes tcSlideUp {
           from { transform: translateY(100%) }
           to   { transform: translateY(0)    }
+        }
+        .tc-checkbox:focus-visible,
+        .tc-link:focus-visible,
+        #consent-accept-btn:focus-visible {
+          outline: 2px solid var(--primary);
+          outline-offset: 3px;
+        }
+        .tc-link {
+          display: inline;
+          padding: 0;
+          border: 0;
+          background: transparent;
+          font: inherit;
+          line-height: inherit;
+          cursor: pointer;
         }
       `}</style>
     </>
