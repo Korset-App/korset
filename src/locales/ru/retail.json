@@ -36,6 +36,7 @@
   "retail.products.outOfStock": "Нет",
   "retail.products.priceLabel": "Розничная цена (₸)",
   "retail.products.stockLabel": "Товар есть в наличии?",
+  "retail.products.stockUpdateError": "Не удалось изменить наличие. Проверьте состояние и попробуйте снова.",
   "retail.products.shoppingRecommendationLabel": "Рекомендовать к списку покупок",
   "retail.products.recommendationLimitTitle": "Достигнут лимит рекомендаций",
   "retail.products.recommendationLimitMessage": "В одном магазине можно рекомендовать не более 10 товаров.",

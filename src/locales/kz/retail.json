@@ -35,6 +35,7 @@
   "retail.products.outOfStock": "Жоқ",
   "retail.products.priceLabel": "Бөлшек баға (₸)",
   "retail.products.stockLabel": "Тауар дүкенде бар ма?",
+  "retail.products.stockUpdateError": "Қолда барын өзгерту мүмкін болмады. Күйін тексеріп, қайта көріңіз.",
   "retail.products.shoppingRecommendationLabel": "Сатып алу тізіміне ұсыну",
   "retail.products.recommendationLimitTitle": "Ұсыныстар шегіне жеттіңіз",
   "retail.products.recommendationLimitMessage": "Бір дүкенде 10 тауардан артық ұсынуға болмайды.",
