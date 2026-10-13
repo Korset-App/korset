@@ -34,6 +34,8 @@ function localZbarWasm() {
 // Удалён в Этапе 1 hardening (дыра безопасности + drift от prod-версии api/ai.js).
 
 export default defineConfig({
+  // Shared node_modules must not share optimizer output between checkouts.
+  cacheDir: fileURLToPath(new URL('./scratch/vite-cache', import.meta.url)),
   plugins: [
     react(),
     localZbarWasm(),
