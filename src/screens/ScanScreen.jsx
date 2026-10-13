@@ -7,7 +7,7 @@ import { useOffline } from '../contexts/OfflineContext.jsx'
 import { buildProductPath, buildComparePath } from '../utils/routes.js'
 import { useI18n } from '../i18n/index.js'
 import { loadSoundSettings } from '../utils/soundSettings.js'
-import { buildTermsPath, buildPrivacyPath } from '../utils/routes.js'
+import { buildTermsPath, buildPrivacyPolicyPath } from '../utils/routes.js'
 import TermsConsentSheet, { isTermsAccepted } from '../components/TermsConsentSheet.jsx'
 import { CompareIcon } from '../components/icons/CompareIcon.jsx'
 import { IconGallery } from '../components/icons/IconGallery.jsx'
@@ -1470,7 +1470,7 @@ export default function ScanScreen() {
         open={consentOpen}
         onAccept={() => setConsentOpen(false)}
         onNavigateTerms={() => navigate(buildTermsPath(storeSlug))}
-        onNavigatePolicy={() => navigate(buildPrivacyPath(storeSlug))}
+        onNavigatePolicy={() => navigate(buildPrivacyPolicyPath(storeSlug))}
       />
       <ProductSubmissionSheet
         open={submissionOpen}

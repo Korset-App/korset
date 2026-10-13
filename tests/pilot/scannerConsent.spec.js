@@ -111,6 +111,28 @@ test('opening the terms with the keyboard does not accept consent or start the c
   expect(await page.evaluate(() => globalThis.localStorage.getItem('korset_terms_accepted'))).toBe(null)
 })
 
+for (const lang of ['ru', 'kz']) {
+  for (const theme of ['light', 'dark']) {
+    test(`consent opens the policy document in store context (${lang}/${theme})`, async ({ page }) => {
+      await prepareCamera(page)
+      await openConsumer(page, { lang, theme })
+      await page.goto('/s/pilot-a/scan')
+      const dialog = page.getByRole('dialog')
+      await expect(dialog).toBeVisible()
+      await dialog.getByRole('button', { name: lang === 'ru' ? 'политикой конфиденциальности' : 'құпиялылық саясатымен' }).click()
+      await expect(page).toHaveURL('/s/pilot-a/privacy-policy')
+      await expect(page.getByRole('heading', { name: lang === 'ru' ? '1. Сбор данных' : '1. Деректерді жинау', exact: true })).toBeVisible()
+      expect(await cameraCalls(page)).toBe(0)
+      expect(await page.evaluate(() => globalThis.localStorage.getItem('korset_terms_accepted'))).toBe(null)
+      await page.getByRole('button', { name: lang === 'ru' ? 'Назад' : 'Артқа', exact: true }).first().click()
+      await expect(page).toHaveURL('/s/pilot-a/scan')
+      await expect(page.getByRole('dialog')).toBeVisible()
+      await expect(page.getByRole('dialog').getByRole('checkbox')).not.toBeChecked()
+      expect(await cameraCalls(page)).toBe(0)
+    })
+  }
+}
+
 test('a scanner waits for the newly selected store before requesting the camera', async ({ page }) => {
   await prepareCamera(page, { accepted: true })
   await openConsumer(page, { cachedStores: false })
