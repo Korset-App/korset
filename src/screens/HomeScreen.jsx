@@ -45,6 +45,11 @@ import {
   CartIcon,
   LocationPinIcon,
   ChevronDownIcon,
+  EditIcon,
+  SlidersIcon,
+  ShoppingListIcon,
+  HistoryIcon,
+  SyncIcon,
   CloseIcon,
   ArrowBackIcon,
   ArrowForwardIcon,
@@ -229,10 +234,26 @@ function SearchIcon({ className = '', width = 20, height = 20 }) {
   )
 }
 
+const HOME_ICON_COMPONENTS = {
+  expand_more: ChevronDownIcon,
+  chevron_right: ChevronDownIcon,
+  storefront: StorefrontIcon,
+  progress_activity: SyncIcon,
+  edit: EditIcon,
+  tune: SlidersIcon,
+  checklist: ShoppingListIcon,
+  history: HistoryIcon,
+  grocery: CartIcon,
+  arrow_forward: ArrowForwardIcon,
+  format_list_bulleted: ShoppingListIcon,
+}
+
 function HomeIcon({ name, className = '' }) {
+  const Icon = HOME_ICON_COMPONENTS[name]
+  if (!Icon) return null
   return (
-    <span className={`material-symbols-outlined ${className}`} aria-hidden="true">
-      {name}
+    <span className={`home-icon ${className}`} aria-hidden="true">
+      <Icon size="1em" style={name === 'chevron_right' ? { transform: 'rotate(-90deg)' } : undefined} />
     </span>
   )
 }
