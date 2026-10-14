@@ -112,7 +112,10 @@ function scaleEnergy(val, factor) {
   return Math.round(n * factor)
 }
 
-export function computePortionNutrition(nutrition, portionInfo, mode = '100') {
+export function computePortionNutrition(nutrition, portionInfo, mode = '100', saturatedFat100g = null) {
+  if (saturatedFat100g != null && nutrition?.saturatedFat == null && nutrition?.['saturated-fat_100g'] == null) {
+    nutrition = { ...nutrition, saturatedFat: saturatedFat100g }
+  }
   if (!nutrition) return null
   if (mode !== 'whole' || !portionInfo || portionInfo.factor == null) {
     return {
