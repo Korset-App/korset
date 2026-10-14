@@ -1083,6 +1083,9 @@ const ProductCard = memo(
     prev.stockMutation.isPending === next.stockMutation.isPending &&
     prev.stockMutation.isError === next.stockMutation.isError &&
     prev.stockMutation.variables?.id === next.stockMutation.variables?.id &&
+    prev.recommendationMutation.isPending === next.recommendationMutation.isPending &&
+    prev.recommendationMutation.isError === next.recommendationMutation.isError &&
+    prev.recommendationMutation.variables?.id === next.recommendationMutation.variables?.id &&
     prev.storeSlug === next.storeSlug
 )
 

@@ -8,7 +8,7 @@ import ShoppingListButton from './ShoppingListButton.jsx'
 import { getProductRef } from '../domain/product/storeSourceProduct.js'
 import './ProductMiniCard.css'
 
-export default function ProductMiniCard({ product, onRemove, onAdd }) {
+export default function ProductMiniCard({ product, onRemove, onAdd, caution = false }) {
   const navigate = useNavigate()
   const { currentStore } = useStore()
   const { lang, t } = useI18n()
@@ -44,7 +44,7 @@ export default function ProductMiniCard({ product, onRemove, onAdd }) {
         className="product-mini-card__open"
         disabled={product.storeUnavailable}
         onClick={handleOpen}
-        aria-label={localName}
+        aria-label={caution ? `${localName}. ${t('fit.verdict.caution')}` : localName}
       >
         <div className="product-mini-card__image-wrap catalog-img-box">
           {image ? (
@@ -100,6 +100,7 @@ export default function ProductMiniCard({ product, onRemove, onAdd }) {
           <div className="product-mini-card__name" title={localName}>
             {localName}
           </div>
+          {caution && <div className="product-mini-card__fit">{t('fit.verdict.caution')}</div>}
           {meta && <div className="product-mini-card__meta">{meta}</div>}
         </div>
       </button>

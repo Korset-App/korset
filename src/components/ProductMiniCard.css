@@ -74,6 +74,12 @@
   color: var(--text-disabled);
 }
 
+.product-mini-card__fit {
+  color: var(--warning);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .product-mini-card__body {
   display: flex;
   flex-direction: column;

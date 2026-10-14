@@ -8,6 +8,7 @@ import { useOffline } from '../contexts/OfflineContext.jsx'
 import { useUserData } from '../contexts/UserDataContext.jsx'
 import { useI18n } from '../i18n/index.js'
 import { getLocalName } from '../utils/localName.js'
+import { checkProductFit } from '../utils/fitCheck.js'
 import { buildCatalogPath, buildProfilePath } from '../utils/routes.js'
 import { hydrateProductsFromFavoriteRows } from '../domain/product/resolver.js'
 import { summarizeShoppingList } from '../domain/shopping/shoppingListSummary.js'
@@ -447,6 +448,7 @@ export default function ShoppingListScreen() {
                     <ProductMiniCard
                       key={getProductRef(product)}
                       product={product}
+                      caution={checkProductFit(product, profile).verdict === 'caution'}
                       onAdd={() => toggleFavorite(product)}
                     />
                   ))}
