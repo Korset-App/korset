@@ -3,7 +3,29 @@ import assert from 'node:assert/strict'
 import {
   validateManualProductPayload,
   buildStoreProductUpsertPayload,
+  buildRetailPriceUpdate,
 } from '../../../src/domain/retail/catalogManagement.js'
+
+test('retail price changes keep the discount consistent with its reference', () => {
+  const product = { old_price_kzt: 525, discount_percent: 20, is_featured: true }
+  assert.deepEqual(buildRetailPriceUpdate(product, 550), {
+    price_kzt: 550, old_price_kzt: null, discount_percent: null,
+  })
+  assert.deepEqual(buildRetailPriceUpdate(product, 450), {
+    price_kzt: 450, old_price_kzt: 525, discount_percent: 14,
+  })
+  assert.deepEqual(buildRetailPriceUpdate(product, 0), {
+    price_kzt: 0, old_price_kzt: null, discount_percent: null,
+  })
+})
+
+test('retail price validation preserves optional-column compatibility and source ownership', () => {
+  assert.deepEqual(buildRetailPriceUpdate({}, 450.6), { price_kzt: 450.6 })
+  for (const price of ['', null, undefined, NaN, Infinity, -1]) {
+    assert.throws(() => buildRetailPriceUpdate({}, price))
+  }
+  assert.throws(() => buildRetailPriceUpdate({ sync_integration_id: 'source' }, 450))
+})
 
 test('validateManualProductPayload validates barcode length', () => {
   assert.equal(validateManualProductPayload({ ean: '123' }).ok, false)

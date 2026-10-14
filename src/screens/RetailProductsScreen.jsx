@@ -21,6 +21,7 @@ import AddScannedProductModal from '../components/retail/AddScannedProductModal.
 import { buildProductPath } from '../utils/routes.js'
 import { useNavigate } from 'react-router-dom'
 import { escapeLiteralPattern } from '../utils/literalSearch.js'
+import { buildRetailPriceUpdate, calculateDiscountPercent } from '../domain/retail/catalogManagement.js'
 import {
   CloseIcon,
   InventoryIcon,
@@ -160,7 +161,10 @@ function StockBadge({ status, p }) {
 }
 
 // ── Price field with save-on-blur ──────────────────────────────────
-function PriceField({ productId, initialPrice, p, priceMutation, managed }) {
+function PriceField({ product, p, priceMutation, promotionMutation, managed }) {
+  const productId = product.id
+  const initialPrice = product.price_kzt
+  const pending = priceMutation.isPending || promotionMutation.isPending
   const [draft, setDraft] = useState(initialPrice ?? '')
   const [saveState, setSaveState] = useState('idle') // idle | saving | saved | error
   const timerRef = useRef(null)
@@ -173,24 +177,29 @@ function PriceField({ productId, initialPrice, p, priceMutation, managed }) {
   }, [initialPrice]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleBlur = useCallback(() => {
-    if (managed) return
+    if (managed || pending) return
     const val = Number(draft)
-    if (isNaN(val) || val < 0 || val === initialPrice) return
+    if (String(draft).trim() === '' || !Number.isFinite(val) || val < 0) {
+      setDraft(initialPrice ?? '')
+      return
+    }
+    if (val === initialPrice) return
+    clearTimeout(timerRef.current)
     setSaveState('saving')
     priceMutation.mutate(
-      { id: productId, price: val },
+      { id: productId, price: val, product },
       {
         onSuccess: () => {
           setSaveState('saved')
           timerRef.current = setTimeout(() => setSaveState('idle'), 2000)
         },
         onError: () => {
+          setDraft(initialPrice ?? '')
           setSaveState('error')
-          timerRef.current = setTimeout(() => setSaveState('idle'), 3000)
         },
       }
     )
-  }, [draft, initialPrice, productId, priceMutation, managed])
+  }, [draft, initialPrice, productId, product, priceMutation, managed, pending])
 
   const stateColor = {
     idle: 'var(--text-dim)',
@@ -221,6 +230,7 @@ function PriceField({ productId, initialPrice, p, priceMutation, managed }) {
         </label>
         {stateLabel[saveState] && (
           <span
+            role={saveState === 'error' ? 'alert' : 'status'}
             style={{
               fontSize: 11,
               color: stateColor[saveState],
@@ -237,12 +247,18 @@ function PriceField({ productId, initialPrice, p, priceMutation, managed }) {
           type="number"
           inputMode="numeric"
           value={draft}
-          readOnly={managed}
-          aria-readonly={managed}
-          onChange={(e) => setDraft(e.target.value)}
+          aria-label={p.priceLabel}
+          readOnly={managed || pending}
+          aria-readonly={managed || pending}
+          onChange={(e) => {
+            clearTimeout(timerRef.current)
+            setSaveState('idle')
+            setDraft(e.target.value)
+          }}
           onBlur={handleBlur}
           style={{
             flex: 1,
+            minWidth: 0,
             fontSize: 22,
             fontWeight: 700,
             fontFamily: 'var(--font-display)',
@@ -391,7 +407,9 @@ function ShoppingRecommendationToggle({ product, label, recommendationMutation }
 }
 
 // ── Promotion & Featured section ──────────────────────────────────
-function PromotionSection({ product, p, promotionMutation, managed }) {
+function PromotionSection({ product, p, promotionMutation, priceMutation, managed }) {
+  const pending = promotionMutation.isPending || priceMutation.isPending
+  const failed = promotionMutation.isError && promotionMutation.variables?.id === product.id
   const isFeatured = Boolean(product.is_featured)
   const currentPrice = Number(product.price_kzt) || 0
   const [oldPriceDraft, setOldPriceDraft] = useState(product.old_price_kzt ?? '')
@@ -402,30 +420,30 @@ function PromotionSection({ product, p, promotionMutation, managed }) {
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (saveState === 'idle') setOldPriceDraft(product.old_price_kzt ?? '')
+    if (saveState === 'idle' || saveState === 'saved') setOldPriceDraft(product.old_price_kzt ?? '')
   }, [product.old_price_kzt])
 
   const calculatedPct = useMemo(() => {
     const old = Number(oldPriceDraft)
-    if (Number.isFinite(old) && old > currentPrice && currentPrice > 0) {
-      return Math.round((1 - currentPrice / old) * 100)
-    }
-    return product.discount_percent ?? null
-  }, [oldPriceDraft, currentPrice, product.discount_percent])
+    return calculateDiscountPercent(currentPrice, old)
+  }, [oldPriceDraft, currentPrice])
 
   const handleToggleFeatured = (e) => {
     e.stopPropagation()
+    if (pending) return
     promotionMutation?.mutate({
       id: product.id,
       isFeatured: !isFeatured,
       oldPriceKzt: product.old_price_kzt,
       discountPercent: product.discount_percent,
       managed,
+      placementOnly: true,
     })
   }
 
   const handleOldPriceBlur = () => {
-    if (managed) return
+    if (managed || pending) return
+    clearTimeout(timerRef.current)
     const val = oldPriceDraft === '' ? null : Number(oldPriceDraft)
     if (val !== null && (!Number.isFinite(val) || val <= currentPrice)) {
       setOldPriceDraft('')
@@ -457,8 +475,8 @@ function PromotionSection({ product, p, promotionMutation, managed }) {
           timerRef.current = setTimeout(() => setSaveState('idle'), 2000)
         },
         onError: () => {
+          setOldPriceDraft(product.old_price_kzt ?? '')
           setSaveState('error')
-          timerRef.current = setTimeout(() => setSaveState('idle'), 3000)
         },
       }
     )
@@ -466,7 +484,7 @@ function PromotionSection({ product, p, promotionMutation, managed }) {
 
   const handleClearDiscount = (e) => {
     e.stopPropagation()
-    if (managed) return
+    if (managed || pending) return
     setOldPriceDraft('')
     promotionMutation?.mutate({
       id: product.id,
@@ -522,12 +540,17 @@ function PromotionSection({ product, p, promotionMutation, managed }) {
           </div>
         </div>
 
-        <div
+        <button
+          type="button"
           role="switch"
           aria-checked={isFeatured}
+          aria-label={p.featuredLabel}
+          disabled={pending}
           onClick={handleToggleFeatured}
           style={{
             width: 52,
+            border: 'none',
+            padding: 0,
             height: 30,
             borderRadius: 15,
             cursor: 'pointer',
@@ -535,7 +558,7 @@ function PromotionSection({ product, p, promotionMutation, managed }) {
             position: 'relative',
             transition: 'background 0.25s',
             flexShrink: 0,
-            opacity: promotionMutation?.isPending ? 0.7 : 1,
+            opacity: pending ? 0.7 : 1,
           }}
         >
           <div
@@ -551,8 +574,14 @@ function PromotionSection({ product, p, promotionMutation, managed }) {
               boxShadow: '0 2px 4px rgba(0,0,0,0.25)',
             }}
           />
-        </div>
+        </button>
       </div>
+
+      {failed && saveState !== 'error' && (
+        <div role="alert" style={{ fontSize: 11, color: 'var(--error)', fontWeight: 600 }}>
+          {p.saveError}
+        </div>
+      )}
 
       <div style={{ height: 1, background: 'var(--line-soft)' }} />
 
@@ -590,7 +619,7 @@ function PromotionSection({ product, p, promotionMutation, managed }) {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {stateLabel[saveState] && (
-              <span style={{ fontSize: 11, color: stateColor[saveState], fontWeight: 600 }}>
+              <span role={saveState === 'error' ? 'alert' : 'status'} style={{ fontSize: 11, color: stateColor[saveState], fontWeight: 600 }}>
                 {stateLabel[saveState]}
               </span>
             )}
@@ -598,6 +627,7 @@ function PromotionSection({ product, p, promotionMutation, managed }) {
               <button
                 type="button"
                 onClick={handleClearDiscount}
+                disabled={pending}
                 style={{
                   background: 'none',
                   border: 'none',
@@ -620,12 +650,18 @@ function PromotionSection({ product, p, promotionMutation, managed }) {
             inputMode="numeric"
             placeholder={currentPrice > 0 ? String(Math.round(currentPrice * 1.25)) : ''}
             value={oldPriceDraft}
-            readOnly={managed}
-            aria-readonly={managed}
-            onChange={(e) => setOldPriceDraft(e.target.value)}
+            aria-label={p.oldPriceLabel}
+            readOnly={managed || pending}
+            aria-readonly={managed || pending}
+            onChange={(e) => {
+              clearTimeout(timerRef.current)
+              setSaveState('idle')
+              setOldPriceDraft(e.target.value)
+            }}
             onBlur={handleOldPriceBlur}
             style={{
               flex: 1,
+              minWidth: 0,
               fontSize: 17,
               fontWeight: 600,
               fontFamily: 'var(--font-display)',
@@ -1016,10 +1052,10 @@ const ProductCard = memo(
               style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 18 }}
             >
               <PriceField
-                productId={product.id}
-                initialPrice={product.price_kzt}
+                product={product}
                 p={tr}
                 priceMutation={priceMutation}
+                promotionMutation={promotionMutation}
                 managed={managed}
               />
               <StockToggle
@@ -1037,6 +1073,7 @@ const ProductCard = memo(
                 product={product}
                 p={tr}
                 promotionMutation={promotionMutation}
+                priceMutation={priceMutation}
                 managed={managed}
               />
               {managed && (
@@ -1080,6 +1117,12 @@ const ProductCard = memo(
     prev.product === next.product &&
     prev.isExpanded === next.isExpanded &&
     prev.search === next.search &&
+    prev.priceMutation.isPending === next.priceMutation.isPending &&
+    prev.priceMutation.isError === next.priceMutation.isError &&
+    prev.priceMutation.variables?.id === next.priceMutation.variables?.id &&
+    prev.promotionMutation.isPending === next.promotionMutation.isPending &&
+    prev.promotionMutation.isError === next.promotionMutation.isError &&
+    prev.promotionMutation.variables?.id === next.promotionMutation.variables?.id &&
     prev.stockMutation.isPending === next.stockMutation.isPending &&
     prev.stockMutation.isError === next.stockMutation.isError &&
     prev.stockMutation.variables?.id === next.stockMutation.variables?.id &&
@@ -1423,10 +1466,10 @@ function EditBottomSheet({
           style={{ padding: '16px 20px 40px', display: 'flex', flexDirection: 'column', gap: 20 }}
         >
           <PriceField
-            productId={product.id}
-            initialPrice={product.price_kzt}
+            product={product}
             p={tr}
             priceMutation={priceMutation}
+            promotionMutation={promotionMutation}
             managed={managed}
           />
           <StockToggle
@@ -1444,6 +1487,7 @@ function EditBottomSheet({
             product={product}
             p={tr}
             promotionMutation={promotionMutation}
+            priceMutation={priceMutation}
             managed={managed}
           />
           {managed && (
@@ -1826,11 +1870,11 @@ export default function RetailProductsScreen() {
 
   // ── Price mutation (optimistic + rollback + invalidate) ───────────
   const priceMutation = useMutation({
-    mutationFn: ({ id, price }) => updateProductPrice(id, storeId, price),
+    mutationFn: ({ id, price, product }) => updateProductPrice(id, storeId, price, product),
     onMutate: async ({ id, price }) => {
       await queryClient.cancelQueries({ queryKey: ['retail-products', storeId] })
       const prev = queryClient.getQueriesData({ queryKey: ['retail-products', storeId] })
-      patchPages((item) => (item.id === id ? { ...item, price_kzt: price } : item))
+      patchPages((item) => (item.id === id ? { ...item, ...buildRetailPriceUpdate(item, price) } : item))
       return { prev }
     },
     onError: (_err, _vars, ctx) => {
@@ -1843,14 +1887,15 @@ export default function RetailProductsScreen() {
 
   // ── Promotion mutation (optimistic + rollback + invalidate) ───────
   const promotionMutation = useMutation({
-    mutationFn: ({ id, isFeatured, oldPriceKzt, discountPercent, managed }) =>
+    mutationFn: ({ id, isFeatured, oldPriceKzt, discountPercent, managed, placementOnly }) =>
       updateProductPromotion(id, storeId, {
         is_featured: isFeatured,
         old_price_kzt: oldPriceKzt,
         discount_percent: discountPercent,
         managed,
+        placementOnly,
       }),
-    onMutate: async ({ id, isFeatured, oldPriceKzt, discountPercent }) => {
+    onMutate: async ({ id, isFeatured, oldPriceKzt, discountPercent, managed, placementOnly }) => {
       await queryClient.cancelQueries({ queryKey: ['retail-products', storeId] })
       const prev = queryClient.getQueriesData({ queryKey: ['retail-products', storeId] })
       patchPages((item) =>
@@ -1858,8 +1903,10 @@ export default function RetailProductsScreen() {
           ? {
               ...item,
               is_featured: isFeatured,
-              old_price_kzt: oldPriceKzt,
-              discount_percent: discountPercent,
+              ...(!managed && !placementOnly ? {
+                old_price_kzt: oldPriceKzt,
+                discount_percent: discountPercent,
+              } : {}),
             }
           : item
       )

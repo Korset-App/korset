@@ -75,6 +75,23 @@ export function calculateDiscountedPrice(oldPrice, discountPercent) {
   return Math.round(old * (1 - pct / 100))
 }
 
+export function buildRetailPriceUpdate(product, priceKzt) {
+  const price = Number(priceKzt)
+  if (
+    priceKzt === null || priceKzt === undefined || String(priceKzt).trim() === '' ||
+    !Number.isFinite(price) || price < 0 || product.sync_integration_id
+  ) {
+    throw new Error('Invalid or source-managed price update')
+  }
+  const update = { price_kzt: price }
+  if (Object.hasOwn(product, 'old_price_kzt') && Object.hasOwn(product, 'discount_percent')) {
+    const discount = calculateDiscountPercent(price, product.old_price_kzt)
+    update.old_price_kzt = discount === null ? null : Number(product.old_price_kzt)
+    update.discount_percent = discount
+  }
+  return update
+}
+
 export function validatePromotionPayload({
   isFeatured = false,
   oldPriceKzt = null,

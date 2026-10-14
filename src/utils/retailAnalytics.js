@@ -1,5 +1,6 @@
 import { supabase } from './supabase.js'
 import { quoteLiteralSearchPattern } from './literalSearch.js'
+import { buildRetailPriceUpdate } from '../domain/retail/catalogManagement.js'
 import { hydrateSyncedConditions } from './syncedConditions.js'
 import {
   applySyncedConditions,
@@ -280,10 +281,10 @@ export async function getStoreCatalogProducts(storeId, { page = 0, search = '' }
   }
 }
 
-export async function updateProductPrice(productId, storeId, priceKzt) {
+export async function updateProductPrice(productId, storeId, priceKzt, product = {}) {
   const { data, error } = await supabase
     .from('store_products')
-    .update({ price_kzt: priceKzt, updated_at: new Date().toISOString() })
+    .update({ ...buildRetailPriceUpdate(product, priceKzt), updated_at: new Date().toISOString() })
     .eq('id', productId)
     .eq('store_id', storeId)
     .select('id')
@@ -296,7 +297,7 @@ export async function updateProductPromotion(productId, storeId, promotionPayloa
     is_featured: Boolean(promotionPayload.is_featured),
     updated_at: new Date().toISOString(),
   }
-  if (!promotionPayload.managed) {
+  if (!promotionPayload.managed && !promotionPayload.placementOnly) {
     update.old_price_kzt = promotionPayload.old_price_kzt ?? null
     update.discount_percent = promotionPayload.discount_percent ?? null
   }
@@ -305,7 +306,9 @@ export async function updateProductPromotion(productId, storeId, promotionPayloa
     .update(update)
     .eq('id', productId)
     .eq('store_id', storeId)
-    .select('id, is_featured, old_price_kzt, discount_percent')
+    .select(promotionPayload.managed || promotionPayload.placementOnly
+      ? 'id, is_featured'
+      : 'id, is_featured, old_price_kzt, discount_percent')
   if (error) throw new Error(error.message ?? error)
   if (!data || data.length === 0) throw new Error('Update blocked: RLS or row not found')
   return data[0]
