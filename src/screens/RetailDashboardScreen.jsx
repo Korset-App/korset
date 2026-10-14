@@ -147,7 +147,16 @@ export default function RetailDashboardScreen() {
           sub={o('identifiedCustomers')}
           loading={uniqueQ.isLoading}
           icon="group"
-        />
+        >
+          {uniqueQ.isError && (
+            <QueryError
+              label={d('loadError')}
+              retryLabel={d('retry')}
+              retrying={uniqueQ.isFetching}
+              onRetry={() => { if (!uniqueQ.isFetching) uniqueQ.refetch() }}
+            />
+          )}
+        </Kpi>
         <Kpi
           label={d('catalogCoverage')}
           value={coverageQ.isError || noScans ? '—' : `${coverageVal}%`}

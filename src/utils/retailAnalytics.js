@@ -1,6 +1,7 @@
 import { supabase } from './supabase.js'
 import { quoteLiteralSearchPattern } from './literalSearch.js'
 import { buildRetailPriceUpdate } from '../domain/retail/catalogManagement.js'
+import { readRetailMetric } from '../domain/retail/metricValue.js'
 import { hydrateSyncedConditions } from './syncedConditions.js'
 import {
   applySyncedConditions,
@@ -35,7 +36,7 @@ export async function getScansCount(storeId, days) {
     .eq('store_id', storeId)
     .gte('scanned_at', cutoffISO(days))
   if (error) throw new Error(error.message ?? error)
-  return count ?? 0
+  return readRetailMetric(count, { count: true })
 }
 
 export async function getUniqueProductsScanned(storeId, days) {
@@ -55,7 +56,7 @@ export async function getTotalProducts(storeId) {
     .eq('store_id', storeId)
     .eq('is_active', true)
   if (error) throw new Error(error.message ?? error)
-  return count ?? 0
+  return readRetailMetric(count, { count: true })
 }
 
 export async function getTopScannedProducts(storeId, days, limit = 5) {
@@ -83,7 +84,7 @@ export async function getUniqueCustomers(storeId, days) {
     p_days_back: days,
   })
   if (error) throw new Error(error.message ?? error)
-  return Number(data ?? 0)
+  return readRetailMetric(data, { count: true })
 }
 
 export async function getLostRevenue(storeId, days) {
@@ -92,7 +93,7 @@ export async function getLostRevenue(storeId, days) {
     p_days_back: days,
   })
   if (error) throw new Error(error.message ?? error)
-  return Number(data ?? 0)
+  return readRetailMetric(data)
 }
 
 export async function getScanCoverage(storeId, days) {
@@ -101,7 +102,7 @@ export async function getScanCoverage(storeId, days) {
     p_days_back: days,
   })
   if (error) throw new Error(error.message ?? error)
-  return Number(data ?? 0)
+  return readRetailMetric(data, { percentage: true })
 }
 
 function countBy(items, keyFn) {

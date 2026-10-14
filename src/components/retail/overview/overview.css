@@ -526,6 +526,20 @@
   cursor: pointer;
   text-decoration: underline;
 }
+.ov-kpi .ov-error {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 6px 8px;
+  padding: 4px 0 10px;
+}
+.ov-kpi .ov-error span {
+  min-width: 0;
+}
+.ov-kpi .ov-error button {
+  grid-column: 2;
+  justify-self: start;
+  padding: 0;
+}
 .retail-skel {
   background: var(--rc-hover);
   animation: rc-pulse 1.6s ease-in-out infinite;

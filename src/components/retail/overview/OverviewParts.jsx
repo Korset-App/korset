@@ -91,12 +91,12 @@ export function Kpi({ label, value, sub, tone, loading, children, icon }) {
   )
 }
 
-export function QueryError({ label, retryLabel, onRetry }) {
+export function QueryError({ label, retryLabel, onRetry, retrying = false }) {
   return (
     <div className="ov-error" role="alert">
       <AlertTriangleIcon size={18} color="currentColor" />
       <span>{label}</span>
-      <button type="button" onClick={onRetry}>
+      <button type="button" onClick={onRetry} disabled={retrying}>
         {retryLabel}
       </button>
     </div>
