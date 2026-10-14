@@ -39,7 +39,12 @@ export async function openRetail(
   await page.route('**/*', async (route) => {
     const request = route.request()
     const url = new URL(request.url())
-    if (url.hostname === '127.0.0.1' || url.hostname === 'localhost') return route.continue()
+    if (url.hostname === '127.0.0.1' || url.hostname === 'localhost') {
+      if (url.pathname === '/api' || url.pathname.startsWith('/api/')) {
+        return route.fulfill({ status: 503, json: { error: 'Unmocked retail API' } })
+      }
+      return route.continue()
+    }
     if (live?.top.some((product) => product.image_url === request.url()))
       return route.fulfill({
         contentType: 'image/svg+xml',

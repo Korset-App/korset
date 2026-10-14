@@ -16,6 +16,7 @@ export default defineConfig({
     url: 'http://127.0.0.1:5187',
     reuseExistingServer: false,
     env: {
+      VITE_API_TARGET: 'http://127.0.0.1:9',
       VITE_SUPABASE_URL: 'https://retail.invalid',
       VITE_SUPABASE_ANON_KEY: 'retail-test-public-key',
     },
