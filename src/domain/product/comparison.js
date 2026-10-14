@@ -1,6 +1,6 @@
 import { getAllergyConfidence, getHalalConfidence } from '../ai/safetyContract.js'
 import { checkProductFit } from '../../utils/fitCheck.js'
-import { buildProductUnitPrice } from './unitPrice.js'
+import { getComparisonUnitPrice, areComparisonUnitsCompatible, areComparisonBasePricesCompatible } from './comparisonPricing.js'
 import { comparisonNumber, hasComparisonNutrition, hasComparisonIngredients } from './comparisonValues.js'
 
 const LABELS = {
@@ -203,11 +203,11 @@ function nutritionWinner(productA = {}, productB = {}) {
 }
 
 function priceValue(product = {}) {
-  const value = Number(product.priceKzt)
-  return Number.isFinite(value) && value > 0 ? value : null
+  return comparisonNumber(product.priceKzt)
 }
 
 function priceWinner(productA, productB) {
+  if (!areComparisonBasePricesCompatible(productA, productB)) return null
   const priceA = priceValue(productA)
   const priceB = priceValue(productB)
   if (priceA == null || priceB == null) return null
@@ -219,10 +219,10 @@ function priceWinner(productA, productB) {
 }
 
 function valueWinner(productA, productB) {
-  const unitA = buildProductUnitPrice(productA)
-  const unitB = buildProductUnitPrice(productB)
+  const unitA = getComparisonUnitPrice(productA, { forDecision: true })
+  const unitB = getComparisonUnitPrice(productB, { forDecision: true })
 
-  if (unitA && unitB && unitA.kind === unitB.kind && unitA.suffix === unitB.suffix) {
+  if (areComparisonUnitsCompatible(unitA, unitB)) {
     const diff = Math.abs(unitA.value - unitB.value)
     const threshold = Math.max(10, Math.min(unitA.value, unitB.value) * 0.06)
     if (diff >= threshold) {

@@ -1,8 +1,9 @@
 import { extractFlavorAttribute } from './attributeExtractor.js'
 import { getSubcategoryLabel } from './categoryMap.js'
-import { computePricePerUnit, getDisplayQuantity } from '../../utils/parseQuantity.js'
+import { getDisplayQuantity, enrichQuantity } from '../../utils/parseQuantity.js'
 import { formatPrice } from '../../utils/formatPrice.js'
 import { comparisonNumber as numberValue } from './comparisonValues.js'
+import { getComparisonUnitPrice, getComparisonPriceRateUnit, getComparisonPriceRateSuffix, areComparisonUnitsCompatible, areComparisonBasePricesCompatible } from './comparisonPricing.js'
 
 function cleanText(value) {
   if (value === null || value === undefined) return null
@@ -41,7 +42,8 @@ function winnerByHigher(valueA, valueB) {
 }
 
 function getQuantityValue(product, lang) {
-  return cleanText(getDisplayQuantity(product, lang))
+  const localized = product?.quantityParsed || !product?.quantity ? product : enrichQuantity({ ...product })
+  return cleanText(getDisplayQuantity(localized, lang))
 }
 
 function getLocalizedLabel(labels, lang) {
@@ -111,18 +113,16 @@ function getFlavorValue(product) {
   )
 }
 
-function getUnitPrice(product) {
-  const quantityInput =
-    product?.quantityParsed || product?.quantity || product?.specs?.weight || product?.name
-  return computePricePerUnit(product?.priceKzt, quantityInput)
+function formatUnitPrice(unitPrice, lang) {
+  if (!unitPrice) return null
+  const suffix = lang === 'kz' && unitPrice.suffix === 'шт' ? 'дана' : unitPrice.suffix
+  return `${formatPrice(unitPrice.value)} / ${suffix}`
 }
 
-function formatUnitPrice(unitPrice) {
-  if (!unitPrice) return null
-  if (unitPrice.per100 != null) return `${formatPrice(unitPrice.per100)} / ${unitPrice.suffix}`
-  if (unitPrice.perUnit != null)
-    return `${formatPrice(unitPrice.perUnit)} / ${unitPrice.unitSuffix}`
-  return null
+function formatComparisonPrice(product, price) {
+  if (price === null || getComparisonPriceRateUnit(product) === 'unknown') return null
+  const suffix = getComparisonPriceRateSuffix(product)
+  return `${formatPrice(price)}${suffix ? ` / ${suffix}` : ''}`
 }
 
 function getNutrition(product) {
@@ -160,8 +160,8 @@ function buildProductDataRows(productA = {}, productB = {}, { lang = 'ru' } = {}
   const priceB = numberValue(productB.priceKzt)
   const typeA = getTypeValue(productA, lang)
   const typeB = getTypeValue(productB, lang)
-  const unitA = getUnitPrice(productA)
-  const unitB = getUnitPrice(productB)
+  const unitA = getComparisonUnitPrice(productA)
+  const unitB = getComparisonUnitPrice(productB)
   const halalA = getHalalValue(productA)
   const halalB = getHalalValue(productB)
   const stockA = getStockValue(productA)
@@ -193,16 +193,16 @@ function buildProductDataRows(productA = {}, productB = {}, { lang = 'ru' } = {}
   maybePushRow(rows, {
     id: 'price',
     labelKey: 'compare.row.price',
-    valueA: priceA !== null ? formatPrice(priceA) : null,
-    valueB: priceB !== null ? formatPrice(priceB) : null,
-    winnerSide: winnerByLower(priceA, priceB),
+    valueA: formatComparisonPrice(productA, priceA),
+    valueB: formatComparisonPrice(productB, priceB),
+    winnerSide: areComparisonBasePricesCompatible(productA, productB) ? winnerByLower(priceA, priceB) : null,
   })
   maybePushRow(rows, {
     id: 'unit_price',
     labelKey: 'compare.row.unitPrice',
-    valueA: formatUnitPrice(unitA),
-    valueB: formatUnitPrice(unitB),
-    winnerSide: winnerByLower(unitA?.per100 ?? unitA?.perUnit, unitB?.per100 ?? unitB?.perUnit),
+    valueA: formatUnitPrice(unitA, lang),
+    valueB: formatUnitPrice(unitB, lang),
+    winnerSide: areComparisonUnitsCompatible(unitA, unitB) ? winnerByLower(unitA.value, unitB.value) : null,
   })
   maybePushRow(rows, {
     id: 'halal',

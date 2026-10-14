@@ -14,6 +14,79 @@ function rowById(view, id) {
   return view.dataRows.find((row) => row.id === id)
 }
 
+test('comparison does not highlight unlike mass and volume unit prices', () => {
+  const a = { category: 'grocery', ingredients: 'Рис, вода', quantity: '100 г', priceKzt: 200 }
+  const view = buildView(a, { ...a, quantity: '100 мл', priceKzt: 300 })
+  assert.equal(rowById(view, 'unit_price').valueA, '200 ₸ / 100 г')
+  assert.equal(rowById(view, 'unit_price').valueB, '300 ₸ / 100 мл')
+  assert.equal(rowById(view, 'unit_price').winnerSide, null)
+})
+
+test('comparison converts kilogram rates before comparing with packaged mass', () => {
+  const a = { category: 'grocery', ingredients: 'Рис, вода', quantity: 'кг', priceKzt: 2000 }
+  const b = { ...a, quantity: '100 г', priceKzt: 300 }
+  const comparison = buildProductComparison(a, b)
+  const view = buildView(a, b)
+  assert.equal(comparison.winner, 'A')
+  assert.equal(comparison.primaryReason, 'value')
+  assert.equal(rowById(view, 'price').valueA, '2 000 ₸ / кг')
+  assert.equal(rowById(view, 'price').winnerSide, null)
+  assert.equal(rowById(view, 'unit_price').valueA, '200 ₸ / 100 г')
+  assert.equal(rowById(view, 'unit_price').winnerSide, 'A')
+})
+
+test('comparison sale-unit rate takes precedence over physical package facts', () => {
+  const a = { category: 'grocery', ingredients: 'Рис, вода', quantity: '200 г', saleUnit: 'kg', priceKzt: 2000 }
+  const b = { ...a, saleUnit: null, quantity: '100 г', priceKzt: 300 }
+  const view = buildView(a, b)
+  assert.equal(rowById(view, 'unit_price').valueA, '200 ₸ / 100 г')
+  assert.equal(rowById(view, 'price').winnerSide, null)
+})
+
+test('comparison liter rates retain volume and equal equivalent rates do not fall back to package price', () => {
+  const a = { category: 'water_beverages', ingredients: 'Вода', quantity: 'л', priceKzt: 2000 }
+  const b = { ...a, quantity: '100 мл', priceKzt: 200 }
+  const view = buildView(a, b)
+  assert.equal(rowById(view, 'unit_price').valueA, '200 ₸ / 100 мл')
+  assert.equal(rowById(view, 'unit_price').winnerSide, null)
+  assert.equal(rowById(view, 'price').valueA, '2 000 ₸ / л')
+  assert.equal(buildProductComparison(a, b).primaryReason, 'similar')
+})
+
+test('comparison gram and milliliter rates normalize without using physical package size', () => {
+  for (const [saleUnit, quantity, suffix] of [['g', '100 г', '100 г'], ['ml', '100 мл', '100 мл']]) {
+    const a = { category: 'grocery', ingredients: 'Рис, вода', saleUnit, quantity: '200 г', priceKzt: 2 }
+    const b = { ...a, saleUnit: null, quantity, priceKzt: 300 }
+    const view = buildView(a, b)
+    assert.equal(rowById(view, 'unit_price').valueA, `200 ₸ / ${suffix}`)
+    assert.equal(rowById(view, 'unit_price').winnerSide, 'A')
+    assert.equal(rowById(view, 'price').winnerSide, null)
+  }
+})
+
+test('comparison unknown sale units and invalid rates do not become price advantages', () => {
+  const b = { category: 'grocery', ingredients: 'Рис', quantity: '100 г', priceKzt: 300 }
+  const unknown = buildView({ ...b, saleUnit: 'unknown', priceKzt: 2 }, b)
+  assert.equal(rowById(unknown, 'price').valueA, null)
+  assert.equal(rowById(unknown, 'unit_price').valueA, null)
+  assert.equal(rowById(unknown, 'unit_price').winnerSide, null)
+  assert.equal(rowById(unknown, 'price').winnerSide, null)
+  for (const priceKzt of [null, '', 'bad', -2, Infinity, false]) {
+    const view = buildView({ ...b, saleUnit: 'kg', priceKzt }, b)
+    assert.equal(rowById(view, 'unit_price').valueA, null)
+    assert.equal(rowById(view, 'unit_price').winnerSide, null)
+  }
+})
+
+test('comparison zero price remains a known zero in equivalent units', () => {
+  const a = { category: 'grocery', quantity: '200 г', priceKzt: 0 }
+  const view = buildView(a, { ...a, priceKzt: 300 })
+  assert.equal(rowById(view, 'unit_price').valueA, '0 ₸ / 100 г')
+  assert.equal(rowById(view, 'unit_price').winnerSide, 'A')
+  assert.equal(buildProductComparison(a, { ...a, priceKzt: 300 }).winner, 'A')
+  assert.equal(buildProductComparison(a, { ...a, priceKzt: 300 }).primaryReason, 'value')
+})
+
 test('canonical empty nutrition is unknown and cannot win by invented zero values', () => {
   const a = { category: 'dairy_eggs', ingredients: 'Рис', priceKzt: 500, stockStatus: 'in_stock', nutritionPer100: normalizeNutrition(null) }
   const b = { ...a, nutritionPer100: { kcal: 100, sugar: 10, fat: 3, protein: 5 } }
