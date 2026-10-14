@@ -4,6 +4,7 @@
   "integration.consumer.back": "Дүкен каталогына",
   "integration.consumer.unavailable": "Тауар қазір бұл дүкенде қолжетімсіз.",
   "integration.consumer.stale": "Деректер біраз уақыт жаңартылмаған. Ағымдағы баға мен қолда барын дүкеннен нақтылаңыз.",
+  "integration.consumer.saved": "Сақталған деректер көрсетілген. Ағымдағы баға мен қолда барын дүкеннен нақтылаңыз.",
   "integration.consumer.ingredients": "Құрамы",
   "integration.consumer.barcode": "Штрихкод",
   "integration.consumer.stock.in_stock": "Қолда бар",

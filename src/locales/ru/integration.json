@@ -4,6 +4,7 @@
   "integration.consumer.back": "К каталогу магазина",
   "integration.consumer.unavailable": "Товар сейчас недоступен в этом магазине.",
   "integration.consumer.stale": "Данные давно не обновлялись. Уточните текущую цену и наличие в магазине.",
+  "integration.consumer.saved": "Показаны сохранённые данные. Текущую цену и наличие уточните в магазине.",
   "integration.consumer.ingredients": "Состав",
   "integration.consumer.barcode": "Штрихкод",
   "integration.consumer.stock.in_stock": "Есть в наличии",
