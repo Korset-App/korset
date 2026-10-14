@@ -1,6 +1,7 @@
 import { getAllergyConfidence, getHalalConfidence } from '../ai/safetyContract.js'
 import { checkProductFit } from '../../utils/fitCheck.js'
 import { buildProductUnitPrice } from './unitPrice.js'
+import { comparisonNumber, hasComparisonNutrition, hasComparisonIngredients } from './comparisonValues.js'
 
 const LABELS = {
   best: 'best_choice',
@@ -157,8 +158,8 @@ function availabilityRank(product = {}) {
 
 function dataCompletenessRank(product = {}) {
   let score = 0
-  if (product.ingredients || product.ingredientsKz) score += 2
-  if (product.nutrition || product.nutritionPer100) score += 1
+  if (hasComparisonIngredients(product)) score += 2
+  if (hasComparisonNutrition(getNutrition(product))) score += 1
   if (product.allergens?.length) score += 1
   if (product.halalStatus && product.halalStatus !== 'unknown') score += 1
   if (product.image || product.imageUrl || product.images?.length) score += 1
@@ -180,9 +181,9 @@ function nutritionWinner(productA = {}, productB = {}) {
   const nutritionB = getNutrition(productB)
 
   for (const [key, direction, weight] of rules) {
-    const valueA = Number(nutritionA[key])
-    const valueB = Number(nutritionB[key])
-    if (!Number.isFinite(valueA) || !Number.isFinite(valueB)) continue
+    const valueA = comparisonNumber(nutritionA[key])
+    const valueB = comparisonNumber(nutritionB[key])
+    if (valueA === null || valueB === null) continue
 
     const diff = Math.abs(valueA - valueB)
     const threshold = Math.max(0.5, Math.min(Math.abs(valueA), Math.abs(valueB)) * 0.08)
@@ -250,13 +251,19 @@ function categoriesAreComparable(productA = {}, productB = {}) {
 
 function getDataCoverage(productA = {}, productB = {}) {
   const missing = []
-  const hasIngredientsA = Boolean(productA.ingredients || productA.ingredientsKz)
-  const hasIngredientsB = Boolean(productB.ingredients || productB.ingredientsKz)
-  const hasNutritionA = Boolean(productA.nutrition || productA.nutritionPer100)
-  const hasNutritionB = Boolean(productB.nutrition || productB.nutritionPer100)
+  const hasIngredientsA = hasComparisonIngredients(productA)
+  const hasIngredientsB = hasComparisonIngredients(productB)
+  const nutritionA = getNutrition(productA)
+  const nutritionB = getNutrition(productB)
+  const hasNutritionA = hasComparisonNutrition(nutritionA)
+  const hasNutritionB = hasComparisonNutrition(nutritionB)
+  const rules = CATEGORY_NUTRITION_RULES[getCompareCategory(productA) || getCompareCategory(productB)] || []
+  const missingComparedFact = rules.some(([key]) =>
+    comparisonNumber(nutritionA[key]) === null || comparisonNumber(nutritionB[key]) === null
+  )
 
   if (!hasIngredientsA || !hasIngredientsB) missing.push('ingredients')
-  if (!hasNutritionA || !hasNutritionB) missing.push('nutrition')
+  if (!hasNutritionA || !hasNutritionB || missingComparedFact) missing.push('nutrition')
 
   const level = missing.length >= 2 ? 'low' : missing.length === 1 ? 'medium' : 'high'
   return { level, missing }

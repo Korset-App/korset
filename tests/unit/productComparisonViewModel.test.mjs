@@ -3,6 +3,7 @@ import test from 'node:test'
 
 import { buildProductComparison } from '../../src/domain/product/comparison.js'
 import { buildProductComparisonViewModel } from '../../src/domain/product/comparisonViewModel.js'
+import { normalizeNutrition } from '../../src/domain/product/model.js'
 
 function buildView(productA, productB, profile = {}) {
   const comparison = buildProductComparison(productA, productB, { profile })
@@ -12,6 +13,65 @@ function buildView(productA, productB, profile = {}) {
 function rowById(view, id) {
   return view.dataRows.find((row) => row.id === id)
 }
+
+test('canonical empty nutrition is unknown and cannot win by invented zero values', () => {
+  const a = { category: 'dairy_eggs', ingredients: 'Рис', priceKzt: 500, stockStatus: 'in_stock', nutritionPer100: normalizeNutrition(null) }
+  const b = { ...a, nutritionPer100: { kcal: 100, sugar: 10, fat: 3, protein: 5 } }
+  const result = buildProductComparison(a, b)
+  const view = buildView(a, b)
+  assert.notEqual(result.primaryReason, 'nutrition')
+  assert.ok(result.dataCoverage.missing.includes('nutrition'))
+  assert.equal(rowById(view, 'sugar').valueA, null)
+  assert.equal(rowById(view, 'sugar').winnerSide, null)
+  assert.equal(rowById(view, 'kcal').valueA, null)
+  assert.equal(rowById(view, 'kcal').winnerSide, null)
+  assert.ok(view.dataNote)
+})
+
+test('known zero stays visible and can win over a confirmed positive value', () => {
+  const a = { category: 'water_beverages', ingredients: 'Вода', nutritionPer100: { kcal: 0, sugar: 0 } }
+  const b = { ...a, nutritionPer100: { kcal: 42, sugar: 10 } }
+  const view = buildView(a, b)
+  assert.equal(rowById(view, 'sugar').valueA, '0 г')
+  assert.equal(rowById(view, 'sugar').winnerSide, 'A')
+  assert.equal(rowById(view, 'kcal').valueA, '0 ккал')
+  assert.equal(view.winnerSide, 'A')
+})
+
+test('missing price and whitespace composition do not become advantages or complete data', () => {
+  const a = { category: 'dairy_eggs', ingredients: ' ', priceKzt: null, nutritionPer100: normalizeNutrition(null) }
+  const b = { ...a, priceKzt: 500 }
+  const view = buildView(a, b)
+  assert.equal(rowById(view, 'price').valueA, null)
+  assert.equal(rowById(view, 'price').winnerSide, null)
+  assert.equal(view.dataNote.level, 'low')
+})
+
+test('partial nutrition discloses missing fields used by the category comparison', () => {
+  const a = { category: 'dairy_eggs', ingredients: 'Рис', nutritionPer100: { protein: 5 } }
+  const b = { ...a, nutritionPer100: { protein: 3, sugar: 10, kcal: 100, fat: 3 } }
+  const view = buildView(a, b)
+  assert.equal(view.dataNote.level, 'medium')
+  assert.ok(view.dataNote.missing.includes('nutrition'))
+  assert.equal(rowById(view, 'sugar').valueA, null)
+  assert.equal(rowById(view, 'sugar').winnerSide, null)
+})
+
+test('invalid prices stay unknown in both the display and the row decision', () => {
+  for (const price of ['bad', '', ' ', -5, false, [], Infinity]) {
+    const a = { category: 'dairy_eggs', priceKzt: price }
+    const view = buildView(a, { category: 'dairy_eggs', priceKzt: 500 })
+    assert.equal(rowById(view, 'price').valueA, null)
+    assert.equal(rowById(view, 'price').winnerSide, null)
+  }
+})
+
+test('a meaningful Kazakh composition survives an empty Russian counterpart', () => {
+  const a = { category: 'dairy_eggs', ingredients: ' ', ingredientsKz: 'Күріш', nutritionPer100: normalizeNutrition(null) }
+  const comparison = buildProductComparison(a, { ...a, ingredients: 'Рис' })
+  assert.equal(comparison.dataCoverage.missing.includes('ingredients'), false)
+  assert.equal(comparison.dataCoverage.level, 'medium')
+})
 
 test('buildProductComparisonViewModel prompts setup when profile has no personal signals', () => {
   const view = buildView(

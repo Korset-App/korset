@@ -2,16 +2,12 @@ import { extractFlavorAttribute } from './attributeExtractor.js'
 import { getSubcategoryLabel } from './categoryMap.js'
 import { computePricePerUnit, getDisplayQuantity } from '../../utils/parseQuantity.js'
 import { formatPrice } from '../../utils/formatPrice.js'
+import { comparisonNumber as numberValue } from './comparisonValues.js'
 
 function cleanText(value) {
   if (value === null || value === undefined) return null
   const trimmed = String(value).trim()
   return trimmed || null
-}
-
-function numberValue(value) {
-  const number = Number(value)
-  return Number.isFinite(number) ? number : null
 }
 
 function formatNumber(value) {
@@ -160,6 +156,8 @@ function maybePushRow(rows, row) {
 
 function buildProductDataRows(productA = {}, productB = {}, { lang = 'ru' } = {}) {
   const rows = []
+  const priceA = numberValue(productA.priceKzt)
+  const priceB = numberValue(productB.priceKzt)
   const typeA = getTypeValue(productA, lang)
   const typeB = getTypeValue(productB, lang)
   const unitA = getUnitPrice(productA)
@@ -195,9 +193,9 @@ function buildProductDataRows(productA = {}, productB = {}, { lang = 'ru' } = {}
   maybePushRow(rows, {
     id: 'price',
     labelKey: 'compare.row.price',
-    valueA: productA?.priceKzt != null ? formatPrice(productA.priceKzt) : null,
-    valueB: productB?.priceKzt != null ? formatPrice(productB.priceKzt) : null,
-    winnerSide: winnerByLower(productA?.priceKzt, productB?.priceKzt),
+    valueA: priceA !== null ? formatPrice(priceA) : null,
+    valueB: priceB !== null ? formatPrice(priceB) : null,
+    winnerSide: winnerByLower(priceA, priceB),
   })
   maybePushRow(rows, {
     id: 'unit_price',
