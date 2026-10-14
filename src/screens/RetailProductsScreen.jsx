@@ -2114,6 +2114,7 @@ export default function RetailProductsScreen() {
               display: 'flex',
               alignItems: 'center',
               background: 'var(--input-bg)',
+              minWidth: 0,
               borderRadius: 14,
               padding: '9px 14px',
               border: '1px solid var(--input-border)',

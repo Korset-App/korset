@@ -44,7 +44,7 @@ async function expectEditorLanguage(page, lang) {
 }
 
 for (const theme of ['light', 'dark']) {
-  for (const width of [390, 1440]) {
+  for (const width of [360, 390, 768, 1440]) {
     test(`account language round-trip updates the open catalog editor without reopening (${width}/${theme})`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 })
       const { writes } = await openEditor(page, { theme })
@@ -52,6 +52,14 @@ for (const theme of ['light', 'dark']) {
       await page.getByRole('button', { name: 'KZ', exact: true }).click()
       await page.keyboard.press('Escape')
       await expectEditorLanguage(page, 'kz')
+      await expect.poll(() => page.locator('.retail-screen-canvas').evaluate((canvas) => canvas.scrollWidth <= canvas.clientWidth + 1)).toBe(true)
+      await expect.poll(() => page.getByRole('spinbutton').evaluateAll((inputs) => inputs.some((input) => {
+        const bounds = input.getBoundingClientRect()
+        return bounds.left < 0 || bounds.right > globalThis.innerWidth + 1
+      }))).toBe(false)
+      if (width === 360 || width === 768) {
+        await page.screenshot({ path: `scratch/pilot-closure-2026-10-14/catalog-${width}-${theme}-kz.png` })
+      }
       await expect(page.getByRole('spinbutton').first()).toHaveValue('420')
       await page.getByRole('button', { name: 'Аккаунт', exact: true }).click()
       await page.getByRole('button', { name: 'RU', exact: true }).click()

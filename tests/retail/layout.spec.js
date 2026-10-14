@@ -4,7 +4,7 @@ import { openRetail } from './fixtures.js'
 
 const output = 'scratch/retail-redesign'
 mkdirSync(output, { recursive: true })
-for (const width of [1440, 1024, 390, 320]) {
+for (const width of [1440, 1024, 768, 390, 360, 320]) {
   for (const theme of ['light', 'dark']) {
     for (const lang of ['ru', 'kz']) {
       test(`layout ${width} ${theme} ${lang}`, async ({ page }) => {
