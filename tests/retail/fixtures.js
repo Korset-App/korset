@@ -87,15 +87,19 @@ export async function openRetail(
             total_count: live ? 0 : populated ? 24 : 0,
             compare_count: live ? 0 : populated ? 7 : 0,
             ai_help_count: live ? 0 : populated ? 5 : 0,
+            open_count: 0,
+            scenario_select_count: 0,
+            top_scenario_count: 0,
+            top_source_count: 0,
           },
         ],
         fn_get_compare_events_summary: [
-          live?.comparisons ?? {
+          { top_pair_count: 0, ...(live?.comparisons ?? {
             total_count: populated ? 9 : 0,
             winner_count: populated ? 5 : 0,
             draw_count: populated ? 3 : 0,
             blocked_count: populated ? 1 : 0,
-          },
+          }) },
         ],
       }
       return route.fulfill({ json: responses[url.pathname.split('/').at(-1)] ?? [] })

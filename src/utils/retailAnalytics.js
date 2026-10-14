@@ -1,7 +1,7 @@
 import { supabase } from './supabase.js'
 import { quoteLiteralSearchPattern } from './literalSearch.js'
 import { buildRetailPriceUpdate } from '../domain/retail/catalogManagement.js'
-import { readRetailMetric } from '../domain/retail/metricValue.js'
+import { readRetailMetric, readRetailSummary } from '../domain/retail/metricValue.js'
 import { hydrateSyncedConditions } from './syncedConditions.js'
 import {
   applySyncedConditions,
@@ -170,7 +170,10 @@ export async function getAlternativeEventsSummary(storeId, days) {
   })
 
   if (error) throw new Error(error.message ?? error)
-  return mapAlternativeEventsSummaryRpcRow(Array.isArray(data) ? data[0] : data)
+  return mapAlternativeEventsSummaryRpcRow(readRetailSummary(data,
+    ['compare_count', 'ai_help_count', 'open_count', 'scenario_select_count'],
+    { top_scenario_count: ['top_scenario'], top_source_count: ['top_source_ean'] }
+  ))
 }
 
 export function mapCompareEventsSummaryRpcRow(row = {}) {
@@ -195,7 +198,10 @@ export async function getCompareEventsSummary(storeId, days) {
   })
 
   if (error) throw new Error(error.message ?? error)
-  return mapCompareEventsSummaryRpcRow(Array.isArray(data) ? data[0] : data)
+  return mapCompareEventsSummaryRpcRow(readRetailSummary(data,
+    ['winner_count', 'draw_count', 'blocked_count'],
+    { top_pair_count: ['top_ean_a', 'top_ean_b'] }
+  ))
 }
 
 const PRODUCTS_PAGE_SIZE = 40

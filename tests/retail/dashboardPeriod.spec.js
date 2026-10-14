@@ -27,8 +27,8 @@ async function mockPeriods(page, holdSeven = null) {
       get_lost_revenue: body.p_days_back * 100,
       get_scan_coverage: 80,
       get_top_scanned_products: [], get_missed_opportunities: [],
-      fn_get_alternative_events_summary: [{ total_count: 0 }],
-      fn_get_compare_events_summary: [{ total_count: 0 }],
+      fn_get_alternative_events_summary: [{ total_count: 0, compare_count: 0, ai_help_count: 0, open_count: 0, scenario_select_count: 0, top_scenario_count: 0, top_source_count: 0 }],
+      fn_get_compare_events_summary: [{ total_count: 0, winner_count: 0, draw_count: 0, blocked_count: 0, top_pair_count: 0 }],
     }
     return route.fulfill({ json: responses[endpoint] })
   })
