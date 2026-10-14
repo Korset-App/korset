@@ -17,6 +17,7 @@ export default defineConfig({
     url: 'http://127.0.0.1:5197',
     reuseExistingServer: false,
     env: {
+      VITE_API_TARGET: 'http://127.0.0.1:9',
       VITE_SUPABASE_URL: 'https://pilot.invalid',
       VITE_SUPABASE_ANON_KEY: 'pilot-test-public-key',
     },

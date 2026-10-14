@@ -87,6 +87,9 @@ export async function openConsumer(page, { lang = 'ru', theme = 'light', slug = 
     const request = route.request()
     const url = new globalThis.URL(request.url())
     if (url.hostname === '127.0.0.1' || url.hostname === 'localhost') {
+      if (url.pathname === '/api' || url.pathname.startsWith('/api/')) {
+        return route.fulfill({ status: 503, json: { error: 'Unmocked pilot API' } })
+      }
       return route.continue()
     }
     if (url.hostname !== 'pilot.invalid') {

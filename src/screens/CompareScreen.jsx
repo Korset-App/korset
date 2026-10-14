@@ -9,7 +9,7 @@ import { useStore } from '../contexts/StoreContext.jsx'
 import { useI18n } from '../i18n/index.js'
 import { useLocalName } from '../utils/localName.js'
 import { findProductInCatalog } from '../domain/product/alternatives.js'
-import { resolveProductByEan } from '../domain/product/resolver.js'
+import { resolveProductByEan, isResolvedProductAllowedForScannedEan } from '../domain/product/resolver.js'
 import { buildProductAIPath, buildProductAlternativesPath } from '../utils/routes.js'
 import { buildProductComparison } from '../domain/product/comparison.js'
 import { buildProductComparisonViewModel } from '../domain/product/comparisonViewModel.js'
@@ -271,13 +271,17 @@ export default function CompareScreen() {
   const productA = useMemo(() => {
     const stateA = location.state?.productA
     if (stateA?.ean === ean) return stateA
-    return findProductInCatalog(catalogProducts, ean) || fetchedA || stateA || null
+    return findProductInCatalog(catalogProducts, ean, { allowAlternate: false })
+      || (isResolvedProductAllowedForScannedEan(fetchedA, ean) ? fetchedA : null)
+      || (isResolvedProductAllowedForScannedEan(stateA, ean) ? stateA : null)
   }, [ean, catalogProducts, location.state, fetchedA])
 
   const productB = useMemo(() => {
     const stateB = location.state?.productB
     if (stateB?.ean === ean2) return stateB
-    return findProductInCatalog(catalogProducts, ean2) || fetchedB || stateB || null
+    return findProductInCatalog(catalogProducts, ean2, { allowAlternate: false })
+      || (isResolvedProductAllowedForScannedEan(fetchedB, ean2) ? fetchedB : null)
+      || (isResolvedProductAllowedForScannedEan(stateB, ean2) ? stateB : null)
   }, [ean2, catalogProducts, location.state, fetchedB])
 
   useEffect(() => {
