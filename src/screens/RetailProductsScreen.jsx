@@ -1117,6 +1117,7 @@ const ProductCard = memo(
     prev.product === next.product &&
     prev.isExpanded === next.isExpanded &&
     prev.search === next.search &&
+    prev.tr === next.tr &&
     prev.priceMutation.isPending === next.priceMutation.isPending &&
     prev.priceMutation.isError === next.priceMutation.isError &&
     prev.priceMutation.variables?.id === next.priceMutation.variables?.id &&
