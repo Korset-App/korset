@@ -7,7 +7,6 @@ import ShoppingListButton from '../components/ShoppingListButton.jsx'
 import KorsetAvatar from '../components/KorsetAvatar.jsx'
 import SegmentedToggle from '../components/SegmentedToggle.jsx'
 import { MoonGlyph, SunGlyph } from '../components/ThemeGlyphs.jsx'
-import AuthPromptModal from '../components/AuthPromptModal.jsx'
 import { buildAuthNavigateState } from '../utils/authFlow.js'
 import { detectBrowserContext } from '../utils/browserDetection.js'
 import { useOverlayLock } from '../hooks/useOverlayLock.js'
@@ -46,6 +45,11 @@ import {
   CartIcon,
   LocationPinIcon,
   ChevronDownIcon,
+  EditIcon,
+  SlidersIcon,
+  ShoppingListIcon,
+  HistoryIcon,
+  SyncIcon,
   CloseIcon,
   ArrowBackIcon,
   ArrowForwardIcon,
@@ -230,10 +234,26 @@ function SearchIcon({ className = '', width = 20, height = 20 }) {
   )
 }
 
+const HOME_ICON_COMPONENTS = {
+  expand_more: ChevronDownIcon,
+  chevron_right: ChevronDownIcon,
+  storefront: StorefrontIcon,
+  progress_activity: SyncIcon,
+  edit: EditIcon,
+  tune: SlidersIcon,
+  checklist: ShoppingListIcon,
+  history: HistoryIcon,
+  grocery: CartIcon,
+  arrow_forward: ArrowForwardIcon,
+  format_list_bulleted: ShoppingListIcon,
+}
+
 function HomeIcon({ name, className = '' }) {
+  const Icon = HOME_ICON_COMPONENTS[name]
+  if (!Icon) return null
   return (
-    <span className={`material-symbols-outlined ${className}`} aria-hidden="true">
-      {name}
+    <span className={`home-icon ${className}`} aria-hidden="true">
+      <Icon size="1em" style={name === 'chevron_right' ? { transform: 'rotate(-90deg)' } : undefined} />
     </span>
   )
 }
@@ -331,7 +351,6 @@ export default function HomeScreen() {
   const { lang, t } = useI18n()
   const { theme, setTheme } = useTheme()
   const { avatarId, displayName, user } = useAuth()
-  const [authPromptOpen, setAuthPromptOpen] = useState(false)
   const { profile, updateProfile } = useProfile()
   const {
     currentStore,
@@ -878,10 +897,6 @@ export default function HomeScreen() {
 
   function handleProductFavoriteClick(e, product) {
     e.stopPropagation()
-    if (!user) {
-      setAuthPromptOpen(true)
-      return
-    }
     if (typeof window !== 'undefined' && navigator?.vibrate) {
       navigator.vibrate(18)
     }
@@ -1161,12 +1176,6 @@ export default function HomeScreen() {
                 </>,
                 document.body
               )}
-            <AuthPromptModal
-              open={authPromptOpen}
-              onClose={() => setAuthPromptOpen(false)}
-              title={t('shopping.authPromptTitle')}
-              description={t('shopping.authPromptDesc')}
-            />
           </div>
         </header>
         <div className="home-top-bar-divider" aria-hidden="true" />

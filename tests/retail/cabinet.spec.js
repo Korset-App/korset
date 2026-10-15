@@ -91,7 +91,7 @@ test('QR print contains only the sheet and its address stays readable', async ({
   await page.getByRole('button', { name: 'Быстрые действия' }).click()
   await page.getByRole('menuitem', { name: 'QR для покупателей', exact: true }).click()
   await expect(page.getByRole('dialog')).toBeVisible()
-  await expect(page.locator('.rc-qr-sheet__url')).toHaveText('http://127.0.0.1:5187/s/audit')
+  await expect(page.locator('.rc-qr-sheet__url')).toHaveText(new globalThis.URL('/s/audit', page.url()).href)
   await page.emulateMedia({ media: 'print' })
   await expect(page.locator('#root')).toBeHidden()
   await expect(page.locator('.rc-qr-code svg')).toBeVisible()

@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../utils/supabase.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { useProfile } from '../contexts/ProfileContext.jsx'
 import { useStore } from '../contexts/StoreContext.jsx'
+import { useOffline } from '../contexts/OfflineContext.jsx'
 import { useUserData } from '../contexts/UserDataContext.jsx'
 import { useI18n } from '../i18n/index.js'
 import { getLocalName } from '../utils/localName.js'
+import { checkProductFit } from '../utils/fitCheck.js'
 import { buildCatalogPath, buildProfilePath } from '../utils/routes.js'
-import { buildAuthNavigateState } from '../utils/authFlow.js'
 import { hydrateProductsFromFavoriteRows } from '../domain/product/resolver.js'
 import { summarizeShoppingList } from '../domain/shopping/shoppingListSummary.js'
 import { selectShoppingRecommendations } from '../domain/shopping/recommendations.js'
@@ -24,10 +25,10 @@ import './ShoppingExperience.css'
 
 export default function ShoppingListScreen() {
   const navigate = useNavigate()
-  const location = useLocation()
-  const { user, internalUserId } = useAuth()
+  const { internalUserId } = useAuth()
   const { profile } = useProfile()
   const { currentStore, catalogProducts } = useStore()
+  const { isOnline } = useOffline()
   const {
     favoriteEans,
     toggleFavorite,
@@ -48,10 +49,12 @@ export default function ShoppingListScreen() {
   const products = result.storeId === currentStore?.id ? result.products : null
 
   useEffect(() => {
-    if (!user || !currentStore?.id || !userDataLoaded) return
+    if (!currentStore?.id || !userDataLoaded) return
     let cancelled = false
     async function load() {
-      let rows = [...favoriteEans].map((ean) => ({ ean }))
+      let rows = [...favoriteEans]
+        .filter((ref) => !sourceShoppingId(ref))
+        .map((ean) => ({ ean }))
       if (internalUserId) {
         const { data, error } = await supabase
           .from('store_shopping_items')
@@ -62,15 +65,17 @@ export default function ShoppingListScreen() {
         if (error) throw error
         rows = data || []
       }
-      const hydrated = await hydrateProductsFromFavoriteRows(rows)
       const catalogByEan = new Map(
         (catalogProducts || []).map((item) => [getProductRef(item), item])
       )
+      const hydrated = internalUserId
+        ? await hydrateProductsFromFavoriteRows(rows)
+        : rows.map(({ ean }) => catalogByEan.get(ean) || { ean, name: '', source: 'unknown' })
       const list = hydrated.map((item) => {
         const local = catalogByEan.get(item.ean)
         return local
           ? { ...item, ...local, storeOutOfStock: local.stockStatus === 'out_of_stock' }
-          : { ...item, priceKzt: null, storeUnavailable: true }
+          : { ...item, priceKzt: null, stockStatus: 'unknown', storeUnavailable: true }
       })
       const sourceRows = internalUserId
         ? await loadSourceShoppingItems(supabase, internalUserId, currentStore.id)
@@ -80,7 +85,7 @@ export default function ShoppingListScreen() {
       for (const row of sourceRows) {
         const ref = `si:${row.store_source_item_id}`
         let local = catalogByEan.get(ref)
-        if (!local) {
+        if (!local && (internalUserId || isOnline)) {
           const { data, error } = await supabase.rpc('korset_get_store_source_cards', {
             p_store_id: currentStore.id,
             p_source_id: row.store_source_item_id,
@@ -100,6 +105,7 @@ export default function ShoppingListScreen() {
                 name: '',
                 storeUnavailable: true,
                 priceKzt: null,
+                stockStatus: 'unknown',
               }
         )
       }
@@ -113,9 +119,9 @@ export default function ShoppingListScreen() {
       cancelled = true
     }
   }, [
-    user,
     currentStore?.id,
     internalUserId,
+    isOnline,
     favoriteEans,
     userDataLoaded,
     catalogProducts,
@@ -123,7 +129,7 @@ export default function ShoppingListScreen() {
   ])
 
   useEffect(() => {
-    if (!currentStore?.id) return
+    if (!currentStore?.id || !isOnline) return
     let cancelled = false
     supabase
       .from('store_products')
@@ -138,7 +144,7 @@ export default function ShoppingListScreen() {
     return () => {
       cancelled = true
     }
-  }, [currentStore?.id])
+  }, [currentStore?.id, isOnline])
 
   const visibleProducts = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase(lang === 'kz' ? 'kk' : 'ru')
@@ -167,9 +173,12 @@ export default function ShoppingListScreen() {
   const handleShare = async () => {
     if (!products?.length) return
     const lines = products.map((product, index) => {
+      const unit = product.saleUnit && product.saleUnit !== 'piece'
+        ? ` / ${t(`integration.unit.${product.saleUnit}`)}`
+        : ''
       const price =
         Number.isFinite(product.priceKzt) && product.priceKzt > 0
-          ? ` — ${product.priceKzt.toLocaleString('ru-RU')} ₸`
+          ? ` — ${product.priceKzt.toLocaleString('ru-RU')} ₸${unit}`
           : ''
       return `${index + 1}. ${product.source === 'unknown' ? t('shopping.unknownProduct') : getLocalName(product)}${price}`
     })
@@ -222,7 +231,7 @@ export default function ShoppingListScreen() {
       }
       const ids = [...byStore.keys()]
       let names = new Map()
-      if (ids.length) {
+      if (ids.length && isOnline) {
         const { data, error } = await supabase.from('stores').select('id,name').in('id', ids)
         if (!error) names = new Map((data || []).map((store) => [store.id, store.name]))
       }
@@ -308,39 +317,7 @@ export default function ShoppingListScreen() {
             {feedback}
           </div>
         )}
-        {!user ? (
-          <div className="shopping-page__empty">
-            <div className="shopping-page__empty-mark" aria-hidden="true">
-              <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="9" y="14" width="30" height="25" rx="5" />
-                <path d="M17 17V11a7 7 0 0 1 14 0v6M18 27h12M24 21v12" />
-              </svg>
-            </div>
-            <h2>{t('shopping.guestGateTitle')}</h2>
-            <p>{t('shopping.guestGateHint', { storeName: currentStore?.name || 'Körset' })}</p>
-            <button
-              type="button"
-              className="shopping-page__primary"
-              onClick={() =>
-                navigate('/auth', {
-                  state: buildAuthNavigateState(location, {
-                    reason: 'profile_required',
-                    message: t('shopping.authRequiredMsg'),
-                  }),
-                })
-              }
-            >
-              {t('shopping.guestGateBtn')}
-            </button>
-            <button
-              type="button"
-              className="shopping-page__secondary"
-              onClick={() => navigate(buildCatalogPath(currentStore?.slug))}
-            >
-              {t('shopping.openCatalog')}
-            </button>
-          </div>
-        ) : result.storeId === currentStore?.id && (result.error || shoppingListLoadError) ? (
+        {result.storeId === currentStore?.id && (result.error || shoppingListLoadError) ? (
           <div className="shopping-page__error" role="alert">
             <p>{t('shopping.loadFailed')}</p>
             <button
@@ -471,6 +448,7 @@ export default function ShoppingListScreen() {
                     <ProductMiniCard
                       key={getProductRef(product)}
                       product={product}
+                      caution={checkProductFit(product, profile).verdict === 'caution'}
                       onAdd={() => toggleFavorite(product)}
                     />
                   ))}

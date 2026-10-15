@@ -134,8 +134,11 @@ export default function NutritionUnified({ nutrition, product = null }) {
   const canToggle = Boolean(portionInfo && !portionInfo.isExact100)
 
   const activeNutrition = useMemo(() => {
-    return computePortionNutrition(nutrition, portionInfo, canToggle ? mode : '100')
-  }, [nutrition, portionInfo, canToggle, mode])
+    return computePortionNutrition(
+      nutrition, portionInfo, canToggle ? mode : '100',
+      product?.saturatedFat100g ?? product?.nutritionPer100?.saturatedFat
+    )
+  }, [nutrition, portionInfo, canToggle, mode, product?.saturatedFat100g, product?.nutritionPer100?.saturatedFat])
 
   if (!activeNutrition) return null
 
@@ -152,9 +155,7 @@ export default function NutritionUnified({ nutrition, product = null }) {
   const salt = activeNutrition.salt ?? activeNutrition.salt_100g
   const saturatedFat =
     activeNutrition.saturatedFat ??
-    activeNutrition['saturated-fat_100g'] ??
-    product?.saturatedFat100g ??
-    product?.nutritionPer100?.saturatedFat
+    activeNutrition['saturated-fat_100g']
 
   const nutriscore = (product?.nutriscore || '').trim().toUpperCase()
   const novaGroup = product?.novaGroup ?? product?.nova_group

@@ -97,7 +97,14 @@
   cursor: pointer;
 }
 
-.scan-glass-icon .material-symbols-outlined {
+.scan-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.scan-glass-icon .scan-icon {
   font-size: 19px;
 }
 
@@ -324,7 +331,7 @@
   border-color: var(--red);
 }
 
-.scan-manual-input .material-symbols-outlined {
+.scan-manual-input .scan-icon {
   font-size: 25px;
   color: var(--text-sub);
 }
@@ -397,7 +404,7 @@
   gap: 10px;
 }
 
-.scan-compare-tray__header .material-symbols-outlined {
+.scan-compare-tray__header .scan-icon {
   color: var(--primary);
 }
 
@@ -548,7 +555,7 @@
   background: var(--bg-app);
 }
 
-.scan-status-overlay--gate .material-symbols-outlined {
+.scan-status-overlay--gate .scan-icon {
   font-size: 52px;
   color: var(--primary);
 }
@@ -565,7 +572,7 @@
   box-shadow: 0 16px 36px color-mix(in srgb, var(--primary) 22%, transparent);
 }
 
-.scan-status-overlay--error .material-symbols-outlined {
+.scan-status-overlay--error .scan-icon {
   font-size: 52px;
   color: var(--red);
 }

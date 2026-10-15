@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useStore } from '../contexts/StoreContext.jsx'
+import { useOffline } from '../contexts/OfflineContext.jsx'
 import { useProfile } from '../contexts/ProfileContext.jsx'
 import { useUserData } from '../contexts/UserDataContext.jsx'
 import { useI18n } from '../i18n/index.js'
@@ -21,6 +22,7 @@ import './StoreSourceProductScreen.css'
 export default function StoreSourceProductScreen() {
   const { ean, storeSlug } = useParams()
   const { storeId, catalogProducts } = useStore()
+  const { isOnline } = useOffline()
   const { profile } = useProfile()
   const { checkIsFavorite, toggleFavorite } = useUserData()
   const { t, lang } = useI18n()
@@ -33,7 +35,7 @@ export default function StoreSourceProductScreen() {
   )
   const current = result?.storeId === storeId && result.ref === ean ? result : null
   const base = current ? current.product : local
-  const product = current?.networkError
+  const product = !isOnline || current?.networkError
     ? applySyncedRegularFallback(base)
     : applySyncedConditions(base, undefined, observedAt)
   useEffect(() => {
@@ -42,6 +44,16 @@ export default function StoreSourceProductScreen() {
   }, [])
   useEffect(() => {
     if (!storeId) return
+    if (!isOnline) {
+      // Keep this snapshot unverified until a new response confirms the store again.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setResult((previous) =>
+        previous?.storeId === storeId && previous.ref === ean && !previous.networkError
+          ? { ...previous, networkError: true }
+          : previous
+      )
+      return
+    }
     const controller = new AbortController()
     const refresh = () =>
       supabase
@@ -54,12 +66,14 @@ export default function StoreSourceProductScreen() {
         .abortSignal(controller.signal)
         .then(({ data, error }) => {
           if (controller.signal.aborted) return
-          setResult({
+          setResult((previous) => ({
             storeId,
             ref: ean,
             networkError: Boolean(error),
-            product: error ? local : data?.length === 1 ? normalizeSourceCard(data[0]) : null,
-          })
+            product: error
+              ? local ?? (previous?.storeId === storeId && previous.ref === ean ? previous.product : null)
+              : data?.length === 1 ? normalizeSourceCard(data[0]) : null,
+          }))
           setFailed(Boolean(error || !data?.length))
         })
     refresh()
@@ -68,7 +82,7 @@ export default function StoreSourceProductScreen() {
       controller.abort()
       clearInterval(timer)
     }
-  }, [storeId, ean, local])
+  }, [storeId, ean, local, isOnline])
   const fit = product && !product.needsEnrichment ? checkProductFit(product, profile) : null
   return (
     <main className="store-source-product">
@@ -99,7 +113,9 @@ export default function StoreSourceProductScreen() {
           </p>
           <p>{t(`integration.consumer.stock.${product.stockStatus || 'unknown'}`)}</p>
           {product.conditionsStale && (
-            <p className="store-source-product__notice">{t('integration.consumer.stale')}</p>
+            <p className="store-source-product__notice">
+              {t(product.conditionsUnavailable ? 'integration.consumer.saved' : 'integration.consumer.stale')}
+            </p>
           )}
           {product.needsEnrichment ? (
             <section className="store-source-product__notice">

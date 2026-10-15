@@ -1,11 +1,14 @@
-export default function Highlight({ text, q }) {
-  if (!q || !q.trim() || !text) return <>{text}</>
-  const regex = new RegExp(`(${q.trim()})`, 'gi')
+import { escapeLiteralPattern } from '../../../utils/literalSearch.js'
+
+export default function Highlight({ text, q, query }) {
+  const search = q ?? query
+  if (!search || !search.trim() || !text) return <>{text}</>
+  const regex = new RegExp(`(${escapeLiteralPattern(search.trim())})`, 'gi')
   const parts = String(text).split(regex)
   return (
     <>
       {parts.map((part, i) =>
-        regex.test(part) ? (
+        i % 2 === 1 ? (
           <span
             key={i}
             style={{

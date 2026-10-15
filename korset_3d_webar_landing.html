@@ -142,10 +142,19 @@
     }
 
     /* Main Container */
+    .demo-notice {
+      margin: 64px 0 0;
+      padding: 10px 16px;
+      color: var(--text-main);
+      background: var(--bg-surface);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
     .app-viewport {
       position: relative;
       flex: 1;
-      margin-top: 64px;
+      margin-top: 0;
       display: flex;
       overflow: hidden;
       height: calc(100vh - 64px);
@@ -811,7 +820,16 @@
 
     /* Responsive styling for Mobile */
     @media (max-width: 1024px) {
-      .app-viewport {
+      .demo-notice {
+      margin: 64px 0 0;
+      padding: 10px 16px;
+      color: var(--text-main);
+      background: var(--bg-surface);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .app-viewport {
         flex-direction: column;
         height: auto;
       }
@@ -867,9 +885,11 @@
     </div>
   </header>
 
+  <p class="demo-notice" role="note">Демонстрационный макет: товары, цены, состав и проверки вымышлены. Не используйте для выбора продуктов. / Демонстрациялық макет: тауарлар, бағалар, құрам мен тексерулер ойдан шығарылған. Тауар таңдау үшін қолданбаңыз.</p>
+
   <!-- Viewport -->
   <div class="app-viewport">
-    
+
     <!-- 3D Canvas Container -->
     <div class="scene-container">
       <canvas id="webgl-canvas"></canvas>
@@ -895,8 +915,8 @@
           <div class="holo-desc" id="holo-kbju">45 ккал · Б 1.2 · Ж 1.5 · У 6.5</div>
         </div>
         <div class="holo-card holo-bl">
-          <div class="holo-title"><span>🏷️</span> EAN-13 & Цена</div>
-          <div class="holo-desc" id="holo-ean">4870001234567 · 790 ₸</div>
+          <div class="holo-title"><span>🏷️</span> Макет · условная цена</div>
+          <div class="holo-desc" id="holo-ean">DEMO-01 · 790 ₸</div>
         </div>
         <div class="holo-card holo-br">
           <div class="holo-title"><span>🧪</span> Главный компонент</div>
@@ -922,7 +942,7 @@
           </div>
         </div>
         <div class="ar-meta-box">
-          <div class="ar-ean" id="ar-ean-display">EAN: 4870001234567</div>
+          <div class="ar-ean" id="ar-ean-display">Макет: DEMO-01</div>
           <div class="ar-status-text" id="ar-status-display">✓ ПОДХОДИТ</div>
         </div>
       </div>
@@ -949,7 +969,7 @@
         <div class="product-header-card" id="product-header-card">
           <div class="product-meta-sub">
             <span class="product-category-tag" id="sidebar-category">Растительное молоко</span>
-            <span class="product-ean-tag" id="sidebar-ean">4870001234567</span>
+            <span class="product-ean-tag" id="sidebar-ean">DEMO-01</span>
           </div>
           <h2 class="product-title" id="sidebar-title">EcoMilk Qazaqstan</h2>
           <div class="product-subtitle" id="sidebar-subtitle">Овсяное молоко 100% цельное</div>
@@ -1030,19 +1050,8 @@
 
   </div>
 
-  <!-- Three.js and OrbitControls (local with CDN fallback) -->
-  <script src="./public/vendor/three.min.js"></script>
-  <script>
-    if (typeof THREE === 'undefined') {
-      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
-    }
-  </script>
-  <script src="./public/vendor/OrbitControls.js"></script>
-  <script>
-    if (typeof THREE !== 'undefined' && typeof THREE.OrbitControls === 'undefined') {
-      document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"><\/script>');
-    }
-  </script>
+  <script src="/vendor/three.min.js"></script>
+  <script src="/vendor/OrbitControls.js"></script>
 
   <!-- 3D WebAR App Script -->
   <script>
@@ -1075,7 +1084,7 @@
         volume: '1 л',
         price: 790,
         priceStr: '790 ₸',
-        ean: '4870001234567',
+        demoId: 'DEMO-01',
         shelfTier: 'upper',
         slotIndex: 0,
         category: 'Растительное молоко',
@@ -1102,7 +1111,7 @@
         volume: '60 г',
         price: 650,
         priceStr: '650 ₸',
-        ean: '4870002345678',
+        demoId: 'DEMO-02',
         shelfTier: 'upper',
         slotIndex: 1,
         category: 'Спортивное питание / Снеки',
@@ -1129,7 +1138,7 @@
         volume: '350 г',
         price: 540,
         priceStr: '540 ₸',
-        ean: '4870003456789',
+        demoId: 'DEMO-03',
         shelfTier: 'upper',
         slotIndex: 2,
         category: 'Молочные продукты',
@@ -1156,7 +1165,7 @@
         volume: '90 г',
         price: 1150,
         priceStr: '1 150 ₸',
-        ean: '4870004567890',
+        demoId: 'DEMO-04',
         shelfTier: 'upper',
         slotIndex: 3,
         category: 'Кондитерские изделия',
@@ -1183,7 +1192,7 @@
         volume: '120 г',
         price: 420,
         priceStr: '420 ₸',
-        ean: '4870005678901',
+        demoId: 'DEMO-05',
         shelfTier: 'lower',
         slotIndex: 0,
         category: 'Бакалея / Быстрый обед',
@@ -1211,7 +1220,7 @@
         volume: '80 г',
         price: 590,
         priceStr: '590 ₸',
-        ean: '4870006789012',
+        demoId: 'DEMO-06',
         shelfTier: 'lower',
         slotIndex: 1,
         category: 'Полезные снеки',
@@ -1238,7 +1247,7 @@
         volume: '500 мл',
         price: 380,
         priceStr: '380 ₸',
-        ean: '4870007890123',
+        demoId: 'DEMO-07',
         shelfTier: 'lower',
         slotIndex: 2,
         category: 'Безалкогольные напитки',
@@ -1265,7 +1274,7 @@
         volume: '400 г',
         price: 1690,
         priceStr: '1 690 ₸',
-        ean: '4870008901234',
+        demoId: 'DEMO-08',
         shelfTier: 'lower',
         slotIndex: 3,
         category: 'Сухие завтраки',
@@ -1399,23 +1408,12 @@
       ctx.fillStyle = '#F3F4F6';
       ctx.fillText(product.volume + ' · ' + product.priceStr, 450, 278);
 
-      // Procedural EAN-13 Barcode generator
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(60, 340, 392, 110);
-
       ctx.fillStyle = '#000000';
       ctx.textAlign = 'center';
-      let x = 80;
-      // Draw procedural barcode stripes
-      for (let i = 0; i < 48; i++) {
-        const w = (i % 3 === 0 || i % 7 === 0) ? 6 : 3;
-        ctx.fillRect(x, 350, w, 65);
-        x += w + ((i % 4 === 0) ? 4 : 2);
-        if (x > 430) break;
-      }
-
       ctx.font = 'bold 20px monospace';
-      ctx.fillText(product.ean, 256, 438);
+      ctx.fillText(product.demoId, 256, 438);
 
       const texture = new THREE.CanvasTexture(canvas);
       texture.generateMipmaps = true;
@@ -2009,7 +2007,7 @@
 
       // Header card
       document.getElementById('sidebar-category').textContent = prod.category;
-      document.getElementById('sidebar-ean').textContent = prod.ean;
+      document.getElementById('sidebar-ean').textContent = prod.demoId;
       document.getElementById('sidebar-title').textContent = prod.name;
       document.getElementById('sidebar-subtitle').textContent = prod.type;
       document.getElementById('sidebar-price').textContent = prod.priceStr;
@@ -2065,7 +2063,7 @@
       });
 
       // AR Viewfinder update
-      document.getElementById('ar-ean-display').textContent = `EAN: ${prod.ean}`;
+      document.getElementById('ar-ean-display').textContent = `Макет: ${prod.demoId}`;
       const arStatus = document.getElementById('ar-status-display');
       arStatus.textContent = verdict.badgeText;
       arStatus.style.color = verdict.color;
@@ -2074,7 +2072,7 @@
       document.getElementById('holo-verdict').textContent = verdict.badgeText;
       document.getElementById('holo-verdict').style.color = verdict.color;
       document.getElementById('holo-kbju').textContent = `${prod.kbju.kcal} ккал · Б ${prod.kbju.protein} · Ж ${prod.kbju.fat} · У ${prod.kbju.carbs}`;
-      document.getElementById('holo-ean').textContent = `${prod.ean} · ${prod.priceStr}`;
+      document.getElementById('holo-ean').textContent = `${prod.demoId} · ${prod.priceStr}`;
       document.getElementById('holo-ingredient').textContent = prod.keyIngredient;
 
       // Update thumbnails in sidebar

@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Körset Retail — Предложение по разделам «Витрина» и «Настройки»</title>
+  <style>
+    /* ── Körset Design System Variables ── */
+    :root {
+      --bg: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-card: #ffffff;
+      --retail-border: rgba(226, 232, 240, 0.9);
+      --retail-accent: #0284c7;
+      --retail-accent-soft: rgba(2, 132, 199, 0.08);
+      --text: #0f172a;
+      --text-sub: #475569;
+      --text-dim: #94a3b8;
+      --glass-bg: rgba(248, 250, 252, 0.8);
+      --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+      --success: #10b981;
+      --success-soft: rgba(16, 185, 129, 0.1);
+      --warning: #f59e0b;
+      --warning-soft: rgba(245, 158, 11, 0.1);
+      --error: #ef4444;
+      --error-soft: rgba(239, 68, 68, 0.1);
+      --font-display: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    }
+
+    [data-theme="dark"] {
+      --bg: #090d16;
+      --bg-surface: #0f172a;
+      --bg-card: #131b2e;
+      --retail-border: rgba(255, 255, 255, 0.08);
+      --retail-accent: #38bdf8;
+      --retail-accent-soft: rgba(56, 189, 248, 0.12);
+      --text: #f8fafc;
+      --text-sub: #94a3b8;
+      --text-dim: #64748b;
+      --glass-bg: rgba(15, 23, 42, 0.6);
+      --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.4);
+      --success: #10b981;
+      --success-soft: rgba(16, 185, 129, 0.15);
+      --warning: #f59e0b;
+      --warning-soft: rgba(245, 158, 11, 0.15);
+      --error: #ef4444;
+      --error-soft: rgba(239, 68, 68, 0.15);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      line-height: 1.5;
+      padding: 24px;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    /* Top banner marking this as a proposal */
+    .proposal-banner {
+      background: rgba(2, 132, 199, 0.1);
+      border: 1px solid var(--retail-accent);
+      border-radius: 12px;
+      padding: 12px 18px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .proposal-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--retail-accent);
+    }
+    .controls {
+      display: flex;
+      gap: 8px;
+    }
+    .ctrl-btn {
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--retail-border);
+      background: var(--bg-card);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Layout */
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    /* Section Tabs */
+    .section-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--retail-border);
+      padding-bottom: 8px;
+    }
+    .tab-btn {
+      padding: 8px 16px;
+      border-radius: 10px;
+      border: none;
+      background: transparent;
+      color: var(--text-sub);
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .tab-btn.active {
+      background: var(--retail-accent-soft);
+      color: var(--retail-accent);
+    }
+
+    /* Grid */
+    .grid-2col {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 380px;
+      gap: 24px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .grid-2col { grid-template-columns: 1fr; }
+    }
+
+    /* Card */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--retail-border);
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: var(--shadow-card);
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Form Fields */
+    .field-group { margin-bottom: 16px; }
+    .label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      display: block;
+    }
+    .input, .select, .textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--retail-border);
+      background: var(--glass-bg);
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+    }
+    .input:focus, .select:focus, .textarea:focus {
+      border-color: var(--retail-accent);
+    }
+
+    /* Phone Mockup */
+    .phone-mockup {
+      border: 1px solid var(--retail-border);
+      border-radius: 20px;
+      background: var(--bg-card);
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+      position: sticky;
+      top: 24px;
+    }
+    .phone-cover {
+      height: 90px;
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      position: relative;
+    }
+    .pill {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.45);
+      color: #ffffff;
+      backdrop-filter: blur(8px);
+    }
+    .pill-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+    }
+
+    .phone-body { padding: 14px 16px; }
+    .phone-identity {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      margin-top: -30px;
+      margin-bottom: 12px;
+    }
+    .phone-avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: #0284c7;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 20px;
+      border: 3px solid var(--bg-card);
+      flex-shrink: 0;
+    }
+    .phone-meta { min-width: 0; flex: 1; }
+    .phone-name { font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 2px; }
+    .phone-sub { font-size: 11px; color: var(--text-sub); }
+
+    .phone-details {
+      background: var(--glass-bg);
+      border: 1px solid var(--retail-border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 12px;
+    }
+    .phone-row { display: flex; align-items: center; gap: 8px; color: var(--text-sub); }
+
+    /* Action bar in mockup */
+    .phone-actions { margin-top: 12px; }
+    .phone-btn {
+      width: 100%;
+      padding: 9px;
+      border-radius: 10px;
+      background: var(--retail-accent-soft);
+      border: 1px solid var(--retail-accent);
+      color: var(--retail-accent);
+      font-size: 12px;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    /* QR Box */
+    .qr-banner {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: var(--glass-bg);
+      border: 1px solid var(--retail-border);
+      flex-wrap: wrap;
+    }
+    .qr-box {
+      background: #ffffff;
+      padding: 6px;
+      border-radius: 10px;
+      display: inline-flex;
+    }
+    .qr-info { flex: 1; min-width: 180px; }
+    .qr-btn {
+      padding: 8px 16px;
+      border-radius: 10px;
+      background: var(--retail-accent);
+      border: none;
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* Dialog backdrop */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 999;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-box {
+      background: var(--bg-card);
+      border: 1px solid var(--retail-border);
+      border-radius: 18px;
+      max-width: 440px;
+      width: 100%;
+      padding: 24px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Status Banner -->
+  <div class="proposal-banner">
+    <div>
+      <div class="proposal-badge">💡 Макет-предложение (Proposal Prototype)</div>
+      <p style="font-size: 13px; color: var(--text-sub); margin-top: 4px;">
+        Локальный интерактивный макет для согласования с владельцем и центральным Codex. Код проекта не затронут.
+      </p>
+    </div>
+    <div class="controls">
+      <button class="ctrl-btn" onclick="toggleTheme()">🌓 Тема: <span id="themeLabel">Светлая</span></button>
+      <button class="ctrl-btn" onclick="toggleLang()">🌐 Язык: <span id="langLabel">RU</span></button>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+    <div>
+      <h1 style="font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -0.3px;">
+        <span id="titleText">Витрина магазина</span>
+      </h1>
+      <p style="font-size: 13px; color: var(--text-sub);" id="subText">
+        Управление представлением магазина в каталоге, логотипом и печатью QR-кода
+      </p>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <button class="ctrl-btn" style="border-color: var(--retail-accent); color: var(--retail-accent);">
+        🔗 Скопировать ссылку
+      </button>
+      <button class="ctrl-btn" style="background: var(--retail-accent); color: #fff; border: none;">
+        ↗ Открыть витрину (/s/bereke)
+      </button>
+    </div>
+  </div>
+
+  <!-- 2-Column Responsive Layout Safe for 320px..1440px -->
+  <div class="grid-2col">
+    <!-- Left Column: Settings Cards -->
+    <div>
+      <!-- Card 1: Branding -->
+      <div class="card">
+        <div class="card-title">1. Брендинг и формат</div>
+        <div class="field-group">
+          <label class="label">Название магазина</label>
+          <input type="text" class="input" value="Продуктовый магазин «Береке»" id="storeNameInput" oninput="updateMockup()">
+        </div>
+        <div class="field-group">
+          <label class="label">Слоган или подзаголовок</label>
+          <input type="text" class="input" value="Свежие продукты у дома каждый день" id="storeShortDescInput" oninput="updateMockup()">
+        </div>
+        <div class="field-group">
+          <label class="label">Формат торговой точки (Единый справочник)</label>
+          <select class="select" id="storeTypeSelect" onchange="updateMockup()">
+            <option value="minimarket">Минимаркет</option>
+            <option value="supermarket">Супермаркет</option>
+            <option value="convenience">Магазин у дома</option>
+            <option value="halal">Халал маркет</option>
+            <option value="specialty">Специализированный</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Card 2: QR & Materials -->
+      <div class="card">
+        <div class="card-title">2. Печать QR-материалов для зала</div>
+        <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 14px;">
+          Готовый печатный лист формата А4 для кассы и входной группы с крупным QR-кодом и инструкцией.
+        </p>
+        <div class="qr-banner">
+          <div class="qr-box">
+            <!-- Simulated QR SVG -->
+            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="1.5">
+              <rect x="2" y="2" width="7" height="7" rx="1"/>
+              <rect x="15" y="2" width="7" height="7" rx="1"/>
+              <rect x="2" y="15" width="7" height="7" rx="1"/>
+              <rect x="5" y="5" width="1" height="1" fill="#0f172a"/>
+              <rect x="18" y="5" width="1" height="1" fill="#0f172a"/>
+              <rect x="5" y="18" width="1" height="1" fill="#0f172a"/>
+              <path d="M15 15h2v2h-2zM19 15h3v3h-3zM15 19h3v3h-3z"/>
+            </svg>
+          </div>
+          <div class="qr-info">
+            <div style="font-size: 13px; font-weight: 700; color: var(--text);">QR для входа в витрину</div>
+            <div style="font-size: 11px; color: var(--text-dim); font-family: monospace;">https://korset.kz/s/bereke</div>
+          </div>
+          <button class="qr-btn" onclick="openPrintModal()">Печать плаката А4 ↗</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Live Customer Preview -->
+    <div>
+      <div class="phone-mockup">
+        <div class="phone-cover">
+          <div class="pill" id="mockTypePill">Минимаркет</div>
+          <!-- Improved: Physical Hours status, distinct from platform draft status -->
+          <div class="pill pill-status">
+            <span class="dot"></span>
+            <span id="mockHoursStatus">Открыто до 23:00</span>
+          </div>
+        </div>
+
+        <div class="phone-body">
+          <div class="phone-identity">
+            <div class="phone-avatar">Б</div>
+            <div class="phone-meta">
+              <div class="phone-name" id="mockName">Продуктовый магазин «Береке»</div>
+              <div class="phone-sub" id="mockSub">Свежие продукты у дома каждый день</div>
+            </div>
+          </div>
+
+          <div class="phone-details">
+            <div class="phone-row">
+              <span>📍</span> <span>ул. Сыганак, 18, Астана</span>
+            </div>
+            <div class="phone-row">
+              <span>🕒</span> <span>08:00 – 23:00 (Ежедневно)</span>
+            </div>
+            <div class="phone-row">
+              <span>📞</span> <span>+7 (701) 123-45-67</span>
+            </div>
+          </div>
+
+          <div class="phone-actions">
+            <div class="phone-btn">Смотреть каталог товаров →</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Print Preview Modal -->
+<div class="modal-backdrop" id="printModal" onclick="if(event.target===this)closePrintModal()">
+  <div class="modal-box">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h3 style="font-size: 16px; font-weight: 800;">Готовый лист А4 для входной группы</h3>
+      <button onclick="closePrintModal()" style="background:none; border:none; color:var(--text-dim); font-size:18px; cursor:pointer;">✕</button>
+    </div>
+    <div style="background:#fff; color:#0f172a; padding:20px; border-radius:12px; border:1px solid #e2e8f0; text-align:center; margin-bottom:16px;">
+      <div style="font-weight:900; font-size:16px; margin-bottom:4px;">Körset · Продуктовый магазин «Береке»</div>
+      <div style="font-size:11px; color:#64748b; margin-bottom:12px;">Проверьте состав, аллергены и халал-статус товаров</div>
+      <div style="display:inline-block; padding:10px; border:2px solid #0f172a; border-radius:12px; margin-bottom:10px;">
+        <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="1.5">
+          <rect x="2" y="2" width="7" height="7" rx="1"/>
+          <rect x="15" y="2" width="7" height="7" rx="1"/>
+          <rect x="2" y="15" width="7" height="7" rx="1"/>
+          <rect x="5" y="5" width="1" height="1" fill="#0f172a"/>
+          <rect x="18" y="5" width="1" height="1" fill="#0f172a"/>
+          <rect x="5" y="18" width="1" height="1" fill="#0f172a"/>
+          <path d="M15 15h2v2h-2zM19 15h3v3h-3zM15 19h3v3h-3z"/>
+        </svg>
+      </div>
+      <div style="font-size:12px; font-weight:700;">Наведите камеру смартфона</div>
+    </div>
+    <div style="display: flex; justify-content: flex-end; gap: 8px;">
+      <button class="ctrl-btn" onclick="closePrintModal()">Отмена</button>
+      <button class="qr-btn" onclick="alert('Печать А4 готова к интеграции с RetailQrDialog.jsx'); closePrintModal();">Печать</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    document.getElementById('themeLabel').innerText = next === 'dark' ? 'Тёмная' : 'Светлая';
+  }
+
+  let isKz = false;
+  function toggleLang() {
+    isKz = !isKz;
+    document.getElementById('langLabel').innerText = isKz ? 'KZ' : 'RU';
+    document.getElementById('titleText').innerText = isKz ? 'Дүкен сөресі (Витрина)' : 'Витрина магазина';
+    document.getElementById('subText').innerText = isKz ? 'Каталогтағы дүкен көрінісін, логотипті және QR басып шығаруды басқару' : 'Управление представлением магазина в каталоге, логотипом и печатью QR-кода';
+  }
+
+  function updateMockup() {
+    const name = document.getElementById('storeNameInput').value;
+    const desc = document.getElementById('storeShortDescInput').value;
+    const typeSelect = document.getElementById('storeTypeSelect');
+    const typeText = typeSelect.options[typeSelect.selectedIndex].text;
+
+    document.getElementById('mockName').innerText = name || 'Название магазина';
+    document.getElementById('mockSub').innerText = desc || 'Краткое описание';
+    document.getElementById('mockTypePill').innerText = typeText;
+  }
+
+  function openPrintModal() {
+    document.getElementById('printModal').classList.add('open');
+  }
+  function closePrintModal() {
+    document.getElementById('printModal').classList.remove('open');
+  }
+</script>
+
+</body>
+</html>

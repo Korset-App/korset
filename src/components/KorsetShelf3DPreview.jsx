@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useI18n } from '../i18n/index.js'
 
 /**
  * KorsetShelf3DPreview
@@ -11,6 +12,7 @@ import { useState } from 'react'
  * @param {string} [props.className=''] - Additional CSS classes
  */
 export default function KorsetShelf3DPreview({ height = '780px', className = '' }) {
+  const { t } = useI18n()
   const [isFullscreen, setIsFullscreen] = useState(false)
 
   const toggleFullscreen = () => {
@@ -25,7 +27,7 @@ export default function KorsetShelf3DPreview({ height = '780px', className = '' 
         width: '100vw',
         height: '100vh',
         zIndex: 999999,
-        background: '#07080D',
+        background: 'var(--bg)',
         display: 'flex',
         flexDirection: 'column'
       }
@@ -35,9 +37,9 @@ export default function KorsetShelf3DPreview({ height = '780px', className = '' 
         height: height,
         borderRadius: '20px',
         overflow: 'hidden',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
+        border: '1px solid var(--glass-border)',
         boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6)',
-        background: '#07080D'
+        background: 'var(--bg)'
       }
 
   return (
@@ -56,10 +58,10 @@ export default function KorsetShelf3DPreview({ height = '780px', className = '' 
         <button
           onClick={toggleFullscreen}
           style={{
-            background: 'rgba(17, 19, 30, 0.85)',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--glass-border)',
             borderRadius: '10px',
-            color: '#F3F4F6',
+            color: 'var(--text)',
             padding: '6px 12px',
             fontSize: '0.75rem',
             fontWeight: 600,
@@ -69,9 +71,9 @@ export default function KorsetShelf3DPreview({ height = '780px', className = '' 
             alignItems: 'center',
             gap: '6px'
           }}
-          title={isFullscreen ? 'Свернуть' : 'Развернуть на весь экран'}
+          title={t(isFullscreen ? 'home.shelfPreview.collapse' : 'home.shelfPreview.expand')}
         >
-          <span>{isFullscreen ? '✕ Свернуть' : '⛶ Полный экран'}</span>
+          <span>{t(isFullscreen ? 'home.shelfPreview.collapse' : 'home.shelfPreview.expand')}</span>
         </button>
       </div>
 
@@ -85,7 +87,7 @@ export default function KorsetShelf3DPreview({ height = '780px', className = '' 
           border: 'none',
           display: 'block'
         }}
-        allow="accelerometer; autoplay; camera; gyroscope; xr-spatial-tracking"
+        sandbox="allow-scripts"
       />
     </div>
   )

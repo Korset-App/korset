@@ -1,4 +1,5 @@
 import { liveSnapshots } from './liveSnapshot.js'
+import { signInRetail } from './authFixture.js'
 
 export async function openRetail(
   page,
@@ -38,8 +39,17 @@ export async function openRetail(
   await page.route('**/*', async (route) => {
     const request = route.request()
     const url = new URL(request.url())
-    if (url.hostname === '127.0.0.1' || url.hostname === 'localhost') return route.continue()
-    if (live?.top.some((product) => product.image_url === request.url())) return route.continue()
+    if (url.hostname === '127.0.0.1' || url.hostname === 'localhost') {
+      if (url.pathname === '/api' || url.pathname.startsWith('/api/')) {
+        return route.fulfill({ status: 503, json: { error: 'Unmocked retail API' } })
+      }
+      return route.continue()
+    }
+    if (live?.top.some((product) => product.image_url === request.url()))
+      return route.fulfill({
+        contentType: 'image/svg+xml',
+        body: '<svg xmlns="http://www.w3.org/2000/svg" width="52" height="58"><rect width="52" height="58" fill="#dedbd3"/></svg>',
+      })
     if (url.pathname === '/rest/v1/stores') return route.fulfill({ json: store })
     if (url.pathname.startsWith('/rest/v1/')) {
       if (mode === 'error' || (mode === 'partial-error' && url.pathname.endsWith('/scan_events')))
@@ -77,22 +87,28 @@ export async function openRetail(
             total_count: live ? 0 : populated ? 24 : 0,
             compare_count: live ? 0 : populated ? 7 : 0,
             ai_help_count: live ? 0 : populated ? 5 : 0,
+            open_count: 0,
+            scenario_select_count: 0,
+            top_scenario_count: 0,
+            top_source_count: 0,
           },
         ],
         fn_get_compare_events_summary: [
-          live?.comparisons ?? {
+          { top_pair_count: 0, ...(live?.comparisons ?? {
             total_count: populated ? 9 : 0,
             winner_count: populated ? 5 : 0,
             draw_count: populated ? 3 : 0,
             blocked_count: populated ? 1 : 0,
-          },
+          }) },
         ],
       }
       return route.fulfill({ json: responses[url.pathname.split('/').at(-1)] ?? [] })
     }
     return route.fulfill({ json: {} })
   })
-  await page.goto(`/retail/${slug}/dashboard${preview ? '?preview' : ''}`)
-  await page.waitForLoadState('networkidle')
+  await page.goto(`/retail/${slug}/dashboard${preview ? '?preview' : ''}`, {
+    waitUntil: 'domcontentloaded',
+  })
+  if (preview && store.is_published === false) await signInRetail(page, { storeSlug: slug })
   if (preview) await page.locator('.ov-title').waitFor()
 }

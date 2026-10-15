@@ -1,28 +1,40 @@
-import { isInStock, nextStockStatus } from './productHelpers.js'
+import { useI18n } from '../../../i18n/index.js'
+import { nextStockStatus } from './productHelpers.js'
 
 export default function StockToggle({ product, label, stockMutation, managed }) {
-  const on = isInStock(product)
+  const { t } = useI18n()
+  const on = ['in_stock', 'low_stock'].includes(product.stock_status)
+  const unknown = !['in_stock', 'low_stock', 'out_of_stock'].includes(product.stock_status)
+  const stockLabel = unknown ? `${label} ${t('integration.consumer.stock.unknown')}` : label
+  const disabled = managed || stockMutation.isPending
+  const failed = stockMutation.isError && stockMutation.variables?.id === product.id
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-      <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{label}</span>
-      <div
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+      <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{stockLabel}</span>
+      <button
+        type="button"
         role="switch"
         aria-checked={on}
-        aria-disabled={managed}
+        aria-label={stockLabel}
+        disabled={disabled}
         onClick={(e) => {
           e.stopPropagation()
-          if (managed) return
+          if (disabled) return
           stockMutation.mutate({ id: product.id, status: nextStockStatus(product) })
         }}
         style={{
           width: 52,
           height: 30,
+          flexShrink: 0,
+          border: 'none',
+          padding: 0,
           borderRadius: 15,
-          cursor: managed ? 'not-allowed' : 'pointer',
+          cursor: disabled ? 'not-allowed' : 'pointer',
           background: on ? '#10B981' : 'var(--glass-border)',
           position: 'relative',
           transition: 'background 0.25s',
-          opacity: managed || stockMutation.isPending ? 0.7 : 1,
+          opacity: disabled ? 0.7 : 1,
         }}
       >
         <div
@@ -38,7 +50,13 @@ export default function StockToggle({ product, label, stockMutation, managed }) 
             boxShadow: '0 2px 4px rgba(0,0,0,0.25)',
           }}
         />
+      </button>
       </div>
+      {failed && (
+        <p role="alert" style={{ margin: '8px 0 0', color: 'var(--text-sub)', fontSize: 13 }}>
+          {t('retail.products.stockUpdateError')}
+        </p>
+      )}
     </div>
   )
 }

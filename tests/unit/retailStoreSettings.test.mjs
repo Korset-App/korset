@@ -95,3 +95,14 @@ test('buildRetailStoreSettingsPayload normalizes multiple contacts in features a
   assert.equal(payload.features.contacts.whatsapps[0].number, '77779998877')
   assert.deepEqual(payload.features.payments, ['cash', 'kaspi_qr'])
 })
+
+test('settings payload leaves storefront photos untouched unless images are provided', () => {
+  const settingsPayload = buildRetailStoreSettingsPayload({ name: 'Bereke' })
+  assert.equal(Object.hasOwn(settingsPayload, 'images'), false)
+
+  const storefrontPayload = buildRetailStoreSettingsPayload({
+    name: 'Bereke',
+    images: [{ url: 'https://example.test/store.jpg' }],
+  })
+  assert.deepEqual(storefrontPayload.images, [{ url: 'https://example.test/store.jpg' }])
+})

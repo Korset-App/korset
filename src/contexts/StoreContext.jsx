@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { supabase } from '../utils/supabase.js'
 import { normalizeNutrition, parseJson } from '../domain/product/model.js'
@@ -187,14 +187,17 @@ function normalizeStore(data) {
 
 async function fetchStoreBySlug(slug) {
   if (!slug) return null
-  const { data, error } = await supabase
+  const { data, error, status } = await supabase
     .from('stores')
     .select('*')
     .eq('code', slug)
     .eq('is_active', true)
     .maybeSingle()
-  if (!error && data) return normalizeStore(data)
-  return null
+  if (error) {
+    if (status === 401 || status === 403) return null
+    throw error
+  }
+  return normalizeStore(data)
 }
 
 export async function fetchFullProduct(storeId, ean) {
@@ -226,15 +229,51 @@ export function StoreProvider({ children }) {
 
   const storeSlug = pathStoreSlug || rememberedStoreSlug || null
 
-  const [currentStore, setCurrentStore] = useState(() => loadStoreFromCache(storeSlug))
-  const [isStoreLoading, setIsStoreLoading] = useState(() =>
-    Boolean(storeSlug && !loadStoreFromCache(storeSlug))
+  const [loadedStore, setCurrentStore] = useState(() => loadStoreFromCache(storeSlug))
+  const matchingStore = loadedStore?.slug === storeSlug ? loadedStore : null
+  const canViewDraft = Boolean(matchingStore && user && (matchingStore.owner_id === user.id || isSuperadmin))
+  const canPreviewDeniedCache = canViewDraft &&
+    Array.isArray(matchingStore.accessRevokedFor) && !matchingStore.accessRevokedFor.includes(user.id)
+  const currentStore = matchingStore &&
+    (matchingStore.accessRevoked !== true || canPreviewDeniedCache) &&
+    matchingStore.is_active !== false && matchingStore.isActive !== false &&
+    (canViewDraft || (matchingStore.is_published !== false && matchingStore.isPublished !== false))
+    ? matchingStore : null
+  const [storeLoadState, setStoreLoadState] = useState(() => ({
+    slug: storeSlug,
+    loading: Boolean(storeSlug && !loadStoreFromCache(storeSlug)),
+  }))
+  const isStoreLoading = Boolean(
+    storeSlug && (storeLoadState.slug !== storeSlug || storeLoadState.loading)
   )
   const [fullCatalog, setFullCatalog] = useState(null)
+  const [catalogStoreId, setCatalogStoreId] = useState(null)
   const [isCatalogLoading, setIsCatalogLoading] = useState(false)
   const [catalogLoadError, setCatalogLoadError] = useState(false)
+  const [catalogRevision, setCatalogRevision] = useState(0)
+  const activeStoreIdRef = useRef(currentStore?.id)
+  useLayoutEffect(() => {
+    activeStoreIdRef.current = currentStore?.id
+  }, [currentStore?.id])
 
   const catalogSearchCacheRef = useRef(new Map())
+
+  const refreshCatalog = useCallback((storeId) => {
+    if (!storeId) return
+    for (const key of catalogSearchCacheRef.current.keys()) {
+      if (key.startsWith(`${storeId}:`)) catalogSearchCacheRef.current.delete(key)
+    }
+    try {
+      const prefix = `korset_sc_${storeId}:`
+      for (let index = sessionStorage.length - 1; index >= 0; index--) {
+        const key = sessionStorage.key(index)
+        if (key?.startsWith(prefix)) sessionStorage.removeItem(key)
+      }
+    } catch {
+      // Session storage may be unavailable in private browsing.
+    }
+    if (activeStoreIdRef.current === storeId) setCatalogRevision((revision) => revision + 1)
+  }, [])
 
   const getCachedCatalogSearch = useCallback((storeId, query) => {
     if (!storeId || !query) return null
@@ -298,19 +337,24 @@ export function StoreProvider({ children }) {
     async function loadStore() {
       if (!storeSlug) {
         setCurrentStore(null)
-        setIsStoreLoading(false)
+        setStoreLoadState({ slug: storeSlug, loading: false })
         return
       }
 
       const cached = loadStoreFromCache(storeSlug)
       if (cached) {
         setCurrentStore(cached)
-        setIsStoreLoading(false)
+        setStoreLoadState({ slug: storeSlug, loading: false })
       } else {
-        setIsStoreLoading(true)
+        setCurrentStore(null)
+        setStoreLoadState({ slug: storeSlug, loading: true })
       }
 
       if (aborted) return
+      if (!isOnline) {
+        setStoreLoadState({ slug: storeSlug, loading: false })
+        return
+      }
 
       try {
         const store = await fetchStoreBySlug(storeSlug)
@@ -318,10 +362,21 @@ export function StoreProvider({ children }) {
         if (store) {
           setCurrentStore(store)
           saveStoreToCache(storeSlug, store)
+        } else {
+          const deniedCache = loadStoreFromCache(storeSlug)
+          if (deniedCache) {
+            const previousDenials = Array.isArray(deniedCache.accessRevokedFor) ? deniedCache.accessRevokedFor : []
+            saveStoreToCache(storeSlug, {
+              ...deniedCache,
+              accessRevoked: true,
+              accessRevokedFor: [...new Set([...previousDenials, user?.id || 'guest'])],
+            })
+          }
+          setCurrentStore(null)
         }
-        setIsStoreLoading(false)
+        setStoreLoadState({ slug: storeSlug, loading: false })
       } catch {
-        if (!aborted) setIsStoreLoading(false)
+        if (!aborted) setStoreLoadState({ slug: storeSlug, loading: false })
       }
     }
 
@@ -330,7 +385,7 @@ export function StoreProvider({ children }) {
     return () => {
       aborted = true
     }
-  }, [storeSlug])
+  }, [storeSlug, user?.id, isSuperadmin, isOnline])
 
   const loadedStoreIdRef = useRef(null)
 
@@ -342,15 +397,18 @@ export function StoreProvider({ children }) {
       if (!storeId) {
         if (loadedStoreIdRef.current !== null) {
           setFullCatalog(null)
+          setCatalogStoreId(null)
           loadedStoreIdRef.current = null
         }
         setCatalogLoadError(false)
+        setIsCatalogLoading(false)
         return
       }
 
       if (loadedStoreIdRef.current !== storeId) {
         loadedStoreIdRef.current = storeId
         setFullCatalog(null)
+        setCatalogStoreId(storeId)
       }
       setCatalogLoadError(false)
 
@@ -441,7 +499,7 @@ export function StoreProvider({ children }) {
     return () => {
       aborted = true
     }
-  }, [currentStore?.id, isOnline])
+  }, [currentStore?.id, isOnline, catalogRevision])
 
   useEffect(() => {
     if (!fullCatalog?.length) return undefined
@@ -477,9 +535,15 @@ export function StoreProvider({ children }) {
     return () => window.clearTimeout(timer)
   }, [fullCatalog])
 
-  const catalogProducts = useMemo(() => fullCatalog || [], [fullCatalog])
+  const currentStoreId = currentStore?.id
+  const catalogProducts = useMemo(
+    () => currentStoreId && catalogStoreId === currentStoreId ? fullCatalog || [] : [],
+    [fullCatalog, currentStoreId, catalogStoreId]
+  )
 
-  const isCatalogReady = fullCatalog !== null
+  const isCatalogReady = Boolean(
+    currentStoreId && catalogStoreId === currentStoreId && fullCatalog !== null
+  )
 
   const isStoreApp = /^\/s\/[^/]+/.test(location.pathname)
   const isStorePublic = /^\/stores\/[^/]+/.test(location.pathname)
@@ -507,8 +571,8 @@ export function StoreProvider({ children }) {
       }
 
       if (error) return { error: error.message, warning }
-      const updated = { ...currentStore, ...appliedPayload }
-      setCurrentStore(updated)
+      const updated = normalizeStore({ ...currentStore, ...appliedPayload })
+      setCurrentStore((loaded) => loaded?.id === updated.id ? normalizeStore({ ...loaded, ...appliedPayload }) : loaded)
       saveStoreToCache(updated.slug || updated.code, updated)
       return { error: null, warning }
     },
@@ -539,6 +603,8 @@ export function StoreProvider({ children }) {
       isCatalogReady,
       isCatalogLoading,
       catalogLoadError,
+      catalogRevision,
+      refreshCatalog,
       isStoreApp,
       isStorePublic,
       isPublicMarketing,
@@ -575,6 +641,8 @@ export function StoreProvider({ children }) {
       isCatalogReady,
       isCatalogLoading,
       catalogLoadError,
+      catalogRevision,
+      refreshCatalog,
       isStoreApp,
       isStorePublic,
       isPublicMarketing,

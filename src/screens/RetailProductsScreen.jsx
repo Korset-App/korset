@@ -149,6 +149,9 @@ export default function RetailProductsScreen() {
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [activeFilter, setActiveFilter] = useState('all')
   const [inspectedProduct, setInspectedProduct] = useState(null)
+  const currentInspectedProduct = inspectedProduct
+    ? products.find((product) => product.id === inspectedProduct.id) ?? inspectedProduct
+    : null
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
   const [scannerOpen, setScannerOpen] = useState(false)
   const [unrecognizedEan, setUnrecognizedEan] = useState(null)
@@ -624,7 +627,7 @@ export default function RetailProductsScreen() {
 
       {/* ── Product Inspector (Drawer on Desktop / Bottom Sheet on Mobile) ── */}
       <RetailProductInspector
-        product={inspectedProduct}
+        product={currentInspectedProduct}
         tr={p}
         storeSlug={storeSlug}
         priceMutation={priceMutation}

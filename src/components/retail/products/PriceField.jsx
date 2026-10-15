@@ -1,6 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 
-export default function PriceField({ productId, initialPrice, p, priceMutation, managed }) {
+export default function PriceField({ product, p, priceMutation, promotionMutation, managed }) {
+  const productId = product.id
+  const initialPrice = product.price_kzt
+  const pending = priceMutation.isPending || promotionMutation.isPending
   const [draft, setDraft] = useState(initialPrice ?? '')
   const [saveState, setSaveState] = useState('idle') // idle | saving | saved | error
   const timerRef = useRef(null)
@@ -13,24 +16,29 @@ export default function PriceField({ productId, initialPrice, p, priceMutation, 
   }, [initialPrice]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleBlur = useCallback(() => {
-    if (managed) return
+    if (managed || pending) return
     const val = Number(draft)
-    if (isNaN(val) || val < 0 || val === initialPrice) return
+    if (String(draft).trim() === '' || !Number.isFinite(val) || val < 0) {
+      setDraft(initialPrice ?? '')
+      return
+    }
+    if (val === initialPrice) return
+    clearTimeout(timerRef.current)
     setSaveState('saving')
     priceMutation.mutate(
-      { id: productId, price: val },
+      { id: productId, price: val, product },
       {
         onSuccess: () => {
           setSaveState('saved')
           timerRef.current = setTimeout(() => setSaveState('idle'), 2000)
         },
         onError: () => {
+          setDraft(initialPrice ?? '')
           setSaveState('error')
-          timerRef.current = setTimeout(() => setSaveState('idle'), 3000)
         },
       }
     )
-  }, [draft, initialPrice, productId, priceMutation, managed])
+  }, [draft, initialPrice, productId, product, priceMutation, managed, pending])
 
   const stateColor = {
     idle: 'var(--text-dim)',
@@ -61,6 +69,7 @@ export default function PriceField({ productId, initialPrice, p, priceMutation, 
         </label>
         {stateLabel[saveState] && (
           <span
+            role={saveState === 'error' ? 'alert' : 'status'}
             style={{
               fontSize: 11,
               color: stateColor[saveState],
@@ -72,17 +81,23 @@ export default function PriceField({ productId, initialPrice, p, priceMutation, 
           </span>
         )}
       </div>
-      <div style={{ display: 'flex', alignItems: 'stretch' }}>
+      <div style={{ display: 'flex', alignItems: 'stretch', minWidth: 0 }}>
         <input
           type="number"
           inputMode="numeric"
           value={draft}
-          readOnly={managed}
-          aria-readonly={managed}
-          onChange={(e) => setDraft(e.target.value)}
+          aria-label={p.priceLabel}
+          readOnly={managed || pending}
+          aria-readonly={managed || pending}
+          onChange={(e) => {
+            clearTimeout(timerRef.current)
+            setSaveState('idle')
+            setDraft(e.target.value)
+          }}
           onBlur={handleBlur}
           style={{
             flex: 1,
+            minWidth: 0,
             fontSize: 22,
             fontWeight: 700,
             fontFamily: 'var(--font-display)',

@@ -173,7 +173,7 @@ export default function RetailProductInspector({
                   }}
                 >
                   <LockIcon size={11} />
-                  <span>Касса UMAG</span>
+                  <span>{tr.sourcePos}</span>
                 </span>
               ) : (
                 <span
@@ -185,7 +185,7 @@ export default function RetailProductInspector({
                     color: 'var(--rc-ink-3)',
                   }}
                 >
-                  Ручной (Körset)
+                  {tr.sourceManual}
                 </span>
               )}
             </div>
@@ -331,10 +331,10 @@ export default function RetailProductInspector({
                 </div>
               ) : (
                 <PriceField
-                  productId={product.id}
-                  initialPrice={product.price_kzt}
+                  product={product}
                   p={tr}
                   priceMutation={priceMutation}
+                  promotionMutation={promotionMutation}
                   managed={false}
                 />
               )}
@@ -350,6 +350,7 @@ export default function RetailProductInspector({
                 product={product}
                 p={tr}
                 promotionMutation={promotionMutation}
+                priceMutation={priceMutation}
                 managed={isManaged}
               />
 

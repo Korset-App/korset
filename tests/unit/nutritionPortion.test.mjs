@@ -6,6 +6,23 @@ import {
   computePortionNutrition,
 } from '../../src/domain/product/nutritionPortion.js'
 
+test('separate saturated fat is a per-100 fact that scales with the pack', () => {
+  const nutrition = { protein: null, fat: null, carbs: 0 }
+  const whole = computePortionNutrition(nutrition, { factor: 2 }, 'whole', 5)
+  assert.equal(whole.saturatedFat, 10)
+  assert.equal(whole.protein, null)
+  assert.equal(whole.fat, null)
+  assert.equal(whole.carbs, 0)
+  assert.equal(whole._base100.saturatedFat, 5)
+  assert.equal(computePortionNutrition(nutrition, { factor: 2 }, '100', 5).saturatedFat, 5)
+  assert.deepEqual(nutrition, { protein: null, fat: null, carbs: 0 })
+})
+
+test('a nutrition value including zero takes precedence over the separate fallback', () => {
+  assert.equal(computePortionNutrition({ saturatedFat: 0 }, { factor: 2 }, 'whole', 5).saturatedFat, 0)
+  assert.equal(computePortionNutrition({ 'saturated-fat_100g': 6 }, { factor: 2 }, 'whole', 5).saturatedFat, 12)
+})
+
 test('resolveNutritionPortion calculates milk 950 ml correctly', () => {
   const product = {
     name: 'Молоко Домик в деревне 3.2% 950 мл',

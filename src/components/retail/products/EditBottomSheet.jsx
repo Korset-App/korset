@@ -161,10 +161,10 @@ export default function EditBottomSheet({
           style={{ padding: '16px 20px 40px', display: 'flex', flexDirection: 'column', gap: 20 }}
         >
           <PriceField
-            productId={product.id}
-            initialPrice={product.price_kzt}
+            product={product}
             p={tr}
             priceMutation={priceMutation}
+            promotionMutation={promotionMutation}
             managed={managed}
           />
           <StockToggle
@@ -182,6 +182,7 @@ export default function EditBottomSheet({
             product={product}
             p={tr}
             promotionMutation={promotionMutation}
+            priceMutation={priceMutation}
             managed={managed}
           />
           {managed && (

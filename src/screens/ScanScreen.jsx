@@ -1,15 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, Navigate } from 'react-router-dom'
 import { lookupProduct } from '../utils/productLookup.js'
 import { useStore } from '../contexts/StoreContext.jsx'
+import { useAuth } from '../contexts/AuthContext.jsx'
 import { useOffline } from '../contexts/OfflineContext.jsx'
 import { buildProductPath, buildComparePath } from '../utils/routes.js'
 import { useI18n } from '../i18n/index.js'
 import { loadSoundSettings } from '../utils/soundSettings.js'
-import { buildTermsPath, buildPrivacyPath } from '../utils/routes.js'
+import { buildTermsPath, buildPrivacyPolicyPath } from '../utils/routes.js'
 import TermsConsentSheet, { isTermsAccepted } from '../components/TermsConsentSheet.jsx'
 import { CompareIcon } from '../components/icons/CompareIcon.jsx'
 import { IconGallery } from '../components/icons/IconGallery.jsx'
+import RouteLoader from '../components/RouteLoader.jsx'
+import { ArrowBackIcon, ArrowForwardIcon, BarcodeScannerIcon, CameraIcon, SearchIcon } from '../components/icons/index.js'
 import ProductSubmissionSheet from '../components/product/ProductSubmissionSheet.jsx'
 import { isValidBarcodeChecksum } from '../utils/barcodeChecksum.js'
 import { lookupScanWhileStopping } from './scanner/scanFlow.js'
@@ -116,7 +119,8 @@ function saveRecentScan(product) {
 
 // ─── Иконки ────────────────────────────────────────────────────────────────────
 function formatManualEan(value) {
-  const digits = value.replace(/\D/g, '').slice(0, 13)
+  const digits = value.replace(/\s/g, '')
+  if (!/^\d{0,13}$/.test(digits)) return value
   if (digits.length <= 8) return digits.replace(/(\d{4})(?=\d)/g, '$1 ')
   return digits.replace(/^(\d{1})(\d{0,6})(\d{0,6}).*/, (_, a, b, c) =>
     [a, b, c].filter(Boolean).join(' ')
@@ -249,7 +253,7 @@ function ProductScanChip({ product, index, t }) {
         {product.image_url ? (
           <img src={product.image_url} alt="" className="product-img-blend" />
         ) : (
-          <span className="material-symbols-outlined">barcode</span>
+          <BarcodeScannerIcon size="1em" className="scan-icon" />
         )}
       </div>
       <div className="scan-product-chip__copy">
@@ -265,7 +269,7 @@ function CompareTray({ active, firstProduct, secondProduct, onCompare, onCancel,
   return (
     <div className="scan-compare-tray">
       <div className="scan-compare-tray__header">
-        <span className="material-symbols-outlined">compare_arrows</span>
+        <CompareIcon size="1em" className="scan-icon" />
         <div>
           <strong>{t('scan.compareTrayTitle')}</strong>
           <p>
@@ -361,7 +365,8 @@ export default function ScanScreen() {
   const navigate = useNavigate()
   const location = useLocation()
   const { t } = useI18n()
-  const { currentStore } = useStore()
+  const { currentStore, isStoreLoading } = useStore()
+  const { loading: authLoading } = useAuth()
   const { isOnline } = useOffline()
   const storeSlug = currentStore?.slug || null
 
@@ -508,6 +513,7 @@ export default function ScanScreen() {
 
   const startScanner = useCallback(
     async (cameraList = [], idx = 0) => {
+      if (!isTermsAccepted() || !storeRef.current?.id) return
       const startSeq = ++startSeqRef.current
       busyRef.current = true
       setStatus('starting')
@@ -615,6 +621,8 @@ export default function ScanScreen() {
                 /* noop */
               }
               const currentStoreId = storeRef.current?.id || null
+              const scanStoreSlug = slugRef.current
+              const isLookupCurrent = () => mountedRef.current && startSeq === startSeqRef.current
               if (compareModeRef.current) {
                 // Compare mode: wait for product before deciding flow
                 setSearching(true)
@@ -622,7 +630,7 @@ export default function ScanScreen() {
                   lookupProduct(ean, currentStoreId),
                   stopScanner(),
                 ])
-                if (!mountedRef.current) return
+                if (!isLookupCurrent()) return
 
                 if (result.type === 'local' || result.type === 'external') {
                   const scannedProduct = result.product
@@ -664,6 +672,7 @@ export default function ScanScreen() {
                     lookup: () => lookupProduct(ean, currentStoreId),
                     stop: stopScanner,
                   })
+                  if (!isLookupCurrent()) return
                   if (r?.product) {
                     resolvedProduct = r.product
                     rememberScan(r.product)
@@ -671,14 +680,18 @@ export default function ScanScreen() {
                     // If it took >800ms, let it finish and save in background
                     lookupPromise
                       .then((bgR) => {
-                        if (bgR?.product) rememberScan(bgR.product)
+                        if (
+                          bgR?.product &&
+                          window.location.pathname.startsWith(`/s/${scanStoreSlug}/`)
+                        ) rememberScan(bgR.product)
                       })
                       .catch(() => {})
                   }
                 } catch {
                   /* noop */
                 }
-                navigate(buildProductPath(slugRef.current, ean), {
+                if (!isLookupCurrent()) return
+                navigate(buildProductPath(scanStoreSlug, ean), {
                   state: { ean, fromScan: true, product: resolvedProduct },
                 })
               }
@@ -889,7 +902,7 @@ export default function ScanScreen() {
 
   useEffect(() => {
     mountedRef.current = true
-    startScannerRef.current?.([], 0)
+    if (!consentOpen && currentStore?.id) startScannerRef.current?.([], 0)
     return () => {
       mountedRef.current = false
       startSeqRef.current += 1
@@ -899,7 +912,7 @@ export default function ScanScreen() {
       clearTimeout(focusTimer.current)
       cleanupAudioContext()
     }
-  }, [startScanner, stopScanner])
+  }, [startScanner, stopScanner, consentOpen, currentStore?.id])
 
   const switchCamera = useCallback(async () => {
     if (busyRef.current || statusRef.current === 'starting') return
@@ -1160,7 +1173,7 @@ export default function ScanScreen() {
     async (e) => {
       e.preventDefault()
       const raw = manualInput.trim()
-      if (raw.length !== 8 && raw.length !== 13) {
+      if (!/^(?:\d{8}|\d{13})$/.test(raw)) {
         setManualError(t('scan.manualInvalid'))
         return
       }
@@ -1203,6 +1216,10 @@ export default function ScanScreen() {
   const canSwitchCamera = status !== 'starting' && !searching
   const hasManualValue = manualInput.trim().length > 0
 
+  if (!currentStore) {
+    return isStoreLoading || authLoading ? <RouteLoader /> : <Navigate to="/stores" replace />
+  }
+
   return (
     <div className="scan-screen">
       <div className="scan-stage" onClick={handleTapFocus} onTouchEnd={handleTapFocus}>
@@ -1215,7 +1232,7 @@ export default function ScanScreen() {
             onClick={() => navigate(-1)}
             aria-label={t('common.back')}
           >
-            <span className="material-symbols-outlined">arrow_back_ios_new</span>
+            <ArrowBackIcon size="1em" className="scan-icon" />
           </button>
           <div className="scan-title-pill">
             <h1>{t('scan.scanTitle') || t('scan.title')}</h1>
@@ -1271,7 +1288,7 @@ export default function ScanScreen() {
 
         {status === 'blocked' && !searching && (
           <div className="scan-status-overlay scan-status-overlay--gate">
-            <span className="material-symbols-outlined">photo_camera</span>
+            <span className="scan-icon" aria-hidden="true"><CameraIcon size="1em" /></span>
             <strong>{t('scan.cameraTapTitle')}</strong>
             <p>{isIOS ? t('scan.cameraTapBodyIOS') : t('scan.cameraTapBody')}</p>
             <div className="scan-status-overlay__actions">
@@ -1287,7 +1304,7 @@ export default function ScanScreen() {
 
         {status === 'error_permission' && (
           <div className="scan-status-overlay scan-status-overlay--error">
-            <span className="material-symbols-outlined">photo_camera</span>
+            <span className="scan-icon" aria-hidden="true"><CameraIcon size="1em" /></span>
             <strong>{t('scan.cameraAccessDeniedTitle')}</strong>
             <p>{t('scan.cameraPermission')}</p>
             <div className="scan-status-overlay__actions">
@@ -1303,7 +1320,7 @@ export default function ScanScreen() {
 
         {status === 'error' && (
           <div className="scan-status-overlay scan-status-overlay--error">
-            <span className="material-symbols-outlined">camera_video_off</span>
+            <span className="scan-icon" aria-hidden="true"><CameraIcon size="1em" /></span>
             <strong>{t('scan.cameraError')}</strong>
             <p>{isIOS ? t('scan.cameraErrorBodyIOS') : t('scan.cameraErrorBody')}</p>
             <div className="scan-status-overlay__actions">
@@ -1396,20 +1413,19 @@ export default function ScanScreen() {
           onSubmit={handleManualSubmit}
         >
           <label className={`scan-manual-input ${manualError ? 'has-error' : ''}`}>
-            <span className="material-symbols-outlined">search</span>
+            <SearchIcon size="1em" className="scan-icon" />
             <input
               type="text"
               inputMode="numeric"
-              pattern="[0-9]*"
+              pattern="[0-9 ]*"
               autoComplete="off"
-              maxLength={17}
               aria-describedby="scan-manual-helper"
               placeholder={t('scan.manualInputPlaceholder')}
               value={formatManualEan(manualInput)}
               onFocus={() => setManualFocused(true)}
               onBlur={() => setManualFocused(false)}
               onChange={(e) => {
-                setManualInput(e.target.value.replace(/\D/g, '').slice(0, 13))
+                setManualInput(e.target.value.replace(/\s/g, ''))
                 setManualError(null)
               }}
             />
@@ -1424,7 +1440,7 @@ export default function ScanScreen() {
           </button>
           {hasManualValue && (
             <button type="submit" className="scan-submit-btn" aria-label={t('scan.manualSubmit')}>
-              <span className="material-symbols-outlined">arrow_forward</span>
+              <ArrowForwardIcon size="1em" className="scan-icon" />
             </button>
           )}
         </form>
@@ -1461,7 +1477,7 @@ export default function ScanScreen() {
         open={consentOpen}
         onAccept={() => setConsentOpen(false)}
         onNavigateTerms={() => navigate(buildTermsPath(storeSlug))}
-        onNavigatePolicy={() => navigate(buildPrivacyPath(storeSlug))}
+        onNavigatePolicy={() => navigate(buildPrivacyPolicyPath(storeSlug))}
       />
       <ProductSubmissionSheet
         open={submissionOpen}

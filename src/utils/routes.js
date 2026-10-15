@@ -72,6 +72,10 @@ export function buildPrivacyPath(storeSlug = null) {
   return storeSlug ? `${buildStoreAppBase(storeSlug)}/privacy` : '/privacy'
 }
 
+export function buildPrivacyPolicyPath(storeSlug = null) {
+  return storeSlug ? `${buildStoreAppBase(storeSlug)}/privacy-policy` : '/privacy-policy'
+}
+
 export function buildNotificationSettingsPath(storeSlug = null) {
   return storeSlug ? `${buildStoreAppBase(storeSlug)}/notifications` : '/notifications'
 }

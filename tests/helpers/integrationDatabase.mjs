@@ -25,7 +25,7 @@ export async function createIntegrationTestDatabase({ completeCatalog = true } =
   await db.query("insert into public.global_products(id,ean) values($1,'5449000000996')", [PRODUCT_ID])
   const sql = await readFile(new URL('../../supabase/migrations/20261001001322_integration_foundation.sql', import.meta.url), 'utf8')
   await db.exec(sql)
-  if (completeCatalog) await db.exec(await readFile(new URL('../../supabase/migrations/20261001114101_integration_complete_catalog.sql', import.meta.url), 'utf8'))
-  if (completeCatalog) await db.exec(await readFile(new URL('../../supabase/migrations/20261001121946_store_source_shopping_items.sql', import.meta.url), 'utf8'))
+  if (completeCatalog) await db.exec(await readFile(new URL('../../supabase/migrations/20261011070223_integration_complete_catalog.sql', import.meta.url), 'utf8'))
+  if (completeCatalog) await db.exec(await readFile(new URL('../../supabase/migrations/20261011070239_store_source_shopping_items.sql', import.meta.url), 'utf8'))
   return db
 }

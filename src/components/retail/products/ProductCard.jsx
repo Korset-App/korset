@@ -258,10 +258,10 @@ const ProductCard = memo(
               style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 18 }}
             >
               <PriceField
-                productId={product.id}
-                initialPrice={product.price_kzt}
+                product={product}
                 p={tr}
                 priceMutation={priceMutation}
+                promotionMutation={promotionMutation}
                 managed={managed}
               />
               <StockToggle
@@ -279,6 +279,7 @@ const ProductCard = memo(
                 product={product}
                 p={tr}
                 promotionMutation={promotionMutation}
+                priceMutation={priceMutation}
                 managed={managed}
               />
               {managed && (
@@ -322,6 +323,19 @@ const ProductCard = memo(
     prev.product === next.product &&
     prev.isExpanded === next.isExpanded &&
     prev.search === next.search &&
+    prev.tr === next.tr &&
+    prev.priceMutation.isPending === next.priceMutation.isPending &&
+    prev.priceMutation.isError === next.priceMutation.isError &&
+    prev.priceMutation.variables?.id === next.priceMutation.variables?.id &&
+    prev.promotionMutation.isPending === next.promotionMutation.isPending &&
+    prev.promotionMutation.isError === next.promotionMutation.isError &&
+    prev.promotionMutation.variables?.id === next.promotionMutation.variables?.id &&
+    prev.stockMutation.isPending === next.stockMutation.isPending &&
+    prev.stockMutation.isError === next.stockMutation.isError &&
+    prev.stockMutation.variables?.id === next.stockMutation.variables?.id &&
+    prev.recommendationMutation.isPending === next.recommendationMutation.isPending &&
+    prev.recommendationMutation.isError === next.recommendationMutation.isError &&
+    prev.recommendationMutation.variables?.id === next.recommendationMutation.variables?.id &&
     prev.storeSlug === next.storeSlug
 )
 

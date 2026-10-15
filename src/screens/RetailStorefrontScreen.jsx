@@ -60,10 +60,13 @@ export default function RetailStorefrontScreen() {
   const [isQrDialogOpen, setIsQrDialogOpen] = useState(false)
 
   const printButtonRef = useRef(null)
+  const syncedStoreIdRef = useRef(null)
 
   // Sync state when store loads or changes
   useEffect(() => {
     if (!currentStore) return
+    if (syncedStoreIdRef.current === currentStore.id && isDirty) return
+    syncedStoreIdRef.current = currentStore.id
     setSettings({
       name: currentStore.name || '',
       short_description: currentStore.short_description || '',
@@ -73,7 +76,7 @@ export default function RetailStorefrontScreen() {
     })
     setLogoUrl(currentStore.logo_url || null)
     setIsDirty(false)
-  }, [currentStore])
+  }, [currentStore, isDirty])
 
   const handleChange = useCallback((key, val) => {
     setSettings((prev) => ({ ...prev, [key]: val }))
@@ -87,10 +90,14 @@ export default function RetailStorefrontScreen() {
       setIsDirty(true)
       setSaveStatus(null)
       if (currentStore?.id) {
-        await updateStoreSettings({ logo_url: nextLogoUrl })
+        const { error } = await updateStoreSettings({ logo_url: nextLogoUrl })
+        if (error) {
+          setSaveStatus('error')
+          setSaveErrorMessage(t('retail.settings.saveError'))
+        }
       }
     },
-    [currentStore?.id, updateStoreSettings]
+    [currentStore?.id, updateStoreSettings, t]
   )
 
   const handleCopyLink = async () => {
@@ -113,7 +120,11 @@ export default function RetailStorefrontScreen() {
 
   const handlePhotosAutoSave = async (nextImages) => {
     if (!currentStore?.id) return
-    await updateStoreSettings({ images: nextImages })
+    const { error } = await updateStoreSettings({ images: nextImages })
+    if (error) {
+      setSaveStatus('error')
+      setSaveErrorMessage(t('retail.settings.saveError'))
+    }
   }
 
   const handleSave = async () => {

@@ -17,5 +17,5 @@ export function isInStock(p) {
 }
 
 export function nextStockStatus(p) {
-  return p.stock_status === 'out_of_stock' ? 'in_stock' : 'out_of_stock'
+  return ['in_stock', 'low_stock'].includes(p.stock_status) ? 'out_of_stock' : 'in_stock'
 }

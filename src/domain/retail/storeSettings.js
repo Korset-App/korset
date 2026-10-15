@@ -116,7 +116,9 @@ export function buildRetailStoreSettingsPayload(settings = {}) {
     whatsapp_number: primaryWhatsapp,
     twogis_url: cleanString(settings.twogis_url, 300),
     ai_store_notes: cleanString(settings.ai_store_notes, AI_STORE_NOTES_LIMIT),
-    images: Array.isArray(settings.images) ? settings.images : [],
+    ...(Object.hasOwn(settings, 'images')
+      ? { images: Array.isArray(settings.images) ? settings.images : [] }
+      : {}),
     latitude:
       settings.latitude !== undefined && settings.latitude !== '' && settings.latitude !== null
         ? Number(settings.latitude)

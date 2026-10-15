@@ -1,4 +1,7 @@
 import { supabase } from './supabase.js'
+import { quoteLiteralSearchPattern } from './literalSearch.js'
+import { buildRetailPriceUpdate } from '../domain/retail/catalogManagement.js'
+import { readRetailMetric, readRetailSummary } from '../domain/retail/metricValue.js'
 import { hydrateSyncedConditions } from './syncedConditions.js'
 import {
   applySyncedConditions,
@@ -33,7 +36,7 @@ export async function getScansCount(storeId, days) {
     .eq('store_id', storeId)
     .gte('scanned_at', cutoffISO(days))
   if (error) throw new Error(error.message ?? error)
-  return count ?? 0
+  return readRetailMetric(count, { count: true })
 }
 
 export async function getUniqueProductsScanned(storeId, days) {
@@ -53,7 +56,7 @@ export async function getTotalProducts(storeId) {
     .eq('store_id', storeId)
     .eq('is_active', true)
   if (error) throw new Error(error.message ?? error)
-  return count ?? 0
+  return readRetailMetric(count, { count: true })
 }
 
 export async function getTopScannedProducts(storeId, days, limit = 5) {
@@ -81,7 +84,7 @@ export async function getUniqueCustomers(storeId, days) {
     p_days_back: days,
   })
   if (error) throw new Error(error.message ?? error)
-  return Number(data ?? 0)
+  return readRetailMetric(data, { count: true })
 }
 
 export async function getLostRevenue(storeId, days) {
@@ -90,7 +93,7 @@ export async function getLostRevenue(storeId, days) {
     p_days_back: days,
   })
   if (error) throw new Error(error.message ?? error)
-  return Number(data ?? 0)
+  return readRetailMetric(data)
 }
 
 export async function getScanCoverage(storeId, days) {
@@ -99,7 +102,7 @@ export async function getScanCoverage(storeId, days) {
     p_days_back: days,
   })
   if (error) throw new Error(error.message ?? error)
-  return Number(data ?? 0)
+  return readRetailMetric(data, { percentage: true })
 }
 
 function countBy(items, keyFn) {
@@ -167,7 +170,10 @@ export async function getAlternativeEventsSummary(storeId, days) {
   })
 
   if (error) throw new Error(error.message ?? error)
-  return mapAlternativeEventsSummaryRpcRow(Array.isArray(data) ? data[0] : data)
+  return mapAlternativeEventsSummaryRpcRow(readRetailSummary(data,
+    ['compare_count', 'ai_help_count', 'open_count', 'scenario_select_count'],
+    { top_scenario_count: ['top_scenario'], top_source_count: ['top_source_ean'] }
+  ))
 }
 
 export function mapCompareEventsSummaryRpcRow(row = {}) {
@@ -192,7 +198,10 @@ export async function getCompareEventsSummary(storeId, days) {
   })
 
   if (error) throw new Error(error.message ?? error)
-  return mapCompareEventsSummaryRpcRow(Array.isArray(data) ? data[0] : data)
+  return mapCompareEventsSummaryRpcRow(readRetailSummary(data,
+    ['winner_count', 'draw_count', 'blocked_count'],
+    { top_pair_count: ['top_ean_a', 'top_ean_b'] }
+  ))
 }
 
 const PRODUCTS_PAGE_SIZE = 40
@@ -201,7 +210,7 @@ export async function getStoreCatalogProducts(storeId, { page = 0, search = '' }
   const from = page * PRODUCTS_PAGE_SIZE
   const to = from + PRODUCTS_PAGE_SIZE - 1
 
-  const buildQuery = (includePromo = true, includeShopping = false, includeSync = true) => {
+  const buildQuery = (includePromo = true, includeShopping = true, includeSync = true) => {
     const promoFields = includePromo ? 'old_price_kzt, discount_percent, is_featured,' : ''
     const shoppingField = includeShopping ? 'is_shopping_recommended,' : ''
     const syncField = includeSync ? 'sync_integration_id,' : ''
@@ -231,13 +240,14 @@ export async function getStoreCatalogProducts(storeId, { page = 0, search = '' }
   const runQuery = async (includePromo, includeShopping, includeSync) => {
     let { q, s } = buildQuery(includePromo, includeShopping, includeSync)
     if (s) {
+      const pattern = quoteLiteralSearchPattern(s)
       const { data: gpMatches } = await supabase
         .from('global_products')
         .select('id')
-        .or(`name.ilike.%${s}%,brand.ilike.%${s}%`)
+        .or(`name.imatch.${pattern},brand.imatch.${pattern}`)
 
       const gpIds = (gpMatches ?? []).map((g) => g.id)
-      const orParts = [`local_name.ilike.%${s}%`, `ean.ilike.%${s}%`]
+      const orParts = [`local_name.imatch.${pattern}`, `ean.imatch.${pattern}`]
       if (gpIds.length) orParts.push(`global_product_id.in.(${gpIds.join(',')})`)
       q = q.or(orParts.join(','))
     }
@@ -245,16 +255,18 @@ export async function getStoreCatalogProducts(storeId, { page = 0, search = '' }
   }
 
   let includeSync = true
-  let result = await runQuery(true, false, includeSync)
+  let result = await runQuery(true, true, includeSync)
   if (result.error && /sync_integration_id/i.test(result.error.message ?? '')) {
     includeSync = false
-    result = await runQuery(true, false, includeSync)
+    result = await runQuery(true, true, includeSync)
   }
   if (
     result.error &&
     (result.error.message?.includes('column') || result.error.code === 'PGRST204')
   ) {
-    result = await runQuery(false, false, includeSync)
+    result = await runQuery(true, false, includeSync)
+    if (result.error) result = await runQuery(false, true, includeSync)
+    if (result.error) result = await runQuery(false, false, includeSync)
   }
 
   if (result.error) throw new Error(result.error.message ?? result.error)
@@ -276,10 +288,10 @@ export async function getStoreCatalogProducts(storeId, { page = 0, search = '' }
   }
 }
 
-export async function updateProductPrice(productId, storeId, priceKzt) {
+export async function updateProductPrice(productId, storeId, priceKzt, product = {}) {
   const { data, error } = await supabase
     .from('store_products')
-    .update({ price_kzt: priceKzt, updated_at: new Date().toISOString() })
+    .update({ ...buildRetailPriceUpdate(product, priceKzt), updated_at: new Date().toISOString() })
     .eq('id', productId)
     .eq('store_id', storeId)
     .select('id')
@@ -292,7 +304,7 @@ export async function updateProductPromotion(productId, storeId, promotionPayloa
     is_featured: Boolean(promotionPayload.is_featured),
     updated_at: new Date().toISOString(),
   }
-  if (!promotionPayload.managed) {
+  if (!promotionPayload.managed && !promotionPayload.placementOnly) {
     update.old_price_kzt = promotionPayload.old_price_kzt ?? null
     update.discount_percent = promotionPayload.discount_percent ?? null
   }
@@ -301,7 +313,9 @@ export async function updateProductPromotion(productId, storeId, promotionPayloa
     .update(update)
     .eq('id', productId)
     .eq('store_id', storeId)
-    .select('id, is_featured, old_price_kzt, discount_percent')
+    .select(promotionPayload.managed || promotionPayload.placementOnly
+      ? 'id, is_featured'
+      : 'id, is_featured, old_price_kzt, discount_percent')
   if (error) throw new Error(error.message ?? error)
   if (!data || data.length === 0) throw new Error('Update blocked: RLS or row not found')
   return data[0]

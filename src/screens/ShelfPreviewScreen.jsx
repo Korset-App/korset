@@ -5,7 +5,7 @@ export default function ShelfPreviewScreen() {
     <div
       style={{
         minHeight: '100vh',
-        background: '#07080D',
+        background: 'var(--bg)',
         display: 'flex',
         flexDirection: 'column'
       }}

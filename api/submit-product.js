@@ -1,5 +1,6 @@
 /* global process, console, Buffer */
 import { createClient } from '@supabase/supabase-js'
+import { randomUUID } from 'node:crypto'
 import { checkRateLimit, getRateLimitKey } from '../src/lib/monitoring.js'
 
 const CORS_ORIGINS = [
@@ -22,6 +23,8 @@ function corsHeaders(origin) {
 
 const VALID_EAN = /^\d{8,14}$/
 const VALID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const IMAGE_MIME_TYPES = new Map([['image/jpeg', 'jpg'], ['image/png', 'png'], ['image/webp', 'webp']])
+const MAX_IMAGE_BYTES = 3 * 1024 * 1024
 const ALLOWED_REASONS = new Set([
   'wrong_product',
   'wrong_weight_or_volume',
@@ -73,7 +76,7 @@ export default async function handler(req, res) {
     if (!admin) {
       console.error('[submit-product] SUPABASE_SERVICE_ROLE_KEY or SUPABASE_URL missing from env')
       return res.status(500).set(cors).json({
-        error: 'Server misconfigured: missing SUPABASE_SERVICE_ROLE_KEY',
+        error: 'Submission service unavailable',
         errorCode: 'MISSING_ENV',
       })
     }
@@ -97,6 +100,34 @@ export default async function handler(req, res) {
       return res.status(400).set(cors).json({ error: 'Invalid EAN format', errorCode: 'INVALID_EAN' })
     }
 
+    if (type !== 'new_product' && type !== 'correction') {
+      return res.status(400).set(cors).json({ error: 'Invalid submission type', errorCode: 'INVALID_TYPE' })
+    }
+    if (!Array.isArray(images) || images.length > 5) {
+      return res.status(400).set(cors).json({ error: 'Invalid photos', errorCode: 'INVALID_IMAGES' })
+    }
+    const preparedImages = []
+    for (const item of images) {
+      const dataUrl = typeof item === 'string' ? item : item?.dataUrl
+      const match = typeof dataUrl === 'string'
+        ? /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/]+={0,2})$/.exec(dataUrl)
+        : null
+      if (!match || match[2].length % 4 !== 0) {
+        return res.status(400).set(cors).json({ error: 'Invalid photos', errorCode: 'INVALID_IMAGES' })
+      }
+      const buffer = Buffer.from(match[2], 'base64')
+      const mimeType = match[1]
+      const isRaster = mimeType === 'image/jpeg'
+        ? buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff
+        : mimeType === 'image/png'
+          ? buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
+          : buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP'
+      if (!buffer.length || buffer.length > MAX_IMAGE_BYTES || !isRaster) {
+        return res.status(400).set(cors).json({ error: 'Invalid photos', errorCode: 'INVALID_IMAGES' })
+      }
+      preparedImages.push({ buffer, mimeType, ext: IMAGE_MIME_TYPES.get(mimeType), label: item?.label })
+    }
+
     // client_token must be a valid UUID for the uuid column in postgres
     const rawToken = clientToken && typeof clientToken === 'string' ? clientToken.trim() : ''
     const cleanClientToken = VALID_UUID.test(rawToken)
@@ -117,46 +148,28 @@ export default async function handler(req, res) {
 
     // Process and upload images to public-assets/submissions/{ean}/...
     const uploadedPhotoUrls = []
-    if (Array.isArray(images) && images.length > 0) {
-      const maxImages = Math.min(images.length, 5)
-      for (let i = 0; i < maxImages; i++) {
-        const item = images[i]
-        const dataUrl = item?.dataUrl || item
-        if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) continue
+    if (preparedImages.length > 0) {
+      for (let i = 0; i < preparedImages.length; i++) {
+        const { buffer, mimeType, ext } = preparedImages[i]
 
-        const commaIdx = dataUrl.indexOf(',')
-        if (commaIdx === -1) continue
+        const rawLabel = preparedImages[i].label
+        const label = typeof rawLabel === 'string' ? `_${rawLabel.replace(/[^a-z0-9]/gi, '')}` : ''
+        const fileName = `submissions/${cleanEan}/${randomUUID()}_${i}${label}.${ext}`
 
-        const metaPart = dataUrl.slice(0, commaIdx)
-        const base64Data = dataUrl.slice(commaIdx + 1)
-        const mimeMatch = metaPart.match(/data:(image\/\w+);base64/)
-        const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg'
-        const ext = mimeType.includes('png') ? 'png' : mimeType.includes('webp') ? 'webp' : 'jpg'
-
-        const buffer = Buffer.from(base64Data, 'base64')
-        // Size guard: max 3MB per photo
-        if (buffer.length > 3 * 1024 * 1024) {
-          console.warn('[submit-product] photo too large, skipping:', buffer.length)
-          continue
-        }
-
-        const label = item?.label ? `_${item.label.replace(/[^a-z0-9]/gi, '')}` : ''
-        const fileName = `submissions/${cleanEan}/${Date.now()}_${i}${label}.${ext}`
-
-        const { error: uploadError } = await admin.storage
-          .from('public-assets')
-          .upload(fileName, buffer, {
-            contentType: mimeType,
-            upsert: true,
-          })
-
-        if (!uploadError) {
+        try {
+          const { error: uploadError } = await admin.storage
+            .from('public-assets')
+            .upload(fileName, buffer, {
+              contentType: mimeType,
+              upsert: false,
+            })
+          if (uploadError) throw uploadError
           const { data: pubData } = admin.storage.from('public-assets').getPublicUrl(fileName)
-          if (pubData?.publicUrl) {
-            uploadedPhotoUrls.push(pubData.publicUrl)
-          }
-        } else {
-          console.error('[submit-product] upload error:', uploadError.message, uploadError)
+          if (!pubData?.publicUrl) throw new Error('Public URL unavailable')
+          uploadedPhotoUrls.push(pubData.publicUrl)
+        } catch (uploadFailure) {
+          console.error('[submit-product] upload error:', uploadFailure)
+          return res.status(500).set(cors).json({ error: 'Unable to upload photos', errorCode: 'PHOTO_UPLOAD_FAILED' })
         }
       }
     }
@@ -200,9 +213,8 @@ export default async function handler(req, res) {
     if (insertError) {
       console.error('[submit-product] insert error code:', insertError.code, '| message:', insertError.message, '| details:', insertError.details, '| hint:', insertError.hint)
       return res.status(500).set(cors).json({
-        error: `Database insert failed: ${insertError.message}`,
-        errorCode: insertError.code || 'DB_INSERT_FAILED',
-        hint: insertError.hint || null,
+        error: 'Unable to save submission',
+        errorCode: 'DB_INSERT_FAILED',
       })
     }
 
@@ -215,7 +227,7 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error('[submit-product] exception:', err)
     return res.status(500).set(cors).json({
-      error: `Internal server error: ${err?.message}`,
+      error: 'Unable to save submission',
       errorCode: 'EXCEPTION',
     })
   }

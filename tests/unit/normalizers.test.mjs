@@ -13,10 +13,23 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import { normalizeGlobalProduct, normalizeOFFProduct } from '../../src/domain/product/normalizers.js'
-import { normalizeNutrition, normalizeSpecs } from '../../src/domain/product/model.js'
+import { createEmptyProduct, normalizeNutrition, normalizeSpecs } from '../../src/domain/product/model.js'
 import { buildProductCharacteristicSpecs } from '../../src/domain/product/productSpecs.js'
 import { ALLERGENS } from '../../src/constants/allergens.js'
 
+test('normalizeGlobalProduct preserves explicit resolved alias evidence through canonical coercion', () => {
+  const product = normalizeGlobalProduct({
+    ean: '4870204070018', name: 'Alias fixture',
+    _ean_alias_ean: '4870204070094', _ean_alias_status: 'trusted', _ean_alias_confidence: 90,
+  })
+  assert.equal(product.sourceMeta.resolvedAliasEan, '4870204070094')
+  assert.equal(product.sourceMeta.resolvedAliasStatus, 'trusted')
+  assert.equal(product.sourceMeta.resolvedAliasConfidence, 90)
+  const canonical = createEmptyProduct(product)
+  assert.equal(canonical.sourceMeta.resolvedAliasEan, '4870204070094')
+  assert.equal(canonical.sourceMeta.resolvedAliasStatus, 'trusted')
+  assert.equal(canonical.sourceMeta.resolvedAliasConfidence, 90)
+})
 // Helper
 const off = (allergensTags = [], extra = {}) =>
   normalizeOFFProduct('1234567890123', {

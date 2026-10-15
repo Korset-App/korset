@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { buildRetailPriceUpdate } from '../domain/retail/catalogManagement.js'
 import {
   getStoreCatalogProducts,
   applyRetailSyncedConditions,
@@ -147,11 +148,11 @@ export function useRetailProducts(storeId, p = {}) {
 
   // ── Price mutation (optimistic + rollback + invalidate) ───
   const priceMutation = useMutation({
-    mutationFn: ({ id, price }) => updateProductPrice(id, storeId, price),
+    mutationFn: ({ id, price, product }) => updateProductPrice(id, storeId, price, product),
     onMutate: async ({ id, price }) => {
       await queryClient.cancelQueries({ queryKey: ['retail-products', storeId] })
       const prev = queryClient.getQueriesData({ queryKey: ['retail-products', storeId] })
-      patchPages((item) => (item.id === id ? { ...item, price_kzt: price } : item))
+      patchPages((item) => (item.id === id ? { ...item, ...buildRetailPriceUpdate(item, price) } : item))
       return { prev }
     },
     onError: (_err, _vars, ctx) => {
@@ -164,14 +165,15 @@ export function useRetailProducts(storeId, p = {}) {
 
   // ── Promotion mutation (optimistic + rollback + invalidate)
   const promotionMutation = useMutation({
-    mutationFn: ({ id, isFeatured, oldPriceKzt, discountPercent, managed }) =>
+    mutationFn: ({ id, isFeatured, oldPriceKzt, discountPercent, managed, placementOnly }) =>
       updateProductPromotion(id, storeId, {
         is_featured: isFeatured,
         old_price_kzt: oldPriceKzt,
         discount_percent: discountPercent,
         managed,
+        placementOnly,
       }),
-    onMutate: async ({ id, isFeatured, oldPriceKzt, discountPercent }) => {
+    onMutate: async ({ id, isFeatured, oldPriceKzt, discountPercent, managed, placementOnly }) => {
       await queryClient.cancelQueries({ queryKey: ['retail-products', storeId] })
       const prev = queryClient.getQueriesData({ queryKey: ['retail-products', storeId] })
       patchPages((item) =>
@@ -179,8 +181,10 @@ export function useRetailProducts(storeId, p = {}) {
           ? {
               ...item,
               is_featured: isFeatured,
-              old_price_kzt: oldPriceKzt,
-              discount_percent: discountPercent,
+              ...(!managed && !placementOnly ? {
+                old_price_kzt: oldPriceKzt,
+                discount_percent: discountPercent,
+              } : {}),
             }
           : item
       )

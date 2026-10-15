@@ -4,7 +4,6 @@ import { Helmet } from 'react-helmet-async'
 import { checkProductFit, formatPrice, getCategoryLabel } from '../utils/fitCheck.js'
 import { getDisplayQuantity } from '../utils/parseQuantity.js'
 import { useProfile } from '../contexts/ProfileContext.jsx'
-import { useAuth } from '../contexts/AuthContext.jsx'
 import { useI18n } from '../i18n/index.js'
 import { useLocalName } from '../utils/localName.js'
 import { useUserData } from '../contexts/UserDataContext.jsx'
@@ -43,7 +42,6 @@ import IngredientsPreview from '../components/product/IngredientsPreview.jsx'
 import SpecsGrid from '../components/product/SpecsGrid.jsx'
 import SectionLabel from '../components/product/SectionLabel.jsx'
 import ProductSubmissionSheet from '../components/product/ProductSubmissionSheet.jsx'
-import AuthPromptModal from '../components/AuthPromptModal.jsx'
 import {
   AlertTriangleIcon,
   AlternativesIcon,
@@ -91,13 +89,10 @@ function StandardProductScreen() {
   const navigate = useNavigate()
   const location = useLocation()
   const { profile } = useProfile()
-  const { user, internalUserId: _internalUserId } = useAuth()
   const { lang, t } = useI18n()
   const { currentStore, storeId, catalogProducts = [] } = useStore()
   const { checkIsFavorite, toggleFavorite, favoriteEans } = useUserData()
   const { isOnline, formatCacheAge } = useOffline()
-
-  const [authPromptOpen, setAuthPromptOpen] = useState(false)
 
   const activeStoreSlug = storeSlug || currentStore?.slug || null
   const fromScan = location.state?.fromScan === true
@@ -259,10 +254,6 @@ function StandardProductScreen() {
   }
 
   const handleToggleFavorite = async () => {
-    if (!user) {
-      setAuthPromptOpen(true)
-      return
-    }
     await toggleFavorite(product)
   }
 
@@ -1086,12 +1077,6 @@ function StandardProductScreen() {
           {t('product.shareCopied')}
         </div>
       )}
-      <AuthPromptModal
-        open={authPromptOpen}
-        onClose={() => setAuthPromptOpen(false)}
-        title={t('shopping.authPromptTitle')}
-        description={t('shopping.authPromptDesc')}
-      />
     </div>
   )
 }

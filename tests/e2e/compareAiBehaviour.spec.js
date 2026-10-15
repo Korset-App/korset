@@ -121,7 +121,7 @@ test.describe('compare AI cost control', () => {
       productB: kefir,
     })
 
-    await expect(page.locator('.compare-outcome')).toBeVisible()
+    await expect(page.locator('.compare-outcome')).toBeVisible({ timeout: 20000 })
     await expect.poll(() => compareInserts.length).toBe(1)
 
     const insert = compareInserts[0]

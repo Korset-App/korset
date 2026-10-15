@@ -671,5 +671,7 @@
   "home.fitCard.btnSetup": "Параметрлерді баптау",
   "home.fitCard.btnEdit": "Параметрлерді өзгерту",
   "home.fitCard.btnQuickNone": "Шектеу жоқ",
-  "home.fitCard.btnReset": "Қалпына келтіру"
+  "home.fitCard.btnReset": "Қалпына келтіру",
+  "home.shelfPreview.collapse": "Жинау",
+  "home.shelfPreview.expand": "Толық экран"
 }

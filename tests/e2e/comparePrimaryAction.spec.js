@@ -27,6 +27,21 @@ test.describe('compare screen primary action', () => {
     await page.route('**/rest/v1/**', async (route) => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
     })
+    await page.route('**/rest/v1/stores**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: '11111111-1111-1111-1111-111111111111',
+          code: 'store-one',
+          slug: 'store-one',
+          is_active: true,
+          is_published: true,
+          owner_id: null,
+          name: 'Store One',
+        }),
+      })
+    })
     await page.route('**/auth/v1/**', async (route) => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
     })

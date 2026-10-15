@@ -774,7 +774,7 @@ export function checkProductFit(product, profile = {}) {
       dietTags.includes('sugar_free') ||
       negatedText.includes('сахар') ||
       negatedText.includes('sugar')
-    if (dietTags.includes('contains_sugar') || (hasSugarKeywords && !hasExplicitSugarFree)) {
+    if (dietTags.includes('contains_sugar') || hasSugarKeywords) {
       addReason({
         severity: 'caution',
         category: 'diet',
@@ -925,6 +925,10 @@ export function checkProductFit(product, profile = {}) {
     const highCarbs = hasCarbBasis && carbBasis > 10
     const highSugar = hasSugarData && sugarsValue > 5
     const lowCarbs = hasCarbBasis && carbBasis <= 7
+    const hasKetoEvidence =
+      hasCarbBasis && carbBasis >= 0 && hasSugarData && sugarsValue >= 0 &&
+      Boolean(mainText) &&
+      (Number.parseFloat(protein100g) > 0 || Number.parseFloat(fat100g) > 0)
 
     if (highCarbs || highSugar || hasSugarSignals) {
       addReason({
@@ -941,6 +945,14 @@ export function checkProductFit(product, profile = {}) {
             ? `Keto үшін қант көп: ${sugarsValue}г/100г`
             : 'Keto үшін қосылған қант белгілері бар',
         source: highCarbs || highSugar ? 'nutriment' : 'ingredient_parse',
+      })
+    } else if (!hasKetoEvidence) {
+      addReason({
+        severity: 'caution',
+        category: 'diet',
+        text: 'Недостаточно данных, чтобы подтвердить совместимость с keto',
+        textKz: 'Keto-ға сәйкестігін растауға дерек жеткіліксіз',
+        source: 'missing_data',
       })
     } else if (lowCarbs) {
       addReason({
@@ -1130,9 +1142,7 @@ export function checkProductFit(product, profile = {}) {
   }
 
   // 8. Determine Verdict
-  const hasAllergenData = Boolean(
-    ingredientsRaw.trim() || prodAllergens.length > 0 || productTraces.length > 0
-  )
+  const hasCompositionData = Boolean(mainText)
 
   let verdict = 'safe'
   if (reasons.some((r) => r.severity === 'danger')) verdict = 'danger'
@@ -1154,7 +1164,7 @@ export function checkProductFit(product, profile = {}) {
       userAllergens.length > 0 &&
       !reasons.some((r) => r.category === 'allergen' || r.category === 'trace')
     ) {
-      if (hasAllergenData) {
+      if (hasCompositionData) {
         addReason({
           severity: 'safe',
           category: 'allergen',
@@ -1164,7 +1174,7 @@ export function checkProductFit(product, profile = {}) {
         })
       } else {
         addReason({
-          severity: 'safe',
+          severity: 'caution',
           category: 'allergen',
           text: 'Состав не указан — проверьте упаковку на аллергены',
           textKz: 'Құрамы көрсетілмеген — аллергендерді қаптамадан тексеріңіз',
@@ -1175,31 +1185,40 @@ export function checkProductFit(product, profile = {}) {
   }
 
   const hasHealthConditionMissingData = healthConditions.some((hc) => {
-    if (hc === 'pku') return isNaN(parseFloat(protein100g)) && !ingredientsRaw.trim()
-    if (hc === 'diabetes') return isNaN(parseFloat(sugar100g)) && !ingredientsRaw.trim()
-    if (hc === 'celiac') return !ingredientsRaw.trim() && prodAllergens.length === 0
-    return !ingredientsRaw.trim()
+    if (hc === 'pku') return isNaN(parseFloat(protein100g)) && !hasCompositionData
+    if (hc === 'diabetes') return isNaN(parseFloat(sugar100g)) && !hasCompositionData
+    return !hasCompositionData
+  })
+
+  const hasUnconfirmedDietGoal = goals.some((goal) => {
+    if (goal === 'low_fat') return isNaN(parseFloat(fatPercent))
+    if (goal === 'vegan') return !dietTags.includes('vegan')
+    if (goal === 'vegetarian') return !dietTags.includes('vegetarian') && !dietTags.includes('vegan')
+    return true
   })
 
   const hasDietOrHealthRules =
     customAllergens.length > 0 ||
     hasHealthConditionMissingData ||
-    (goals.length > 0 && !ingredientsRaw.trim()) ||
-    (Boolean(profile.sugarFree) && isNaN(parseFloat(sugar100g)) && !ingredientsRaw.trim())
+    (hasUnconfirmedDietGoal && !hasCompositionData) ||
+    (Boolean(profile.sugarFree) && isNaN(parseFloat(sugar100g)) && !hasCompositionData)
 
   if (
     verdict === 'safe' &&
     hasDietOrHealthRules &&
-    reasons.length === 0 &&
-    !ingredientsRaw.trim()
+    !hasCompositionData
   ) {
     addReason({
-      severity: 'safe',
+      severity: 'caution',
       category: 'diet',
       text: 'Состав не указан — проверьте упаковку',
       textKz: 'Құрамы көрсетілмеген — қаптаманы тексеріңіз',
       source: 'missing_data',
     })
+  }
+
+  if (verdict === 'safe' && reasons.some((reason) => reason.severity === 'caution')) {
+    verdict = 'caution'
   }
 
   // Filtering reasons based on verdict strategy for UI display

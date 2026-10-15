@@ -1,7 +1,10 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { SparklesIcon, VerifiedBadgeIcon } from '../../icons/index.js'
+import { calculateDiscountPercent } from '../../../domain/retail/catalogManagement.js'
 
-export default function PromotionSection({ product, p, promotionMutation, managed }) {
+export default function PromotionSection({ product, p, promotionMutation, priceMutation, managed }) {
+  const pending = promotionMutation.isPending || priceMutation.isPending
+  const failed = promotionMutation.isError && promotionMutation.variables?.id === product.id
   const isFeatured = Boolean(product.is_featured)
   const currentPrice = Number(product.price_kzt) || 0
   const [oldPriceDraft, setOldPriceDraft] = useState(product.old_price_kzt ?? '')
@@ -12,30 +15,29 @@ export default function PromotionSection({ product, p, promotionMutation, manage
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (saveState === 'idle') setOldPriceDraft(product.old_price_kzt ?? '')
-  }, [product.old_price_kzt, saveState])
+    if (saveState === 'idle' || saveState === 'saved') setOldPriceDraft(product.old_price_kzt ?? '')
+  }, [product.old_price_kzt]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const calculatedPct = useMemo(() => {
-    const old = Number(oldPriceDraft)
-    if (Number.isFinite(old) && old > currentPrice && currentPrice > 0) {
-      return Math.round((1 - currentPrice / old) * 100)
-    }
-    return product.discount_percent ?? null
-  }, [oldPriceDraft, currentPrice, product.discount_percent])
+    return calculateDiscountPercent(currentPrice, oldPriceDraft)
+  }, [oldPriceDraft, currentPrice])
 
   const handleToggleFeatured = (e) => {
     e.stopPropagation()
+    if (pending) return
     promotionMutation?.mutate({
       id: product.id,
       isFeatured: !isFeatured,
       oldPriceKzt: product.old_price_kzt,
       discountPercent: product.discount_percent,
       managed,
+      placementOnly: true,
     })
   }
 
   const handleOldPriceBlur = () => {
-    if (managed) return
+    if (managed || pending) return
+    clearTimeout(timerRef.current)
     const val = oldPriceDraft === '' ? null : Number(oldPriceDraft)
     if (val !== null && (!Number.isFinite(val) || val <= currentPrice)) {
       setOldPriceDraft('')
@@ -67,8 +69,8 @@ export default function PromotionSection({ product, p, promotionMutation, manage
           timerRef.current = setTimeout(() => setSaveState('idle'), 2000)
         },
         onError: () => {
+          setOldPriceDraft(product.old_price_kzt ?? '')
           setSaveState('error')
-          timerRef.current = setTimeout(() => setSaveState('idle'), 3000)
         },
       }
     )
@@ -76,7 +78,7 @@ export default function PromotionSection({ product, p, promotionMutation, manage
 
   const handleClearDiscount = (e) => {
     e.stopPropagation()
-    if (managed) return
+    if (managed || pending) return
     setOldPriceDraft('')
     promotionMutation?.mutate({
       id: product.id,
@@ -132,12 +134,17 @@ export default function PromotionSection({ product, p, promotionMutation, manage
           </div>
         </div>
 
-        <div
+        <button
+          type="button"
           role="switch"
           aria-checked={isFeatured}
+          aria-label={p.featuredLabel}
+          disabled={pending}
           onClick={handleToggleFeatured}
           style={{
             width: 52,
+            border: 'none',
+            padding: 0,
             height: 30,
             borderRadius: 15,
             cursor: 'pointer',
@@ -145,7 +152,7 @@ export default function PromotionSection({ product, p, promotionMutation, manage
             position: 'relative',
             transition: 'background 0.25s',
             flexShrink: 0,
-            opacity: promotionMutation?.isPending ? 0.7 : 1,
+            opacity: pending ? 0.7 : 1,
           }}
         >
           <div
@@ -161,8 +168,14 @@ export default function PromotionSection({ product, p, promotionMutation, manage
               boxShadow: '0 2px 4px rgba(0,0,0,0.25)',
             }}
           />
-        </div>
+        </button>
       </div>
+
+      {failed && saveState !== 'error' && (
+        <div role="alert" style={{ fontSize: 11, color: 'var(--error)', fontWeight: 600 }}>
+          {p.saveError}
+        </div>
+      )}
 
       <div style={{ height: 1, background: 'var(--line-soft)' }} />
 
@@ -200,7 +213,7 @@ export default function PromotionSection({ product, p, promotionMutation, manage
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {stateLabel[saveState] && (
-              <span style={{ fontSize: 11, color: stateColor[saveState], fontWeight: 600 }}>
+              <span role={saveState === 'error' ? 'alert' : 'status'} style={{ fontSize: 11, color: stateColor[saveState], fontWeight: 600 }}>
                 {stateLabel[saveState]}
               </span>
             )}
@@ -208,6 +221,7 @@ export default function PromotionSection({ product, p, promotionMutation, manage
               <button
                 type="button"
                 onClick={handleClearDiscount}
+                disabled={pending}
                 style={{
                   background: 'none',
                   border: 'none',
@@ -224,18 +238,24 @@ export default function PromotionSection({ product, p, promotionMutation, manage
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'stretch' }}>
+        <div style={{ display: 'flex', alignItems: 'stretch', minWidth: 0 }}>
           <input
             type="number"
             inputMode="numeric"
             placeholder={currentPrice > 0 ? String(Math.round(currentPrice * 1.25)) : ''}
             value={oldPriceDraft}
-            readOnly={managed}
-            aria-readonly={managed}
-            onChange={(e) => setOldPriceDraft(e.target.value)}
+            aria-label={p.oldPriceLabel}
+            readOnly={managed || pending}
+            aria-readonly={managed || pending}
+            onChange={(e) => {
+              clearTimeout(timerRef.current)
+              setSaveState('idle')
+              setOldPriceDraft(e.target.value)
+            }}
             onBlur={handleOldPriceBlur}
             style={{
               flex: 1,
+              minWidth: 0,
               fontSize: 17,
               fontWeight: 600,
               fontFamily: 'var(--font-display)',

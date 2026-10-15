@@ -146,6 +146,7 @@ function AppInner() {
             <Route path="/s/:storeSlug/profile/edit" element={<ProfileEditScreen />} />
             <Route path="/s/:storeSlug/account" element={<AccountScreen />} />
             <Route path="/s/:storeSlug/privacy" element={<PrivacySettingsScreen />} />
+            <Route path="/s/:storeSlug/privacy-policy" element={<PrivacyPolicyScreen />} />
             <Route path="/s/:storeSlug/sound-settings" element={<SoundSettingsScreen />} />
             <Route path="/s/:storeSlug/faq" element={<FaqScreen />} />
             <Route path="/s/:storeSlug/about" element={<AboutScreen />} />

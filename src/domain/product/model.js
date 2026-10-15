@@ -41,6 +41,9 @@ export function createEmptyProduct(overrides = {}) {
       qualityScore: normalizeNumber(overrides.sourceMeta?.qualityScore),
       aiEnriched: Boolean(overrides.sourceMeta?.aiEnriched),
       lastUpdatedAt: overrides.sourceMeta?.lastUpdatedAt || null,
+      resolvedAliasEan: overrides.sourceMeta?.resolvedAliasEan || null,
+      resolvedAliasStatus: overrides.sourceMeta?.resolvedAliasStatus || null,
+      resolvedAliasConfidence: overrides.sourceMeta?.resolvedAliasConfidence ?? null,
     },
 
     id,

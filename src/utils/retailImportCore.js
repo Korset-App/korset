@@ -1,5 +1,5 @@
 const HEADER_ALIASES = {
-  ean: ['ean', 'barcode', 'bar code', 'штрихкод', 'штрих код', 'штк', 'код', 'артикул'],
+  ean: ['ean', 'barcode', 'bar code', 'штрихкод', 'штрих код', 'штк'],
   price: ['price', 'цена', 'баға', 'стоимость', 'розница', 'retail price'],
   stockStatus: ['stock', 'status', 'наличие', 'остаток', 'қойма', 'статус'],
   shelfZone: ['shelf', 'полка', 'зона', 'ряд', 'сөре'],
@@ -45,13 +45,12 @@ function detectColumns(headerRow) {
 }
 
 function parsePrice(value) {
-  const normalized = String(value || '')
-    .replace(/\s/g, '')
-    .replace(',', '.')
-    .replace(/[^\d.]/g, '')
+  const text = String(value ?? '').trim().replace(/\s/gu, ' ')
+  if (!/^(?:\d+|\d{1,3}(?: \d{3})+)(?:[.,]0{1,2})?(?: ?(?:₸|тг|тенге|KZT))?$/iu.test(text)) return null
+  const normalized = text.replace(/(?:₸|тг|тенге|KZT)$/iu, '').replace(/ /g, '').replace(',', '.')
   const parsed = Number(normalized)
-  if (!Number.isFinite(parsed) || parsed <= 0) return null
-  return Math.round(parsed)
+  if (!Number.isSafeInteger(parsed) || parsed <= 0 || parsed > 2147483647) return null
+  return parsed
 }
 
 function parseStockStatus(value) {
@@ -60,7 +59,7 @@ function parseStockStatus(value) {
 }
 
 function normalizeEan(value) {
-  return String(value || '').replace(/\D/g, '')
+  return String(value ?? '').trim()
 }
 
 function cell(row, index) {
@@ -68,7 +67,19 @@ function cell(row, index) {
   return row[index] ?? ''
 }
 
-export function parseCsvLine(line) {
+function detectDelimiter(line) {
+  const counts = new Map([[';', 0], [',', 0], ['\t', 0]])
+  let quoted = false
+  for (let index = 0; index < line.length; index++) {
+    if (line[index] === '"') {
+      if (quoted && line[index + 1] === '"') index++
+      else quoted = !quoted
+    } else if (!quoted && counts.has(line[index])) counts.set(line[index], counts.get(line[index]) + 1)
+  }
+  return [...counts].sort((left, right) => right[1] - left[1])[0][0]
+}
+
+export function parseCsvLine(line, delimiter = detectDelimiter(line)) {
   const cells = []
   let current = ''
   let quoted = false
@@ -82,7 +93,7 @@ export function parseCsvLine(line) {
       i++
     } else if (char === '"') {
       quoted = !quoted
-    } else if ((char === ',' || char === ';' || char === '\t') && !quoted) {
+    } else if (char === delimiter && !quoted) {
       cells.push(current.trim())
       current = ''
     } else {
@@ -95,11 +106,12 @@ export function parseCsvLine(line) {
 }
 
 export function parseCsv(text) {
-  return text
+  const lines = text
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
-    .map(parseCsvLine)
+  const delimiter = detectDelimiter(lines[0] || '')
+  return lines.map((line) => parseCsvLine(line, delimiter))
 }
 
 export function buildRetailImportPreview(rows) {
@@ -110,39 +122,53 @@ export function buildRetailImportPreview(rows) {
   const columns = detectColumns(rows[0])
   const errors = []
 
-  if (columns.ean == null) errors.push({ row: 1, message: 'Не найдена колонка EAN/Штрихкод' })
-  if (columns.price == null) errors.push({ row: 1, message: 'Не найдена колонка Цена/Price' })
+  if (columns.ean == null) errors.push({ row: 1, code: 'missing_ean_column', message: 'Не найдена колонка EAN/Штрихкод' })
+  if (columns.price == null) errors.push({ row: 1, code: 'missing_price_column', message: 'Не найдена колонка Цена/Price' })
   if (errors.length) return { rows: [], errors }
 
-  const seen = new Set()
+  const eanCounts = new Map()
+  for (const row of rows.slice(1)) {
+    const ean = normalizeEan(cell(row, columns.ean))
+    eanCounts.set(ean, (eanCounts.get(ean) || 0) + 1)
+  }
   const parsedRows = []
 
   rows.slice(1).forEach((row, index) => {
     const rowNumber = index + 2
+    const eanValue = cell(row, columns.ean)
     const ean = normalizeEan(cell(row, columns.ean))
     const priceKzt = parsePrice(cell(row, columns.price))
-    const stockStatus = parseStockStatus(cell(row, columns.stockStatus)) || 'in_stock'
+    const stockValue = String(cell(row, columns.stockStatus)).trim()
+    const stockStatus = stockValue ? parseStockStatus(stockValue) : null
     const shelfZone = String(cell(row, columns.shelfZone) || '').trim()
     const localName = String(cell(row, columns.localName) || '').trim()
+
+    if (typeof eanValue !== 'string' && eanValue != null && eanValue !== '') {
+      errors.push({ row: rowNumber, ean, code: 'non_text_ean', message: 'Штрихкод должен храниться как текст' })
+      return
+    }
 
     if (!ean) {
       errors.push({ row: rowNumber, message: 'Пустой EAN' })
       return
     }
-    if (ean.length < 8 || ean.length > 14) {
-      errors.push({ row: rowNumber, ean, message: 'EAN должен содержать 8-14 цифр' })
+    if (!/^\d{8,14}$/.test(ean)) {
+      errors.push({ row: rowNumber, ean, code: 'invalid_ean', message: 'EAN должен содержать 8-14 цифр' })
       return
     }
-    if (seen.has(ean)) {
-      errors.push({ row: rowNumber, ean, message: 'Дубликат EAN в файле' })
+    if (eanCounts.get(ean) > 1) {
+      errors.push({ row: rowNumber, ean, code: 'duplicate_ean', message: 'Дубликат EAN в файле' })
       return
     }
     if (!priceKzt) {
-      errors.push({ row: rowNumber, ean, message: 'Некорректная цена' })
+      errors.push({ row: rowNumber, ean, code: 'invalid_price', message: 'Некорректная цена' })
+      return
+    }
+    if (!stockStatus) {
+      errors.push({ row: rowNumber, ean, code: stockValue ? 'invalid_stock_status' : 'missing_stock_status', message: stockValue ? 'Некорректный статус наличия' : 'Не указано наличие' })
       return
     }
 
-    seen.add(ean)
     parsedRows.push({ rowNumber, ean, priceKzt, stockStatus, shelfZone, localName })
   })
 

@@ -671,5 +671,7 @@
   "home.fitCard.btnSetup": "Настроить параметры",
   "home.fitCard.btnEdit": "Изменить параметры",
   "home.fitCard.btnQuickNone": "Без ограничений",
-  "home.fitCard.btnReset": "Сбросить"
+  "home.fitCard.btnReset": "Сбросить",
+  "home.shelfPreview.collapse": "Свернуть",
+  "home.shelfPreview.expand": "Полный экран"
 }
