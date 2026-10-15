@@ -12,6 +12,8 @@ export default function Toggle({ checked, onChange, disabled = false }) {
       style={{
         position: 'relative',
         width: 44,
+        minWidth: 44,
+        flexShrink: 0,
         height: 24,
         borderRadius: 999,
         border: 'none',

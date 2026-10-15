@@ -1,0 +1,2200 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Körset WebAR · 3D Умная Полка & Сканер Fit-Check</title>
+  <style>
+    :root {
+      --bg-dark: #07080D;
+      --bg-surface: #11131E;
+      --bg-card: rgba(17, 19, 30, 0.78);
+      --bg-glass: rgba(255, 255, 255, 0.04);
+      --border-glass: rgba(255, 255, 255, 0.1);
+      --border-accent: rgba(124, 92, 252, 0.35);
+      --accent-purple: #7C5CFC;
+      --accent-purple-light: #9D7BFF;
+      --accent-purple-glow: rgba(124, 92, 252, 0.45);
+      --status-success: #10B981;
+      --status-success-glow: rgba(16, 185, 129, 0.4);
+      --status-warning: #F59E0B;
+      --status-warning-glow: rgba(245, 158, 11, 0.4);
+      --status-danger: #EF4444;
+      --status-danger-glow: rgba(239, 68, 68, 0.4);
+      --text-main: #F3F4F6;
+      --text-muted: #9CA3AF;
+      --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-family);
+      overflow-x: hidden;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+
+    /* Top Navigation & Brand Header */
+    header.korset-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 64px;
+      background: rgba(7, 8, 13, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-glass);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+    }
+
+    .brand-block {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent-purple), #4F46E5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px var(--accent-purple-glow);
+    }
+
+    .brand-logo-icon svg {
+      width: 20px;
+      height: 20px;
+      fill: #ffffff;
+    }
+
+    .brand-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-title .badge {
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: rgba(124, 92, 252, 0.2);
+      color: var(--accent-purple-light);
+      border: 1px solid rgba(124, 92, 252, 0.4);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .header-modes {
+      display: flex;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid var(--border-glass);
+      gap: 4px;
+    }
+
+    .mode-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mode-btn.active {
+      background: var(--accent-purple);
+      color: #ffffff;
+      box-shadow: 0 2px 10px var(--accent-purple-glow);
+    }
+
+    .mode-btn:hover:not(.active) {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    /* Main Container */
+    .app-viewport {
+      position: relative;
+      flex: 1;
+      margin-top: 64px;
+      display: flex;
+      overflow: hidden;
+      height: calc(100vh - 64px);
+    }
+
+    /* 3D Scene Canvas Area */
+    .scene-container {
+      position: relative;
+      flex: 1;
+      height: 100%;
+      background: radial-gradient(circle at 50% 45%, #181b30 0%, #0d0f1a 60%, #07080d 100%);
+      overflow: hidden;
+    }
+
+    #webgl-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: grab;
+    }
+
+    #webgl-canvas:active {
+      cursor: grabbing;
+    }
+
+    /* Floating Top Filter Bar */
+    .filters-overlay {
+      position: absolute;
+      top: 16px;
+      left: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .filters-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .filters-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .filter-pill {
+      background: rgba(17, 19, 30, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-glass);
+      color: var(--text-muted);
+      padding: 7px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .filter-pill:hover {
+      border-color: rgba(255, 255, 255, 0.25);
+      color: var(--text-main);
+      transform: translateY(-1px);
+    }
+
+    .filter-pill.active {
+      background: linear-gradient(135deg, rgba(124, 92, 252, 0.25), rgba(124, 92, 252, 0.15));
+      border-color: var(--accent-purple);
+      color: #ffffff;
+      box-shadow: 0 0 14px rgba(124, 92, 252, 0.4);
+    }
+
+    .filter-pill.active .check-mark {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .check-mark {
+      opacity: 0;
+      transform: scale(0.5);
+      transition: all 0.2s ease;
+      color: var(--accent-purple-light);
+      font-weight: 800;
+    }
+
+    /* 3D Scene Floating Controls / Legend */
+    .scene-hints {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      pointer-events: none;
+    }
+
+    .hint-chip {
+      background: rgba(17, 19, 30, 0.7);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border-glass);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .hint-chip kbd {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      color: #fff;
+    }
+
+    /* AR Viewfinder HUD Overlay */
+    .ar-viewfinder {
+      position: absolute;
+      top: 90px;
+      right: 24px;
+      width: 220px;
+      height: 380px;
+      border-radius: 36px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      background: rgba(17, 19, 30, 0.45);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(124, 92, 252, 0.2);
+      pointer-events: none;
+      z-index: 15;
+      display: flex;
+      flex-direction: column;
+      padding: 14px;
+      overflow: hidden;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .ar-viewfinder.hidden {
+      opacity: 0;
+      transform: translateY(20px) scale(0.95);
+      pointer-events: none;
+    }
+
+    .phone-island {
+      width: 60px;
+      height: 14px;
+      background: #000;
+      border-radius: 10px;
+      margin: 0 auto 10px auto;
+    }
+
+    .ar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--accent-purple-light);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .ar-reticle {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 12px 0;
+    }
+
+    .reticle-corner {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-color: var(--accent-purple-light);
+      border-style: solid;
+      opacity: 0.8;
+    }
+
+    .reticle-corner.tl { top: 20px; left: 16px; border-width: 2px 0 0 2px; }
+    .reticle-corner.tr { top: 20px; right: 16px; border-width: 2px 2px 0 0; }
+    .reticle-corner.bl { bottom: 20px; left: 16px; border-width: 0 0 2px 2px; }
+    .reticle-corner.br { bottom: 20px; right: 16px; border-width: 0 2px 2px 0; }
+
+    .scan-laser-line {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #9D7BFF, #ffffff, #9D7BFF, transparent);
+      box-shadow: 0 0 10px #7C5CFC;
+      animation: scanSweep 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes scanSweep {
+      0% { top: 25px; opacity: 0.3; }
+      50% { opacity: 1; }
+      100% { top: 200px; opacity: 0.3; }
+    }
+
+    .ar-meta-box {
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 12px;
+      padding: 8px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 0.7rem;
+    }
+
+    .ar-ean {
+      font-family: monospace;
+      color: #9D7BFF;
+      font-weight: 700;
+      font-size: 0.75rem;
+    }
+
+    .ar-status-text {
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    /* Right Sidebar / Details Panel */
+    .sidebar-panel {
+      width: 440px;
+      background: var(--bg-surface);
+      border-left: 1px solid var(--border-glass);
+      display: flex;
+      flex-direction: column;
+      z-index: 20;
+      box-shadow: -8px 0 24px rgba(0, 0, 0, 0.4);
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+    }
+
+    .sidebar-content {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Product Header Card */
+    .product-header-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-glass);
+      border-radius: 16px;
+      padding: 20px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .product-header-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--product-theme-color, var(--accent-purple));
+    }
+
+    .product-meta-sub {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .product-category-tag {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--accent-purple-light);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .product-ean-tag {
+      font-family: monospace;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.05);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .product-title {
+      font-size: 1.35rem;
+      font-weight: 800;
+      line-height: 1.25;
+      margin-bottom: 6px;
+    }
+
+    .product-subtitle {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+
+    .product-price-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding-top: 12px;
+      margin-top: 6px;
+    }
+
+    .price-value {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.02em;
+    }
+
+    .volume-tag {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* Fit-Check Status Card */
+    .fitcheck-verdict-card {
+      border-radius: 16px;
+      padding: 16px 18px;
+      border: 1px solid;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: all 0.3s ease;
+    }
+
+    .fitcheck-verdict-card.success {
+      background: rgba(16, 185, 129, 0.08);
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+
+    .fitcheck-verdict-card.warning {
+      background: rgba(245, 158, 11, 0.08);
+      border-color: rgba(245, 158, 11, 0.3);
+    }
+
+    .fitcheck-verdict-card.danger {
+      background: rgba(239, 68, 68, 0.08);
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    .verdict-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .verdict-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .success .verdict-badge {
+      background: var(--status-success);
+      color: #052e16;
+      box-shadow: 0 0 12px var(--status-success-glow);
+    }
+
+    .warning .verdict-badge {
+      background: var(--status-warning);
+      color: #451a03;
+      box-shadow: 0 0 12px var(--status-warning-glow);
+    }
+
+    .danger .verdict-badge {
+      background: var(--status-danger);
+      color: #ffffff;
+      box-shadow: 0 0 12px var(--status-danger-glow);
+    }
+
+    .verdict-explanation {
+      font-size: 0.82rem;
+      line-height: 1.45;
+      color: var(--text-main);
+    }
+
+    .verdict-cautions-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    .verdict-cautions-list li {
+      font-size: 0.78rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    /* Safe Replacement CTA Button */
+    .btn-replace-safe {
+      background: linear-gradient(135deg, rgba(124, 92, 252, 0.2), rgba(16, 185, 129, 0.2));
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #ffffff;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-replace-safe:hover {
+      background: linear-gradient(135deg, rgba(124, 92, 252, 0.35), rgba(16, 185, 129, 0.35));
+      border-color: var(--status-success);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.25);
+    }
+
+    /* KBJU Nutrition Metrics */
+    .section-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .kbju-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .kbju-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-glass);
+      border-radius: 12px;
+      padding: 10px 8px;
+      text-align: center;
+    }
+
+    .kbju-val {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    .kbju-lbl {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    /* Key Ingredient & Full Composition */
+    .key-ingredient-box {
+      background: rgba(124, 92, 252, 0.08);
+      border-left: 3px solid var(--accent-purple);
+      padding: 10px 14px;
+      border-radius: 0 10px 10px 0;
+      font-size: 0.82rem;
+      line-height: 1.4;
+    }
+
+    .key-ingredient-box strong {
+      color: var(--accent-purple-light);
+    }
+
+    .ingredients-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .ing-chip {
+      font-size: 0.74rem;
+      padding: 5px 10px;
+      border-radius: 8px;
+      border: 1px solid;
+      line-height: 1.3;
+    }
+
+    .ing-chip.safe {
+      background: rgba(16, 185, 129, 0.08);
+      border-color: rgba(16, 185, 129, 0.25);
+      color: #A7F3D0;
+    }
+
+    .ing-chip.warning {
+      background: rgba(245, 158, 11, 0.12);
+      border-color: rgba(245, 158, 11, 0.35);
+      color: #FDE68A;
+    }
+
+    .ing-chip.danger {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.4);
+      color: #FECACA;
+      font-weight: 600;
+    }
+
+    /* Quick Shelf Selector (Thumbnails list) */
+    .shelf-carousel-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-top: 10px;
+    }
+
+    .shelf-products-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .product-thumb-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-glass);
+      border-radius: 10px;
+      padding: 8px 6px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .product-thumb-card:hover {
+      background: rgba(255, 255, 255, 0.07);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .product-thumb-card.active {
+      border-color: var(--accent-purple);
+      background: rgba(124, 92, 252, 0.15);
+      box-shadow: 0 0 12px rgba(124, 92, 252, 0.3);
+    }
+
+    .thumb-status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      position: absolute;
+      top: 6px;
+      right: 6px;
+    }
+
+    .thumb-status-dot.success { background: var(--status-success); box-shadow: 0 0 6px var(--status-success); }
+    .thumb-status-dot.warning { background: var(--status-warning); box-shadow: 0 0 6px var(--status-warning); }
+    .thumb-status-dot.danger { background: var(--status-danger); box-shadow: 0 0 6px var(--status-danger); }
+
+    .thumb-name {
+      font-size: 0.68rem;
+      font-weight: 600;
+      margin-top: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text-main);
+    }
+
+    .thumb-price {
+      font-size: 0.64rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Holographic X-Ray AR Badges (Overlay on canvas in Mode B) */
+    .xray-hologram-hud {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 440px;
+      bottom: 0;
+      pointer-events: none;
+      z-index: 12;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    .xray-hologram-hud.active {
+      opacity: 1;
+    }
+
+    .holo-card {
+      position: absolute;
+      background: rgba(17, 19, 30, 0.85);
+      border: 1px solid rgba(157, 123, 255, 0.4);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 12px;
+      padding: 10px 14px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), inset 0 0 14px rgba(124, 92, 252, 0.15);
+      pointer-events: auto;
+      max-width: 220px;
+      animation: floatHolo 4s ease-in-out infinite alternate;
+    }
+
+    @keyframes floatHolo {
+      0% { transform: translateY(0px); }
+      100% { transform: translateY(-6px); }
+    }
+
+    .holo-title {
+      font-size: 0.68rem;
+      font-weight: 800;
+      color: var(--accent-purple-light);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .holo-desc {
+      font-size: 0.78rem;
+      line-height: 1.35;
+      color: #ffffff;
+    }
+
+    .holo-tl { top: 120px; left: 40px; }
+    .holo-tr { top: 120px; right: 60px; }
+    .holo-bl { bottom: 80px; left: 40px; }
+    .holo-br { bottom: 80px; right: 60px; }
+
+    /* Responsive styling for Mobile */
+    @media (max-width: 1024px) {
+      .app-viewport {
+        flex-direction: column;
+        height: auto;
+      }
+      .scene-container {
+        height: 55vh;
+        min-height: 380px;
+      }
+      .sidebar-panel {
+        width: 100%;
+        border-left: none;
+        border-top: 1px solid var(--border-glass);
+      }
+      .ar-viewfinder {
+        display: none;
+      }
+      .xray-hologram-hud {
+        right: 0;
+      }
+      .holo-card {
+        max-width: 160px;
+        padding: 6px 10px;
+      }
+      .holo-tl { top: 80px; left: 16px; }
+      .holo-tr { top: 80px; right: 16px; }
+      .holo-bl { bottom: 40px; left: 16px; }
+      .holo-br { bottom: 40px; right: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="korset-header">
+    <div class="brand-block">
+      <div class="brand-logo-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M4 6h16M4 12h16m-7 6h7M7 18h2"/>
+        </svg>
+      </div>
+      <div class="brand-title">
+        Körset <span class="badge">WebAR 3D Preview</span>
+      </div>
+    </div>
+
+    <!-- Mode Selector: Shelf vs X-Ray -->
+    <div class="header-modes">
+      <button class="mode-btn active" id="btn-mode-shelf" onclick="setViewMode('shelf')">
+        <span>🧊</span> 3D-Полка + AR
+      </button>
+      <button class="mode-btn" id="btn-mode-xray" onclick="setViewMode('xray')">
+        <span>🔬</span> 3D-Рентген Упаковки
+      </button>
+    </div>
+  </header>
+
+  <!-- Viewport -->
+  <div class="app-viewport">
+    
+    <!-- 3D Canvas Container -->
+    <div class="scene-container">
+      <canvas id="webgl-canvas"></canvas>
+
+      <!-- Customer Profile Toggles (Diet / Allergens) -->
+      <div class="filters-overlay">
+        <div class="filters-label">
+          <span>🎯</span> Профиль покупателя (Фильтры Fit-Check):
+        </div>
+        <div class="filters-row" id="filters-container">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Holographic X-Ray Overlays (Mode B) -->
+      <div class="xray-hologram-hud" id="xray-hud">
+        <div class="holo-card holo-tl">
+          <div class="holo-title"><span>🎯</span> Вердикт профиля</div>
+          <div class="holo-desc" id="holo-verdict">✓ Подходит на 100%</div>
+        </div>
+        <div class="holo-card holo-tr">
+          <div class="holo-title"><span>⚡</span> КБЖУ на 100 г</div>
+          <div class="holo-desc" id="holo-kbju">45 ккал · Б 1.2 · Ж 1.5 · У 6.5</div>
+        </div>
+        <div class="holo-card holo-bl">
+          <div class="holo-title"><span>🏷️</span> EAN-13 & Цена</div>
+          <div class="holo-desc" id="holo-ean">4870001234567 · 790 ₸</div>
+        </div>
+        <div class="holo-card holo-br">
+          <div class="holo-title"><span>🧪</span> Главный компонент</div>
+          <div class="holo-desc" id="holo-ingredient">100% цельный овес</div>
+        </div>
+      </div>
+
+      <!-- AR Viewfinder Overlay (Smartphone Hud) -->
+      <div class="ar-viewfinder" id="ar-viewfinder">
+        <div class="phone-island"></div>
+        <div class="ar-header">
+          <span>Körset WebAR</span>
+          <span style="color:#10B981;">● AR ACTIVE</span>
+        </div>
+        <div class="ar-reticle">
+          <div class="reticle-corner tl"></div>
+          <div class="reticle-corner tr"></div>
+          <div class="reticle-corner bl"></div>
+          <div class="reticle-corner br"></div>
+          <div class="scan-laser-line"></div>
+          <div style="font-size:0.68rem; color:rgba(255,255,255,0.7); font-family:monospace; margin-top:80px;">
+            [ ПРИЦЕЛ EAN-13 ]
+          </div>
+        </div>
+        <div class="ar-meta-box">
+          <div class="ar-ean" id="ar-ean-display">EAN: 4870001234567</div>
+          <div class="ar-status-text" id="ar-status-display">✓ ПОДХОДИТ</div>
+        </div>
+      </div>
+
+      <!-- Scene Navigation Hints -->
+      <div class="scene-hints">
+        <div class="hint-chip">
+          <span>🖱️</span> <kbd>ЛКМ</kbd> Вращение 360°
+        </div>
+        <div class="hint-chip">
+          <span>🔍</span> <kbd>Колесо</kbd> Зум
+        </div>
+        <div class="hint-chip">
+          <span>✨</span> Клик на товар для выбора
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Sidebar Product Analysis -->
+    <div class="sidebar-panel">
+      <div class="sidebar-content">
+
+        <!-- Product Header Card -->
+        <div class="product-header-card" id="product-header-card">
+          <div class="product-meta-sub">
+            <span class="product-category-tag" id="sidebar-category">Растительное молоко</span>
+            <span class="product-ean-tag" id="sidebar-ean">4870001234567</span>
+          </div>
+          <h2 class="product-title" id="sidebar-title">EcoMilk Qazaqstan</h2>
+          <div class="product-subtitle" id="sidebar-subtitle">Овсяное молоко 100% цельное</div>
+          <div class="product-price-row">
+            <div class="price-value" id="sidebar-price">790 ₸</div>
+            <div class="volume-tag" id="sidebar-volume">1 л</div>
+          </div>
+        </div>
+
+        <!-- Fit-Check Verdict Card -->
+        <div class="fitcheck-verdict-card success" id="fitcheck-card">
+          <div class="verdict-header">
+            <div class="verdict-badge" id="verdict-badge">✓ ПОДХОДИТ</div>
+            <span style="font-size:0.75rem; color:var(--text-muted);">Fit-Check AI</span>
+          </div>
+          <div class="verdict-explanation" id="verdict-explanation">
+            Продукт полностью соответствует выбранному профилю питания.
+          </div>
+          <ul class="verdict-cautions-list" id="verdict-cautions"></ul>
+        </div>
+
+        <!-- Safe Alternative Recommendation Button -->
+        <button class="btn-replace-safe" id="btn-safe-alt" onclick="selectSafeAlternative()">
+          <span>💡 Показать безопасную замену на этой полке</span>
+          <span style="font-size:1.1rem;">→</span>
+        </button>
+
+        <!-- KBJU Section -->
+        <div>
+          <div class="section-title">
+            <span>⚡</span> Пищевая ценность (на 100 г)
+          </div>
+          <div class="kbju-grid">
+            <div class="kbju-item">
+              <div class="kbju-val" id="kbju-kcal">45</div>
+              <div class="kbju-lbl">Ккал</div>
+            </div>
+            <div class="kbju-item">
+              <div class="kbju-val" id="kbju-protein">1.2 г</div>
+              <div class="kbju-lbl">Белки</div>
+            </div>
+            <div class="kbju-item">
+              <div class="kbju-val" id="kbju-fat">1.5 г</div>
+              <div class="kbju-lbl">Жиры</div>
+            </div>
+            <div class="kbju-item">
+              <div class="kbju-val" id="kbju-carbs">6.5 г</div>
+              <div class="kbju-lbl">Углеводы</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Key Ingredient Highlight -->
+        <div class="key-ingredient-box" id="sidebar-key-ing">
+          <strong>Ключевой ингредиент:</strong> 100% Казахстанский цельный овес & родниковая вода.
+        </div>
+
+        <!-- Detailed Ingredients List -->
+        <div>
+          <div class="section-title">
+            <span>📋</span> Состав с разметкой безопасности
+          </div>
+          <div class="ingredients-chips" id="sidebar-ingredients">
+            <!-- Chips populated by JS -->
+          </div>
+        </div>
+
+        <!-- Shelf Products Carousel / Quick Picker -->
+        <div>
+          <div class="shelf-carousel-title">Все 8 товаров на полке (клик для фокуса):</div>
+          <div class="shelf-products-grid" id="shelf-thumbs-grid" style="margin-top:8px;">
+            <!-- Thumbnails populated by JS -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Three.js and OrbitControls (local with CDN fallback) -->
+  <script src="./public/vendor/three.min.js"></script>
+  <script>
+    if (typeof THREE === 'undefined') {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
+    }
+  </script>
+  <script src="./public/vendor/OrbitControls.js"></script>
+  <script>
+    if (typeof THREE !== 'undefined' && typeof THREE.OrbitControls === 'undefined') {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"><\/script>');
+    }
+  </script>
+
+  <!-- 3D WebAR App Script -->
+  <script>
+    /* =========================================================================
+       1. DATA STRUCTURES & FIT-CHECK LOGIC
+       ========================================================================= */
+    const FILTER_DEFS = [
+      { id: 'halal', label: '🕌 Халал', defaultActive: true },
+      { id: 'noNuts', label: '🥜 Без орехов', defaultActive: false },
+      { id: 'noLactose', label: '🥛 Без лактозы', defaultActive: false },
+      { id: 'noGluten', label: '🌾 Без глютена', defaultActive: false },
+      { id: 'noSugar', label: '🍬 Без сахара', defaultActive: false },
+      { id: 'vegan', label: '🌱 Веган', defaultActive: false }
+    ];
+
+    let userFilters = {
+      halal: true,
+      noNuts: false,
+      noLactose: false,
+      noGluten: false,
+      noSugar: false,
+      vegan: false
+    };
+
+    const PRODUCTS = [
+      {
+        id: 'ecomilk',
+        name: 'EcoMilk Qazaqstan',
+        type: 'Овсяное молоко',
+        volume: '1 л',
+        price: 790,
+        priceStr: '790 ₸',
+        ean: '4870001234567',
+        shelfTier: 'upper',
+        slotIndex: 0,
+        category: 'Растительное молоко',
+        kbju: { kcal: 45, protein: '1.2 г', fat: '1.5 г', carbs: '6.5 г' },
+        geometryType: 'carton',
+        color: '#1E3A8A',
+        accentColor: '#38BDF8',
+        flags: { halal: true, noNuts: true, noLactose: true, noGluten: false, noSugar: true, vegan: true },
+        keyIngredient: '100% Казахстанский цельный овес & родниковая вода',
+        cautions: [],
+        ingredients: [
+          { text: 'Вода родниковая подготовленная', type: 'safe' },
+          { text: 'Овсяная мука цельнозерновая', type: 'safe' },
+          { text: 'Рапсовое масло холодного отжима', type: 'safe' },
+          { text: 'Морская соль', type: 'safe' },
+          { text: 'Витаминный комплекс (B2, B12, D2)', type: 'safe' }
+        ],
+        safeAlternativeId: 'nutcrunch'
+      },
+      {
+        id: 'protein_bar',
+        name: 'Almaty Protein Bar',
+        type: 'Протеиновый батончик Ореховый',
+        volume: '60 г',
+        price: 650,
+        priceStr: '650 ₸',
+        ean: '4870002345678',
+        shelfTier: 'upper',
+        slotIndex: 1,
+        category: 'Спортивное питание / Снеки',
+        kbju: { kcal: 420, protein: '32 г', fat: '18 г', carbs: '28 г' },
+        geometryType: 'bar',
+        color: '#B45309',
+        accentColor: '#F59E0B',
+        flags: { halal: true, noNuts: false, noLactose: false, noGluten: true, noSugar: false, vegan: false },
+        keyIngredient: 'Сывороточный белок + жареный арахис и фундук (30%)',
+        cautions: ['Аллерген: арахис и фундук', 'Аллерген: сывороточный молочный белок (лактоза)'],
+        ingredients: [
+          { text: 'Концентрат сывороточного белка', type: 'danger', reason: 'Лактоза / животный белок' },
+          { text: 'Жареный арахис дробленый (22%)', type: 'danger', reason: 'Аллерген арахис' },
+          { text: 'Ядра фундука жареные (8%)', type: 'danger', reason: 'Древесный орех' },
+          { text: 'Патока карамельная', type: 'warning', reason: 'Добавленный сахар' },
+          { text: 'Какао-масло натуральное', type: 'safe' }
+        ],
+        safeAlternativeId: 'nutcrunch'
+      },
+      {
+        id: 'zhailau_yogurt',
+        name: 'Жайлау Bio Клубничный',
+        type: 'Биойогурт питьевой',
+        volume: '350 г',
+        price: 540,
+        priceStr: '540 ₸',
+        ean: '4870003456789',
+        shelfTier: 'upper',
+        slotIndex: 2,
+        category: 'Молочные продукты',
+        kbju: { kcal: 85, protein: '3.2 г', fat: '2.5 г', carbs: '12.8 г' },
+        geometryType: 'bottle',
+        color: '#DB2777',
+        accentColor: '#F472B6',
+        flags: { halal: false, noNuts: true, noLactose: false, noGluten: true, noSugar: false, vegan: false },
+        keyIngredient: 'Нормализованное молоко + клубничное пюре с Кармином E120',
+        cautions: ['Краситель Кармин E120 (не Халал, не веган)', 'Коровье молоко (лактоза)', 'Добавленный сахар'],
+        ingredients: [
+          { text: 'Нормализованное коровье молоко', type: 'danger', reason: 'Лактоза' },
+          { text: 'Сахарный сироп', type: 'warning', reason: 'Добавленный сахар' },
+          { text: 'Клубничное пюре', type: 'safe' },
+          { text: 'Закваска бифидобактерий', type: 'safe' },
+          { text: 'Краситель Кармин (E120)', type: 'danger', reason: 'Экстракт кошенили — Не Халал / Не Веган' }
+        ],
+        safeAlternativeId: 'ecomilk'
+      },
+      {
+        id: 'qazaq_dark',
+        name: 'Qazaq Dark 85%',
+        type: 'Горький шоколад на стевии',
+        volume: '90 г',
+        price: 1150,
+        priceStr: '1 150 ₸',
+        ean: '4870004567890',
+        shelfTier: 'upper',
+        slotIndex: 3,
+        category: 'Кондитерские изделия',
+        kbju: { kcal: 530, protein: '9.5 г', fat: '48 г', carbs: '14 г' },
+        geometryType: 'chocolate',
+        color: '#18181B',
+        accentColor: '#EAB308',
+        flags: { halal: true, noNuts: true, noLactose: true, noGluten: true, noSugar: true, vegan: true },
+        keyIngredient: 'Какао-бобы премиум сорта Criollo (85%) & Экстракт стевии',
+        cautions: [],
+        ingredients: [
+          { text: 'Какао тертое отборное (85%)', type: 'safe' },
+          { text: 'Какао-масло прямого отжима', type: 'safe' },
+          { text: 'Подсластитель экстракт листьев стевии', type: 'safe' },
+          { text: 'Лецитин соевый', type: 'safe' },
+          { text: 'Натуральная бурбонская ваниль', type: 'safe' }
+        ],
+        safeAlternativeId: 'altai_granola'
+      },
+      {
+        id: 'steppe_noodles',
+        name: 'Steppe Noodles Острая',
+        type: 'Лапша быстрого приготовления',
+        volume: '120 г',
+        price: 420,
+        priceStr: '420 ₸',
+        ean: '4870005678901',
+        shelfTier: 'lower',
+        slotIndex: 0,
+        category: 'Бакалея / Быстрый обед',
+        kbju: { kcal: 380, protein: '8.0 г', fat: '14 г', carbs: '56 г' },
+        geometryType: 'noodle_cup',
+        color: '#DC2626',
+        accentColor: '#F97316',
+        flags: { halal: true, noNuts: true, noLactose: true, noGluten: false, noSugar: true, vegan: false },
+        keyIngredient: 'Пшеничная лапша + острый бульон на халал говядине с E621',
+        cautions: ['Содержит пшеничный глютен', 'Усилитель вкуса глутамат натрия E621'],
+        ingredients: [
+          { text: 'Мука пшеничная в/с', type: 'danger', reason: 'Глютен' },
+          { text: 'Пальмовое масло рафинированное', type: 'warning', reason: 'Насыщенные жиры' },
+          { text: 'Бульон сухой говяжий (Халал)', type: 'safe' },
+          { text: 'Сушеные овощи (зеленый лук, морковь)', type: 'safe' },
+          { text: 'Глутамат натрия (E621)', type: 'warning', reason: 'Усилитель вкуса E-номер' },
+          { text: 'Острый красный перец чили', type: 'safe' }
+        ],
+        safeAlternativeId: 'nutcrunch'
+      },
+      {
+        id: 'nutcrunch',
+        name: 'NutCrunch Bio Розмарин',
+        type: 'Хрустящие чипсы из нута',
+        volume: '80 г',
+        price: 590,
+        priceStr: '590 ₸',
+        ean: '4870006789012',
+        shelfTier: 'lower',
+        slotIndex: 1,
+        category: 'Полезные снеки',
+        kbju: { kcal: 390, protein: '22 г', fat: '11 г', carbs: '49 г' },
+        geometryType: 'bag',
+        color: '#059669',
+        accentColor: '#34D399',
+        flags: { halal: true, noNuts: true, noLactose: true, noGluten: true, noSugar: true, vegan: true },
+        keyIngredient: 'Цельнозерновая мука из нута & горный розмарин',
+        cautions: [],
+        ingredients: [
+          { text: 'Мука нутовая цельнозерновая (нут)', type: 'safe' },
+          { text: 'Мука рисовая шлифованная (без глютена)', type: 'safe' },
+          { text: 'Масло оливковое Extra Virgin', type: 'safe' },
+          { text: 'Морская соль', type: 'safe' },
+          { text: 'Листья горного сушеного розмарина', type: 'safe' }
+        ],
+        safeAlternativeId: 'ecomilk'
+      },
+      {
+        id: 'nomad_cola',
+        name: 'Nomad Cola Zero',
+        type: 'Газированный напиток без сахара',
+        volume: '500 мл',
+        price: 380,
+        priceStr: '380 ₸',
+        ean: '4870007890123',
+        shelfTier: 'lower',
+        slotIndex: 2,
+        category: 'Безалкогольные напитки',
+        kbju: { kcal: 0.8, protein: '0 г', fat: '0 г', carbs: '0 г' },
+        geometryType: 'can',
+        color: '#1F2937',
+        accentColor: '#EF4444',
+        flags: { halal: true, noNuts: true, noLactose: true, noGluten: true, noSugar: true, vegan: true },
+        keyIngredient: 'Артезианская вода + карамельный колер + аспартам E951',
+        cautions: ['Искусственный подсластитель Аспартам E951', 'Ортофосфорная кислота E338'],
+        ingredients: [
+          { text: 'Вода артезианская подготовленная', type: 'safe' },
+          { text: 'Карамельный колер IV (E150d)', type: 'safe' },
+          { text: 'Ортофосфорная кислота (E338)', type: 'warning', reason: 'Регулятор кислотности' },
+          { text: 'Подсластитель Аспартам (E951)', type: 'warning', reason: 'Синтетический подсластитель' },
+          { text: 'Кофеин натуральный', type: 'safe' }
+        ],
+        safeAlternativeId: 'ecomilk'
+      },
+      {
+        id: 'altai_granola',
+        name: 'Altai Honey & Berry',
+        type: 'Запеченная медовая гранола',
+        volume: '400 г',
+        price: 1690,
+        priceStr: '1 690 ₸',
+        ean: '4870008901234',
+        shelfTier: 'lower',
+        slotIndex: 3,
+        category: 'Сухие завтраки',
+        kbju: { kcal: 360, protein: '9.0 г', fat: '7.5 г', carbs: '64 г' },
+        geometryType: 'tub',
+        color: '#78350F',
+        accentColor: '#F59E0B',
+        flags: { halal: true, noNuts: true, noLactose: true, noGluten: false, noSugar: false, vegan: false },
+        keyIngredient: 'Цельные злаки + натуральный горный мёд ВКО (18%) + лесные ягоды',
+        cautions: ['Овсяные хлопья (глютен)', 'Натуральный мёд (природные сахара)'],
+        ingredients: [
+          { text: 'Хлопья овсяные цельнозерновые обжаренные', type: 'warning', reason: 'Содержит глютен овса' },
+          { text: 'Натуральный горный мёд ВКО (18%)', type: 'safe' },
+          { text: 'Ягоды брусники и черники сублимированные', type: 'safe' },
+          { text: 'Семена золотистого льна', type: 'safe' },
+          { text: 'Экстракт корицы', type: 'safe' }
+        ],
+        safeAlternativeId: 'qazaq_dark'
+      }
+    ];
+
+    let currentSelectedId = 'ecomilk';
+    let currentViewMode = 'shelf'; // 'shelf' | 'xray'
+
+    function computeProductStatus(product, filters) {
+      const violations = [];
+
+      if (filters.halal && !product.flags.halal) {
+        violations.push('Не соответствует стандарту Халал (Кармин E120)');
+      }
+      if (filters.noNuts && !product.flags.noNuts) {
+        violations.push('Содержит орехи (арахис/фундук)');
+      }
+      if (filters.noLactose && !product.flags.noLactose) {
+        violations.push('Содержит лактозу (молочные ингредиенты)');
+      }
+      if (filters.noGluten && !product.flags.noGluten) {
+        violations.push('Содержит глютен (пшеница/овес)');
+      }
+      if (filters.noSugar && !product.flags.noSugar) {
+        violations.push('Содержит добавленный сахар или сироп');
+      }
+      if (filters.vegan && !product.flags.vegan) {
+        violations.push('Не подходит для веганов (животное сырьё)');
+      }
+
+      if (violations.length > 0) {
+        return {
+          status: 'danger',
+          badgeText: '✕ НЕ ПОДХОДИТ',
+          color: '#EF4444',
+          hexNumber: 0xEF4444,
+          violations: violations,
+          summary: 'Обнаружены компоненты, противоречащие вашему профилю:'
+        };
+      }
+
+      if (product.cautions.length > 0) {
+        return {
+          status: 'warning',
+          badgeText: '⚠️ ОСТОРОЖНО',
+          color: '#F59E0B',
+          hexNumber: 0xF59E0B,
+          violations: product.cautions,
+          summary: 'Содержит пищевые добавки, требующие внимания:'
+        };
+      }
+
+      return {
+        status: 'success',
+        badgeText: '✓ ПОДХОДИТ',
+        color: '#10B981',
+        hexNumber: 0x10B981,
+        violations: [],
+        summary: 'Продукт на 100% безопасен и соответствует вашему профилю питания!'
+      };
+    }
+
+    /* =========================================================================
+       2. THREE.JS PROCEDURAL TEXTURES GENERATOR
+       ========================================================================= */
+    function createProceduralTexture(product) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+
+      // Base background gradient
+      const grad = ctx.createLinearGradient(0, 0, 0, 512);
+      grad.addColorStop(0, product.color);
+      grad.addColorStop(1, '#070913');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 512, 512);
+
+      // Subtle geometric border / accent frame
+      ctx.strokeStyle = product.accentColor;
+      ctx.lineWidth = 14;
+      ctx.strokeRect(16, 16, 480, 480);
+
+      // Top brand banner
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.fillRect(20, 20, 472, 80);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 36px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('KÖRSET FIT-CHECK', 256, 72);
+
+      // Main product title
+      ctx.font = 'bold 42px sans-serif';
+      ctx.fillStyle = product.accentColor;
+      ctx.fillText(product.name, 256, 160);
+
+      // Subtitle
+      ctx.font = '24px sans-serif';
+      ctx.fillStyle = '#E5E7EB';
+      ctx.fillText(product.type, 256, 205);
+
+      // Badges block
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+      ctx.beginPath();
+      ctx.roundRect(40, 240, 432, 60, 12);
+      ctx.fill();
+
+      ctx.font = 'bold 22px sans-serif';
+      ctx.fillStyle = '#10B981';
+      ctx.textAlign = 'left';
+      ctx.fillText('✓ HALAL QMDB', 60, 278);
+
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#F3F4F6';
+      ctx.fillText(product.volume + ' · ' + product.priceStr, 450, 278);
+
+      // Procedural EAN-13 Barcode generator
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(60, 340, 392, 110);
+
+      ctx.fillStyle = '#000000';
+      ctx.textAlign = 'center';
+      let x = 80;
+      // Draw procedural barcode stripes
+      for (let i = 0; i < 48; i++) {
+        const w = (i % 3 === 0 || i % 7 === 0) ? 6 : 3;
+        ctx.fillRect(x, 350, w, 65);
+        x += w + ((i % 4 === 0) ? 4 : 2);
+        if (x > 430) break;
+      }
+
+      ctx.font = 'bold 20px monospace';
+      ctx.fillText(product.ean, 256, 438);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.generateMipmaps = true;
+      return texture;
+    }
+
+    function createBadgeTexture(badgeText, colorHex) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 320;
+      canvas.height = 80;
+      const ctx = canvas.getContext('2d');
+
+      // Pill background
+      ctx.fillStyle = 'rgba(17, 19, 30, 0.9)';
+      ctx.beginPath();
+      ctx.roundRect(8, 8, 304, 64, 32);
+      ctx.fill();
+
+      // Glowing neon border
+      ctx.strokeStyle = colorHex;
+      ctx.lineWidth = 6;
+      ctx.stroke();
+
+      // Badge text
+      ctx.fillStyle = colorHex;
+      ctx.font = 'bold 30px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(badgeText, 160, 40);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      return texture;
+    }
+
+    /* =========================================================================
+       3. THREE.JS 3D SCENE SETUP
+       ========================================================================= */
+    let scene, camera, renderer, controls;
+    let shelfGroup, productsGroup;
+    let productMeshMap = new Map();
+    let badgeSpritesMap = new Map();
+    let haloRingsMap = new Map();
+    let laserBeamLine, laserConeMesh;
+    let holographicPodiumGroup;
+    let raycaster, mouse;
+
+    const canvasEl = document.getElementById('webgl-canvas');
+
+    function init3D() {
+      // Scene
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x07080D);
+      scene.fog = new THREE.FogExp2(0x07080D, 0.12);
+
+      // Camera
+      camera = new THREE.PerspectiveCamera(
+        42,
+        canvasEl.clientWidth / canvasEl.clientHeight,
+        0.1,
+        100
+      );
+      camera.position.set(0, 0.8, 3.8);
+
+      // Renderer
+      renderer = new THREE.WebGLRenderer({
+        canvas: canvasEl,
+        antialias: true,
+        alpha: true,
+        powerPreference: 'high-performance'
+      });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(canvasEl.clientWidth, canvasEl.clientHeight);
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.1;
+
+      // Controls
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.06;
+      controls.maxPolarAngle = Math.PI / 2 + 0.05;
+      controls.minDistance = 1.4;
+      controls.maxDistance = 6.0;
+      controls.target.set(0, 0.25, 0);
+
+      // Raycaster & Mouse for clicking
+      raycaster = new THREE.Raycaster();
+      mouse = new THREE.Vector2();
+
+      // Lights
+      const ambientLight = new THREE.AmbientLight(0x1e1b4b, 1.3);
+      scene.add(ambientLight);
+
+      const mainLight = new THREE.DirectionalLight(0xffffff, 1.8);
+      mainLight.position.set(3, 5, 4);
+      scene.add(mainLight);
+
+      const purpleRim = new THREE.DirectionalLight(0x7c5cfc, 2.5);
+      purpleRim.position.set(-4, 3, -3);
+      scene.add(purpleRim);
+
+      const cyanSide = new THREE.DirectionalLight(0x06b6d4, 1.2);
+      cyanSide.position.set(4, -1, 2);
+      scene.add(cyanSide);
+
+      // Build 3D Supermarket Shelf
+      buildSupermarketShelf();
+
+      // Build 8 3D Products
+      buildAllProducts();
+
+      // Build 3D Volumetric Scanning Laser Beam
+      buildScanningLaser();
+
+      // Build Holographic X-Ray Stage
+      buildHolographicStage();
+
+      // Event Listeners
+      window.addEventListener('resize', onWindowResize);
+      canvasEl.addEventListener('pointerdown', onCanvasClick);
+
+      // Render Loop
+      animate(0);
+    }
+
+    /* -------------------------------------------------------------------------
+       3.1 Supermarket Two-Tier Shelf Model
+       ------------------------------------------------------------------------- */
+    function buildSupermarketShelf() {
+      shelfGroup = new THREE.Group();
+
+      const shelfMat = new THREE.MeshStandardMaterial({
+        color: 0x141724,
+        metalness: 0.8,
+        roughness: 0.25
+      });
+
+      const frameMat = new THREE.MeshStandardMaterial({
+        color: 0x0f111c,
+        metalness: 0.9,
+        roughness: 0.3
+      });
+
+      const ledMat = new THREE.MeshBasicMaterial({
+        color: 0xc4b5fd,
+        transparent: true,
+        opacity: 0.95
+      });
+
+      // Side Steel Frames
+      const leftCol = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.2, 0.85), frameMat);
+      leftCol.position.set(-1.95, 0.25, 0);
+      shelfGroup.add(leftCol);
+
+      const rightCol = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.2, 0.85), frameMat);
+      rightCol.position.set(1.95, 0.25, 0);
+      shelfGroup.add(rightCol);
+
+      // Back Panel with dark micro-perforations
+      const backPanel = new THREE.Mesh(new THREE.BoxGeometry(3.9, 2.2, 0.04), frameMat);
+      backPanel.position.set(0, 0.25, -0.42);
+      shelfGroup.add(backPanel);
+
+      // Upper Shelf Tier (y = 0.6)
+      const upperShelf = new THREE.Mesh(new THREE.BoxGeometry(3.82, 0.07, 0.82), shelfMat);
+      upperShelf.position.set(0, 0.6, 0);
+      shelfGroup.add(upperShelf);
+
+      // Upper Shelf LED Strip & Price Rail
+      const upperLed = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.02, 0.02), ledMat);
+      upperLed.position.set(0, 0.57, 0.41);
+      shelfGroup.add(upperLed);
+
+      // Upper Shelf Downlight
+      const upperLight = new THREE.PointLight(0xa78bfa, 1.2, 2.5);
+      upperLight.position.set(0, 0.55, 0.2);
+      shelfGroup.add(upperLight);
+
+      // Lower Shelf Tier (y = -0.3)
+      const lowerShelf = new THREE.Mesh(new THREE.BoxGeometry(3.82, 0.07, 0.82), shelfMat);
+      lowerShelf.position.set(0, -0.3, 0);
+      shelfGroup.add(lowerShelf);
+
+      // Lower Shelf LED Strip
+      const lowerLed = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.02, 0.02), ledMat);
+      lowerLed.position.set(0, -0.33, 0.41);
+      shelfGroup.add(lowerLed);
+
+      // Base Platform
+      const baseFloor = new THREE.Mesh(new THREE.BoxGeometry(4.1, 0.1, 1.0), frameMat);
+      baseFloor.position.set(0, -0.85, 0.05);
+      shelfGroup.add(baseFloor);
+
+      // Reflective floor circle
+      const floorCircle = new THREE.Mesh(
+        new THREE.CircleGeometry(3.2, 48),
+        new THREE.MeshStandardMaterial({
+          color: 0x090b14,
+          roughness: 0.4,
+          metalness: 0.6
+        })
+      );
+      floorCircle.rotation.x = -Math.PI / 2;
+      floorCircle.position.y = -0.9;
+      shelfGroup.add(floorCircle);
+
+      scene.add(shelfGroup);
+    }
+
+    /* -------------------------------------------------------------------------
+       3.2 The 8 Products Procedural 3D Geometry
+       ------------------------------------------------------------------------- */
+    function buildAllProducts() {
+      productsGroup = new THREE.Group();
+
+      const xCoords = [-1.35, -0.45, 0.45, 1.35];
+
+      PRODUCTS.forEach((p) => {
+        const pGroup = new THREE.Group();
+        pGroup.userData = { id: p.id, product: p };
+
+        const yBase = p.shelfTier === 'upper' ? 0.635 : -0.265;
+        const xPos = xCoords[p.slotIndex];
+        const zPos = 0.05;
+
+        pGroup.position.set(xPos, yBase, zPos);
+
+        const tex = createProceduralTexture(p);
+        let mesh;
+
+        if (p.geometryType === 'carton') {
+          // Milk Carton
+          const geom = new THREE.BoxGeometry(0.3, 0.54, 0.3);
+          const mats = [
+            new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.3 }),
+            new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.3 }),
+            new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 }),
+            new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3 }),
+            new THREE.MeshStandardMaterial({ map: tex, roughness: 0.25, metalness: 0.1 }),
+            new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.3 })
+          ];
+          mesh = new THREE.Mesh(geom, mats);
+          mesh.position.y = 0.27;
+
+          // Screw Cap
+          const cap = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.045, 0.045, 0.03, 16),
+            new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 })
+          );
+          cap.position.set(0.06, 0.555, 0.06);
+          pGroup.add(cap);
+
+        } else if (p.geometryType === 'bar') {
+          // Protein Bar (flat snack)
+          const geom = new THREE.BoxGeometry(0.44, 0.08, 0.22);
+          const mat = new THREE.MeshStandardMaterial({
+            map: tex,
+            roughness: 0.2,
+            metalness: 0.6
+          });
+          mesh = new THREE.Mesh(geom, mat);
+          mesh.position.y = 0.04;
+          mesh.rotation.y = 0.15;
+
+        } else if (p.geometryType === 'bottle') {
+          // Drinking Yogurt Bottle
+          const geom = new THREE.CylinderGeometry(0.12, 0.13, 0.44, 24);
+          const mat = new THREE.MeshStandardMaterial({
+            map: tex,
+            roughness: 0.25,
+            metalness: 0.05
+          });
+          mesh = new THREE.Mesh(geom, mat);
+          mesh.position.y = 0.22;
+
+          // Cap
+          const cap = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.075, 0.075, 0.04, 20),
+            new THREE.MeshStandardMaterial({ color: 0xbe185d, roughness: 0.2, metalness: 0.5 })
+          );
+          cap.position.y = 0.46;
+          pGroup.add(cap);
+
+        } else if (p.geometryType === 'chocolate') {
+          // Chocolate Tablet
+          const geom = new THREE.BoxGeometry(0.32, 0.48, 0.045);
+          const mats = [
+            new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.8 }),
+            new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.8 }),
+            new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.8 }),
+            new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.8 }),
+            new THREE.MeshStandardMaterial({ map: tex, roughness: 0.4 }),
+            new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.4 })
+          ];
+          mesh = new THREE.Mesh(geom, mats);
+          mesh.position.y = 0.24;
+
+        } else if (p.geometryType === 'noodle_cup') {
+          // Noodle Cup
+          const geom = new THREE.CylinderGeometry(0.2, 0.15, 0.38, 24);
+          const mat = new THREE.MeshStandardMaterial({
+            map: tex,
+            roughness: 0.35
+          });
+          mesh = new THREE.Mesh(geom, mat);
+          mesh.position.y = 0.19;
+
+        } else if (p.geometryType === 'bag') {
+          // Snack Bag (NutCrunch)
+          const geom = new THREE.BoxGeometry(0.36, 0.46, 0.14);
+          const mat = new THREE.MeshStandardMaterial({
+            map: tex,
+            roughness: 0.4,
+            metalness: 0.2
+          });
+          mesh = new THREE.Mesh(geom, mat);
+          mesh.position.y = 0.23;
+
+        } else if (p.geometryType === 'can') {
+          // Beverage Can (Nomad Cola)
+          const geom = new THREE.CylinderGeometry(0.12, 0.12, 0.48, 28);
+          const mat = new THREE.MeshStandardMaterial({
+            map: tex,
+            roughness: 0.15,
+            metalness: 0.85
+          });
+          mesh = new THREE.Mesh(geom, mat);
+          mesh.position.y = 0.24;
+
+          // Silver rims
+          const topRim = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.122, 0.122, 0.02, 28),
+            new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.9, roughness: 0.1 })
+          );
+          topRim.position.y = 0.48;
+          pGroup.add(topRim);
+
+        } else if (p.geometryType === 'tub') {
+          // Granola Canister Tub
+          const geom = new THREE.CylinderGeometry(0.19, 0.19, 0.44, 28);
+          const mat = new THREE.MeshStandardMaterial({
+            map: tex,
+            roughness: 0.45
+          });
+          mesh = new THREE.Mesh(geom, mat);
+          mesh.position.y = 0.22;
+
+          // Wooden Lid
+          const lid = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.2, 0.2, 0.03, 28),
+            new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.6 })
+          );
+          lid.position.y = 0.45;
+          pGroup.add(lid);
+        }
+
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        pGroup.add(mesh);
+
+        // 3D Floating Status Badge above product
+        const badgeSpriteMat = new THREE.SpriteMaterial({
+          map: createBadgeTexture('✓ ПОДХОДИТ', '#10B981'),
+          transparent: true
+        });
+        const badgeSprite = new THREE.Sprite(badgeSpriteMat);
+        badgeSprite.scale.set(0.65, 0.16, 1);
+        badgeSprite.position.set(0, 0.68, 0);
+        pGroup.add(badgeSprite);
+        badgeSpritesMap.set(p.id, badgeSprite);
+
+        // Glowing Pulsing Halo Ring under product on the shelf
+        const haloGeom = new THREE.RingGeometry(0.16, 0.26, 32);
+        const haloMat = new THREE.MeshBasicMaterial({
+          color: 0x10b981,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.85,
+          blending: THREE.AdditiveBlending
+        });
+        const haloMesh = new THREE.Mesh(haloGeom, haloMat);
+        haloMesh.rotation.x = -Math.PI / 2;
+        haloMesh.position.set(0, 0.005, 0);
+        pGroup.add(haloMesh);
+        haloRingsMap.set(p.id, haloMesh);
+
+        productMeshMap.set(p.id, pGroup);
+        productsGroup.add(pGroup);
+      });
+
+      scene.add(productsGroup);
+    }
+
+    /* -------------------------------------------------------------------------
+       3.3 WebAR Volumetric Laser Scanning Beam
+       ------------------------------------------------------------------------- */
+    function buildScanningLaser() {
+      // Volumetric laser cone (from AR camera to item)
+      const coneGeom = new THREE.ConeGeometry(0.18, 2.2, 16, 1, true);
+      const coneMat = new THREE.MeshBasicMaterial({
+        color: 0x7c5cfc,
+        transparent: true,
+        opacity: 0.25,
+        wireframe: true,
+        blending: THREE.AdditiveBlending
+      });
+      laserConeMesh = new THREE.Mesh(coneGeom, coneMat);
+      scene.add(laserConeMesh);
+
+      // Core bright laser line
+      const lineGeom = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(1.4, 0.8, 1.2),
+        new THREE.Vector3(0, 0, 0)
+      ]);
+      const lineMat = new THREE.LineBasicMaterial({
+        color: 0xc4b5fd,
+        linewidth: 3,
+        transparent: true,
+        opacity: 0.9,
+        blending: THREE.AdditiveBlending
+      });
+      laserBeamLine = new THREE.Line(lineGeom, lineMat);
+      scene.add(laserBeamLine);
+    }
+
+    /* -------------------------------------------------------------------------
+       3.4 Mode B: Holographic X-Ray Stage & Pedestal
+       ------------------------------------------------------------------------- */
+    function buildHolographicStage() {
+      holographicPodiumGroup = new THREE.Group();
+      holographicPodiumGroup.position.set(0, -0.4, 0);
+      holographicPodiumGroup.visible = false;
+
+      // Concentric glowing holographic rings
+      for (let r = 0.4; r <= 1.0; r += 0.2) {
+        const ring = new THREE.Mesh(
+          new THREE.RingGeometry(r, r + 0.02, 48),
+          new THREE.MeshBasicMaterial({
+            color: 0x9d7bff,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.75,
+            blending: THREE.AdditiveBlending
+          })
+        );
+        ring.rotation.x = -Math.PI / 2;
+        holographicPodiumGroup.add(ring);
+      }
+
+      // Vertical holographic light cylinder
+      const holoCylinder = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.85, 0.85, 0.9, 32, 1, true),
+        new THREE.MeshBasicMaterial({
+          color: 0x7c5cfc,
+          transparent: true,
+          opacity: 0.12,
+          wireframe: true,
+          blending: THREE.AdditiveBlending
+        })
+      );
+      holoCylinder.position.y = 0.45;
+      holographicPodiumGroup.add(holoCylinder);
+
+      scene.add(holographicPodiumGroup);
+    }
+
+    /* =========================================================================
+       4. INTERACTION, CLICK DETECTION & ANIMATION
+       ========================================================================= */
+    function onCanvasClick(event) {
+      if (currentViewMode === 'xray') return;
+
+      const rect = canvasEl.getBoundingClientRect();
+      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(productsGroup.children, true);
+
+      if (intersects.length > 0) {
+        let obj = intersects[0].object;
+        while (obj && (!obj.userData || !obj.userData.id)) {
+          obj = obj.parent;
+        }
+        if (obj && obj.userData && obj.userData.id) {
+          selectProduct(obj.userData.id);
+        }
+      }
+    }
+
+    function selectProduct(productId) {
+      currentSelectedId = productId;
+      updateUI();
+    }
+
+    function selectSafeAlternative() {
+      const prod = PRODUCTS.find((p) => p.id === currentSelectedId);
+      if (prod && prod.safeAlternativeId) {
+        selectProduct(prod.safeAlternativeId);
+      }
+    }
+
+    function setViewMode(mode) {
+      currentViewMode = mode;
+      document.getElementById('btn-mode-shelf').classList.toggle('active', mode === 'shelf');
+      document.getElementById('btn-mode-xray').classList.toggle('active', mode === 'xray');
+
+      const arVf = document.getElementById('ar-viewfinder');
+      const xrayHud = document.getElementById('xray-hud');
+
+      if (mode === 'xray') {
+        arVf.classList.add('hidden');
+        xrayHud.classList.add('active');
+        holographicPodiumGroup.visible = true;
+
+        // Shelf moves back/fades
+        shelfGroup.visible = false;
+        laserConeMesh.visible = false;
+        laserBeamLine.visible = false;
+
+        // Hide all products except selected
+        PRODUCTS.forEach((p) => {
+          const mesh = productMeshMap.get(p.id);
+          if (mesh) {
+            mesh.visible = (p.id === currentSelectedId);
+          }
+        });
+
+        // Reposition camera for macro X-Ray inspection
+        camera.position.set(0, 0.4, 2.0);
+        controls.target.set(0, 0.2, 0);
+
+      } else {
+        // Mode 'shelf'
+        arVf.classList.remove('hidden');
+        xrayHud.classList.remove('active');
+        holographicPodiumGroup.visible = false;
+
+        shelfGroup.visible = true;
+        laserConeMesh.visible = true;
+        laserBeamLine.visible = true;
+
+        // Show all products in shelf positions
+        PRODUCTS.forEach((p) => {
+          const mesh = productMeshMap.get(p.id);
+          if (mesh) {
+            mesh.visible = true;
+            // Restore shelf coordinates
+            const xCoords = [-1.35, -0.45, 0.45, 1.35];
+            const yBase = p.shelfTier === 'upper' ? 0.635 : -0.265;
+            mesh.position.set(xCoords[p.slotIndex], yBase, 0.05);
+            mesh.rotation.set(0, 0, 0);
+          }
+        });
+
+        camera.position.set(0, 0.8, 3.8);
+        controls.target.set(0, 0.25, 0);
+      }
+
+      updateUI();
+    }
+
+    function toggleFilter(filterId) {
+      userFilters[filterId] = !userFilters[filterId];
+      renderFilterPills();
+      updateAllProductStatuses();
+      updateUI();
+    }
+
+    function updateAllProductStatuses() {
+      PRODUCTS.forEach((p) => {
+        const res = computeProductStatus(p, userFilters);
+
+        // Update 3D floating sprite badge texture
+        const sprite = badgeSpritesMap.get(p.id);
+        if (sprite) {
+          sprite.material.map = createBadgeTexture(res.badgeText, res.color);
+          sprite.material.needsUpdate = true;
+        }
+
+        // Update floor glowing halo ring color
+        const halo = haloRingsMap.get(p.id);
+        if (halo) {
+          halo.material.color.setHex(res.hexNumber);
+        }
+      });
+    }
+
+    function updateUI() {
+      const prod = PRODUCTS.find((p) => p.id === currentSelectedId) || PRODUCTS[0];
+      const verdict = computeProductStatus(prod, userFilters);
+
+      // Header card
+      document.getElementById('sidebar-category').textContent = prod.category;
+      document.getElementById('sidebar-ean').textContent = prod.ean;
+      document.getElementById('sidebar-title').textContent = prod.name;
+      document.getElementById('sidebar-subtitle').textContent = prod.type;
+      document.getElementById('sidebar-price').textContent = prod.priceStr;
+      document.getElementById('sidebar-volume').textContent = prod.volume;
+
+      const headCard = document.getElementById('product-header-card');
+      headCard.style.setProperty('--product-theme-color', verdict.color);
+
+      // Verdict card
+      const verdictCard = document.getElementById('fitcheck-card');
+      verdictCard.className = 'fitcheck-verdict-card ' + verdict.status;
+
+      const badge = document.getElementById('verdict-badge');
+      badge.textContent = verdict.badgeText;
+
+      document.getElementById('verdict-explanation').textContent = verdict.summary;
+
+      const cautionsUl = document.getElementById('verdict-cautions');
+      cautionsUl.innerHTML = '';
+      if (verdict.violations.length > 0) {
+        verdict.violations.forEach((v) => {
+          const li = document.createElement('li');
+          li.innerHTML = `<span>⚠️</span> <span>${v}</span>`;
+          cautionsUl.appendChild(li);
+        });
+      }
+
+      // Safe alternative CTA visibility
+      const btnSafeAlt = document.getElementById('btn-safe-alt');
+      if (verdict.status === 'danger' && prod.safeAlternativeId) {
+        btnSafeAlt.style.display = 'flex';
+      } else {
+        btnSafeAlt.style.display = 'none';
+      }
+
+      // KBJU
+      document.getElementById('kbju-kcal').textContent = prod.kbju.kcal;
+      document.getElementById('kbju-protein').textContent = prod.kbju.protein;
+      document.getElementById('kbju-fat').textContent = prod.kbju.fat;
+      document.getElementById('kbju-carbs').textContent = prod.kbju.carbs;
+
+      // Key ingredient
+      document.getElementById('sidebar-key-ing').innerHTML = `<strong>Ключевой компонент:</strong> ${prod.keyIngredient}`;
+
+      // Ingredients chips
+      const ingBox = document.getElementById('sidebar-ingredients');
+      ingBox.innerHTML = '';
+      prod.ingredients.forEach((ing) => {
+        const chip = document.createElement('div');
+        chip.className = `ing-chip ${ing.type}`;
+        chip.textContent = ing.text + (ing.reason ? ` (${ing.reason})` : '');
+        ingBox.appendChild(chip);
+      });
+
+      // AR Viewfinder update
+      document.getElementById('ar-ean-display').textContent = `EAN: ${prod.ean}`;
+      const arStatus = document.getElementById('ar-status-display');
+      arStatus.textContent = verdict.badgeText;
+      arStatus.style.color = verdict.color;
+
+      // Holographic X-Ray HUD in Mode B
+      document.getElementById('holo-verdict').textContent = verdict.badgeText;
+      document.getElementById('holo-verdict').style.color = verdict.color;
+      document.getElementById('holo-kbju').textContent = `${prod.kbju.kcal} ккал · Б ${prod.kbju.protein} · Ж ${prod.kbju.fat} · У ${prod.kbju.carbs}`;
+      document.getElementById('holo-ean').textContent = `${prod.ean} · ${prod.priceStr}`;
+      document.getElementById('holo-ingredient').textContent = prod.keyIngredient;
+
+      // Update thumbnails in sidebar
+      renderThumbnails();
+    }
+
+    function renderFilterPills() {
+      const container = document.getElementById('filters-container');
+      container.innerHTML = '';
+      FILTER_DEFS.forEach((f) => {
+        const pill = document.createElement('div');
+        const isActive = !!userFilters[f.id];
+        pill.className = `filter-pill ${isActive ? 'active' : ''}`;
+        pill.innerHTML = `<span>${f.label}</span> <span class="check-mark">✓</span>`;
+        pill.onclick = () => toggleFilter(f.id);
+        container.appendChild(pill);
+      });
+    }
+
+    function renderThumbnails() {
+      const container = document.getElementById('shelf-thumbs-grid');
+      container.innerHTML = '';
+      PRODUCTS.forEach((p) => {
+        const verdict = computeProductStatus(p, userFilters);
+        const card = document.createElement('div');
+        card.className = `product-thumb-card ${p.id === currentSelectedId ? 'active' : ''}`;
+        card.innerHTML = `
+          <div class="thumb-status-dot ${verdict.status}"></div>
+          <div class="thumb-name">${p.name}</div>
+          <div class="thumb-price">${p.priceStr}</div>
+        `;
+        card.onclick = () => selectProduct(p.id);
+        container.appendChild(card);
+      });
+    }
+
+    function onWindowResize() {
+      camera.aspect = canvasEl.clientWidth / canvasEl.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(canvasEl.clientWidth, canvasEl.clientHeight);
+    }
+
+    /* -------------------------------------------------------------------------
+       5. MAIN RENDER / ANIMATION LOOP
+       ------------------------------------------------------------------------- */
+    function animate(time) {
+      requestAnimationFrame(animate);
+
+      const sec = time * 0.001;
+
+      // Controls update for smooth damping
+      controls.update();
+
+      // Floating animation for 3D status badges
+      badgeSpritesMap.forEach((sprite, id) => {
+        const prod = PRODUCTS.find((p) => p.id === id);
+        if (prod) {
+          const offset = Math.sin(sec * 2.5 + prod.slotIndex) * 0.035;
+          sprite.position.y = 0.68 + offset;
+        }
+      });
+
+      // Halo ring pulse
+      haloRingsMap.forEach((halo, id) => {
+        const pulse = 1.0 + Math.sin(sec * 3.0) * 0.06;
+        halo.scale.set(pulse, pulse, pulse);
+      });
+
+      // Mode A: Update Volumetric Laser Targeting to current selected product
+      if (currentViewMode === 'shelf') {
+        const selMesh = productMeshMap.get(currentSelectedId);
+        if (selMesh) {
+          const targetWorldPos = new THREE.Vector3();
+          selMesh.getWorldPosition(targetWorldPos);
+          targetWorldPos.y += 0.22; // Point directly at barcode
+
+          const cameraOrigin = new THREE.Vector3(1.3, 0.9, 1.4);
+
+          // Update laser beam line
+          const positions = laserBeamLine.geometry.attributes.position.array;
+          positions[0] = cameraOrigin.x;
+          positions[1] = cameraOrigin.y;
+          positions[2] = cameraOrigin.z;
+          positions[3] = targetWorldPos.x;
+          positions[4] = targetWorldPos.y;
+          positions[5] = targetWorldPos.z;
+          laserBeamLine.geometry.attributes.position.needsUpdate = true;
+
+          // Position and orient laser cone
+          const midPoint = new THREE.Vector3().addVectors(cameraOrigin, targetWorldPos).multiplyScalar(0.5);
+          laserConeMesh.position.copy(midPoint);
+          laserConeMesh.lookAt(targetWorldPos);
+          laserConeMesh.rotateX(Math.PI / 2);
+          const dist = cameraOrigin.distanceTo(targetWorldPos);
+          laserConeMesh.scale.set(1, dist / 2.2, 1);
+        }
+      } else if (currentViewMode === 'xray') {
+        // Mode B: Continuous smooth product rotation & hologram effects
+        const activeMesh = productMeshMap.get(currentSelectedId);
+        if (activeMesh) {
+          activeMesh.position.set(0, 0.15 + Math.sin(sec * 1.8) * 0.04, 0);
+          activeMesh.rotation.y = sec * 0.7;
+        }
+
+        // Rotate holographic rings
+        if (holographicPodiumGroup) {
+          holographicPodiumGroup.rotation.y = -sec * 0.4;
+        }
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    /* Initialize on DOM Ready */
+    window.addEventListener('DOMContentLoaded', () => {
+      renderFilterPills();
+      init3D();
+      updateAllProductStatuses();
+      updateUI();
+    });
+  </script>
+</body>
+</html>

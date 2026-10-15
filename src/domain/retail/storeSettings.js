@@ -1,4 +1,22 @@
 const AI_STORE_NOTES_LIMIT = 500
+
+export const STORE_TYPES = [
+  { id: 'minimarket', labelKey: 'retail.settings.typeMinimarket', fallbackRu: 'Минимаркет', fallbackKz: 'Минимаркет' },
+  { id: 'supermarket', labelKey: 'retail.settings.typeSupermarket', fallbackRu: 'Супермаркет', fallbackKz: 'Супермаркет' },
+  { id: 'convenience', labelKey: 'retail.settings.typeConvenience', fallbackRu: 'Магазин у дома', fallbackKz: 'Үй жанындағы дүкен' },
+  { id: 'halal', labelKey: 'retail.settings.typeHalal', fallbackRu: 'Халал маркет', fallbackKz: 'Халал маркет' },
+  { id: 'specialty', labelKey: 'retail.settings.typeSpecialty', fallbackRu: 'Специализированный', fallbackKz: 'Мамандандырылған' },
+]
+
+export function getStoreTypeLabel(type, t, lang = 'ru') {
+  const normType = type === 'other' ? 'convenience' : type
+  const matched = STORE_TYPES.find((item) => item.id === normType)
+  if (!matched) return t?.('retail.settings.typeMinimarket') || 'Минимаркет'
+  const localized = t ? t(matched.labelKey) : null
+  if (localized && localized !== matched.labelKey) return localized
+  return lang === 'kz' ? matched.fallbackKz : matched.fallbackRu
+}
+
 const STORE_SETTINGS_COLUMNS = new Set([
   'name',
   'address',
@@ -113,7 +131,7 @@ export function buildRetailStoreSettingsPayload(settings = {}) {
         ? settings.temporary_closure
         : null,
     features: normFeatures,
-    type: cleanString(settings.type, 40) || 'minimarket',
+    type: settings.type === 'other' ? 'convenience' : cleanString(settings.type, 40) || 'minimarket',
   }
 }
 

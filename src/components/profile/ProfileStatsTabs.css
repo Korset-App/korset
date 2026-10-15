@@ -1,216 +1,119 @@
-/* ==========================================================================
- * ProfileStatsTabs — three-tab stats block (favorites / preferences / history)
- *
- * Visual layout follows the user's mock-ups exactly:
- *
- *   ┌──────┐ ┌──────┐ ┌──────┐         ← row of three rounded cards
- *   │  5   │ │  3   │ │  8   │           (each with its own border)
- *   └──────┘ └──────┘ └──────┘
- *           ↕ 12px gap
- *   ┌──────────────────────────┐       ← single rounded panel below
- *   │  expandable content       │
- *   └──────────────────────────┘
- *
- * Two SEPARATE blocks — no fused silhouette, no overlap, no morph.
- *
- * Cross-browser notes baked into this file:
- *   • Panel expansion uses CSS grid-template-rows 0fr↔1fr (Chromium 118+,
- *     Firefox 121+, Safari 17.4+). Older engines: panel still toggles
- *     correctly via opacity + min-height; only the height transition is
- *     skipped, no functional regression.
- *   • backdrop-filter fallback under @supports keeps cards readable in
- *     Firefox versions that don't support it (FF<103).
- *   • aspect-ratio + min-height are both set so layout never collapses
- *     when one isn't supported.
- *   • All colours come from theme variables → light + dark both work.
- * ==========================================================================*/
-
 .stats-tabs {
   position: relative;
+  --stats-surface: var(--surface);
 }
 
-/* Per-tab tone variables — used for the active card's border / tint and for
- * the spinner colour inside the panel. */
 .stats-tabs.tone-favorites {
-  --tone-color: rgba(245, 158, 11, 0.55);
-  --tone-tint: rgba(245, 158, 11, 0.08);
-  --tone-color-strong: #f59e0b;
+  --tone-color: var(--additive);
+  --tone-color-strong: var(--additive);
 }
 .stats-tabs.tone-preferences {
-  --tone-color: rgba(167, 139, 250, 0.55);
-  --tone-tint: rgba(167, 139, 250, 0.10);
-  --tone-color-strong: #a78bfa;
+  --tone-color: var(--primary-bright);
+  --tone-color-strong: var(--primary-bright);
 }
 .stats-tabs.tone-history {
-  --tone-color: rgba(52, 211, 153, 0.55);
-  --tone-tint: rgba(52, 211, 153, 0.08);
-  --tone-color-strong: #34d399;
+  --tone-color: var(--success);
+  --tone-color-strong: var(--success-bright);
 }
-
-/* ─── Row of three cards ───────────────────────────────────────────────── */
 
 .stats-tabs__row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
+  padding-top: 22px;
 }
-
-@media (min-width: 600px) {
-  .stats-tabs__row {
-    gap: 14px;
-  }
-}
-
-/* ─── Single card ──────────────────────────────────────────────────────── */
 
 .stat-card {
+  --stat-accent: var(--primary-bright);
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-end;
-  gap: 5px;
-  padding: 26px 8px 14px;
-  /*
-   * Fixed pixel height ensures identical rendering across Chromium, Firefox,
-   * and WebKit without aspect-ratio grid discrepancies, while maintaining a
-   * balanced vertical rectangular proportion (~1:1.18 on mobile).
-   */
-  height: 128px;
-  border: 1.5px solid var(--glass-border);
-  border-radius: 22px;
-  background: var(--glass-bg);
+  gap: 10px;
+  min-width: 0;
+  height: 156px;
+  padding: 36px 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--stats-surface);
   cursor: pointer;
-  outline: none;
   font-family: var(--font-display);
-  color: inherit;
-  transition:
-    border-color 0.3s cubic-bezier(0.22, 1, 0.36, 1),
-    background 0.3s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+  color: var(--text);
+  transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
 }
 
-/* Glass blur is purely decorative; without it the solid --glass-bg is
- * already perfectly readable, so we apply it only when the engine supports
- * it. Older Firefox / WebView builds simply get a flat translucent panel. */
-@supports (backdrop-filter: blur(8px)) or (-webkit-backdrop-filter: blur(8px)) {
-  .stat-card {
-    backdrop-filter: blur(28px);
-    -webkit-backdrop-filter: blur(28px);
-  }
-}
+.stat-card--favorites { --stat-accent: var(--additive); }
+.stat-card--history { --stat-accent: var(--success); }
 
-.stat-card:active {
-  transform: scale(0.97);
-}
-
+.stat-card:active { transform: scale(0.98); }
 .stat-card:focus-visible {
-  border-color: var(--tone-color, rgba(167, 139, 250, 0.6));
+  outline: 2px solid var(--stat-accent);
+  outline-offset: 3px;
 }
-
-/* Active card: tone-coloured border + faint background tint, exactly like
- * the mock-ups. Shape stays fully rounded (no flat corners). */
 .stat-card.is-active {
-  border-color: var(--tone-color);
-  background:
-    linear-gradient(180deg, var(--tone-tint) 0%, transparent 75%),
-    var(--glass-bg);
+  border-color: color-mix(in srgb, var(--stat-accent) 65%, var(--border));
+  background: color-mix(in srgb, var(--stat-accent) 6%, var(--stats-surface));
 }
 
 .stat-card__icon-wrap {
   position: absolute;
-  top: -18px;
+  top: -22px;
   left: 50%;
   transform: translateX(-50%);
   width: 44px;
   height: 44px;
-  border-radius: 50%;
+  flex: none;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--stat-accent) 28%, var(--stats-surface));
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid;
-  background: var(--glass-bg);
-  z-index: 3;
+  color: var(--stat-accent);
+  background: color-mix(in srgb, var(--stat-accent) 9%, var(--stats-surface));
 }
-
-/*
- * Baseline numbers: centered inside card body.
- */
+.stat-card__icon-wrap > svg { width: 32px; height: 32px; }
 .stat-card__value {
+  margin-block: auto;
   font-size: 36px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1;
-  color: var(--text);
-  margin-top: auto;
-  margin-bottom: auto;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
 }
-
-/*
- * Fixed 28px height accommodates 2 lines ("Список покупок", "Сатып алу тізімі")
- * without clipping, while single-line labels remain vertically centered.
- * Guarantees all 3 digits share identical vertical baseline.
- */
 .stat-card__label {
-  font-size: 10.5px;
-  font-weight: 600;
-  color: var(--text-sub);
-  letter-spacing: -0.1px;
-  text-align: center;
-  line-height: 1.25;
-  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
-  max-width: 100%;
-  margin-top: 2px;
-  word-break: normal;
-  overflow-wrap: break-word;
+  min-height: 28px;
+  margin-top: auto;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-sub);
+  text-align: center;
+  line-height: 1.3;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
 }
+.stat-card.is-active .stat-card__label { color: var(--text); }
 
-/* Smaller phones (≤360px width — iPhone SE, older Androids): scale down slightly */
+@media (hover: hover) {
+  .stat-card:hover { border-color: var(--stat-accent); }
+}
 @media (max-width: 360px) {
-  .stat-card {
-    height: 120px;
-    padding: 22px 4px 12px;
-  }
-  .stat-card__icon-wrap {
-    width: 40px;
-    height: 40px;
-    top: -16px;
-  }
-  .stat-card__value {
-    font-size: 32px;
-  }
-  .stat-card__label {
-    font-size: 9.5px;
-    height: 26px;
-    line-height: 1.2;
-  }
+  .stats-tabs__row { gap: 8px; }
+  .stat-card { height: 152px; padding-inline: 5px; }
+  .stat-card__value { font-size: 32px; }
+  .stat-card__label { font-size: 10.5px; }
 }
-
-/* Tablets and up: bigger, more impactful. */
 @media (min-width: 600px) {
-  .stat-card {
-    height: 160px;
-    padding: 32px 12px 18px;
-    border-radius: 26px;
-  }
-  .stat-card__icon-wrap {
-    width: 52px;
-    height: 52px;
-    top: -22px;
-  }
-  .stat-card__value {
-    font-size: 46px;
-  }
-  .stat-card__label {
-    font-size: 12px;
-    height: 28px;
-    line-height: 1.25;
-  }
+  .stats-tabs__row { gap: 14px; }
+  .stat-card { height: 170px; padding: 36px 12px 16px; }
+  .stat-card__value { font-size: 40px; }
+  .stat-card__label { font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stats-tabs .stat-card { transition: none; transform: none; }
 }
 
 /* ─── Panel beneath ──────────────────────────────────────────────────────
@@ -255,24 +158,10 @@
 }
 
 .stats-tabs__panel {
-  border: 1.5px solid var(--glass-border);
-  border-radius: 22px;
-  background: var(--glass-bg);
-  padding: 22px 18px 24px;
-  transition: border-color 0.3s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-@supports (backdrop-filter: blur(8px)) or (-webkit-backdrop-filter: blur(8px)) {
-  .stats-tabs__panel {
-    backdrop-filter: blur(28px);
-    -webkit-backdrop-filter: blur(28px);
-  }
-}
-
-.stats-tabs__panel.tone-favorites,
-.stats-tabs__panel.tone-preferences,
-.stats-tabs__panel.tone-history {
-  border-color: var(--tone-color);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--stats-surface);
+  padding: 20px 16px;
 }
 
 @media (min-width: 600px) {
@@ -634,41 +523,6 @@
   line-height: 1.4;
 }
 
-
-/* ==========================================================================
- * Light Theme Contrast Optimizations
- * ==========================================================================*/
-
-:root[data-theme='light'] .stat-card {
-  background: color-mix(in srgb, var(--bg-card) 98%, var(--bg-app));
-  border-color: rgba(78, 99, 132, 0.2);
-  box-shadow:
-    0 8px 22px rgba(61, 87, 128, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.95);
-}
-
-:root[data-theme='light'] .stat-card.is-active {
-  border-color: var(--tone-color-strong);
-  background:
-    linear-gradient(180deg, var(--tone-tint) 0%, transparent 80%),
-    color-mix(in srgb, var(--bg-card) 98%, var(--bg-app));
-  box-shadow:
-    0 10px 26px rgba(61, 87, 128, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.95);
-}
-
-:root[data-theme='light'] .stat-card__icon-wrap {
-  background: color-mix(in srgb, var(--bg-card) 98%, var(--bg-app));
-  box-shadow: 0 4px 14px rgba(61, 87, 128, 0.12);
-}
-
-:root[data-theme='light'] .stats-tabs__panel {
-  background: color-mix(in srgb, var(--bg-card) 98%, var(--bg-app));
-  border-color: rgba(78, 99, 132, 0.2);
-  box-shadow:
-    0 12px 32px rgba(61, 87, 128, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.95);
-}
 
 .stats-tabs__load-error {
   display: flex;

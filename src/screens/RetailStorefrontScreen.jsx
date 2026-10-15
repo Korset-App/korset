@@ -1,23 +1,17 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useI18n } from '../i18n/index.js'
 import { useStore } from '../contexts/StoreContext.jsx'
-import { supabase } from '../utils/supabase.js'
-import { compressImage } from '../utils/imageCompressor.js'
-import QRCode from 'react-qr-code'
 import StoreLivePreviewCard from '../components/retail/StoreLivePreviewCard.jsx'
 import StorePhotosManager from '../components/retail/StorePhotosManager.jsx'
-import ImageCropModal from '../components/retail/ImageCropModal.jsx'
+import StorefrontBrandingCard from '../components/retail/storefront/StorefrontBrandingCard.jsx'
+import StorefrontQrCard from '../components/retail/storefront/StorefrontQrCard.jsx'
+import RetailQrDialog from '../components/retail/RetailQrDialog.jsx'
 import RetailSaveBar from '../components/retail/RetailSaveBar.jsx'
 import {
   EyeIcon,
   ExternalLinkIcon,
-  QrCodeIcon,
-  StorefrontIcon,
-  CameraIcon,
   CheckCircleIcon,
-  SyncIcon,
   ShareIcon,
-  ChevronDownIcon,
 } from '../components/icons/index.js'
 
 const CARD_STYLE = {
@@ -34,21 +28,7 @@ const FIELD_LABEL = {
   textTransform: 'uppercase',
   letterSpacing: '0.5px',
   color: 'var(--text-dim)',
-  marginBottom: 8,
-}
-
-const INPUT_STYLE = {
-  width: '100%',
-  padding: '11px 14px',
-  borderRadius: 12,
-  border: '1px solid var(--retail-border)',
-  background: 'var(--glass-bg)',
-  color: 'var(--text)',
-  fontSize: 14,
-  outline: 'none',
-  boxSizing: 'border-box',
-  fontFamily: 'var(--font-body)',
-  transition: 'border-color 0.15s ease',
+  marginBottom: 16,
 }
 
 export default function RetailStorefrontScreen() {
@@ -72,17 +52,14 @@ export default function RetailStorefrontScreen() {
   })
 
   const [logoUrl, setLogoUrl] = useState(currentStore?.logo_url || null)
-  const [logoUploading, setLogoUploading] = useState(false)
-  const [isCropModalOpen, setIsCropModalOpen] = useState(false)
-  const [cropImageSrc, setCropImageSrc] = useState(null)
-
   const [isDirty, setIsDirty] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState(null)
   const [saveErrorMessage, setSaveErrorMessage] = useState('')
   const [copied, setCopied] = useState(false)
+  const [isQrDialogOpen, setIsQrDialogOpen] = useState(false)
 
-  const logoInputRef = useRef(null)
+  const printButtonRef = useRef(null)
 
   // Sync state when store loads or changes
   useEffect(() => {
@@ -104,6 +81,18 @@ export default function RetailStorefrontScreen() {
     setSaveStatus(null)
   }, [])
 
+  const handleLogoChange = useCallback(
+    async (nextLogoUrl) => {
+      setLogoUrl(nextLogoUrl)
+      setIsDirty(true)
+      setSaveStatus(null)
+      if (currentStore?.id) {
+        await updateStoreSettings({ logo_url: nextLogoUrl })
+      }
+    },
+    [currentStore?.id, updateStoreSettings]
+  )
+
   const handleCopyLink = async () => {
     try {
       if (navigator.clipboard) {
@@ -113,60 +102,6 @@ export default function RetailStorefrontScreen() {
       }
     } catch {
       /* noop */
-    }
-  }
-
-  // Logo file selection and crop modal trigger
-  const handleLogoFileSelect = (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const objectUrl = URL.createObjectURL(file)
-    setCropImageSrc(objectUrl)
-    setIsCropModalOpen(true)
-    e.target.value = ''
-  }
-
-  // Confirmed crop -> compression -> upload to Supabase storage
-  const handleCropConfirmed = async (croppedBlob) => {
-    setIsCropModalOpen(false)
-    if (!croppedBlob || !currentStore?.id) return
-
-    setLogoUploading(true)
-    try {
-      const compressed = await compressImage(croppedBlob, {
-        maxWidth: 512,
-        maxHeight: 512,
-        quality: 0.85,
-        targetSizeKB: 180,
-      })
-
-      const ext = 'webp'
-      const path = `stores/${currentStore.id}/logo_${Date.now()}.${ext}`
-
-      const { error: uploadErr } = await supabase.storage
-        .from('avatars')
-        .upload(path, compressed, { upsert: true, contentType: 'image/webp' })
-
-      if (uploadErr) throw uploadErr
-
-      const { data: publicData } = supabase.storage.from('avatars').getPublicUrl(path)
-      const nextUrl = publicData?.publicUrl
-
-      if (nextUrl) {
-        setLogoUrl(nextUrl)
-        setIsDirty(true)
-        setSaveStatus(null)
-        // Auto-persist logo url
-        await updateStoreSettings({ logo_url: nextUrl })
-      }
-    } catch (err) {
-      alert(err.message || 'Ошибка загрузки логотипа')
-    } finally {
-      setLogoUploading(false)
-      if (cropImageSrc) {
-        URL.revokeObjectURL(cropImageSrc)
-        setCropImageSrc(null)
-      }
     }
   }
 
@@ -230,23 +165,17 @@ export default function RetailStorefrontScreen() {
     short_description: settings.short_description,
     phone: currentStore?.phone,
     is_published: isPublished,
+    temporary_closure: currentStore?.temporary_closure,
   }
 
   return (
-    <div className="retail-screen-canvas" style={{ padding: '0 0 100px' }}>
-      <ImageCropModal
-        isOpen={isCropModalOpen}
-        imageSrc={cropImageSrc}
-        onConfirm={handleCropConfirmed}
-        onClose={() => {
-          setIsCropModalOpen(false)
-          if (cropImageSrc) {
-            URL.revokeObjectURL(cropImageSrc)
-            setCropImageSrc(null)
-          }
-        }}
-      />
-
+    <div
+      className="retail-screen-canvas"
+      style={{
+        padding: isDirty ? '0 0 160px' : '0 0 100px',
+        transition: 'padding-bottom 0.2s ease',
+      }}
+    >
       {/* ── Top Bar: Title & Quick Actions ── */}
       <div
         style={{
@@ -273,12 +202,12 @@ export default function RetailStorefrontScreen() {
             }}
           >
             <EyeIcon size={24} color="var(--retail-accent, #38BDF8)" />
-            <span>{t('retail.nav.storefront') || 'Витрина покупателя'}</span>
+            <span>{t('retail.nav.storefront') || (isKz ? 'Дүкен сөресі' : 'Витрина покупателя')}</span>
           </h1>
           <p style={{ margin: 0, fontSize: 13, color: 'var(--text-sub)', lineHeight: 1.45 }}>
             {isKz
               ? 'Сатып алушылар дүкеніңізді смартфоннан қалай көретінін реттеңіз'
-              : 'Настройте брендинг, логотип, фотографии и материалы витрины для покупателей'}
+              : 'Настройте брендинг, логотип, фотографии полок и печатные материалы для покупателей'}
           </p>
         </div>
 
@@ -346,251 +275,30 @@ export default function RetailStorefrontScreen() {
         )}
       </div>
 
-      {/* ── 2-Column Responsive Layout ── */}
+      {/* ── 2-Column Responsive Layout (safe down to 320px) ── */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
-          gap: 28,
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))',
+          gap: 24,
           alignItems: 'start',
         }}
       >
         {/* Left Column: Editor Controls */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           {/* 1. Брендинг и логотип */}
-          <div style={CARD_STYLE}>
-            <div style={{ ...FIELD_LABEL, marginBottom: 16 }}>
-              {isKz ? '1. БРЕНДИНГ ЖӘНЕ ЛОГОТИП' : '1. БРЕНДИНГ И ЛОГОТИП'}
-            </div>
-
-            {/* Logo Row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 20 }}>
-              <div
-                onClick={() => logoInputRef.current?.click()}
-                title={logoUrl ? 'Изменить логотип' : 'Загрузить логотип'}
-                style={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: 20,
-                  border: '1.5px solid var(--retail-border)',
-                  background: 'var(--surface)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  overflow: 'hidden',
-                  position: 'relative',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-                }}
-              >
-                {logoUrl ? (
-                  <img
-                    src={logoUrl}
-                    alt="Store logo"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                ) : (
-                  <StorefrontIcon size={32} color="var(--text-dim)" />
-                )}
-
-                <div
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    background: 'rgba(0,0,0,0.4)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    opacity: logoUrl ? 0 : 1,
-                    transition: 'opacity 0.15s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (logoUrl) e.currentTarget.style.opacity = '1'
-                  }}
-                  onMouseLeave={(e) => {
-                    if (logoUrl) e.currentTarget.style.opacity = '0'
-                  }}
-                >
-                  <CameraIcon size={24} color="#ffffff" />
-                </div>
-
-                {logoUploading && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      background: 'rgba(0,0,0,0.7)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <SyncIcon
-                      size={22}
-                      color="var(--retail-accent)"
-                      style={{ animation: 'spin 1s linear infinite' }}
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 3 }}
-                >
-                  {isKz ? 'Дүкен логотипі' : 'Логотип магазина'}
-                </div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: 'var(--text-dim)',
-                    lineHeight: 1.4,
-                    marginBottom: 10,
-                  }}
-                >
-                  {isKz
-                    ? '1:1 шаршы формат · Автоматты қысу'
-                    : 'Квадрат 1:1 · Автоматическая обрезка и оптимизация'}
-                </div>
-
-                <input
-                  ref={logoInputRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  style={{ display: 'none' }}
-                  onChange={handleLogoFileSelect}
-                />
-
-                <button
-                  type="button"
-                  onClick={() => logoInputRef.current?.click()}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '7px 14px',
-                    borderRadius: 10,
-                    background: 'rgba(56, 189, 248, 0.1)',
-                    border: '1px solid rgba(56, 189, 248, 0.25)',
-                    color: 'var(--retail-accent, #38BDF8)',
-                    fontSize: 12.5,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  <CameraIcon size={14} />
-                  <span>
-                    {logoUrl
-                      ? isKz
-                        ? 'Өзгерту'
-                        : 'Заменить фото'
-                      : isKz
-                        ? 'Жүктеу'
-                        : 'Загрузить логотип'}
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Slogan / Short description */}
-            <div style={{ marginBottom: 18 }}>
-              <div style={FIELD_LABEL}>
-                {isKz ? 'Слоган немесе қысқа сипаттама' : 'Слоган или подзаголовок'}
-              </div>
-              <input
-                type="text"
-                value={settings.short_description}
-                onChange={(e) => handleChange('short_description', e.target.value)}
-                placeholder={
-                  isKz
-                    ? 'Мысалы: Үй жанындағы жаңа піскен халал өнімдер'
-                    : 'Например: Свежая выпечка и халал-продукты у дома'
-                }
-                maxLength={120}
-                style={INPUT_STYLE}
-              />
-              <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>
-                {isKz
-                  ? 'Витринада атаудың астында көрсетіледі'
-                  : 'Отображается сразу под названием на главной витрине'}
-              </div>
-            </div>
-
-            {/* Store Type Format */}
-            <div style={{ marginBottom: 18 }}>
-              <div style={FIELD_LABEL}>
-                {isKz ? 'Сауда нүктесінің форматы' : 'Формат торговой точки'}
-              </div>
-              <div style={{ position: 'relative' }}>
-                <select
-                  value={settings.type || 'minimarket'}
-                  onChange={(e) => handleChange('type', e.target.value)}
-                  style={{
-                    ...INPUT_STYLE,
-                    appearance: 'none',
-                    WebkitAppearance: 'none',
-                    paddingRight: 36,
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                  }}
-                >
-                  <option value="minimarket">
-                    {t('retail.settings.typeMinimarket') || 'Минимаркет'}
-                  </option>
-                  <option value="supermarket">
-                    {t('retail.settings.typeSupermarket') || 'Супермаркет'}
-                  </option>
-                  <option value="halal">{t('retail.settings.typeHalal') || 'Халал маркет'}</option>
-                  <option value="specialty">
-                    {t('retail.settings.typeSpecialty') || 'Специализированный'}
-                  </option>
-                  <option value="convenience">
-                    {t('retail.settings.typeConvenience') || 'Магазин у дома'}
-                  </option>
-                </select>
-                <div
-                  style={{
-                    position: 'absolute',
-                    right: 12,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    pointerEvents: 'none',
-                    color: 'var(--text-dim)',
-                  }}
-                >
-                  <ChevronDownIcon size={16} />
-                </div>
-              </div>
-            </div>
-
-            {/* Description */}
-            <div>
-              <div style={FIELD_LABEL}>
-                {isKz ? 'Толық сипаттама' : 'Описание витрины для покупателей'}
-              </div>
-              <textarea
-                value={settings.description}
-                onChange={(e) => handleChange('description', e.target.value)}
-                placeholder={
-                  isKz
-                    ? 'Дүкен ерекшеліктері, ассортимент, автотұрақ...'
-                    : 'Особенности магазина, свежие поставки, режим работы и парковка...'
-                }
-                rows={3}
-                style={{
-                  ...INPUT_STYLE,
-                  resize: 'vertical',
-                  minHeight: 76,
-                  lineHeight: 1.45,
-                }}
-              />
-            </div>
-          </div>
+          <StorefrontBrandingCard
+            storeId={currentStore?.id}
+            settings={settings}
+            logoUrl={logoUrl}
+            onSettingChange={handleChange}
+            onLogoChange={handleLogoChange}
+            disabled={isSaving}
+          />
 
           {/* 2. Фотографии магазина */}
           <div style={CARD_STYLE}>
-            <div style={{ ...FIELD_LABEL, marginBottom: 16 }}>
+            <div style={FIELD_LABEL}>
               {isKz ? '2. ДҮКЕННІҢ ФОТОСУРЕТТЕРІ' : '2. ФОТОГРАФИИ МАГАЗИНА И ПОЛОК'}
             </div>
             <StorePhotosManager
@@ -603,129 +311,33 @@ export default function RetailStorefrontScreen() {
           </div>
 
           {/* 3. Готовый комплект QR-материалов */}
-          <div style={CARD_STYLE}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-              <div
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 10,
-                  background: 'rgba(56, 189, 248, 0.12)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <QrCodeIcon size={22} color="var(--retail-accent, #38BDF8)" />
-              </div>
-              <div>
-                <h3
-                  style={{
-                    margin: 0,
-                    fontSize: 15,
-                    fontWeight: 700,
-                    fontFamily: 'var(--font-display)',
-                    color: 'var(--text)',
-                  }}
-                >
-                  {isKz ? '3. Касса мен сөрелерге арналған QR' : '3. Печать QR-материалов для зала'}
-                </h3>
-                <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>
-                  {isKz
-                    ? 'Сатып алушыларға арналған баспа макеті'
-                    : 'Готовый фирменный комплект для входной группы'}
-                </span>
-              </div>
-            </div>
-
-            <p
-              style={{
-                margin: '0 0 16px',
-                fontSize: 13,
-                color: 'var(--text-sub)',
-                lineHeight: 1.5,
-              }}
-            >
-              {isKz
-                ? 'Бұл QR-кодты басып шығарып, кассаның қасына немесе кіреберіске орнатыңыз. Сатып алушылар телефонмен сканерлеп, витринаны бірден ашады.'
-                : 'Покупатели сканируют этот QR-код камерой смартфона при входе в магазин или на кассе, чтобы открыть мобильную витрину.'}
-            </p>
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 16,
-                padding: '14px 16px',
-                borderRadius: 14,
-                background: 'var(--glass-subtle)',
-                border: '1px solid var(--line-soft)',
-              }}
-            >
-              <div
-                style={{
-                  padding: 8,
-                  borderRadius: 10,
-                  background: '#ffffff',
-                  display: 'inline-flex',
-                  flexShrink: 0,
-                }}
-              >
-                <QRCode value={publicStoreUrl} size={64} />
-              </div>
-
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 2 }}
-                >
-                  {currentStore?.name || 'Körset Store'}
-                </div>
-                <div
-                  style={{
-                    fontSize: 11.5,
-                    color: 'var(--text-dim)',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {publicStoreUrl}
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => window.print()}
-                style={{
-                  padding: '9px 16px',
-                  borderRadius: 10,
-                  background: 'rgba(56, 189, 248, 0.12)',
-                  border: '1px solid rgba(56, 189, 248, 0.28)',
-                  color: 'var(--retail-accent, #38BDF8)',
-                  fontSize: 12.5,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  fontFamily: 'var(--font-display)',
-                  flexShrink: 0,
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                {isKz ? 'Басып шығару' : 'Печать А4'}
-              </button>
-            </div>
-          </div>
+          <StorefrontQrCard
+            storeName={currentStore?.name}
+            publicStoreUrl={publicStoreUrl}
+            onOpenPrintDialog={() => setIsQrDialogOpen(true)}
+          />
         </div>
 
-        {/* Right Column: Live Phone Mockup Preview Card (Sticky on desktop) */}
+        {/* Right Column: Live Customer Preview Card (Sticky on desktop) */}
         <div style={{ position: 'sticky', top: 24 }}>
           <StoreLivePreviewCard
             settings={previewSettingsAdapter}
             logoUrl={logoUrl}
             phones={currentStore?.features?.contacts?.phones || []}
+            storeSlug={storeSlug}
           />
         </div>
       </div>
+
+      {/* Printable QR Dialog */}
+      {isQrDialogOpen && currentStore && (
+        <RetailQrDialog
+          type="cashier"
+          store={currentStore}
+          onClose={() => setIsQrDialogOpen(false)}
+          returnFocusRef={printButtonRef}
+        />
+      )}
 
       {/* Floating Save Bar when user modified fields */}
       <RetailSaveBar

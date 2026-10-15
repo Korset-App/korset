@@ -1,159 +1,63 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { lazy, Suspense, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../i18n/index.js'
 import { useStore } from '../contexts/StoreContext.jsx'
-import { buildRetailAIInsights } from '../domain/retail/aiInsights.js'
+import { useRetailOverview } from '../hooks/useRetailOverview.js'
+import { getRetailPath } from '../domain/retail/navigation.js'
 import { getImageUrl } from '../utils/imageUrl.js'
 import { formatPrice } from '../utils/formatPrice.js'
-import {
-  getScansCount,
-  getUniqueCustomers,
-  getTotalProducts,
-  getTopScannedProducts,
-  getMissedOpportunities,
-  getLostRevenue,
-  getScanCoverage,
-  getAlternativeEventsSummary,
-  getCompareEventsSummary,
-} from '../utils/retailAnalytics.js'
 import { AlertTriangleIcon, EyeIcon } from '../components/icons/index.js'
 import {
   Card,
   Kpi,
   ProductRow,
   MissedRow,
-  InsightRow,
-  StatList,
-  FactLine,
   EmptyState,
   QueryError,
 } from '../components/retail/overview/OverviewParts.jsx'
+import OverviewSignals from '../components/retail/overview/OverviewSignals.jsx'
+import OverviewPriorities from '../components/retail/overview/OverviewPriorities.jsx'
+import OverviewLaunch from '../components/retail/overview/OverviewLaunch.jsx'
 import '../components/retail/overview/overview.css'
 
-const STALE = 2 * 60_000
-const GC = 10 * 60_000
-
-function useRetailQuery(key, fn, enabled, staleTime = STALE) {
-  return useQuery({ queryKey: key, queryFn: fn, enabled, staleTime, gcTime: GC })
-}
+const QrDialog = lazy(() => import('../components/retail/RetailQrDialog.jsx'))
 
 export default function RetailDashboardScreen() {
-  const { t, exists } = useI18n()
+  const { t, format } = useI18n()
   const navigate = useNavigate()
   const { storeId, currentStore } = useStore()
-  const [period, setPeriod] = useState(7)
-  const [missedFilter, setMissedFilter] = useState('all')
-
-  const periodRef = useRef(period)
-  const missedFilterRef = useRef(missedFilter)
-  useEffect(() => {
-    periodRef.current = period
-    missedFilterRef.current = missedFilter
-  })
-
-  useEffect(() => {
-    const handlePopState = () => {
-      if (missedFilterRef.current !== 'all') {
-        setMissedFilter('all')
-      } else if (periodRef.current !== 7) {
-        setPeriod(7)
-      }
-    }
-    window.addEventListener('popstate', handlePopState)
-    return () => window.removeEventListener('popstate', handlePopState)
-  }, [])
-
+  const {
+    period,
+    setPeriod,
+    missedFilter,
+    setMissedFilter,
+    scansQ,
+    uniqueQ,
+    lostQ,
+    coverageQ,
+    totalQ,
+    topQ,
+    missedQ,
+    alternativesQ,
+    compareQ,
+    insights: aiInsights,
+    insightsLoading: aiInsightsLoading,
+    insightsError,
+    retryInsights,
+  } = useRetailOverview(storeId)
+  const [qrOpen, setQrOpen] = useState(false)
+  const qrTrigger = useRef(null)
   const d = (key) => t(`retail.dashboard.${key}`)
   const o = (key, values) => t(`retail.overview.${key}`, values)
 
-  const enabled = Boolean(storeId)
-  const periodLabel = period === 7 ? d('period7d') : d('period30d')
+  const periodLabel = o(`period${period}`)
 
-  const scansQ = useRetailQuery(
-    ['retail-scans', storeId, period],
-    () => getScansCount(storeId, period),
-    enabled
-  )
-  const uniqueQ = useRetailQuery(
-    ['retail-unique-customers', storeId, period],
-    () => getUniqueCustomers(storeId, period),
-    enabled
-  )
-  const lostQ = useRetailQuery(
-    ['retail-lost-revenue', storeId, period],
-    () => getLostRevenue(storeId, period),
-    enabled
-  )
-  const coverageQ = useRetailQuery(
-    ['retail-coverage', storeId, period],
-    () => getScanCoverage(storeId, period),
-    enabled
-  )
-  const totalQ = useRetailQuery(
-    ['retail-total', storeId],
-    () => getTotalProducts(storeId),
-    enabled,
-    5 * 60_000
-  )
-  const topQ = useRetailQuery(
-    ['retail-top', storeId, period],
-    () => getTopScannedProducts(storeId, period, 5),
-    enabled
-  )
-  const missedQ = useRetailQuery(
-    ['retail-missed', storeId, period],
-    () => getMissedOpportunities(storeId, period),
-    enabled
-  )
-  const alternativesQ = useRetailQuery(
-    ['retail-alternatives-summary', storeId, period],
-    () => getAlternativeEventsSummary(storeId, period),
-    enabled
-  )
-  const compareQ = useRetailQuery(
-    ['retail-compare-summary', storeId, period],
-    () => getCompareEventsSummary(storeId, period),
-    enabled
-  )
-
-  const missedAll = missedQ.data ?? []
+  const missedAll = missedQ.data?.items ?? []
   const missedFiltered = missedAll.filter(
     (item) => missedFilter === 'all' || item.reason === missedFilter
   )
   const notInCatalogCount = missedAll.filter((i) => i.reason === 'not_in_catalog').length
   const outOfStockCount = missedAll.filter((i) => i.reason === 'out_of_stock').length
-
-  const aiInsights = useMemo(
-    () =>
-      buildRetailAIInsights({
-        scansCount: scansQ.data ?? 0,
-        totalProducts: totalQ.data ?? 0,
-        scanCoverage: coverageQ.data,
-        lostRevenue: lostQ.data ?? 0,
-        missedOpportunities: missedQ.data ?? [],
-        topProducts: topQ.data ?? [],
-        alternativeSummary: alternativesQ.data,
-      }),
-    [
-      alternativesQ.data,
-      coverageQ.data,
-      lostQ.data,
-      missedQ.data,
-      scansQ.data,
-      topQ.data,
-      totalQ.data,
-    ]
-  )
-
-  const aiInsightsLoading =
-    scansQ.isLoading ||
-    totalQ.isLoading ||
-    coverageQ.isLoading ||
-    lostQ.isLoading ||
-    missedQ.isLoading ||
-    topQ.isLoading ||
-    alternativesQ.isLoading
 
   const missedTabs = [
     { key: 'all', label: d('missedFilterAll') },
@@ -165,35 +69,30 @@ export default function RetailDashboardScreen() {
   const coverageTone = coverageVal >= 70 ? 'pos' : coverageVal >= 40 ? 'warn' : 'neg'
   const topMax = Math.max(1, ...(topQ.data ?? []).map((p) => Number(p.scan_count) || 0))
   const lostValue = lostQ.data ?? 0
+  const noScans = scansQ.isSuccess && scansQ.data === 0
 
   const attention = []
   if (notInCatalogCount > 0) {
     attention.push({
       id: 'nic',
       tone: 'neg',
-      text: o('attentionNotInCatalog', { count: notInCatalogCount }),
+      text: o(missedQ.data?.hasMore ? 'attentionNotInCatalogLimited' : 'attentionNotInCatalog', {
+        count: notInCatalogCount,
+      }),
     })
   }
   if (outOfStockCount > 0) {
     attention.push({
       id: 'oos',
       tone: 'warn',
-      text: o('attentionOutOfStock', { count: outOfStockCount }),
+      text: o(missedQ.data?.hasMore ? 'attentionOutOfStockLimited' : 'attentionOutOfStock', {
+        count: outOfStockCount,
+      }),
     })
   }
 
-  const goProducts = () => navigate(`/retail/${currentStore?.slug}/products`)
-
-  const altSummary = alternativesQ.data
-  const cmpSummary = compareQ.data
-  const topScenario = altSummary?.topScenario?.scenario
-    ? t(`retail.dashboard.alternatives.scenario.${altSummary.topScenario.scenario}`)
-    : null
-  const topSource = altSummary?.topSource?.ean ? `EAN ${altSummary.topSource.ean}` : null
-  const topPair = cmpSummary?.topPair
-    ? `${cmpSummary.topPair.eanA} ↔ ${cmpSummary.topPair.eanB}`
-    : null
-  const noSignal = d('alternativesNoSignal')
+  const goProducts = () => navigate(getRetailPath(currentStore?.slug, 'products'))
+  const goRecovery = () => navigate(getRetailPath(currentStore?.slug, 'ean-recovery'))
 
   return (
     <div className="retail-screen-canvas ov">
@@ -206,7 +105,7 @@ export default function RetailDashboardScreen() {
           <button
             type="button"
             className="rc-btn"
-            onClick={() => navigate(`/retail/${currentStore.slug}/settings`)}
+            onClick={() => navigate(getRetailPath(currentStore?.slug, 'settings'))}
           >
             {d('draftWarningBtn')}
           </button>
@@ -215,22 +114,20 @@ export default function RetailDashboardScreen() {
 
       <header className="ov-head">
         <div>
-          <h1 className="ov-title">{currentStore?.name || d('title')}</h1>
-          <p className="ov-sub">{d('subtitle')}</p>
+          <span className="ov-eyebrow">{o('eyebrow')}</span>
+          <h1 className="ov-title">{o('title')}</h1>
+          <p className="ov-sub">{o('subtitle')}</p>
         </div>
-        <div className="rc-seg ov-period" role="group" aria-label={d('title')}>
-          {[7, 30].map((p) => (
+        <div className="rc-seg ov-period" role="group" aria-label={o('period')}>
+          {[1, 7, 14, 30, 90].map((p) => (
             <button
               key={p}
               type="button"
               className="rc-seg__btn"
               aria-pressed={period === p}
-              onClick={() => {
-                if (p !== 7) window.history.pushState({}, '')
-                setPeriod(p)
-              }}
+              onClick={() => setPeriod(p)}
             >
-              {p === 7 ? d('period7d') : d('period30d')}
+              {o(`period${p}`)}
             </button>
           ))}
         </div>
@@ -239,27 +136,26 @@ export default function RetailDashboardScreen() {
       <section className="ov-kpis" aria-label={d('title')}>
         <Kpi
           label={d('scansTitle')}
-          value={scansQ.isError ? '—' : (scansQ.data ?? 0).toLocaleString()}
+          value={scansQ.isError ? '—' : format.number(scansQ.data ?? 0)}
           sub={periodLabel}
           loading={scansQ.isLoading}
+          icon="barcode_scanner"
         />
         <Kpi
           label={d('uniqueCustomers')}
-          value={uniqueQ.isError ? '—' : (uniqueQ.data ?? 0).toLocaleString()}
-          sub={periodLabel}
+          value={uniqueQ.isError ? '—' : format.number(uniqueQ.data ?? 0)}
+          sub={o('identifiedCustomers')}
           loading={uniqueQ.isLoading}
+          icon="group"
         />
         <Kpi
           label={d('catalogCoverage')}
-          value={coverageQ.isError ? '—' : `${coverageVal}%`}
-          sub={
-            totalQ.data != null
-              ? o('coverageOf', { total: Number(totalQ.data).toLocaleString() })
-              : d('catalogCoverageHint')
-          }
+          value={coverageQ.isError || noScans ? '—' : `${coverageVal}%`}
+          sub={noScans ? o('coverageNoScans') : d('catalogCoverageHint')}
           loading={coverageQ.isLoading}
+          icon="verified"
         >
-          {!coverageQ.isLoading && !coverageQ.isError && (
+          {!coverageQ.isLoading && !coverageQ.isError && !noScans && (
             <div className={`ov-meter ov-meter--${coverageTone}`}>
               <span style={{ width: `${Math.min(coverageVal, 100)}%` }} />
             </div>
@@ -267,12 +163,26 @@ export default function RetailDashboardScreen() {
         </Kpi>
         <Kpi
           label={d('lostRevenue')}
-          value={lostQ.isError ? '—' : `~${formatPrice(lostValue)}`}
-          sub={`${periodLabel} · ${d('lostRevenueHint')}`}
+          value={lostQ.isError ? '—' : `${lostValue > 0 ? '≈ ' : ''}${formatPrice(lostValue)}`}
+          sub={o('revenueEstimate')}
           tone={lostValue > 0 ? 'neg' : undefined}
           loading={lostQ.isLoading}
+          icon="payments"
         />
       </section>
+
+      {noScans && totalQ.isSuccess && (
+        <OverviewLaunch
+          products={totalQ.data}
+          published={currentStore?.isPublished !== false}
+          onCatalog={goProducts}
+          onStorefront={() => navigate(getRetailPath(currentStore?.slug, 'storefront'))}
+          onQr={(event) => {
+            qrTrigger.current = event.currentTarget
+            setQrOpen(true)
+          }}
+        />
+      )}
 
       {attention.length > 0 && (
         <Card title={o('attentionTitle')} className="ov-attn">
@@ -282,17 +192,38 @@ export default function RetailDashboardScreen() {
                 <AlertTriangleIcon size={16} color="currentColor" />
               </span>
               <span className="ov-attn__text">{item.text}</span>
-              <button type="button" className="rc-btn" onClick={goProducts}>
-                {o('attentionAction')}
+              <button
+                type="button"
+                className="rc-btn"
+                onClick={item.id === 'nic' ? goRecovery : goProducts}
+              >
+                {o(item.id === 'nic' ? 'checkUnknown' : 'checkStock')}
               </button>
             </div>
           ))}
         </Card>
       )}
 
+      <div className="ov-catalog-note">
+        {totalQ.isError ? (
+          <QueryError
+            label={d('loadError')}
+            retryLabel={d('retry')}
+            onRetry={() => totalQ.refetch()}
+          />
+        ) : (
+          <span>
+            {o('catalogCount', { total: totalQ.isLoading ? '—' : format.number(totalQ.data ?? 0) })}
+          </span>
+        )}
+        <button type="button" className="ov-text-action" onClick={goProducts}>
+          {o('attentionAction')} <span aria-hidden="true">↗</span>
+        </button>
+      </div>
       <div className="ov-grid">
         <div className="ov-col">
           <Card title={d('topProducts')}>
+            <p className="ov-section-note">{o('topNote', { period: periodLabel })}</p>
             {topQ.isError ? (
               <QueryError
                 label={d('loadError')}
@@ -302,16 +233,17 @@ export default function RetailDashboardScreen() {
             ) : topQ.isLoading ? (
               Array.from({ length: 5 }).map((_, i) => <ProductRow key={i} loading />)
             ) : !topQ.data?.length ? (
-              <EmptyState icon="bar_chart" label={d('topEmpty')} sub={d('noDataSub')} />
+              <EmptyState icon="bar_chart" label={d('topEmpty')} sub={o('topEmptyHint')} />
             ) : (
               topQ.data.map((p, i) => {
                 const count = Number(p.scan_count) || 0
                 return (
                   <ProductRow
-                    key={p.ean}
+                    key={p.ean || i}
                     rank={i + 1}
                     name={p.name}
                     scanCount={count}
+                    countText={format.number(count)}
                     share={(count / topMax) * 100}
                     imageUrl={getImageUrl(p.image_url)}
                     scanLabel={d('scans')}
@@ -330,10 +262,7 @@ export default function RetailDashboardScreen() {
                     key={tab.key}
                     type="button"
                     aria-pressed={missedFilter === tab.key}
-                    onClick={() => {
-                      if (tab.key !== 'all') window.history.pushState({}, '')
-                      setMissedFilter(tab.key)
-                    }}
+                    onClick={() => setMissedFilter(tab.key)}
                   >
                     {tab.label}
                   </button>
@@ -341,6 +270,11 @@ export default function RetailDashboardScreen() {
               </div>
             }
           >
+            <p className="ov-section-note">
+              {o(missedQ.data?.hasMore ? 'missedLimited' : 'missedNote', {
+                limit: missedQ.data?.limit ?? 50,
+              })}
+            </p>
             {missedQ.isError ? (
               <QueryError
                 label={d('loadError')}
@@ -350,14 +284,31 @@ export default function RetailDashboardScreen() {
             ) : missedQ.isLoading ? (
               Array.from({ length: 3 }).map((_, i) => <MissedRow key={i} loading />)
             ) : missedFiltered.length === 0 ? (
-              <EmptyState icon="check_circle" label={d('missedEmpty')} sub={d('missedEmptySub')} />
+              <EmptyState
+                icon={noScans ? 'barcode_scanner' : 'check_circle'}
+                label={
+                  noScans
+                    ? o('missedNoScans')
+                    : missedQ.data?.hasMore
+                      ? o('missedSampleEmpty')
+                      : d('missedEmpty')
+                }
+                sub={
+                  noScans
+                    ? o('missedNoScansHint')
+                    : missedQ.data?.hasMore
+                      ? o('missedSampleEmptyHint')
+                      : d('missedEmptySub')
+                }
+              />
             ) : (
-              missedFiltered.map((item) => (
+              missedFiltered.map((item, i) => (
                 <MissedRow
-                  key={item.ean}
+                  key={item.ean || i}
                   ean={item.ean}
                   name={item.name}
                   scanCount={Number(item.scan_count) || 0}
+                  countText={format.number(Number(item.scan_count) || 0)}
                   imageUrl={getImageUrl(item.image_url)}
                   reason={item.reason}
                   scanLabel={d('scans')}
@@ -369,99 +320,51 @@ export default function RetailDashboardScreen() {
           </Card>
         </div>
 
-        <aside className="ov-col">
-          <Card title={d('aiInsightsTitle')}>
-            {aiInsightsLoading ? (
-              Array.from({ length: 3 }).map((_, i) => <InsightRow key={i} loading />)
-            ) : aiInsights.length === 0 ? (
-              <EmptyState
-                icon="insights"
-                label={d('aiInsightsEmpty')}
-                sub={d('aiInsightsEmptySub')}
-              />
-            ) : (
-              aiInsights.map((insight) => {
-                const values = {
-                  ...insight.values,
-                  amountText:
-                    insight.values?.amount != null
-                      ? formatPrice(Number(insight.values.amount) || 0)
-                      : undefined,
-                }
-                return (
-                  <InsightRow
-                    key={insight.id}
-                    insight={insight}
-                    title={t(insight.titleKey, values)}
-                    body={t(insight.bodyKey, values)}
-                    action={exists?.(insight.actionKey) ? t(insight.actionKey, values) : null}
-                  />
-                )
-              })
-            )}
-          </Card>
+        <aside className="ov-col ov-rail">
+          <OverviewPriorities
+            insights={aiInsights}
+            loading={aiInsightsLoading}
+            error={insightsError}
+            retry={retryInsights}
+            partialDemand={missedQ.data?.hasMore}
+            onAction={(id, trigger) => {
+              if (id === 'activate_scans') {
+                qrTrigger.current = trigger
+                setQrOpen(true)
+              } else if (id === 'unknown_ean_demand') goRecovery()
+              else goProducts()
+            }}
+          />
+          {missedQ.data?.hasMore && (
+            <p className="ov-section-note">
+              {o('prioritiesLimited', { limit: missedQ.data.limit })}
+            </p>
+          )}
 
-          <Card title={o('signalsTitle')}>
-            <div className="ov-signal">
-              <div className="ov-signal__head">
-                <span className="ov-signal__name">{d('alternativesTitle')}</span>
-                <span className="ov-signal__total rc-num">
-                  {alternativesQ.isError ? '—' : (altSummary?.total ?? 0)}
-                </span>
-              </div>
-              {alternativesQ.isError ? (
-                <QueryError
-                  label={d('loadError')}
-                  retryLabel={d('retry')}
-                  onRetry={() => alternativesQ.refetch()}
-                />
-              ) : (
-                <>
-                  <p className="ov-signal__hint">{d('alternativesSub')}</p>
-                  <StatList
-                    loading={alternativesQ.isLoading}
-                    items={[
-                      { label: d('alternativesCompare'), value: altSummary?.compareCount ?? 0 },
-                      { label: d('alternativesAI'), value: altSummary?.aiHelpCount ?? 0 },
-                    ]}
-                  />
-                  <FactLine label={d('alternativesTopScenario')} value={topScenario || noSignal} />
-                  <FactLine label={d('alternativesTopSource')} value={topSource || noSignal} />
-                </>
-              )}
-            </div>
-
-            <div className="ov-signal">
-              <div className="ov-signal__head">
-                <span className="ov-signal__name">{d('compareTitle')}</span>
-                <span className="ov-signal__total rc-num">
-                  {compareQ.isError ? '—' : (cmpSummary?.total ?? 0)}
-                </span>
-              </div>
-              {compareQ.isError ? (
-                <QueryError
-                  label={d('loadError')}
-                  retryLabel={d('retry')}
-                  onRetry={() => compareQ.refetch()}
-                />
-              ) : (
-                <>
-                  <p className="ov-signal__hint">{d('compareSub')}</p>
-                  <StatList
-                    loading={compareQ.isLoading}
-                    items={[
-                      { label: d('compareWinner'), value: cmpSummary?.winnerCount ?? 0 },
-                      { label: d('compareDraw'), value: cmpSummary?.drawCount ?? 0 },
-                      { label: d('compareBlocked'), value: cmpSummary?.blockedCount ?? 0 },
-                    ]}
-                  />
-                  <FactLine label={d('compareTopPair')} value={topPair || d('compareNoPair')} />
-                </>
-              )}
-            </div>
-          </Card>
+          <OverviewSignals alternativesQ={alternativesQ} compareQ={compareQ} />
         </aside>
       </div>
+      <button
+        type="button"
+        className="ov-text-action ov-qr-action"
+        onClick={(event) => {
+          qrTrigger.current = event.currentTarget
+          setQrOpen(true)
+        }}
+        disabled={!currentStore?.slug}
+      >
+        {o('showQr')}
+      </button>
+      {qrOpen && (
+        <Suspense fallback={null}>
+          <QrDialog
+            type="cashier"
+            store={currentStore}
+            onClose={() => setQrOpen(false)}
+            returnFocusRef={qrTrigger}
+          />
+        </Suspense>
+      )}
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 
 /**
  * SegmentedToggle — accessible iOS-style segmented control with a sliding
@@ -35,7 +35,7 @@ export default function SegmentedToggle({ options, activeKey, onChange, ariaLabe
   // so the thumb tracks it pixel-perfectly even if labels are different
   // widths. Using getBoundingClientRect lets us be precise without making
   // any assumptions about the segments having equal width.
-  useEffect(() => {
+  useLayoutEffect(() => {
     const measure = () => {
       const container = containerRef.current
       const btn = buttonRefs.current[activeKey]
@@ -75,8 +75,17 @@ export default function SegmentedToggle({ options, activeKey, onChange, ariaLabe
           top: 4,
           bottom: 4,
           left: 0,
-          width: thumbStyle.width,
-          transform: `translateX(${thumbStyle.left}px)`,
+          width: thumbStyle.width || `calc((100% - 6px) / ${options.length})`,
+          transform: `translateX(${
+            thumbStyle.width
+              ? `${thumbStyle.left}px`
+              : `calc(3px + ${
+                  Math.max(
+                    0,
+                    options.findIndex((option) => option.key === activeKey)
+                  ) * 100
+                }%)`
+          })`,
           background: 'var(--primary)',
           borderRadius: 8,
           boxShadow: '0 2px 10px rgba(124, 58, 237, 0.32), 0 1px 0 rgba(255,255,255,0.18) inset',

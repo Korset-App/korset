@@ -231,7 +231,7 @@ export default function StoreAmenitiesEditor({ selectedFeatures = [], onChange }
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       {/* ── Payments Section ── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span
               style={{
@@ -257,7 +257,7 @@ export default function StoreAmenitiesEditor({ selectedFeatures = [], onChange }
             </span>
           </div>
 
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
             <button
               type="button"
               onClick={() => selectAll(PAYMENT_ITEMS)}
@@ -269,6 +269,7 @@ export default function StoreAmenitiesEditor({ selectedFeatures = [], onChange }
                 fontWeight: 600,
                 cursor: 'pointer',
                 padding: '2px 6px',
+                whiteSpace: 'nowrap',
               }}
             >
               {t('retail.settings.selectAll') || 'Все'}
@@ -285,6 +286,7 @@ export default function StoreAmenitiesEditor({ selectedFeatures = [], onChange }
                 fontWeight: 500,
                 cursor: 'pointer',
                 padding: '2px 6px',
+                whiteSpace: 'nowrap',
               }}
             >
               {t('retail.settings.clearAll') || 'Сбросить'}
@@ -295,7 +297,7 @@ export default function StoreAmenitiesEditor({ selectedFeatures = [], onChange }
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(136px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 125px), 1fr))',
             gap: 8,
           }}
         >
@@ -307,7 +309,7 @@ export default function StoreAmenitiesEditor({ selectedFeatures = [], onChange }
 
       {/* ── Amenities Section ── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span
               style={{
@@ -333,7 +335,7 @@ export default function StoreAmenitiesEditor({ selectedFeatures = [], onChange }
             </span>
           </div>
 
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
             <button
               type="button"
               onClick={() => selectAll(AMENITY_ITEMS)}
@@ -345,6 +347,7 @@ export default function StoreAmenitiesEditor({ selectedFeatures = [], onChange }
                 fontWeight: 600,
                 cursor: 'pointer',
                 padding: '2px 6px',
+                whiteSpace: 'nowrap',
               }}
             >
               {t('retail.settings.selectAll') || 'Все'}
@@ -361,6 +364,7 @@ export default function StoreAmenitiesEditor({ selectedFeatures = [], onChange }
                 fontWeight: 500,
                 cursor: 'pointer',
                 padding: '2px 6px',
+                whiteSpace: 'nowrap',
               }}
             >
               {t('retail.settings.clearAll') || 'Сбросить'}
@@ -371,7 +375,7 @@ export default function StoreAmenitiesEditor({ selectedFeatures = [], onChange }
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(136px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 125px), 1fr))',
             gap: 8,
           }}
         >

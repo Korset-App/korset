@@ -356,7 +356,7 @@ export default function StoreScheduleEditor({
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 115px), 1fr))',
           gap: 6,
           background: 'var(--surface)',
           padding: 4,
@@ -377,7 +377,7 @@ export default function StoreScheduleEditor({
               type="button"
               onClick={() => handleModeChange(tab.id)}
               style={{
-                padding: '8px 10px',
+                padding: '8px 8px',
                 borderRadius: 9,
                 border: 'none',
                 background: active ? 'var(--retail-accent, #38BDF8)' : 'transparent',
@@ -387,6 +387,9 @@ export default function StoreScheduleEditor({
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
                 fontFamily: 'var(--font-display)',
+                whiteSpace: 'normal',
+                textAlign: 'center',
+                lineHeight: 1.25,
               }}
             >
               {tab.label}

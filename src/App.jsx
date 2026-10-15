@@ -54,6 +54,7 @@ const EanRecoveryScreen = lazyWithRetry(() => import('./screens/EanRecoveryScree
 const CompareScreen = lazyWithRetry(() => import('./screens/CompareScreen.jsx'))
 const ProductMockScreen = lazyWithRetry(() => import('./screens/_mock/ProductMockScreen.jsx'))
 const SuperAdminStoresScreen = lazyWithRetry(() => import('./screens/SuperAdminStoresScreen.jsx'))
+const ShelfPreviewScreen = lazyWithRetry(() => import('./screens/ShelfPreviewScreen.jsx'))
 
 function RetailIndexRedirect() {
   const location = useLocation()
@@ -69,6 +70,7 @@ function AppInner() {
 
   const hideNav =
     pathname === '/' ||
+    pathname === '/3d-preview' ||
     pathname === '/stores' ||
     pathname === '/qr-print' ||
     pathname === '/auth' ||
@@ -168,6 +170,7 @@ function AppInner() {
 
             {/* Mock screens (dev preview, not in production nav) */}
             <Route path="/_mock/product" element={<ProductMockScreen />} />
+            <Route path="/3d-preview" element={<ShelfPreviewScreen />} />
 
             {/* Super Admin Panel */}
             <Route path="/korset-admin/stores" element={<SuperAdminStoresScreen />} />

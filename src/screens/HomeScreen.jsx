@@ -6,6 +6,7 @@ import ProfileAvatar from '../components/ProfileAvatar.jsx'
 import ShoppingListButton from '../components/ShoppingListButton.jsx'
 import KorsetAvatar from '../components/KorsetAvatar.jsx'
 import SegmentedToggle from '../components/SegmentedToggle.jsx'
+import { MoonGlyph, SunGlyph } from '../components/ThemeGlyphs.jsx'
 import AuthPromptModal from '../components/AuthPromptModal.jsx'
 import { buildAuthNavigateState } from '../utils/authFlow.js'
 import { detectBrowserContext } from '../utils/browserDetection.js'
@@ -321,52 +322,6 @@ function getStoreHours(store, t) {
     store?.opening_hours ||
     STORE_HOURS_FALLBACKS[store?.slug || store?.code] ||
     t('home.openingHoursFallback')
-  )
-}
-
-function SunGlyph({ filled }) {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill={filled ? 'currentColor' : 'none'}
-      stroke="currentColor"
-      strokeWidth={filled ? 1.6 : 2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className={`home-theme-glyph home-theme-glyph--sun${filled ? ' is-filled' : ''}`}
-    >
-      <circle cx="12" cy="12" r="4.6" />
-      <line x1="12" y1="2" x2="12" y2="4" />
-      <line x1="12" y1="20" x2="12" y2="22" />
-      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-      <line x1="2" y1="12" x2="4" y2="12" />
-      <line x1="20" y1="12" x2="22" y2="12" />
-      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-    </svg>
-  )
-}
-
-function MoonGlyph({ filled }) {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill={filled ? 'currentColor' : 'none'}
-      stroke="currentColor"
-      strokeWidth={filled ? 1.4 : 2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className={`home-theme-glyph home-theme-glyph--moon${filled ? ' is-filled' : ''}`}
-    >
-      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-    </svg>
   )
 }
 

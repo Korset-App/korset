@@ -4,6 +4,7 @@ import {
   applySyncedConditions,
   applySyncedRegularFallback,
 } from '../domain/product/syncedConditions.js'
+import { getMissedOpportunitiesPage as loadMissedOpportunitiesPage } from '../domain/retail/missedOpportunities.js'
 
 export function applyRetailSyncedConditions(product, now = Date.now()) {
   if (!product.syncConditions) return product
@@ -66,12 +67,12 @@ export async function getTopScannedProducts(storeId, days, limit = 5) {
 }
 
 export async function getMissedOpportunities(storeId, days) {
-  const { data, error } = await supabase.rpc('get_missed_opportunities', {
-    p_store_id: storeId,
-    p_days_back: days,
-  })
-  if (error) throw new Error(error.message ?? error)
-  return data ?? []
+  const { items } = await getMissedOpportunitiesPage(storeId, days)
+  return items
+}
+
+export async function getMissedOpportunitiesPage(storeId, days, limit) {
+  return loadMissedOpportunitiesPage(supabase, storeId, days, limit)
 }
 
 export async function getUniqueCustomers(storeId, days) {
@@ -200,7 +201,7 @@ export async function getStoreCatalogProducts(storeId, { page = 0, search = '' }
   const from = page * PRODUCTS_PAGE_SIZE
   const to = from + PRODUCTS_PAGE_SIZE - 1
 
-  const buildQuery = (includePromo = true, includeShopping = true, includeSync = true) => {
+  const buildQuery = (includePromo = true, includeShopping = false, includeSync = true) => {
     const promoFields = includePromo ? 'old_price_kzt, discount_percent, is_featured,' : ''
     const shoppingField = includeShopping ? 'is_shopping_recommended,' : ''
     const syncField = includeSync ? 'sync_integration_id,' : ''
@@ -218,7 +219,7 @@ export async function getStoreCatalogProducts(storeId, { page = 0, search = '' }
       )
       .eq('store_id', storeId)
       .eq('is_active', true)
-      .order('created_at', { ascending: false })
+      .order('id')
 
     if (search.trim()) {
       const s = search.trim()
@@ -244,18 +245,16 @@ export async function getStoreCatalogProducts(storeId, { page = 0, search = '' }
   }
 
   let includeSync = true
-  let result = await runQuery(true, true, includeSync)
+  let result = await runQuery(true, false, includeSync)
   if (result.error && /sync_integration_id/i.test(result.error.message ?? '')) {
     includeSync = false
-    result = await runQuery(true, true, includeSync)
+    result = await runQuery(true, false, includeSync)
   }
   if (
     result.error &&
     (result.error.message?.includes('column') || result.error.code === 'PGRST204')
   ) {
-    result = await runQuery(true, false, includeSync)
-    if (result.error) result = await runQuery(false, true, includeSync)
-    if (result.error) result = await runQuery(false, false, includeSync)
+    result = await runQuery(false, false, includeSync)
   }
 
   if (result.error) throw new Error(result.error.message ?? result.error)

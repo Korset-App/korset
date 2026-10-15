@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { PeopleGlyph, CatalogGlyph } from '../RetailGlyphs.jsx'
 import {
   AlertTriangleIcon,
   ArrowForwardIcon,
@@ -22,7 +24,7 @@ const ICON_MAP = {
   verified: VerifiedBadgeIcon,
   verified_user: VerifiedBadgeIcon,
   query_stats: FactCheckIcon,
-  group: ExploreIcon,
+  group: PeopleGlyph,
   warning: AlertTriangleIcon,
   trending_down: ArrowForwardIcon,
   money_off: WalletIcon,
@@ -63,14 +65,25 @@ export function Card({ title, aside, children, className = '' }) {
   )
 }
 
-export function Kpi({ label, value, sub, tone, loading, children }) {
+export function Kpi({ label, value, sub, tone, loading, children, icon }) {
   return (
     <div className={`ov-kpi ${tone ? `ov-kpi--${tone}` : ''}`}>
-      <div className="ov-kpi__label">{label}</div>
+      <div className="ov-kpi__label">
+        {label}
+        {icon && (
+          <span className="ov-kpi__icon">
+            <OvIcon name={icon} size={19} />
+          </span>
+        )}
+      </div>
       {loading ? (
         <Skel h={34} w="60%" r={8} />
       ) : (
-        <div className="ov-kpi__value rc-num">{value}</div>
+        <div
+          className={`ov-kpi__value rc-num ${String(value).length > 10 ? 'ov-kpi__value--long' : ''}`}
+        >
+          {value}
+        </div>
       )}
       {children}
       {sub && <div className="ov-kpi__sub">{sub}</div>}
@@ -103,18 +116,35 @@ export function EmptyState({ icon, label, sub }) {
 }
 
 function Thumb({ src, name }) {
+  const [failedSrc, setFailedSrc] = useState(null)
+  const showPhoto = src && src !== failedSrc
   return (
-    <div className="ov-thumb catalog-img-box">
-      {src ? (
-        <img src={src} alt={name ?? ''} className="product-img-blend" loading="lazy" />
+    <div className={`ov-thumb ${showPhoto ? 'catalog-img-box' : ''}`}>
+      {showPhoto ? (
+        <img
+          src={src}
+          alt={name ?? ''}
+          className="product-img-blend"
+          loading="lazy"
+          onError={() => setFailedSrc(src)}
+        />
       ) : (
-        <InventoryIcon size={18} color="var(--rc-ink-3)" />
+        <CatalogGlyph size={22} />
       )}
     </div>
   )
 }
 
-export function ProductRow({ rank, name, scanCount, share, imageUrl, scanLabel, loading }) {
+export function ProductRow({
+  rank,
+  name,
+  scanCount,
+  countText,
+  share,
+  imageUrl,
+  scanLabel,
+  loading,
+}) {
   if (loading) {
     return (
       <div className="ov-row">
@@ -139,7 +169,7 @@ export function ProductRow({ rank, name, scanCount, share, imageUrl, scanLabel, 
         </div>
       </div>
       <div className="ov-row__metric rc-num">
-        {scanCount.toLocaleString()} <small>{scanLabel}</small>
+        {countText ?? scanCount.toLocaleString()} <small>{scanLabel}</small>
       </div>
     </div>
   )
@@ -149,6 +179,7 @@ export function MissedRow({
   ean,
   name,
   scanCount,
+  countText,
   imageUrl,
   reason,
   scanLabel,
@@ -179,13 +210,13 @@ export function MissedRow({
         </span>
       </div>
       <div className="ov-row__metric rc-num">
-        {scanCount.toLocaleString()} <small>{scanLabel}</small>
+        {countText ?? scanCount.toLocaleString()} <small>{scanLabel}</small>
       </div>
     </div>
   )
 }
 
-export function InsightRow({ insight, title, body, action, loading }) {
+export function InsightRow({ insight, title, body, action, onAction, loading }) {
   if (loading) {
     return (
       <div className="ov-insight">
@@ -206,10 +237,10 @@ export function InsightRow({ insight, title, body, action, loading }) {
         <div className="ov-insight__title">{title}</div>
         <div className="ov-insight__body">{body}</div>
         {action && (
-          <div className="ov-insight__action">
+          <button type="button" className="ov-insight__action" onClick={onAction}>
             <ArrowForwardIcon size={13} color="currentColor" />
             {action}
-          </div>
+          </button>
         )}
       </div>
     </div>

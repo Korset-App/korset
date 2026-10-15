@@ -51,7 +51,7 @@ export const SETTINGS_SECTIONS = [
   },
   {
     id: 'section-notifications',
-    labelKey: 'retail.settings.notificationsTitle',
+    labelKey: 'retail.settings.notifyTitle',
     fallback: 'Уведомления',
     icon: AlertTriangleIcon,
   },

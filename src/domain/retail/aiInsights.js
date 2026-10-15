@@ -150,6 +150,7 @@ export function buildRetailAIInsights({
   lostRevenue = 0,
   missedOpportunities = [],
   topProducts = [],
+  topProductDetailsAvailable = true,
   alternativeSummary = null,
   maxInsights = 4,
 } = {}) {
@@ -162,9 +163,9 @@ export function buildRetailAIInsights({
   const unknownCluster = findDemandCluster(unknownItems)
   const restockCluster = findDemandCluster(outOfStockItems)
   const halalDemandItems = missed.filter(hasHalalIntent)
-  const halalCoverageGap = findHalalCoverageGap(top)
+  const halalCoverageGap = topProductDetailsAvailable ? findHalalCoverageGap(top) : null
   const alternativeTotal = Number(alternativeSummary?.total || 0)
-  const weakDataProducts = top
+  const weakDataProducts = (topProductDetailsAvailable ? top : [])
     .map((item) => ({ item, gaps: dataGaps(item), scans: scanCount(item) }))
     .filter(({ gaps, scans }) => gaps.length > 0 && scans > 0)
 
